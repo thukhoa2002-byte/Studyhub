@@ -1,122 +1,99 @@
 import { useState } from "react";
 
 import Header from "./components/Header";
+import Navbar from "./components/Navbar";
 import UploadImage from "./components/UploadImage";
-import QuestionList from "./components/QuestionList";
-import ScoreCard from "./components/ScoreCard";
+import Study from "./components/Study";
+import Review from "./components/Review";
 
-import { generateQuestions } from "./services/api";
+import {
+  generateQuestions,
+  type GeneratedQuestion,
+} from "./services/api";
 
-import type { Question } from "./types/question";
+export default function App() {
+  const [mode, setMode] = useState<"study" | "review">("study");
 
-function App() {
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
-
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<string[]>([]);
-
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
-  const handleImageChange = (
+  const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
+
+  function onImageChange(
     event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  ) {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
     setImage(file);
     setPreview(URL.createObjectURL(file));
+  }
 
-    setQuestions([]);
-    setAnswers([]);
-    setSubmitted(false);
-  };
-
-  const handleGenerate = async () => {
-    if (!image) {
-      alert("Vui lòng chọn ảnh.");
-      return;
-    }
+  async function onGenerate() {
+    if (!image) return;
 
     try {
       setLoading(true);
 
-      const data = await generateQuestions(image);
+      const response = await generateQuestions(image);
 
-      console.log(data.text);
+      setQuestions(response.data);
 
-      const mappedQuestions: Question[] = data.data.map((item) => ({
-        id: crypto.randomUUID(),
-
-        question: item.question,
-        answer: item.answer,
-
-        category: item.category,
-        importance: item.importance,
-
-        remembered: false,
-        bookmarked: false,
-        revealed: false,
-      }));
-
-      setQuestions(mappedQuestions);
-
-      setAnswers(new Array(mappedQuestions.length).fill(""));
-
-      setSubmitted(false);
+      setMode("study");
     } catch (error) {
       console.error(error);
-      alert("Không thể kết nối tới server.");
+      alert("Không thể tạo câu hỏi.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleAnswerChange = (
-    index: number,
-    value: string
-  ) => {
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[index] = value;
-      return next;
-    });
-  };
+  function toggleBookmark(id: string) {
+    setQuestions((prev) =>
+      prev.map((question) =>
+        question.id === id
+          ? {
+              ...question,
+              bookmarked: !question.bookmarked,
+            }
+          : question
+      )
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow">
+    <main className="min-h-screen bg-slate-100">
 
-        <Header />
+      <Header />
 
+      {questions.length > 0 && (
+        <Navbar
+          mode={mode}
+          setMode={setMode}
+        />
+      )}
+
+      {questions.length === 0 ? (
         <UploadImage
           preview={preview}
           loading={loading}
-          onImageChange={handleImageChange}
-          onGenerate={handleGenerate}
+          onImageChange={onImageChange}
+          onGenerate={onGenerate}
         />
+      ) : mode === "study" ? (
+        <Study
+          questions={questions}
+          toggleBookmark={toggleBookmark}
+        />
+      ) : (
+        <Review
+          questions={questions}
+          toggleBookmark={toggleBookmark}
+        />
+      )}
 
-        {questions.length > 0 && (
-          <>
-            <QuestionList
-              questions={questions}
-              answers={answers}
-              submitted={submitted}
-              onAnswerChange={handleAnswerChange}
-            />
-
-            <ScoreCard
-              submitted={submitted}
-              onSubmit={() => setSubmitted(true)}
-            />
-          </>
-        )}
-
-      </div>
     </main>
   );
 }
-
-export default App;
