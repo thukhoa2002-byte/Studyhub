@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GeneratedQuestion } from "../services/api";
 
 interface Props {
@@ -10,17 +10,39 @@ export default function Study({
   questions,
   toggleBookmark,
 }: Props) {
+  const [shuffle, setShuffle] = useState(false);
+
+  const studyQuestions = useMemo(() => {
+    if (!shuffle) return questions;
+
+    const copy = [...questions];
+
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+
+    return copy;
+  }, [questions, shuffle]);
+
   const [current, setCurrent] = useState(0);
   const [answer, setAnswer] = useState("");
   const [showAnswer, setShowAnswer] = useState(false);
 
-  const question = questions[current];
+  useEffect(() => {
+    setCurrent(0);
+    setAnswer("");
+    setShowAnswer(false);
+  }, [shuffle]);
+
+  const question = studyQuestions[current];
 
   const progress =
-    ((current + 1) / questions.length) * 100;
+    ((current + 1) / studyQuestions.length) * 100;
 
   function nextQuestion() {
-    if (current >= questions.length - 1) return;
+    if (current >= studyQuestions.length - 1) return;
 
     setCurrent((prev) => prev + 1);
     setAnswer("");
@@ -68,10 +90,12 @@ export default function Study({
 
     window.addEventListener("keydown", handleKeyDown);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [current, showAnswer]);
+    return () =>
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+  }, [current, showAnswer, studyQuestions.length]);
 
   return (
     <div className="mx-auto mt-10 max-w-5xl">
@@ -82,12 +106,27 @@ export default function Study({
           📖 Học bài
         </h2>
 
-        <button
-          onClick={() => toggleBookmark(question.id)}
-          className="text-4xl transition hover:scale-110"
-        >
-          {question.bookmarked ? "⭐" : "☆"}
-        </button>
+        <div className="flex items-center gap-3">
+
+          <button
+            onClick={() => setShuffle((v) => !v)}
+            className={`rounded-xl px-4 py-2 font-semibold ${
+              shuffle
+                ? "bg-purple-600 text-white"
+                : "bg-white"
+            }`}
+          >
+            🔀 Shuffle
+          </button>
+
+          <button
+            onClick={() => toggleBookmark(question.id)}
+            className="text-4xl"
+          >
+            {question.bookmarked ? "⭐" : "☆"}
+          </button>
+
+        </div>
 
       </div>
 
@@ -96,7 +135,7 @@ export default function Study({
         <div className="mb-2 flex justify-between text-sm text-gray-500">
 
           <span>
-            {current + 1} / {questions.length}
+            {current + 1} / {studyQuestions.length}
           </span>
 
           <span>
@@ -105,10 +144,10 @@ export default function Study({
 
         </div>
 
-        <div className="h-3 overflow-hidden rounded-full bg-gray-200">
+        <div className="h-3 rounded-full bg-gray-200">
 
           <div
-            className="h-full rounded-full bg-blue-600 transition-all duration-300"
+            className="h-full rounded-full bg-blue-600 transition-all"
             style={{
               width: `${progress}%`,
             }}
@@ -122,11 +161,11 @@ export default function Study({
 
         <div className="mb-5 flex gap-3">
 
-          <span className="rounded-full bg-blue-100 px-4 py-2 text-blue-700">
+          <span className="rounded-full bg-blue-100 px-4 py-2">
             {question.category}
           </span>
 
-          <span className="rounded-full bg-yellow-100 px-4 py-2 text-yellow-700">
+          <span className="rounded-full bg-yellow-100 px-4 py-2">
             ⭐ {question.importance}/10
           </span>
 
@@ -138,26 +177,28 @@ export default function Study({
 
         <textarea
           value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
+          onChange={(e) =>
+            setAnswer(e.target.value)
+          }
           placeholder="Nhập đáp án..."
-          className="h-40 w-full rounded-xl border p-4 text-lg outline-none focus:ring-2 focus:ring-blue-500"
+          className="h-40 w-full rounded-xl border p-4 text-lg"
         />
 
         {!showAnswer ? (
           <button
             onClick={() => setShowAnswer(true)}
-            className="mt-6 w-full rounded-xl bg-blue-600 py-4 text-xl font-bold text-white hover:bg-blue-700"
+            className="mt-6 w-full rounded-xl bg-blue-600 py-4 text-xl font-bold text-white"
           >
-            Hiện đáp án (Space)
+            Hiện đáp án
           </button>
         ) : (
-          <div className="mt-6 rounded-xl border border-green-300 bg-green-50 p-6">
+          <div className="mt-6 rounded-xl bg-green-100 p-6">
 
-            <div className="text-sm font-semibold text-green-700">
+            <div className="text-sm">
               Đáp án
             </div>
 
-            <div className="mt-2 text-3xl font-bold text-green-800">
+            <div className="mt-2 text-3xl font-bold">
               {question.answer}
             </div>
 
@@ -166,38 +207,22 @@ export default function Study({
 
       </div>
 
-      <div className="mt-6 rounded-xl bg-gray-100 p-4 text-sm text-gray-600">
-
-        <div>⌨️ Phím tắt</div>
-
-        <div className="mt-2 flex flex-wrap gap-4">
-
-          <span>← Câu trước</span>
-
-          <span>→ Câu tiếp</span>
-
-          <span>Space: Hiện đáp án</span>
-
-          <span>Enter: Câu tiếp</span>
-
-        </div>
-
-      </div>
-
       <div className="mt-8 flex justify-between">
 
         <button
           onClick={previousQuestion}
           disabled={current === 0}
-          className="rounded-xl border px-6 py-3 font-semibold disabled:opacity-40"
+          className="rounded-xl border px-6 py-3 disabled:opacity-40"
         >
           ← Trước
         </button>
 
         <button
           onClick={nextQuestion}
-          disabled={current === questions.length - 1}
-          className="rounded-xl bg-black px-6 py-3 font-semibold text-white disabled:opacity-40"
+          disabled={
+            current === studyQuestions.length - 1
+          }
+          className="rounded-xl bg-black px-6 py-3 text-white disabled:opacity-40"
         >
           Tiếp →
         </button>
