@@ -2,15 +2,34 @@ const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export interface GeneratedQuestion {
+  id: string;
+
   question: string;
   answer: string;
+
   category: string;
   importance: number;
+
+  bookmarked: boolean;
+}
+
+export interface Deck {
+  id: string;
+
+  title: string;
+
+  createdAt: number;
+
+  questions: GeneratedQuestion[];
 }
 
 export interface GenerateQuestionsResponse {
   success: boolean;
+
   text: string;
+
+  title: string;
+
   data: GeneratedQuestion[];
 }
 
@@ -18,6 +37,7 @@ export async function generateQuestions(
   image: File
 ): Promise<GenerateQuestionsResponse> {
   const formData = new FormData();
+
   formData.append("image", image);
 
   const response = await fetch(`${API_URL}/api/generate-cloze`, {
@@ -29,5 +49,19 @@ export async function generateQuestions(
     throw new Error("Không thể kết nối tới server.");
   }
 
-  return (await response.json()) as GenerateQuestionsResponse;
+  const result =
+    (await response.json()) as GenerateQuestionsResponse;
+
+  result.data = result.data.map((question, index) => ({
+    ...question,
+
+    id:
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : index.toString(),
+
+    bookmarked: false,
+  }));
+
+  return result;
 }
