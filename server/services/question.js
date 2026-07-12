@@ -14,26 +14,26 @@ ${text}
 NHIỆM VỤ
 =========================
 
-Đọc tài liệu và tạo đúng 10 câu hỏi điền khuyết.
+Đọc tài liệu trên và tạo các câu hỏi điền khuyết.
 
-Quy tắc:
+Yêu cầu:
 
-- Chỉ hỏi ý quan trọng.
-- Không hỏi ý lặp.
+- Chỉ hỏi các ý quan trọng.
+- Không hỏi ý trùng lặp.
 - Không hỏi ví dụ.
 - Mỗi câu chỉ hỏi một ý.
 - Đáp án ngắn gọn.
-- Ưu tiên định nghĩa, tiêu chuẩn, điều trị, số liệu, guideline.
-- Chỉ tạo câu có độ quan trọng từ 8 trở lên.
+- Ưu tiên định nghĩa, tiêu chuẩn chẩn đoán, điều trị, số liệu, guideline.
+- Chỉ lấy các ý có độ quan trọng từ 8 trở lên.
 
-Trả lời DUY NHẤT bằng JSON theo đúng định dạng sau:
+CHỈ trả về JSON đúng định dạng sau, không thêm bất kỳ giải thích nào:
 
 {
   "questions": [
     {
-      "question": "",
-      "answer": "",
-      "category": "",
+      "question": "...",
+      "answer": "...",
+      "category": "...",
       "importance": 10
     }
   ]
@@ -51,6 +51,10 @@ Trả lời DUY NHẤT bằng JSON theo đúng định dạng sau:
   console.log("========== OUTPUT TEXT ==========");
   console.log(response.output_text);
 
+  if (!response.output_text) {
+    throw new Error("OpenAI không trả về output_text.");
+  }
+
   let parsed;
 
   try {
@@ -58,11 +62,12 @@ Trả lời DUY NHẤT bằng JSON theo đúng định dạng sau:
   } catch (err) {
     console.error("Không parse được JSON:");
     console.error(response.output_text);
-    throw err;
+    throw new Error("OpenAI không trả về JSON hợp lệ.");
   }
 
-  console.log("========== PARSED ==========");
-  console.dir(parsed, { depth: null });
+  if (!parsed.questions || !Array.isArray(parsed.questions)) {
+    throw new Error("JSON không có trường questions.");
+  }
 
-  return parsed.questions ?? [];
+  return parsed.questions;
 }
