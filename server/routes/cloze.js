@@ -2,7 +2,6 @@ import express from "express";
 import multer from "multer";
 
 import { extractTextFromImage } from "../services/ocr.js";
-import { extractFacts } from "../services/facts.js";
 import { generateQuestions } from "../services/question.js";
 
 const router = express.Router();
@@ -22,19 +21,12 @@ router.post("/", upload.single("image"), async (req, res) => {
 
     const text = await extractTextFromImage(req.file);
 
-    const facts = await extractFacts(text);
-
-    const importantFacts = facts.filter(
-      (fact) => fact.importance >= 8
-    );
-
-    const result = await generateQuestions(importantFacts);
+    const result = await generateQuestions(text);
 
     res.json({
       success: true,
       text,
       title: result.title,
-      facts: importantFacts,
       data: result.questions,
     });
   } catch (error) {
