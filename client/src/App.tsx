@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import UploadImage from "./components/UploadImage";
 import Study from "./components/Study";
 import Review from "./components/Review";
+import LoadingOverlay from "./components/LoadingOverlay";
 
 import {
   generateQuestions,
@@ -64,36 +65,40 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100">
+    <>
+      {loading && <LoadingOverlay />}
 
-      <Header />
+      <main className="min-h-screen bg-slate-100">
 
-      {questions.length > 0 && (
-        <Navbar
-          mode={mode}
-          setMode={setMode}
-        />
-      )}
+        <Header />
 
-      {questions.length === 0 ? (
-        <UploadImage
-          preview={preview}
-          loading={loading}
-          onImageChange={onImageChange}
-          onGenerate={onGenerate}
-        />
-      ) : mode === "study" ? (
-        <Study
-          questions={questions}
-          toggleBookmark={toggleBookmark}
-        />
-      ) : (
-        <Review
-          questions={questions}
-          toggleBookmark={toggleBookmark}
-        />
-      )}
+        {questions.length > 0 && (
+          <Navbar
+            mode={mode}
+            setMode={setMode}
+          />
+        )}
 
-    </main>
+        {questions.length === 0 ? (
+          <UploadImage
+            preview={preview}
+            loading={loading}
+            onImageChange={onImageChange}
+            onGenerate={onGenerate}
+          />
+        ) : mode === "study" ? (
+          <Study
+            questions={questions}
+            toggleBookmark={toggleBookmark}
+          />
+        ) : (
+          <Review
+            questions={questions}
+            toggleBookmark={toggleBookmark}
+          />
+        )}
+
+      </main>
+    </>
   );
 }

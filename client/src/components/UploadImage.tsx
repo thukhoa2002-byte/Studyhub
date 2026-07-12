@@ -1,9 +1,17 @@
 import React from "react";
+import {
+  UploadCloud,
+  Image,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 
 interface UploadImageProps {
   preview: string;
   loading: boolean;
-  onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onImageChange: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
   onGenerate: () => void;
 }
 
@@ -14,179 +22,163 @@ export default function UploadImage({
   onGenerate,
 }: UploadImageProps) {
   return (
-    <div className="mx-auto flex min-h-[85vh] max-w-6xl items-center justify-center px-6 py-10">
+    <div className="mx-auto flex min-h-[calc(100vh-80px)] max-w-7xl items-center px-8">
 
-      <div className="w-full rounded-[36px] border border-slate-200 bg-white p-12 shadow-2xl">
+      <div className="grid w-full gap-16 lg:grid-cols-2">
 
-        {/* Header */}
+        {/* LEFT */}
 
-        <div className="text-center">
+        <div className="flex flex-col justify-center">
 
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-600 text-5xl shadow-xl">
-            📚
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
+
+            <Sparkles size={16} />
+
+            AI Cloze Generator
+
           </div>
 
-          <h1 className="mt-8 text-6xl font-extrabold tracking-tight text-slate-900">
-            Học bài thôi
+          <h1 className="mt-8 text-6xl font-extrabold leading-tight tracking-tight">
+
+            Học thuộc
+            <br />
+
+            <span className="text-blue-600">
+              nhanh hơn.
+            </span>
+
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-xl leading-9 text-slate-500">
-            Biến tài liệu thành bộ câu hỏi điền khuyết bằng AI.
-            Học nhanh hơn. Nhớ lâu hơn.
+          <p className="mt-8 max-w-xl text-xl leading-9 text-slate-500">
+
+            Chỉ cần tải ảnh bài học.
+
+            AI sẽ tự đọc nội dung, chọn kiến thức quan trọng và tạo câu hỏi
+            điền khuyết để bạn ôn tập hiệu quả.
+
           </p>
+
+          <div className="mt-12 flex gap-6">
+
+            <div className="rounded-2xl border bg-white px-6 py-5 shadow-sm">
+
+              <div className="text-3xl font-bold">
+                OCR
+              </div>
+
+              <div className="mt-1 text-sm text-slate-500">
+                Đọc tài liệu
+              </div>
+
+            </div>
+
+            <div className="rounded-2xl border bg-white px-6 py-5 shadow-sm">
+
+              <div className="text-3xl font-bold">
+                AI
+              </div>
+
+              <div className="mt-1 text-sm text-slate-500">
+                Sinh câu hỏi
+              </div>
+
+            </div>
+
+            <div className="rounded-2xl border bg-white px-6 py-5 shadow-sm">
+
+              <div className="text-3xl font-bold">
+                Study
+              </div>
+
+              <div className="mt-1 text-sm text-slate-500">
+                Ôn tập
+              </div>
+
+            </div>
+
+          </div>
 
         </div>
 
-        {/* Upload */}
+        {/* RIGHT */}
 
-        <label
-          htmlFor="upload"
-          className="group mt-14 flex h-[360px] cursor-pointer flex-col items-center justify-center rounded-[32px] border-2 border-dashed border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 transition duration-300 hover:scale-[1.01] hover:border-blue-500 hover:shadow-xl"
-        >
+        <div>
 
-          {preview ? (
+          <div className="rounded-[36px] border bg-white p-10 shadow-xl">
 
-            <img
-              src={preview}
-              alt="Preview"
-              className="max-h-[300px] rounded-3xl object-contain shadow-xl"
+            <label
+              htmlFor="upload"
+              className="flex h-[420px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 transition hover:border-blue-500 hover:bg-blue-50"
+            >
+
+              {preview ? (
+
+                <img
+                  src={preview}
+                  alt="preview"
+                  className="max-h-[360px] rounded-2xl"
+                />
+
+              ) : (
+
+                <>
+
+                  <UploadCloud
+                    size={80}
+                    className="text-blue-600"
+                  />
+
+                  <h2 className="mt-8 text-3xl font-bold">
+
+                    Kéo ảnh vào đây
+
+                  </h2>
+
+                  <p className="mt-3 text-slate-500">
+
+                    hoặc bấm để chọn từ máy tính
+
+                  </p>
+
+                </>
+
+              )}
+
+            </label>
+
+            <input
+              id="upload"
+              hidden
+              type="file"
+              accept="image/*"
+              onChange={onImageChange}
             />
 
-          ) : (
+            <button
+              disabled={!preview || loading}
+              onClick={onGenerate}
+              className="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 py-5 text-xl font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
+            >
 
-            <>
+              {loading ? (
 
-              <div className="text-8xl transition duration-300 group-hover:scale-110">
-                📄
-              </div>
+                "AI đang tạo câu hỏi..."
 
-              <h2 className="mt-8 text-3xl font-bold text-slate-800">
-                Kéo ảnh vào đây
-              </h2>
+              ) : (
 
-              <p className="mt-3 text-lg text-slate-500">
-                hoặc bấm để chọn ảnh từ máy tính
-              </p>
+                <>
 
-              <div className="mt-8 rounded-2xl bg-blue-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition group-hover:bg-blue-700">
-                Chọn ảnh
-              </div>
+                  <Image size={22} />
 
-            </>
+                  Bắt đầu học
 
-          )}
+                  <ArrowRight size={20} />
 
-        </label>
+                </>
 
-        <input
-          id="upload"
-          hidden
-          type="file"
-          accept="image/*"
-          onChange={onImageChange}
-        />
+              )}
 
-        {/* Button */}
-
-        <button
-          onClick={onGenerate}
-          disabled={loading || !preview}
-          className="mt-12 flex w-full items-center justify-center rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-600 py-5 text-2xl font-bold text-white shadow-xl transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-
-          {loading ? (
-
-            <div className="flex items-center gap-4">
-
-              <svg
-                className="h-7 w-7 animate-spin"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-
-                <circle
-                  className="opacity-20"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-
-                <path
-                  className="opacity-90"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-
-              </svg>
-
-              <span>
-                AI đang tạo câu hỏi...
-              </span>
-
-            </div>
-
-          ) : (
-
-            <>
-              🚀 Bắt đầu học
-            </>
-
-          )}
-
-        </button>
-
-        {/* Features */}
-
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
-
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:shadow-lg">
-
-            <div className="text-5xl">
-              📷
-            </div>
-
-            <h3 className="mt-6 text-xl font-bold">
-              Tải tài liệu
-            </h3>
-
-            <p className="mt-3 leading-7 text-slate-500">
-              Chụp hoặc tải lên ảnh sách, slide, ghi chú hoặc guideline.
-            </p>
-
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:shadow-lg">
-
-            <div className="text-5xl">
-              🤖
-            </div>
-
-            <h3 className="mt-6 text-xl font-bold">
-              AI phân tích
-            </h3>
-
-            <p className="mt-3 leading-7 text-slate-500">
-              AI chọn các ý quan trọng nhất và tạo câu hỏi điền khuyết.
-            </p>
-
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:shadow-lg">
-
-            <div className="text-5xl">
-              🎯
-            </div>
-
-            <h3 className="mt-6 text-xl font-bold">
-              Ghi nhớ nhanh
-            </h3>
-
-            <p className="mt-3 leading-7 text-slate-500">
-              Trả lời, kiểm tra đáp án và ôn tập những câu quan trọng.
-            </p>
+            </button>
 
           </div>
 
