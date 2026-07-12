@@ -1,4 +1,8 @@
-const prompt = `
+import client from "../config/openai.js";
+import { questionSchema } from "../schema/questionSchema.js";
+
+export async function generateQuestions(text) {
+  const prompt = `
 Bạn là giảng viên Nội khoa chuyên biên soạn câu hỏi cho kỳ thi Bác sĩ Nội trú.
 
 ========================
@@ -31,59 +35,42 @@ QUY TẮC TẠO CÂU HỎI
 Mỗi câu phải được tạo bằng cách:
 
 - giữ nguyên câu gốc
-- chỉ che đi phần quan trọng nhất
+- chỉ che đúng một ý quan trọng nhất
 - thay bằng _____
 
 Ví dụ:
 
 Đúng:
-
 "SAAG ≥ _____ g/dL gợi ý tăng áp lực tĩnh mạch cửa."
 
 Đáp án:
-
 1,1
 
---------------------
-
 Đúng:
-
 "TIPS chống chỉ định tuyệt đối khi có _____."
 
 Đáp án:
-
 Suy tim mất bù
 
---------------------
-
 Đúng:
-
 "Kháng sinh lựa chọn đầu tay là _____."
 
 Đáp án:
-
 Ceftriaxone
 
---------------------
-
 Sai:
-
 "TIPS là gì?"
 
 Sai:
-
 "Điều trị của..."
 
 Sai:
-
 "Hãy kể..."
 
 Sai:
-
 "Các biểu hiện..."
 
 Sai:
-
 "Trên X-quang thấy gì?"
 
 ========================
@@ -106,17 +93,39 @@ NGUYÊN TẮC
 
 ✓ Không tạo câu có thể có nhiều đáp án.
 
-✓ Chỉ lấy các ý có importance ≥ 8.
+✓ Chỉ lấy ý quan trọng.
 
 Ưu tiên:
 
-- định nghĩa
-- tiêu chuẩn
-- phân loại
-- chỉ định
-- chống chỉ định
-- thuốc
-- liều
-- giá trị xét nghiệm
-- guideline
+- Định nghĩa
+- Tiêu chuẩn
+- Phân loại
+- Chỉ định
+- Chống chỉ định
+- Thuốc
+- Liều
+- Giá trị xét nghiệm
+- Guideline
 `;
+
+  const response = await client.responses.create({
+    model: process.env.OPENAI_MODEL || "gpt-5-mini",
+    input: prompt,
+    text: {
+      format: {
+        type: "json_schema",
+        ...questionSchema,
+      },
+    },
+  });
+
+  if (response.output_parsed) {
+    return response.output_parsed;
+  }
+
+  if (response.output_text) {
+    return JSON.parse(response.output_text);
+  }
+
+  throw new Error("Không thể tạo câu hỏi.");
+}
