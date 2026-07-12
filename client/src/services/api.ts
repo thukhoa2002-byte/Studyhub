@@ -1,13 +1,14 @@
-import type { Question } from "../types/question";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-const API_URL = "http://localhost:3000";
+export interface GeneratedQuestion {
+  question: string;
+  answer: string;
+  category: string;
+  importance: number;
+}
 
-type GeneratedQuestion = Omit<
-  Question,
-  "id" | "remembered" | "bookmarked"
->;
-
-interface GenerateQuestionsResponse {
+export interface GenerateQuestionsResponse {
   success: boolean;
   text: string;
   data: GeneratedQuestion[];
@@ -19,17 +20,14 @@ export async function generateQuestions(
   const formData = new FormData();
   formData.append("image", image);
 
-  const response = await fetch(
-    `${API_URL}/api/generate-cloze`,
-    {
-      method: "POST",
-      body: formData,
-    }
-  );
+  const response = await fetch(`${API_URL}/api/generate-cloze`, {
+    method: "POST",
+    body: formData,
+  });
 
   if (!response.ok) {
-    throw new Error("Không thể tạo câu hỏi");
+    throw new Error("Không thể kết nối tới server.");
   }
 
-  return response.json();
+  return (await response.json()) as GenerateQuestionsResponse;
 }

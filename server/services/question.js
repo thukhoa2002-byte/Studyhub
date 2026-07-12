@@ -2,10 +2,7 @@ import client from "../config/openai.js";
 import { questionSchema } from "../schema/questionSchema.js";
 
 export async function generateQuestions(text) {
-  const response = await client.responses.create({
-    model: "gpt-5",
-
-    input: `
+  const prompt = `
 Bạn là giảng viên Nội khoa đang biên soạn ngân hàng câu hỏi cho kỳ thi Bác sĩ Nội trú.
 
 =========================
@@ -29,7 +26,12 @@ Quy tắc:
 - Đáp án ngắn gọn.
 - Ưu tiên định nghĩa, tiêu chuẩn, điều trị, số liệu, guideline.
 - Chỉ tạo câu có độ quan trọng từ 8 trở lên.
-`,
+`;
+
+  const response = await client.responses.create({
+    model: process.env.OPENAI_MODEL || "gpt-5",
+
+    input: prompt,
 
     text: {
       format: {
