@@ -14,13 +14,15 @@ export default function UploadImage({
   onGenerate,
 }: UploadImageProps) {
   return (
-    <div className="mx-auto flex min-h-[85vh] max-w-6xl items-center justify-center px-6">
+    <div className="mx-auto flex min-h-[85vh] max-w-6xl items-center justify-center px-6 py-10">
 
-      <div className="w-full rounded-[40px] border border-slate-200 bg-white p-12 shadow-2xl">
+      <div className="w-full rounded-[36px] border border-slate-200 bg-white p-12 shadow-2xl">
+
+        {/* Header */}
 
         <div className="text-center">
 
-          <div className="inline-flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-600 text-5xl shadow-lg">
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-600 text-5xl shadow-xl">
             📚
           </div>
 
@@ -29,11 +31,13 @@ export default function UploadImage({
           </h1>
 
           <p className="mx-auto mt-5 max-w-2xl text-xl leading-9 text-slate-500">
-            AI sẽ đọc tài liệu, chọn những ý quan trọng nhất và tạo
-            câu hỏi điền khuyết để bạn học nhanh hơn.
+            Biến tài liệu thành bộ câu hỏi điền khuyết bằng AI.
+            Học nhanh hơn. Nhớ lâu hơn.
           </p>
 
         </div>
+
+        {/* Upload */}
 
         <label
           htmlFor="upload"
@@ -45,14 +49,14 @@ export default function UploadImage({
             <img
               src={preview}
               alt="Preview"
-              className="max-h-[300px] rounded-3xl object-contain shadow-lg"
+              className="max-h-[300px] rounded-3xl object-contain shadow-xl"
             />
 
           ) : (
 
             <>
 
-              <div className="text-8xl transition group-hover:scale-110">
+              <div className="text-8xl transition duration-300 group-hover:scale-110">
                 📄
               </div>
 
@@ -82,62 +86,106 @@ export default function UploadImage({
           onChange={onImageChange}
         />
 
+        {/* Button */}
+
         <button
           onClick={onGenerate}
           disabled={loading || !preview}
-          className="mt-12 w-full rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-600 py-5 text-2xl font-bold text-white shadow-xl transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-12 flex w-full items-center justify-center rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-600 py-5 text-2xl font-bold text-white shadow-xl transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading
-            ? "🤖 AI đang tạo câu hỏi..."
-            : "🚀 Bắt đầu học"}
+
+          {loading ? (
+
+            <div className="flex items-center gap-4">
+
+              <svg
+                className="h-7 w-7 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+
+                <circle
+                  className="opacity-20"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+
+                <path
+                  className="opacity-90"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+
+              </svg>
+
+              <span>
+                AI đang tạo câu hỏi...
+              </span>
+
+            </div>
+
+          ) : (
+
+            <>
+              🚀 Bắt đầu học
+            </>
+
+          )}
+
         </button>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        {/* Features */}
 
-          <div className="rounded-3xl border border-slate-100 bg-slate-50 p-8 text-center">
+        <div className="mt-14 grid gap-6 md:grid-cols-3">
+
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:shadow-lg">
 
             <div className="text-5xl">
               📷
             </div>
 
-            <div className="mt-5 text-xl font-bold">
-              Tải ảnh
-            </div>
+            <h3 className="mt-6 text-xl font-bold">
+              Tải tài liệu
+            </h3>
 
-            <p className="mt-3 text-slate-500">
-              Chụp hoặc tải lên tài liệu, slide, sách hoặc ghi chú.
+            <p className="mt-3 leading-7 text-slate-500">
+              Chụp hoặc tải lên ảnh sách, slide, ghi chú hoặc guideline.
             </p>
 
           </div>
 
-          <div className="rounded-3xl border border-slate-100 bg-slate-50 p-8 text-center">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:shadow-lg">
 
             <div className="text-5xl">
               🤖
             </div>
 
-            <div className="mt-5 text-xl font-bold">
+            <h3 className="mt-6 text-xl font-bold">
               AI phân tích
-            </div>
+            </h3>
 
-            <p className="mt-3 text-slate-500">
-              Tự động chọn kiến thức trọng tâm và tạo câu hỏi.
+            <p className="mt-3 leading-7 text-slate-500">
+              AI chọn các ý quan trọng nhất và tạo câu hỏi điền khuyết.
             </p>
 
           </div>
 
-          <div className="rounded-3xl border border-slate-100 bg-slate-50 p-8 text-center">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:shadow-lg">
 
             <div className="text-5xl">
               🎯
             </div>
 
-            <div className="mt-5 text-xl font-bold">
-              Ôn tập
-            </div>
+            <h3 className="mt-6 text-xl font-bold">
+              Ghi nhớ nhanh
+            </h3>
 
-            <p className="mt-3 text-slate-500">
-              Trả lời, kiểm tra và ghi nhớ nhanh hơn.
+            <p className="mt-3 leading-7 text-slate-500">
+              Trả lời, kiểm tra đáp án và ôn tập những câu quan trọng.
             </p>
 
           </div>
