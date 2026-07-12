@@ -30,9 +30,7 @@ Quy tắc:
 
   const response = await client.responses.create({
     model: process.env.OPENAI_MODEL || "gpt-5",
-
     input: prompt,
-
     text: {
       format: {
         type: "json_schema",
@@ -41,5 +39,9 @@ Quy tắc:
     },
   });
 
-  return response.output_parsed.questions;
+  console.log("========== OPENAI RESPONSE ==========");
+  console.dir(response, { depth: null });
+  console.log("====================================");
+
+  return response.output_parsed?.questions ?? [];
 }
