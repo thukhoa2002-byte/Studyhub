@@ -1,73 +1,61 @@
 import client from "../config/openai.js";
+import { questionSchema } from "../schema/questionSchema.js";
 
-export async function generateQuestions(text) {
+export async function generateQuestions(facts) {
   const prompt = `
-Bạn là giảng viên Nội khoa đang biên soạn ngân hàng câu hỏi cho kỳ thi Bác sĩ Nội trú.
+Bạn là giảng viên Nội khoa.
 
-=========================
-TÀI LIỆU
-=========================
+Từ danh sách FACT dưới đây:
 
-${text}
+${JSON.stringify(facts, null, 2)}
 
-=========================
-NHIỆM VỤ
-=========================
+Hãy:
 
-Đọc tài liệu trên và tạo các câu hỏi điền khuyết.
+1. Đặt tên ngắn gọn cho bộ câu hỏi (title).
+2. Tạo các câu hỏi điền khuyết.
 
-Yêu cầu:
+Quy tắc:
 
-- Chỉ hỏi các ý quan trọng.
-- Không hỏi ý trùng lặp.
-- Không hỏi ví dụ.
-- Mỗi câu chỉ hỏi một ý.
-- Đáp án ngắn gọn.
-- Ưu tiên định nghĩa, tiêu chuẩn chẩn đoán, điều trị, số liệu, guideline.
-- Chỉ lấy các ý có độ quan trọng từ 8 trở lên.
+- title tối đa 6 từ.
+- title phải là tên chủ đề.
+- Không thêm dấu ":".
+- Không thêm "Bài", "Chương", "Deck".
 
-CHỈ trả về JSON đúng định dạng sau, không thêm bất kỳ giải thích nào:
+Ví dụ:
 
-{
-  "questions": [
-    {
-      "question": "...",
-      "answer": "...",
-      "category": "...",
-      "importance": 10
-    }
-  ]
-}
+Viêm phổi cộng đồng
+
+Xơ gan
+
+Viêm tụy cấp
+
+...
+
+Mỗi FACT tối đa tạo một câu hỏi.
+
+Không tạo câu hỏi tầm thường.
+
+Giữ nguyên category và importance.
+
+Đáp án ngắn gọn.
 `;
 
   const response = await client.responses.create({
     model: process.env.OPENAI_MODEL || "gpt-5-mini",
+
     input: prompt,
+
+    text: {
+      format: {
+        type: "json_schema",
+        ...questionSchema,
+      },
+    },
   });
 
-  console.log("========== OPENAI RESPONSE ==========");
-  console.dir(response, { depth: null });
-
-  console.log("========== OUTPUT TEXT ==========");
-  console.log(response.output_text);
-
-  if (!response.output_text) {
-    throw new Error("OpenAI không trả về output_text.");
+  if (!response.output_parsed) {
+    throw new Error("Không thể sinh câu hỏi.");
   }
 
-  let parsed;
-
-  try {
-    parsed = JSON.parse(response.output_text);
-  } catch (err) {
-    console.error("Không parse được JSON:");
-    console.error(response.output_text);
-    throw new Error("OpenAI không trả về JSON hợp lệ.");
-  }
-
-  if (!parsed.questions || !Array.isArray(parsed.questions)) {
-    throw new Error("JSON không có trường questions.");
-  }
-
-  return parsed.questions;
+  return response.output_parsed;
 }
