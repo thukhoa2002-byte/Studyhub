@@ -1,5 +1,4 @@
 import client from "../config/openai.js";
-import { questionSchema } from "../schema/questionSchema.js";
 
 export async function generateQuestions(text) {
   const prompt = `
@@ -15,7 +14,7 @@ ${text}
 NHIỆM VỤ
 =========================
 
-Đọc tài liệu và tạo các câu hỏi điền khuyết.
+Đọc tài liệu và tạo đúng 10 câu hỏi điền khuyết.
 
 Quy tắc:
 
@@ -26,22 +25,44 @@ Quy tắc:
 - Đáp án ngắn gọn.
 - Ưu tiên định nghĩa, tiêu chuẩn, điều trị, số liệu, guideline.
 - Chỉ tạo câu có độ quan trọng từ 8 trở lên.
+
+Trả lời DUY NHẤT bằng JSON theo đúng định dạng sau:
+
+{
+  "questions": [
+    {
+      "question": "",
+      "answer": "",
+      "category": "",
+      "importance": 10
+    }
+  ]
+}
 `;
 
   const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL || "gpt-5",
+    model: process.env.OPENAI_MODEL || "gpt-5-mini",
     input: prompt,
-    text: {
-      format: {
-        type: "json_schema",
-        ...questionSchema,
-      },
-    },
   });
 
   console.log("========== OPENAI RESPONSE ==========");
   console.dir(response, { depth: null });
-  console.log("====================================");
 
-  return response.output_parsed?.questions ?? [];
+  console.log("========== OUTPUT TEXT ==========");
+  console.log(response.output_text);
+
+  let parsed;
+
+  try {
+    parsed = JSON.parse(response.output_text);
+  } catch (err) {
+    console.error("Không parse được JSON:");
+    console.error(response.output_text);
+    throw err;
+  }
+
+  console.log("========== PARSED ==========");
+  console.dir(parsed, { depth: null });
+
+  return parsed.questions ?? [];
 }
