@@ -1,9 +1,9 @@
-import gradingRouter from "./routes/grading.js";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
 import clozeRouter from "./routes/cloze.js";
+import gradingRouter from "./routes/grading.js";
 
 dotenv.config();
 
@@ -21,9 +21,10 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Cloze API
+// API
 app.use("/api/generate-cloze", clozeRouter);
 app.use("/api/grading", gradingRouter);
+
 // Home
 app.get("/", (req, res) => {
   res.json({
@@ -32,8 +33,9 @@ app.get("/", (req, res) => {
   });
 });
 
-const PORT = 3000;
+// Render sẽ truyền PORT qua biến môi trường
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
