@@ -14,51 +14,119 @@ export default function UploadImage({
   onGenerate,
 }: UploadImageProps) {
   return (
-    <div className="mx-auto mt-10 max-w-3xl rounded-2xl bg-white p-8 shadow-lg">
+    <div className="mx-auto mt-10 max-w-4xl">
 
-      <h2 className="mb-2 text-3xl font-bold">
-        Tạo bộ câu hỏi
-      </h2>
+      <div className="rounded-[32px] bg-white p-10 shadow-2xl">
 
-      <p className="mb-8 text-gray-500">
-        Chọn một ảnh chứa nội dung bài học để AI tạo bộ câu hỏi ôn tập.
-      </p>
+        <div className="text-center">
 
-      <label className="flex h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 transition hover:border-blue-500 hover:bg-blue-50">
+          <div className="text-6xl">📚</div>
 
-        <span className="text-lg font-semibold">
-          Chọn ảnh
-        </span>
+          <h1 className="mt-4 text-5xl font-extrabold text-slate-900">
+            Tạo bộ câu hỏi
+          </h1>
 
-        <span className="mt-2 text-sm text-gray-500">
-          PNG, JPG, JPEG
-        </span>
+          <p className="mt-3 text-lg text-slate-500">
+            Chỉ cần tải ảnh bài học lên, AI sẽ tạo bộ câu hỏi điền khuyết
+            giúp bạn ôn tập nhanh hơn.
+          </p>
+
+        </div>
+
+        <label
+          htmlFor="upload"
+          className="mt-10 flex h-80 cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-blue-300 bg-blue-50 transition hover:border-blue-500 hover:bg-blue-100"
+        >
+
+          {preview ? (
+            <img
+              src={preview}
+              alt="Preview"
+              className="h-full max-h-72 rounded-2xl object-contain"
+            />
+          ) : (
+            <>
+              <div className="text-7xl">📷</div>
+
+              <div className="mt-6 text-3xl font-bold text-slate-800">
+                Chọn ảnh
+              </div>
+
+              <div className="mt-2 text-slate-500">
+                PNG, JPG, JPEG
+              </div>
+
+              <div className="mt-6 rounded-full bg-blue-600 px-6 py-3 text-lg font-bold text-white shadow-lg">
+                Chọn từ máy tính
+              </div>
+            </>
+          )}
+
+        </label>
 
         <input
+          id="upload"
+          hidden
           type="file"
           accept="image/*"
           onChange={onImageChange}
-          className="hidden"
         />
-      </label>
 
-      {preview && (
-        <div className="mt-8">
-          <img
-            src={preview}
-            alt="Preview"
-            className="max-h-[500px] w-full rounded-xl border object-contain"
-          />
+        <button
+          onClick={onGenerate}
+          disabled={loading || !preview}
+          className="mt-10 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 py-5 text-2xl font-bold text-white shadow-lg transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? "🤖 AI đang tạo câu hỏi..." : "🚀 Bắt đầu học"}
+        </button>
+
+      </div>
+
+      <div className="mt-10 grid grid-cols-3 gap-6">
+
+        <div className="rounded-2xl bg-white p-6 text-center shadow">
+
+          <div className="text-4xl">📷</div>
+
+          <div className="mt-3 font-bold">
+            Upload ảnh
+          </div>
+
+          <div className="mt-2 text-sm text-slate-500">
+            Chụp hoặc tải ảnh tài liệu.
+          </div>
+
         </div>
-      )}
 
-      <button
-        onClick={onGenerate}
-        disabled={!preview || loading}
-        className="mt-8 w-full rounded-xl bg-blue-600 py-4 text-lg font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-      >
-        {loading ? "Đang tạo câu hỏi..." : "Bắt đầu học"}
-      </button>
+        <div className="rounded-2xl bg-white p-6 text-center shadow">
+
+          <div className="text-4xl">🤖</div>
+
+          <div className="mt-3 font-bold">
+            AI tạo câu hỏi
+          </div>
+
+          <div className="mt-2 text-sm text-slate-500">
+            Tự động tạo câu hỏi điền khuyết.
+          </div>
+
+        </div>
+
+        <div className="rounded-2xl bg-white p-6 text-center shadow">
+
+          <div className="text-4xl">🎯</div>
+
+          <div className="mt-3 font-bold">
+            Ôn tập
+          </div>
+
+          <div className="mt-2 text-sm text-slate-500">
+            Học, đánh dấu và ôn lại.
+          </div>
+
+        </div>
+
+      </div>
 
     </div>
   );
