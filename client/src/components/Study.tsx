@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GeneratedQuestion } from "../services/api";
 
 interface Props {
@@ -35,10 +35,47 @@ export default function Study({
     setShowAnswer(false);
   }
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (event.key) {
+        case "ArrowRight":
+          nextQuestion();
+          break;
+
+        case "ArrowLeft":
+          previousQuestion();
+          break;
+
+        case " ":
+          event.preventDefault();
+          setShowAnswer(true);
+          break;
+
+        case "Enter":
+          if (showAnswer) {
+            nextQuestion();
+          }
+          break;
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [current, showAnswer]);
+
   return (
     <div className="mx-auto mt-10 max-w-5xl">
 
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
 
         <h2 className="text-3xl font-bold">
@@ -54,7 +91,6 @@ export default function Study({
 
       </div>
 
-      {/* Progress */}
       <div className="mb-8">
 
         <div className="mb-2 flex justify-between text-sm text-gray-500">
@@ -82,7 +118,6 @@ export default function Study({
 
       </div>
 
-      {/* Card */}
       <div className="rounded-2xl bg-white p-8 shadow">
 
         <div className="mb-5 flex gap-3">
@@ -113,7 +148,7 @@ export default function Study({
             onClick={() => setShowAnswer(true)}
             className="mt-6 w-full rounded-xl bg-blue-600 py-4 text-xl font-bold text-white hover:bg-blue-700"
           >
-            Hiện đáp án
+            Hiện đáp án (Space)
           </button>
         ) : (
           <div className="mt-6 rounded-xl border border-green-300 bg-green-50 p-6">
@@ -131,7 +166,24 @@ export default function Study({
 
       </div>
 
-      {/* Navigation */}
+      <div className="mt-6 rounded-xl bg-gray-100 p-4 text-sm text-gray-600">
+
+        <div>⌨️ Phím tắt</div>
+
+        <div className="mt-2 flex flex-wrap gap-4">
+
+          <span>← Câu trước</span>
+
+          <span>→ Câu tiếp</span>
+
+          <span>Space: Hiện đáp án</span>
+
+          <span>Enter: Câu tiếp</span>
+
+        </div>
+
+      </div>
+
       <div className="mt-8 flex justify-between">
 
         <button
