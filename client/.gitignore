@@ -1,0 +1,19 @@
+# Node
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Build
+dist/
+client/dist/
+
+# Logs
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
