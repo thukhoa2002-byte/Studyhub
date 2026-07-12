@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 
 import { extractTextFromImage } from "../services/ocr.js";
+import { extractFacts } from "../services/facts.js";
 import { generateQuestions } from "../services/question.js";
 
 const router = express.Router();
@@ -19,18 +20,23 @@ router.post("/", upload.single("image"), async (req, res) => {
       });
     }
 
-    // OCR
     const text = await extractTextFromImage(req.file);
 
-    // Sinh câu hỏi
-    const questions = await generateQuestions(text);
+    const facts = await extractFacts(text);
+
+    const importantFacts = facts.filter(
+      (fact) => fact.importance >= 8
+    );
+
+    const result = await generateQuestions(importantFacts);
 
     res.json({
       success: true,
       text,
-      data: questions,
+      title: result.title,
+      facts: importantFacts,
+      data: result.questions,
     });
-
   } catch (error) {
     console.error(error);
 
