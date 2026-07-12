@@ -4,6 +4,9 @@ export const questionSchema = {
   schema: {
     type: "object",
     properties: {
+      title: {
+        type: "string"
+      },
       questions: {
         type: "array",
         items: {
@@ -32,7 +35,10 @@ export const questionSchema = {
         }
       }
     },
-    required: ["questions"],
+    required: [
+      "title",
+      "questions"
+    ],
     additionalProperties: false
   }
 };
