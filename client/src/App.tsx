@@ -51,17 +51,13 @@ function App() {
         id: crypto.randomUUID(),
 
         question: item.question,
-
         answer: item.answer,
 
         category: item.category,
-
         importance: item.importance,
 
         remembered: false,
-
         bookmarked: false,
-
         revealed: false,
       }));
 
@@ -89,38 +85,10 @@ function App() {
     });
   };
 
-  const revealAnswer = (id: string) => {
-    setQuestions((prev) =>
-      prev.map((q) =>
-        q.id === id
-          ? {
-              ...q,
-              revealed: true,
-            }
-          : q
-      )
-    );
-  };
-
-  const rememberQuestion = (
-    id: string,
-    remembered: boolean
-  ) => {
-    setQuestions((prev) =>
-      prev.map((q) =>
-        q.id === id
-          ? {
-              ...q,
-              remembered,
-            }
-          : q
-      )
-    );
-  };
-
   return (
     <main className="min-h-screen bg-slate-100 p-8">
       <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow">
+
         <Header />
 
         <UploadImage
@@ -145,6 +113,7 @@ function App() {
             />
           </>
         )}
+
       </div>
     </main>
   );
