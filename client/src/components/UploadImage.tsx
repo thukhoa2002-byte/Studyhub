@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  UploadCloud,
-  Image,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight, UploadCloud } from "lucide-react";
 
 interface UploadImageProps {
   preview: string;
@@ -22,170 +17,254 @@ export default function UploadImage({
   onGenerate,
 }: UploadImageProps) {
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-80px)] max-w-7xl items-center px-8">
+    <section className="relative min-h-[calc(100vh-96px)] overflow-hidden">
 
-      <div className="grid w-full gap-16 lg:grid-cols-2">
+      {/* Background */}
 
-        {/* LEFT */}
+      <div className="absolute -left-40 -top-20 h-[420px] w-[420px] rounded-full bg-pink-200/40 blur-3xl" />
 
-        <div className="flex flex-col justify-center">
+      <div className="absolute right-0 top-0 h-[420px] w-[420px] rounded-full bg-sky-200/40 blur-3xl" />
 
-          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
+      <div className="absolute bottom-0 left-1/2 h-[320px] w-[320px] -translate-x-1/2 rounded-full bg-fuchsia-200/30 blur-3xl" />
 
-            <Sparkles size={16} />
+      <div className="relative mx-auto flex min-h-[calc(100vh-96px)] max-w-5xl items-center justify-center px-6 py-14">
 
-            AI Cloze Generator
+        <div className="w-full rounded-[40px] border border-white/60 bg-white/70 p-10 shadow-[0_30px_80px_rgba(236,72,153,.12)] backdrop-blur-2xl">
+
+          {/* Header */}
+
+          <div className="text-center">
+
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-pink-400 via-fuchsia-400 to-sky-400 shadow-xl">
+
+              <UploadCloud
+                size={46}
+                className="text-white"
+              />
+
+            </div>
+
+            <h1 className="mt-8 text-5xl font-black tracking-tight text-slate-800">
+
+              Học bài thôi
+
+            </h1>
+
+            <p className="mx-auto mt-4 max-w-lg text-lg leading-8 text-slate-500">
+
+              Biến tài liệu thành câu hỏi điền khuyết bằng AI để học nhanh hơn và nhớ lâu hơn.
+
+            </p>
 
           </div>
 
-          <h1 className="mt-8 text-6xl font-extrabold leading-tight tracking-tight">
+          {/* Upload Box */}
 
-            Học thuộc
-            <br />
+          <label
+            htmlFor="upload"
+            className="
+              group
+              mt-10
+              flex
+              h-[360px]
+              cursor-pointer
+              flex-col
+              items-center
+              justify-center
+              rounded-[32px]
+              border-2
+              border-dashed
+              border-pink-200
+              bg-gradient-to-br
+              from-pink-50
+              via-white
+              to-sky-50
+              transition-all
+              duration-500
+              hover:-translate-y-1
+              hover:scale-[1.01]
+              hover:border-sky-300
+              hover:shadow-2xl
+            "
+          >
+                        {preview ? (
 
-            <span className="text-blue-600">
-              nhanh hơn.
-            </span>
+              <img
+                src={preview}
+                alt="Preview"
+                className="
+                  max-h-[280px]
+                  rounded-[28px]
+                  border
+                  border-white
+                  object-contain
+                  shadow-2xl
+                  transition-all
+                  duration-500
+                  group-hover:scale-[1.02]
+                "
+              />
 
-          </h1>
+            ) : (
 
-          <p className="mt-8 max-w-xl text-xl leading-9 text-slate-500">
+              <>
 
-            Chỉ cần tải ảnh bài học.
-
-            AI sẽ tự đọc nội dung, chọn kiến thức quan trọng và tạo câu hỏi
-            điền khuyết để bạn ôn tập hiệu quả.
-
-          </p>
-
-          <div className="mt-12 flex gap-6">
-
-            <div className="rounded-2xl border bg-white px-6 py-5 shadow-sm">
-
-              <div className="text-3xl font-bold">
-                OCR
-              </div>
-
-              <div className="mt-1 text-sm text-slate-500">
-                Đọc tài liệu
-              </div>
-
-            </div>
-
-            <div className="rounded-2xl border bg-white px-6 py-5 shadow-sm">
-
-              <div className="text-3xl font-bold">
-                AI
-              </div>
-
-              <div className="mt-1 text-sm text-slate-500">
-                Sinh câu hỏi
-              </div>
-
-            </div>
-
-            <div className="rounded-2xl border bg-white px-6 py-5 shadow-sm">
-
-              <div className="text-3xl font-bold">
-                Study
-              </div>
-
-              <div className="mt-1 text-sm text-slate-500">
-                Ôn tập
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* RIGHT */}
-
-        <div>
-
-          <div className="rounded-[36px] border bg-white p-10 shadow-xl">
-
-            <label
-              htmlFor="upload"
-              className="flex h-[420px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 transition hover:border-blue-500 hover:bg-blue-50"
-            >
-
-              {preview ? (
-
-                <img
-                  src={preview}
-                  alt="preview"
-                  className="max-h-[360px] rounded-2xl"
-                />
-
-              ) : (
-
-                <>
+                <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-sky-400 shadow-xl transition-all duration-500 group-hover:rotate-6 group-hover:scale-110">
 
                   <UploadCloud
-                    size={80}
-                    className="text-blue-600"
+                    size={50}
+                    className="text-white"
                   />
 
-                  <h2 className="mt-8 text-3xl font-bold">
+                </div>
 
-                    Kéo ảnh vào đây
+                <h2 className="mt-8 text-3xl font-black tracking-tight text-slate-800">
 
-                  </h2>
+                  Chọn ảnh bài học
 
-                  <p className="mt-3 text-slate-500">
+                </h2>
 
-                    hoặc bấm để chọn từ máy tính
+                <p className="mt-3 text-lg text-slate-500">
 
-                  </p>
+                  Kéo ảnh vào đây hoặc bấm để chọn
 
-                </>
+                </p>
 
-              )}
+                <div className="mt-8 rounded-full bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow">
 
-            </label>
+                  PNG • JPG • JPEG
 
-            <input
-              id="upload"
-              hidden
-              type="file"
-              accept="image/*"
-              onChange={onImageChange}
-            />
+                </div>
 
-            <button
-              disabled={!preview || loading}
-              onClick={onGenerate}
-              className="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 py-5 text-xl font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
-            >
+              </>
 
-              {loading ? (
+            )}
 
-                "AI đang tạo câu hỏi..."
+          </label>
 
-              ) : (
+          <input
+            id="upload"
+            hidden
+            type="file"
+            accept="image/*"
+            onChange={onImageChange}
+          />
 
-                <>
+          <button
+            disabled={!preview || loading}
+            onClick={onGenerate}
+            className="
+              mt-8
+              flex
+              w-full
+              items-center
+              justify-center
+              gap-3
+              rounded-2xl
+              bg-gradient-to-r
+              from-pink-400
+              via-fuchsia-400
+              to-sky-400
+              py-5
+              text-xl
+              font-bold
+              text-white
+              shadow-xl
+              transition-all
+              duration-500
+              hover:-translate-y-1
+              hover:shadow-[0_20px_50px_rgba(236,72,153,.30)]
+              active:scale-[.98]
+              disabled:cursor-not-allowed
+              disabled:opacity-40
+            "
+          >
 
-                  <Image size={22} />
+            {loading ? (
 
-                  Bắt đầu học
+              <>
 
-                  <ArrowRight size={20} />
+                <svg
+                  className="h-6 w-6 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    className="opacity-20"
+                  />
 
-                </>
+                  <path
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
 
-              )}
+                </svg>
 
-            </button>
+                AI đang tạo câu hỏi...
 
-          </div>
+              </>
+
+            ) : (
+
+              <>
+
+                Bắt đầu học
+
+                <ArrowRight size={22} />
+
+              </>
+
+            )}
+
+          </button>
+
+          <p className="mt-5 text-center text-sm text-slate-500">
+
+            Hỗ trợ ảnh từ sách, slide, PDF và ghi chú.
+
+          </p>
+                  </div>
+
+      </div>
+
+      {/* Floating Decorations */}
+
+      <div className="pointer-events-none absolute left-16 top-28 hidden lg:block">
+
+        <div className="rounded-full bg-white/70 px-5 py-3 shadow-xl backdrop-blur">
+
+          🌸 Học nhanh hơn
 
         </div>
 
       </div>
 
-    </div>
+      <div className="pointer-events-none absolute right-16 bottom-24 hidden lg:block">
+
+        <div className="rounded-full bg-white/70 px-5 py-3 shadow-xl backdrop-blur">
+
+          💙 AI hỗ trợ
+
+        </div>
+
+      </div>
+
+      <div className="pointer-events-none absolute right-40 top-40 hidden lg:block">
+
+        <div className="rounded-full bg-white/70 px-5 py-3 shadow-xl backdrop-blur">
+
+          ✨ Ghi nhớ lâu
+
+        </div>
+
+      </div>
+
+    </section>
   );
 }

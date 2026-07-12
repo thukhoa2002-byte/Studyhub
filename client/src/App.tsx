@@ -17,6 +17,7 @@ export default function App() {
 
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
@@ -53,13 +54,13 @@ export default function App() {
 
   function toggleBookmark(id: string) {
     setQuestions((prev) =>
-      prev.map((question) =>
-        question.id === id
+      prev.map((q) =>
+        q.id === id
           ? {
-              ...question,
-              bookmarked: !question.bookmarked,
+              ...q,
+              bookmarked: !q.bookmarked,
             }
-          : question
+          : q
       )
     );
   }
@@ -68,7 +69,7 @@ export default function App() {
     <>
       {loading && <LoadingOverlay />}
 
-      <main className="min-h-screen bg-slate-100">
+      <main className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-white">
 
         <Header />
 

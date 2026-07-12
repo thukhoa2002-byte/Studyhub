@@ -1,41 +1,38 @@
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+html {
+  scroll-behavior: smooth;
+}
 
-html{
-    scroll-behavior:smooth;
+* {
+  box-sizing: border-box;
 }
 
 body{
     margin:0;
     font-family:"Be Vietnam Pro",sans-serif;
-    background:#F8FAFC;
-    color:#0F172A;
+    background:#FFF7FB;
+    color:#3B2430;
 }
 
-*{
-    box-sizing:border-box;
+button {
+  transition: all .2s ease;
 }
 
-button{
-    transition:.25s;
+button:hover {
+  transform: translateY(-1px);
 }
 
-button:hover{
-    transform:translateY(-1px);
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-::-webkit-scrollbar{
-    width:8px;
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
 }
 
-::-webkit-scrollbar-thumb{
-    background:#CBD5E1;
-    border-radius:999px;
-}
-
-::-webkit-scrollbar-thumb:hover{
-    background:#94A3B8;
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
