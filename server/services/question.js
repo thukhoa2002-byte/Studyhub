@@ -1,9 +1,5 @@
-import client from "../config/openai.js";
-import { questionSchema } from "../schema/questionSchema.js";
-
-export async function generateQuestions(text) {
-  const prompt = `
-Bạn là giảng viên Nội khoa đang biên soạn ngân hàng câu hỏi cho kỳ thi Bác sĩ Nội trú.
+const prompt = `
+Bạn là giảng viên Nội khoa chuyên biên soạn câu hỏi cho kỳ thi Bác sĩ Nội trú.
 
 ========================
 TÀI LIỆU
@@ -12,59 +8,115 @@ TÀI LIỆU
 ${text}
 
 ========================
-YÊU CẦU
+NHIỆM VỤ
 ========================
 
 Đọc toàn bộ tài liệu.
 
-Đầu tiên hãy tự xác định chủ đề chính.
+Đầu tiên xác định chủ đề chính.
 
-Đặt tên ngắn gọn cho chủ đề (title).
+Sinh:
 
-Sau đó tạo câu hỏi điền khuyết.
+- title
+- questions
 
-Quy tắc:
+========================
+QUY TẮC TẠO CÂU HỎI
+========================
 
-- Chỉ hỏi ý quan trọng.
-- Không hỏi ý hiển nhiên.
-- Không hỏi từ đơn.
-- Không hỏi ngữ pháp.
-- Không hỏi câu có thể đoán.
-- Một câu chỉ hỏi một ý.
-- Đáp án phải có giá trị học tập.
-- Ưu tiên:
-  - Định nghĩa
-  - Chẩn đoán
-  - Điều trị
-  - Guideline
-  - Phân loại
-  - Chỉ định
-  - Chống chỉ định
-  - Tiêu chuẩn
-  - Thuốc
-  - Liều
-  - Giá trị xét nghiệm
-- Chỉ tạo câu có importance >= 8.
+Đây KHÔNG PHẢI câu hỏi tự luận.
+
+Đây là câu hỏi ĐIỀN KHUYẾT (CLOZE).
+
+Mỗi câu phải được tạo bằng cách:
+
+- giữ nguyên câu gốc
+- chỉ che đi phần quan trọng nhất
+- thay bằng _____
+
+Ví dụ:
+
+Đúng:
+
+"SAAG ≥ _____ g/dL gợi ý tăng áp lực tĩnh mạch cửa."
+
+Đáp án:
+
+1,1
+
+--------------------
+
+Đúng:
+
+"TIPS chống chỉ định tuyệt đối khi có _____."
+
+Đáp án:
+
+Suy tim mất bù
+
+--------------------
+
+Đúng:
+
+"Kháng sinh lựa chọn đầu tay là _____."
+
+Đáp án:
+
+Ceftriaxone
+
+--------------------
+
+Sai:
+
+"TIPS là gì?"
+
+Sai:
+
+"Điều trị của..."
+
+Sai:
+
+"Hãy kể..."
+
+Sai:
+
+"Các biểu hiện..."
+
+Sai:
+
+"Trên X-quang thấy gì?"
+
+========================
+NGUYÊN TẮC
+========================
+
+✓ Chỉ che đúng một ý.
+
+✓ Đáp án càng ngắn càng tốt.
+
+✓ Không che nhiều chỗ.
+
+✓ Không đổi cấu trúc câu.
+
+✓ Không viết lại câu.
+
+✓ Không hỏi mở.
+
+✓ Không hỏi suy luận.
+
+✓ Không tạo câu có thể có nhiều đáp án.
+
+✓ Chỉ lấy các ý có importance ≥ 8.
+
+Ưu tiên:
+
+- định nghĩa
+- tiêu chuẩn
+- phân loại
+- chỉ định
+- chống chỉ định
+- thuốc
+- liều
+- giá trị xét nghiệm
+- guideline
 `;
-
-  const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL || "gpt-5-mini",
-    input: prompt,
-    text: {
-      format: {
-        type: "json_schema",
-        ...questionSchema,
-      },
-    },
-  });
-
-  if (response.output_parsed) {
-    return response.output_parsed;
-  }
-
-  if (response.output_text) {
-    return JSON.parse(response.output_text);
-  }
-
-  throw new Error("Không thể tạo câu hỏi.");
-}
