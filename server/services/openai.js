@@ -12,7 +12,7 @@ export async function generateClozeFromImage(file) {
   const base64Image = file.buffer.toString("base64");
 
   const response = await client.responses.create({
-    model: "gpt-5",
+    model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
     input: [
       {
         role: "user",
