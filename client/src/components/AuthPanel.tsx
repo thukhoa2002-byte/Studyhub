@@ -35,9 +35,23 @@ export default function AuthPanel({ onUserChange }: Props) {
     if (!email.trim()) return;
     if (!supabase) return;
     setBusy(true);
-    const { error } = await supabase.auth.signInWithOtp({ email: email.trim() });
-    setBusy(false);
-    alert(error ? error.message : "Đã gửi link đăng nhập vào email của bạn.");
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) {
+        alert(`${error.message}${error.status ? ` (mã ${error.status})` : ""}`);
+      } else {
+        alert("Đã gửi link đăng nhập vào email của bạn.");
+      }
+    } catch (error) {
+      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      alert(`Không kết nối được Supabase: ${detail}`);
+      console.error("Supabase sign-in failed", error);
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (user) {
