@@ -112,7 +112,7 @@ export default function App() {
 
       const response = await generateQuestions(image);
 
-      finishGenerated(response.title || image.name, response.data);
+      finishGenerated(response.title || image.name, response.data, true);
     } catch (error) {
       console.error(error);
       alert("Không thể tạo câu hỏi.");
@@ -128,13 +128,13 @@ export default function App() {
       setAiCallsRemaining((count) => count - 1);
       setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.\n\nĐây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không chửi bậy khi làm trắc nghiệm nhé :)))");
       const response = await generateMultipleChoice(image);
-      finishGenerated(response.title || "Trắc nghiệm", response.data);
+      finishGenerated(response.title || "Trắc nghiệm", response.data, false);
     } catch (error) { console.error(error); alert("Không thể tạo câu trắc nghiệm."); }
     finally { setLoading(false); }
   }
 
-  function finishGenerated(title: string, cards: GeneratedQuestion[]) {
-    if (user && savedDecks.length > 0) {
+  function finishGenerated(title: string, cards: GeneratedQuestion[], offerBeforeStudy: boolean) {
+    if (offerBeforeStudy && user && savedDecks.length > 0) {
       setPendingGenerated({ title, cards });
       return;
     }
