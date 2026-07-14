@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bookmark, Check, Clock3, RotateCcw, Sparkles } from "lucide-react";
+import { Bookmark, Check, Clock3, ListOrdered, RotateCcw, Shuffle, Sparkles } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import { sanitizeHtml, toClozeQuestionHtml, toEditorHtml } from "../utils/richText";
 
@@ -38,22 +38,42 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
   const [ratings, setRatings] = useState<Record<string, Rating>>({});
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [studyQuestions, setStudyQuestions] = useState(questions);
+  const [isShuffled, setIsShuffled] = useState(false);
 
   const answered = Object.keys(ratings).length;
-  const question = questions[current];
-  const progress = questions.length ? (answered / questions.length) * 100 : 0;
-  const isLast = current === questions.length - 1;
+  const question = studyQuestions[current];
+  const progress = studyQuestions.length ? (answered / studyQuestions.length) * 100 : 0;
+  const isLast = current === studyQuestions.length - 1;
   const correctCount = useMemo(
     () => Object.values(ratings).filter((rating) => rating === "good" || rating === "easy").length,
     [ratings]
   );
 
   useEffect(() => {
+    setStudyQuestions(questions);
+    setIsShuffled(false);
     setCurrent(0);
     setShowAnswer(false);
     setRatings({});
     setSessionComplete(false);
   }, [questions]);
+
+  function changeOrder(shuffle: boolean) {
+    const next = [...questions];
+    if (shuffle) {
+      for (let index = next.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+      }
+    }
+    setStudyQuestions(next);
+    setIsShuffled(shuffle);
+    setCurrent(0);
+    setShowAnswer(false);
+    setRatings({});
+    setSessionComplete(false);
+  }
 
   const rateCard = useCallback((rating: Rating) => {
     if (!question) return;
@@ -103,7 +123,7 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
         <div className="w-full rounded-3xl border border-rose-100 bg-white/90 p-8 text-center shadow-sm sm:p-12">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-500"><Check size={32} /></div>
           <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-rose-500">Hoàn thành phiên học</p>
-          <h1 className="mt-3 text-3xl font-bold text-rose-950">Bạn đã học hết {questions.length} thẻ</h1>
+          <h1 className="mt-3 text-3xl font-bold text-rose-950">Bạn đã học hết {studyQuestions.length} thẻ</h1>
           <p className="mt-3 text-slate-500">{correctCount} thẻ được đánh giá Tốt hoặc Dễ. Hãy quay lại vào ngày mai để ôn lại.</p>
           <button onClick={restart} className="mt-8 inline-flex items-center gap-2 rounded-xl bg-teal-400 px-5 py-3 font-semibold text-white hover:bg-teal-500"><RotateCcw size={18} /> Học lại phiên này</button>
         </div>
@@ -118,9 +138,9 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-rose-500">Phiên học hôm nay</p>
-          <p className="mt-1 text-sm text-slate-400">Còn {questions.length - answered} thẻ mới</p>
+          <p className="mt-1 text-sm text-slate-400">Còn {studyQuestions.length - answered} thẻ mới</p>
         </div>
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-500"><Clock3 size={17} /> {current + 1} / {questions.length}</div>
+        <div className="flex items-center gap-2"><div className="flex items-center gap-1 rounded-lg border border-rose-100 bg-white/80 p-1"><button onClick={() => changeOrder(true)} title="Trộn bộ thẻ" aria-label="Trộn bộ thẻ" className={`rounded-md p-2 ${isShuffled ? "bg-rose-100 text-rose-600" : "text-slate-400 hover:bg-rose-50"}`}><Shuffle size={17} /></button><button onClick={() => changeOrder(false)} title="Học theo thứ tự" aria-label="Học theo thứ tự" className={`rounded-md p-2 ${!isShuffled ? "bg-teal-50 text-teal-600" : "text-slate-400 hover:bg-teal-50"}`}><ListOrdered size={17} /></button></div><div className="flex items-center gap-2 text-sm font-medium text-slate-500"><Clock3 size={17} /> {current + 1} / {studyQuestions.length}</div></div>
       </div>
 
       <div className="mb-8 h-1.5 overflow-hidden rounded-full bg-rose-100"><div className="h-full rounded-full bg-teal-300 transition-all duration-500" style={{ width: `${progress}%` }} /></div>
