@@ -252,7 +252,7 @@ export default function DeckSetup({
               onClick={createDeck}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Bắt đầu học
+              Lưu & bắt đầu học
               <ArrowRight size={18} />
             </button>
           </div>
