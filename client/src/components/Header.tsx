@@ -2,9 +2,10 @@ import AuthPanel from "./AuthPanel";
 
 interface Props {
   onUserChange?: (user: import("@supabase/supabase-js").User | null) => void;
+  specialUser?: boolean;
 }
 
-export default function Header({ onUserChange }: Props) {
+export default function Header({ onUserChange, specialUser = false }: Props) {
   return (
     <header className="sticky top-0 z-50 border-b border-rose-100 bg-white/85 backdrop-blur-xl">
 
@@ -15,6 +16,12 @@ export default function Header({ onUserChange }: Props) {
         <div className="flex items-center gap-5">
 
           <img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" className="h-16 w-16 rounded-xl object-contain" />
+
+          {specialUser && <div className="special-note hidden items-center gap-1 text-center sm:flex" aria-label="Lời nhắn riêng">
+            <span className="hydrangea hydrangea-left" aria-hidden="true">✿</span>
+            <span>Tú ơii, cố lên.<br />Anh ở bên nèeee</span>
+            <span className="hydrangea hydrangea-right" aria-hidden="true">✿</span>
+          </div>}
 
           <div>
 

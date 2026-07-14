@@ -371,7 +371,7 @@ export default function App() {
 
       <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
-        <Header onUserChange={refreshDecks} />
+        <Header onUserChange={refreshDecks} specialUser={specialUser} />
 
         {questions.length > 0 && (
           <Navbar

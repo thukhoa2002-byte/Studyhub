@@ -75,6 +75,10 @@ button:hover {
 .welcome-dots span { width: .45rem; height: .45rem; border-radius: 999px; background: #2dd4bf; animation: welcome-dot 900ms ease-in-out infinite; }
 .welcome-dots span:nth-child(2) { animation-delay: 120ms; background: #fb7185; }
 .welcome-dots span:nth-child(3) { animation-delay: 240ms; background: #c084fc; }
+.special-note { position: relative; color: #be185d; font-size: .68rem; font-weight: 800; line-height: 1.25; letter-spacing: .01em; }
+.hydrangea { display: inline-block; color: #f472b6; font-size: 1.25rem; text-shadow: 0 0 0 #f9a8d4, 5px 2px 0 #f9a8d4, -4px 3px 0 #fbcfe8; animation: hydrangea-sway 2.2s ease-in-out infinite; }
+.hydrangea-right { animation-delay: .5s; }
+@keyframes hydrangea-sway { 0%,100% { transform: translateY(0) rotate(-8deg) scale(.92); opacity: .78; } 50% { transform: translateY(-3px) rotate(8deg) scale(1.08); opacity: 1; } }
 @keyframes welcome-card-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes welcome-screen-out { to { opacity: 0; visibility: hidden; pointer-events: none; } }
 @keyframes welcome-icon-float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
