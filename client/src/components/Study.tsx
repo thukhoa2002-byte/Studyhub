@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bookmark, Check, Clock3, ListOrdered, RotateCcw, Shuffle, Sparkles } from "lucide-react";
+import { Bookmark, Check, Clock3, ListOrdered, Shuffle, Sparkles } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import { sanitizeHtml, toClozeQuestionHtml, toEditorHtml } from "../utils/richText";
 
@@ -114,14 +114,6 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showAnswer, rateCard]);
 
-  function restart() {
-    setCurrent(0);
-    setShowAnswer(false);
-    setSelectedOption(null);
-    setRatings({});
-    setSessionComplete(false);
-  }
-
   function chooseOption(option: string) {
     if (!question?.options || selectedOption) return;
     setSelectedOption(option);
@@ -136,7 +128,6 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
           <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-rose-500">Hoàn thành phiên học</p>
           <h1 className="mt-3 text-3xl font-bold text-rose-950">Bạn đã học hết {studyQuestions.length} thẻ</h1>
           <p className="mt-3 text-slate-500">{correctCount} thẻ được đánh giá Tốt hoặc Dễ. Hãy quay lại vào ngày mai để ôn lại.</p>
-          <button onClick={restart} className="mt-8 inline-flex items-center gap-2 rounded-xl bg-teal-400 px-5 py-3 font-semibold text-white hover:bg-teal-500"><RotateCcw size={18} /> Học lại phiên này</button>
         </div>
       </section>
     );
@@ -170,7 +161,9 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
         </div>
       </article>
 
-      {!showAnswer ? (
+      {question.options?.length ? (
+        showAnswer ? <button onClick={() => rateCard(selectedOption === question.correctOption ? "good" : "again")} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-400 py-4 font-semibold text-white shadow-sm hover:bg-teal-500">{isLast ? "Hoàn thành" : "Câu tiếp theo"} <Check size={18} /></button> : null
+      ) : !showAnswer ? (
         <button onClick={() => setShowAnswer(true)} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-rose-300 py-4 font-semibold text-rose-950 shadow-sm hover:bg-rose-400"><Sparkles size={18} /> Hiện đáp án</button>
       ) : (
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
