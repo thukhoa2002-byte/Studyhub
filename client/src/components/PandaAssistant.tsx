@@ -12,7 +12,8 @@ export default function PandaAssistant() {
         <p className="mt-1 leading-5">Cần mình giúp tạo thẻ, ôn bài hay giải thích kiến thức không?</p>
       </div>}
       <button type="button" onClick={() => setOpen((value) => !value)} aria-label="Mở trợ lý AI Panda" className="group relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-rose-100 to-teal-100 shadow-[0_10px_30px_rgba(15,118,110,0.2)] transition hover:scale-105 sm:h-24 sm:w-24">
-        <img src="/panda-assistant.png" alt="Trợ lý AI Panda" className="h-full w-full object-contain" />
+        <img src="/panda-assistant.png" alt="Trợ lý AI Panda" className="panda-bob h-full w-full object-contain" />
+        <span className="panda-bamboo" aria-hidden="true">🎋</span>
         <span className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-teal-400 text-white shadow-sm"><MessageCircle size={14} /></span>
       </button>
     </div>
