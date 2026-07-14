@@ -1,4 +1,4 @@
-import { AlignCenter, AlignLeft, AlignRight, Bold, CaseUpper, ChevronDown, Image as ImageIcon, Italic, List, ListOrdered, PenLine, TextCursorInput, Underline } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Bold, CaseUpper, ChevronDown, ClipboardPaste, Image as ImageIcon, Italic, List, ListOrdered, PenLine, TextCursorInput, Underline } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
 
@@ -98,6 +98,26 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
     };
     reader.readAsDataURL(file);
   }
+  async function pasteImageFromClipboard() {
+    if (!navigator.clipboard?.read) {
+      imageInputRef.current?.click();
+      return;
+    }
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find((type) => type.startsWith("image/"));
+        if (!imageType) continue;
+        const blob = await item.getType(imageType);
+        insertImage(new File([blob], "clipboard-image.png", { type: imageType }));
+        return;
+      }
+      imageInputRef.current?.click();
+    } catch {
+      // Clipboard access may be denied outside a secure/user gesture context.
+      imageInputRef.current?.click();
+    }
+  }
   function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
     const image = Array.from(event.clipboardData.items)
       .find((item) => item.kind === "file" && item.type.startsWith("image/"))
@@ -179,6 +199,7 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
       </div>
       <button type="button" title="Điền khuyết" aria-label="Điền khuyết" onMouseDown={(event) => { event.preventDefault(); insertCloze(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><TextCursorInput size={16} /></button>
       <button type="button" title="Chèn hình ảnh" aria-label="Chèn hình ảnh" onMouseDown={(event) => { event.preventDefault(); imageInputRef.current?.click(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><ImageIcon size={16} /></button>
+      <button type="button" title="Dán ảnh từ clipboard" aria-label="Dán ảnh từ clipboard" onMouseDown={(event) => event.preventDefault()} onClick={pasteImageFromClipboard} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><ClipboardPaste size={16} /></button>
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) insertImage(file); event.target.value = ""; }} />
     </div>
     <div ref={editorRef} contentEditable suppressContentEditableWarning role="textbox" aria-label={placeholder} data-placeholder={placeholder} onBlur={(event) => { emitChange(event.currentTarget.innerHTML); }} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onKeyDown={handleKeyDown} onPaste={handlePaste} onInput={() => { rememberSelection(); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
