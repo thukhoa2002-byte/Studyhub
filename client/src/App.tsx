@@ -139,11 +139,24 @@ export default function App() {
     if (!pendingImport) return;
     const imported = pendingImport;
     setPendingImport(null);
+    if (!studyNow) {
+      // “Để đó” chỉ lưu bộ thẻ rồi đóng hộp thoại, giữ người dùng ở màn hình nạp thẻ.
+      // Xóa dữ liệu học hiện tại ngay để giao diện không nhảy sang màn hình học trống.
+      setQuestions([]);
+      setDeckTitle("");
+      setImage(null);
+      setPreview("");
+      setEditing(false);
+      setCurrentSavedDeck(null);
+      setMode("study");
+      await persistDeck(imported.title, imported.cards);
+      return;
+    }
+
     setQuestions(imported.cards);
     setDeckTitle(imported.title);
     await persistDeck(imported.title, imported.cards);
-    if (studyNow) setMode("study");
-    else resetDeck();
+    setMode("study");
   }
 
   function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[]) {
@@ -163,12 +176,13 @@ export default function App() {
     catch (error) { alert(`Không thể chia sẻ: ${error instanceof Error ? error.message : JSON.stringify(error)}`); }
   }
 
-  async function studyDueCards() {
+  async function studyDueCards(beforeStudy?: () => void) {
     if (!user) { alert("Bạn cần đăng nhập để xem thẻ đến hạn."); return; }
     try {
       const due = await listDueCards(user.id);
       if (due.length === 0) { alert("Hôm nay chưa có thẻ đến hạn 🌸"); return; }
-      setQuestions(due); setDeckTitle("Hôm nay ôn gì nhỉ?"); setMode("study");
+      beforeStudy?.();
+      window.setTimeout(() => { setQuestions(due); setDeckTitle("Hôm nay ôn gì nhỉ?"); setMode("study"); }, 700);
     } catch (error) { alert(`Không thể tải thẻ đến hạn: ${error instanceof Error ? error.message : JSON.stringify(error)}`); }
   }
 

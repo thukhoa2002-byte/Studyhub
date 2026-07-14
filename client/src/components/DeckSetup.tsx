@@ -26,7 +26,7 @@ interface Props {
   onEditDeck: (deck: SavedDeck) => void;
   onDeleteDeck: (deck: SavedDeck) => void;
   onShareDeck: (deck: SavedDeck) => void;
-  onStudyDue: () => void | Promise<void>;
+  onStudyDue: (beforeStudy?: () => void) => void | Promise<void>;
   currentUserId?: string;
 }
 
@@ -124,8 +124,7 @@ export default function DeckSetup({
 
   function startDueReview() {
     if (startingReview) return;
-    setStartingReview(true);
-    window.setTimeout(() => void onStudyDue(), 700);
+    void onStudyDue(() => setStartingReview(true));
   }
 
   function buildQuestions(): GeneratedQuestion[] {
