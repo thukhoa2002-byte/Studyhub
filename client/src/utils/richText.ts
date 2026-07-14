@@ -22,8 +22,16 @@ export function sanitizeHtml(value: string) {
       }
       if (element.tagName === "IMG" && attribute.name === "alt") return;
       if (attribute.name === "style") {
-        const match = attribute.value.match(/text-align\s*:\s*(left|center|right|justify)/i);
-        if (match) element.setAttribute("style", `text-align:${match[1].toLowerCase()}`);
+        const safeStyles = attribute.value.split(";").flatMap((declaration) => {
+          const match = declaration.trim().match(/^(text-align|color|background-color)\s*:\s*(.+)$/i);
+          if (!match) return [];
+          const property = match[1].toLowerCase();
+          const value = match[2].trim();
+          if (property === "text-align" && /^(left|center|right|justify)$/i.test(value)) return [`text-align:${value.toLowerCase()}`];
+          if ((property === "color" || property === "background-color") && /^(#[0-9a-f]{3,8}|rgba?\([\d\s,.%]+\)|[a-z]+)$/i.test(value)) return [`${property}:${value}`];
+          return [];
+        });
+        if (safeStyles.length) element.setAttribute("style", safeStyles.join(";"));
         else element.removeAttribute(attribute.name);
       } else element.removeAttribute(attribute.name);
     });
