@@ -1,4 +1,4 @@
-import { AlignCenter, AlignLeft, AlignRight, Bold, Highlighter, Image as ImageIcon, Italic, List, ListOrdered, Palette, Underline } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Bold, Highlighter, Image as ImageIcon, Italic, List, ListOrdered, Palette, TextCursorInput, Underline } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
 
@@ -71,11 +71,26 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
     rememberSelection();
     if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML));
   }
+  function insertCloze() {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    if (selectionRef.current) selection?.addRange(selectionRef.current);
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const text = range?.toString().trim();
+    if (!range || !text) return;
+    range.deleteContents();
+    range.insertNode(document.createTextNode(`{{c1::${text}}}`));
+    rememberSelection();
+    onChange(sanitizeHtml(editorRef.current.innerHTML));
+  }
   return <div className="overflow-hidden rounded-lg border border-rose-100 bg-white focus-within:border-rose-300">
     <div className="flex flex-wrap gap-1 border-b border-rose-50 bg-rose-50/50 p-2">
       {commands.map(([name, Icon, label]) => <button key={name} type="button" title={label} onMouseDown={(event) => { event.preventDefault(); command(name); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><Icon size={16} /></button>)}
       <label title="Màu chữ" className="relative cursor-pointer rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><Palette size={16} /><input type="color" defaultValue="#4b1630" aria-label="Màu chữ" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" onMouseDown={(event) => event.preventDefault()} onChange={(event) => applyColor("foreColor", event.target.value)} /></label>
       <label title="Tô sáng" className="relative cursor-pointer rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><Highlighter size={16} /><input type="color" defaultValue="#fff3a3" aria-label="Tô sáng" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" onMouseDown={(event) => event.preventDefault()} onChange={(event) => applyColor("hiliteColor", event.target.value)} /></label>
+      <button type="button" title="Điền khuyết" aria-label="Điền khuyết" onMouseDown={(event) => { event.preventDefault(); insertCloze(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><TextCursorInput size={16} /></button>
       <button type="button" title="Chèn hình ảnh" aria-label="Chèn hình ảnh" onMouseDown={(event) => { event.preventDefault(); imageInputRef.current?.click(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><ImageIcon size={16} /></button>
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) insertImage(file); event.target.value = ""; }} />
     </div>

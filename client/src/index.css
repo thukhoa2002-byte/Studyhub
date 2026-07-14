@@ -5,6 +5,7 @@
 .rich-editor ul { list-style: disc; padding-left: 1.5rem; }
 .rich-editor ol { list-style: decimal; padding-left: 1.5rem; }
 .rich-editor img, .rich-content img { max-width: 100%; height: auto; border-radius: 0.5rem; }
+.cloze-blank { display: inline-block; min-width: 4.5rem; border-bottom: 3px solid #f9a8d4; color: #be185d; letter-spacing: .12em; }
 .rich-content ul { list-style: disc; padding-left: 1.5rem; text-align: left; }
 .rich-content ol { list-style: decimal; padding-left: 1.5rem; text-align: left; }
 .rich-content p, .rich-content div { margin: 0.25rem 0; }

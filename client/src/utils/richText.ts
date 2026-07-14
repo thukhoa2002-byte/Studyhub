@@ -39,6 +39,10 @@ export function sanitizeHtml(value: string) {
   return document.body.innerHTML;
 }
 
+export function toClozeQuestionHtml(value: string) {
+  return sanitizeHtml(toEditorHtml(value)).replace(/\{\{c\d+::([\s\S]*?)\}\}/gi, '<span class="cloze-blank" aria-label="Ô điền khuyết">_____</span>');
+}
+
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

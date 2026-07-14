@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bookmark, Check, Clock3, RotateCcw, Sparkles } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
-import { sanitizeHtml, toEditorHtml } from "../utils/richText";
+import { sanitizeHtml, toClozeQuestionHtml, toEditorHtml } from "../utils/richText";
 
 interface Props {
   questions: GeneratedQuestion[];
@@ -133,7 +133,7 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
 
         <div className="flex min-h-[325px] flex-col justify-center px-6 py-10 text-center sm:px-14">
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Câu hỏi</p>
-          <div className="rich-content text-2xl font-semibold leading-relaxed text-slate-800 sm:text-3xl" dangerouslySetInnerHTML={{ __html: sanitizeHtml(toEditorHtml(question.question)) }} />
+          <div className="rich-content text-2xl font-semibold leading-relaxed text-slate-800 sm:text-3xl" dangerouslySetInnerHTML={{ __html: toClozeQuestionHtml(question.question) }} />
           {showAnswer && <div className="mt-10 border-t border-rose-50 pt-8"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-500">Đáp án</p><div className="rich-content mt-3 text-xl font-semibold leading-relaxed text-slate-800 sm:text-2xl" dangerouslySetInnerHTML={{ __html: sanitizeHtml(toEditorHtml(question.answer)) }} /></div>}
         </div>
       </article>
