@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
+import RichTextEditor from "./RichTextEditor";
 
 interface Props {
   preview: string;
@@ -220,22 +221,8 @@ export default function DeckSetup({
                 key={card.id}
                 className="grid gap-3 rounded-lg border border-rose-100 bg-rose-50/30 p-4 sm:grid-cols-[1fr_1fr_auto]"
               >
-                <textarea
-                  value={card.question}
-                  onChange={(event) =>
-                    updateCard(card.id, "question", event.target.value)
-                  }
-                  className="min-h-24 resize-y rounded-lg border border-rose-100 bg-white/90 px-3 py-3 text-sm outline-none focus:border-rose-300"
-                  placeholder={`Mặt trước thẻ ${index + 1}`}
-                />
-                <textarea
-                  value={card.answer}
-                  onChange={(event) =>
-                    updateCard(card.id, "answer", event.target.value)
-                  }
-                  className="min-h-24 resize-y rounded-lg border border-rose-100 bg-white/90 px-3 py-3 text-sm outline-none focus:border-rose-300"
-                  placeholder="Mặt sau"
-                />
+                <RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} placeholder={`Mặt trước thẻ ${index + 1}`} />
+                <RichTextEditor value={card.answer} onChange={(value) => updateCard(card.id, "answer", value)} placeholder="Mặt sau" />
                 <button
                   onClick={() => removeCard(card.id)}
                   className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600"

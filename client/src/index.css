@@ -1,6 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+.rich-editor:empty::before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; }
+.rich-content ul { list-style: disc; padding-left: 1.5rem; text-align: left; }
+.rich-content ol { list-style: decimal; padding-left: 1.5rem; text-align: left; }
+.rich-content p, .rich-content div { margin: 0.25rem 0; }
+
 html {
   scroll-behavior: smooth;
 }

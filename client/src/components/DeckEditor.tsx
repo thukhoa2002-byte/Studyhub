@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Plus, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
+import RichTextEditor from "./RichTextEditor";
 
 interface Props {
   title: string;
@@ -43,8 +44,8 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
       </div>
       <div className="space-y-3">
         {questions.map((item, index) => <div key={item.id} className="grid gap-3 rounded-lg border border-rose-100 bg-white/85 p-4 sm:grid-cols-[1fr_1fr_auto]">
-          <textarea value={item.question} onChange={(event) => update(item.id, "question", event.target.value)} placeholder={`Mặt trước thẻ ${index + 1}`} className="min-h-24 rounded-lg border border-rose-100 px-3 py-3 text-sm outline-none focus:border-rose-300" />
-          <textarea value={item.answer} onChange={(event) => update(item.id, "answer", event.target.value)} placeholder="Mặt sau" className="min-h-24 rounded-lg border border-rose-100 px-3 py-3 text-sm outline-none focus:border-rose-300" />
+          <RichTextEditor value={item.question} onChange={(value) => update(item.id, "question", value)} placeholder={`Mặt trước thẻ ${index + 1}`} />
+          <RichTextEditor value={item.answer} onChange={(value) => update(item.id, "answer", value)} placeholder="Mặt sau" />
           <button onClick={() => setQuestions((current) => current.filter((card) => card.id !== item.id))} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
         </div>)}
       </div>

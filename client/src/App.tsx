@@ -53,7 +53,8 @@ export default function App() {
   async function persistDeck(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
     if (!user || !supabase) return;
     try {
-      await saveDeck(user.id, title, cards, visibility);
+      const saved = await saveDeck(user.id, title, cards, visibility);
+      if (saved) setCurrentSavedDeck({ ...saved, cards });
       setSavedDecks(await listDecks(user.id));
     } catch (error) {
       console.error(error);
