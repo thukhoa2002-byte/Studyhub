@@ -14,9 +14,10 @@ interface Props {
   titleSuggestions?: string[];
   decks: SavedDeck[];
   onSwitchDeck: (deck: SavedDeck) => void | Promise<void>;
+  onShareRequest: () => void;
 }
 
-export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave, onSaveAndStudy, titleSuggestions = [], decks, onSwitchDeck }: Props) {
+export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave, onSaveAndStudy, titleSuggestions = [], decks, onSwitchDeck, onShareRequest }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [visibility, setVisibility] = useState(initialVisibility);
   const [questions, setQuestions] = useState(initialQuestions);
@@ -70,7 +71,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             {["Nội", "Ngoại", "Sản", "Nhi", "Cấp cứu", "Hồi sức", ...titleSuggestions].filter((name, index, all) => all.indexOf(name) === index).map((name) => <option key={name} value={name} />)}
           </datalist>
         </div>
-        <select value={visibility} onChange={(event) => setVisibility(event.target.value as "private" | "shared")} className="rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+        <select value={visibility} onChange={(event) => { const next = event.target.value as "private" | "shared"; setVisibility(next); if (next === "shared") onShareRequest(); }} className="rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
           <option value="private">👤 Chỉ mình tôi</option><option value="shared">👥 Chia sẻ</option>
         </select>
       </div>
