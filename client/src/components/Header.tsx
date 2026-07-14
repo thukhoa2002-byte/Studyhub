@@ -3,9 +3,11 @@ import AuthPanel from "./AuthPanel";
 interface Props {
   onUserChange?: (user: import("@supabase/supabase-js").User | null) => void;
   specialUser?: boolean;
+  theme: "color" | "basic";
+  onThemeChange: (theme: "color" | "basic") => void;
 }
 
-export default function Header({ onUserChange, specialUser = false }: Props) {
+export default function Header({ onUserChange, specialUser = false, theme, onThemeChange }: Props) {
   return (
     <header className="sticky top-0 z-50 border-b border-rose-100 bg-white/85 backdrop-blur-xl">
 
@@ -34,7 +36,7 @@ export default function Header({ onUserChange, specialUser = false }: Props) {
         {/* Right */}
 
         <div className="flex shrink-0 items-center gap-3">
-          <AuthPanel onUserChange={onUserChange ?? (() => undefined)} specialUser={specialUser} />
+          <AuthPanel onUserChange={onUserChange ?? (() => undefined)} specialUser={specialUser} theme={theme} onThemeChange={onThemeChange} />
         </div>
 
       </div>

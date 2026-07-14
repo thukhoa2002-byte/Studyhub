@@ -45,7 +45,13 @@ export default function App() {
   const [generatedForAppend, setGeneratedForAppend] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
+  const [theme, setTheme] = useState<"color" | "basic">(() => (localStorage.getItem("hocbai-theme") === "basic" ? "basic" : "color"));
   const specialUser = isSpecialUser(user?.email);
+
+  useEffect(() => {
+    localStorage.setItem("hocbai-theme", theme);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setShowWelcome(false), 1700);
@@ -379,7 +385,7 @@ export default function App() {
 
       <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
-        <Header onUserChange={refreshDecks} specialUser={specialUser} />
+        <Header onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} />
 
         {questions.length > 0 && (
           <Navbar

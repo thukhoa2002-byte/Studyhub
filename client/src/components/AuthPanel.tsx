@@ -6,9 +6,11 @@ import type { User } from "@supabase/supabase-js";
 interface Props {
   onUserChange: (user: User | null) => void;
   specialUser?: boolean;
+  theme: "color" | "basic";
+  onThemeChange: (theme: "color" | "basic") => void;
 }
 
-export default function AuthPanel({ onUserChange, specialUser = false }: Props) {
+export default function AuthPanel({ onUserChange, specialUser = false, theme, onThemeChange }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -109,6 +111,7 @@ export default function AuthPanel({ onUserChange, specialUser = false }: Props) 
           <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={(event) => void updateAvatar(event)} />
           <button type="button" disabled={busy} onClick={() => avatarInput.current?.click()} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50 disabled:opacity-50"><Camera size={16} /> Đổi ảnh đại diện</button>
           <button type="button" onClick={() => { setMenuOpen(false); void supabase?.auth.signOut(); }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"><LogOut size={16} /> Đăng xuất</button>
+          <div className="mt-2 border-t border-slate-100 pt-2"><p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Background</p><div className="flex gap-1 rounded-xl bg-slate-50 p-1"><button type="button" onClick={() => onThemeChange("color")} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "color" ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>Color</button><button type="button" onClick={() => onThemeChange("basic")} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button></div></div>
         </div>}
       </div>
     );

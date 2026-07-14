@@ -79,6 +79,9 @@ button:hover {
 .hydrangea { display: inline-block; color: #f472b6; font-size: 1.25rem; text-shadow: 0 0 0 #f9a8d4, 5px 2px 0 #f9a8d4, -4px 3px 0 #fbcfe8; animation: hydrangea-sway 2.2s ease-in-out infinite; }
 .hydrangea-right { animation-delay: .5s; }
 @keyframes hydrangea-sway { 0%,100% { transform: translateY(0) rotate(-8deg) scale(.92); opacity: .78; } 50% { transform: translateY(-3px) rotate(8deg) scale(1.08); opacity: 1; } }
+
+html[data-theme="basic"] { filter: grayscale(1); }
+html[data-theme="basic"] body { background: #f7f7f7; }
 @keyframes welcome-card-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes welcome-screen-out { to { opacity: 0; visibility: hidden; pointer-events: none; } }
 @keyframes welcome-icon-float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
