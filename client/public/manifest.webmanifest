@@ -1,0 +1,20 @@
+{
+  "name": "Học bài thoiii",
+  "short_name": "Học bài thoiii",
+  "description": "Ứng dụng học và ôn thẻ ghi nhớ",
+  "lang": "vi",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fff7fb",
+  "theme_color": "#fda4af",
+  "icons": [
+    {
+      "src": "/hoc-bai-icon.png?v=2",
+      "sizes": "762x601",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
