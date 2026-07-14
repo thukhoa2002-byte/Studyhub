@@ -11,7 +11,7 @@ import DeckEditor from "./components/DeckEditor";
 import ShareDeckDialog from "./components/ShareDeckDialog";
 import LoadingOverlay from "./components/LoadingOverlay";
 import PandaAssistant from "./components/PandaAssistant";
-import Footer from "./components/Footer";
+import Footer, { getDailyQuote } from "./components/Footer";
 import { isSpecialUser } from "./config/access";
 import { deleteDeck, listDecks, listDueCards, saveDeck, saveReview, shareDeckWithEmails, supabase, updateDeck, type SavedDeck } from "./services/supabase";
 
@@ -52,6 +52,7 @@ export default function App() {
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
   const [theme, setTheme] = useState<"color" | "basic">(() => (localStorage.getItem("hocbai-theme") === "basic" ? "basic" : "color"));
   const specialUser = isSpecialUser(user?.email);
+  const [dailyQuote, dailyAuthor] = getDailyQuote();
 
   useEffect(() => {
     localStorage.setItem("hocbai-theme", theme);
@@ -59,8 +60,8 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    const closeTimer = window.setTimeout(() => setWelcomeClosing(true), 1500);
-    const removeTimer = window.setTimeout(() => setShowWelcome(false), 2100);
+    const closeTimer = window.setTimeout(() => setWelcomeClosing(true), 4500);
+    const removeTimer = window.setTimeout(() => setShowWelcome(false), 5100);
     return () => {
       window.clearTimeout(closeTimer);
       window.clearTimeout(removeTimer);
@@ -430,6 +431,12 @@ export default function App() {
           <p className="welcome-kicker">Học bài thoiii 🌸</p>
           <h1>Chào bạn!</h1>
           <p className="welcome-message">Mình cùng học một chút nhé.<br />Mỗi ngày tiến bộ một xíu là giỏi lắm rồi! 😊</p>
+          <div className="welcome-quote" aria-label="Lời nhắc hôm nay">
+            <p>“{dailyQuote}”</p>
+            <cite>— {dailyAuthor}</cite>
+          </div>
+          <div className="welcome-progress" aria-hidden="true"><span /></div>
+          <p className="welcome-loading-label">Đang chuẩn bị góc học tập…</p>
           <div className="welcome-dots" aria-hidden="true"><span /><span /><span /></div>
         </div>
       </div>}

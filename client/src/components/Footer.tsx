@@ -51,7 +51,7 @@ const dailyQuotes = [
   ["Bạn đã đi xa hơn ngày hôm qua; hãy tiếp tục.", "Khuyết danh"],
 ] as const;
 
-function getDailyQuote() {
+export function getDailyQuote() {
   const now = new Date();
   const start = Date.UTC(now.getFullYear(), 0, 0);
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
