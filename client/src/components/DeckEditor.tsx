@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Plus, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
+import type { SavedDeck } from "../services/supabase";
 import RichTextEditor from "./RichTextEditor";
 
 interface Props {
@@ -11,12 +12,15 @@ interface Props {
   onSave: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void | Promise<void>;
   onSaveAndStudy: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void | Promise<void>;
   titleSuggestions?: string[];
+  decks: SavedDeck[];
+  onSwitchDeck: (deck: SavedDeck) => void | Promise<void>;
 }
 
-export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave, onSaveAndStudy, titleSuggestions = [] }: Props) {
+export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave, onSaveAndStudy, titleSuggestions = [], decks, onSwitchDeck }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [visibility, setVisibility] = useState(initialVisibility);
   const [questions, setQuestions] = useState(initialQuestions);
+  const [showDeckList, setShowDeckList] = useState(false);
 
   function update(id: string, field: "question" | "answer", value: string) {
     setQuestions((current) => current.map((item) => item.id === id ? { ...item, [field]: value } : item));
@@ -32,6 +36,16 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     void (saveAndStudy ? onSaveAndStudy(title.trim(), valid, visibility) : onSave(title.trim(), valid, visibility));
   }
 
+  async function switchDeck(deck: SavedDeck) {
+    if (deck.title === title) return;
+    const valid = questions.filter((item) => item.question.trim() && item.answer.trim());
+    if (!window.confirm(`Lưu thay đổi của bộ “${title}” trước khi chuyển sang “${deck.title}”?`)) return;
+    if (!title.trim() || valid.length === 0) return;
+    await onSave(title.trim(), valid, visibility);
+    setShowDeckList(false);
+    await onSwitchDeck(deck);
+  }
+
   return (
     <section className="mx-auto max-w-5xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
@@ -39,14 +53,17 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         <button onClick={onCancel} className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white px-4 py-2 text-sm font-semibold text-slate-600"><X size={17} /> Hủy</button>
       </div>
       <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-        <div className="flex-1">
-          <input list="deck-title-suggestions" value={title} onChange={(event) => setTitle(event.target.value)} className="w-full rounded-lg border border-rose-100 bg-white px-4 py-3 font-semibold text-rose-950 outline-none focus:border-rose-300" />
+        <div className="relative flex-1">
+          <input list="deck-title-suggestions" value={title} onFocus={() => setShowDeckList(true)} onChange={(event) => setTitle(event.target.value)} className="w-full rounded-lg border border-rose-100 bg-white px-4 py-3 font-semibold text-rose-950 outline-none focus:border-rose-300" />
+          {showDeckList && decks.length > 1 && <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-xl border border-rose-100 bg-white p-1 shadow-lg">
+            {decks.filter((deck) => deck.title !== title).map((deck) => <button key={deck.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => void switchDeck(deck)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50"><span>{deck.title}</span><span className="ml-auto text-xs text-slate-400">{deck.cards.length} thẻ</span></button>)}
+          </div>}
           <datalist id="deck-title-suggestions">
             {["Nội", "Ngoại", "Sản", "Nhi", "Cấp cứu", "Hồi sức", ...titleSuggestions].filter((name, index, all) => all.indexOf(name) === index).map((name) => <option key={name} value={name} />)}
           </datalist>
         </div>
         <select value={visibility} onChange={(event) => setVisibility(event.target.value as "private" | "shared")} className="rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-          <option value="private">🔒 Chỉ mình tôi</option><option value="shared">🌸 Chia sẻ</option>
+          <option value="private">👤 Chỉ mình tôi</option><option value="shared">👥 Chia sẻ</option>
         </select>
       </div>
       <div className="space-y-3">

@@ -173,6 +173,11 @@ export default function App() {
     setEditing(true);
   }
 
+  function switchEditingDeck(deck: SavedDeck) {
+    openSavedDeck(deck);
+    setEditing(true);
+  }
+
   async function removeSavedDeck(deck: SavedDeck) {
     if (!user || !window.confirm(`Xóa bộ thẻ "${deck.title}"? Hành động này không thể hoàn tác.`)) return;
     try {
@@ -263,7 +268,7 @@ export default function App() {
         )}
 
         {editing && currentSavedDeck ? (
-          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} titleSuggestions={savedDecks.map((deck) => deck.title)} onCancel={() => setEditing(false)} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
+          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} onSwitchDeck={switchEditingDeck} onCancel={() => setEditing(false)} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
         ) : questions.length === 0 ? (
           <DeckSetup
             preview={preview}
