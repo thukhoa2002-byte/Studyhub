@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   ArrowRight,
-  Brain,
   FileText,
   Plus,
   Pencil,
@@ -98,6 +97,12 @@ export default function DeckSetup({
     );
   }
 
+  function startNewDeck() {
+    setMode("create");
+    setTitle("Bộ thẻ mới");
+    setCards([newDraftCard(), newDraftCard(), newDraftCard()]);
+  }
+
   function createDeck() {
     if (validCards.length === 0) return;
     onCreateDeck(title.trim() || "Bộ thẻ mới", buildQuestions());
@@ -118,7 +123,7 @@ export default function DeckSetup({
     <section className="mx-auto max-w-5xl px-5 py-8 sm:py-12">
       <div className="mb-7">
         <h1 className="mt-2 flex items-center gap-3 text-3xl font-bold tracking-tight text-rose-950 sm:text-4xl">
-          <span className="inline-flex rounded-2xl bg-fuchsia-100 p-2 text-fuchsia-500"><Brain size={30} strokeWidth={2.2} /></span>
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-fuchsia-100 p-1"><img src="/brain-learning-icon.png" alt="Não bộ" className="h-full w-full object-contain" /></span>
           Nạp kiến thức vào bộ nhớ
         </h1>
       </div>
@@ -179,7 +184,7 @@ export default function DeckSetup({
                 </button>
                 {deck.owner_id === currentUserId && <>
                   <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="rounded-md p-2 text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
-                  <button onClick={() => onEditDeck(deck)} title="Thêm thẻ vào bộ này" aria-label="Thêm thẻ vào bộ này" className="rounded-md p-2 text-violet-600 hover:bg-violet-50"><Plus size={16} /></button>
+                  <button onClick={startNewDeck} title="Tạo bộ thẻ mới cùng cấp" aria-label="Tạo bộ thẻ mới cùng cấp" className="rounded-md p-2 text-violet-600 hover:bg-violet-50"><Plus size={16} /></button>
                   <button onClick={() => onEditDeck(deck)} title="Sửa bộ thẻ" aria-label="Sửa bộ thẻ" className="rounded-md p-2 text-teal-600 hover:bg-teal-50"><Pencil size={16} /></button>
                   <button onClick={() => onDeleteDeck(deck)} title="Xóa bộ thẻ" aria-label="Xóa bộ thẻ" className="rounded-md p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={16} /></button>
                 </>}
