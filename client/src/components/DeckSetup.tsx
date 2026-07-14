@@ -85,6 +85,7 @@ export default function DeckSetup({
     newDraftCard(),
     newDraftCard(),
   ]);
+  const [startingReview, setStartingReview] = useState(false);
 
   const validCards = cards.filter(
     (card) => card.question.trim() && card.answer.trim()
@@ -119,6 +120,12 @@ export default function DeckSetup({
   function createDeck() {
     if (validCards.length === 0) return;
     onCreateDeck(title.trim() || "Bộ thẻ mới", buildQuestions());
+  }
+
+  function startDueReview() {
+    if (startingReview) return;
+    setStartingReview(true);
+    window.setTimeout(() => void onStudyDue(), 700);
   }
 
   function buildQuestions(): GeneratedQuestion[] {
@@ -179,9 +186,12 @@ export default function DeckSetup({
 
 
       {savedDecks.length > 0 && (
-        <div className="mb-6 flex flex-col gap-5 rounded-2xl border border-teal-100 bg-gradient-to-r from-rose-50 via-white to-teal-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div className="relative mb-6">
+          {startingReview && <span className="study-runner" aria-hidden="true">🏃‍♂️</span>}
+          <div className={`flex flex-col gap-5 rounded-2xl border border-teal-100 bg-gradient-to-r from-rose-50 via-white to-teal-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8 ${startingReview ? "study-box-exit" : ""}`}>
           <div><p className="text-sm font-semibold text-teal-600">🌸 Ôn tập thông minh</p><h2 className="mt-1 text-2xl font-bold text-rose-950 sm:text-3xl">Hôm nay ôn gì nhỉ?</h2><p className="mt-2 text-sm text-slate-500">Ôn bài lẹ đi, Thầy sắp díiiii rồi!!!</p></div>
-          <button onClick={() => void onStudyDue()} className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-6 py-4 text-sm font-bold text-white shadow-sm hover:bg-teal-500 sm:min-w-44">Ôn lẹ <ArrowRight size={18} className="ml-2" /></button>
+          <button disabled={startingReview} onClick={startDueReview} className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-6 py-4 text-sm font-bold text-white shadow-sm hover:bg-teal-500 disabled:cursor-wait sm:min-w-44">Ôn lẹ <ArrowRight size={18} className="ml-2" /></button>
+          </div>
         </div>
       )}
 

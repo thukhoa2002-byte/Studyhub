@@ -50,6 +50,11 @@ button:hover {
   transform: translateY(-1px);
 }
 
+.study-runner { position: absolute; z-index: 2; top: 50%; left: 0; font-size: 2rem; line-height: 1; transform: translateY(-50%); animation: study-runner 700ms ease-in forwards; }
+.study-box-exit { animation: study-box-exit 700ms ease-in forwards; }
+@keyframes study-runner { from { left: 0; } to { left: calc(100% - 2.5rem); } }
+@keyframes study-box-exit { 0% { opacity: 1; transform: translateX(0); } 65% { opacity: .9; transform: translateX(3%); } 100% { opacity: 0; transform: translateX(105%); } }
+
 ::-webkit-scrollbar {
   width: 8px;
 }
