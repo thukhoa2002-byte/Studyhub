@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import clozeRouter from "./routes/cloze.js";
 import gradingRouter from "./routes/grading.js";
 import ankiRouter from "./routes/anki.js";
+import mcqRouter from "./routes/mcq.js";
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/generate-cloze", clozeRouter);
 app.use("/api/grading", gradingRouter);
 app.use("/api/import-anki", ankiRouter);
+app.use("/api/generate-mcq", mcqRouter);
 
 if (existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));

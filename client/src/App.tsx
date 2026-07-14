@@ -14,6 +14,7 @@ import { deleteDeck, listDecks, listDueCards, saveDeck, saveReview, shareDeckWit
 
 import {
   generateQuestions,
+  generateMultipleChoice,
   importAnkiPackage,
   type GeneratedQuestion,
 } from "./services/api";
@@ -115,6 +116,16 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onGenerateMcq() {
+    if (!image) return;
+    try {
+      setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và tạo tối đa 10 câu hỏi với 4 lựa chọn.");
+      const response = await generateMultipleChoice(image);
+      setQuestions(response.data); setDeckTitle(response.title || "Trắc nghiệm"); setMode("study");
+    } catch (error) { console.error(error); alert("Không thể tạo câu trắc nghiệm."); }
+    finally { setLoading(false); }
   }
 
   async function onImportDeck(file: File) {
@@ -342,6 +353,7 @@ export default function App() {
             loading={loading}
             onImageChange={onImageChange}
             onGenerate={onGenerate}
+            onGenerateMcq={onGenerateMcq}
             onImportDeck={onImportDeck}
             onCreateDeck={onCreateDeck}
             onSaveDeck={onSaveDeck}

@@ -12,6 +12,19 @@ export interface GeneratedQuestion {
   importance: number;
 
   bookmarked: boolean;
+  options?: string[];
+  correctOption?: string;
+  explanation?: string;
+}
+
+export async function generateMultipleChoice(image: File): Promise<GenerateQuestionsResponse> {
+  const formData = new FormData();
+  formData.append("image", image);
+  const response = await fetch(`${API_URL}/api/generate-mcq`, { method: "POST", body: formData });
+  if (!response.ok) throw new Error("Không thể tạo câu trắc nghiệm.");
+  const result = (await response.json()) as GenerateQuestionsResponse;
+  result.data = result.data.map((question, index) => ({ ...question, id: crypto.randomUUID?.() ?? index.toString(), bookmarked: false }));
+  return result;
 }
 
 export interface Deck {

@@ -36,6 +36,7 @@ const ratingText: Record<Rating, [string, string]> = {
 export default function Study({ questions, toggleBookmark, onRate }: Props) {
   const [current, setCurrent] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [ratings, setRatings] = useState<Record<string, Rating>>({});
   const [sessionComplete, setSessionComplete] = useState(false);
   const [studyQuestions, setStudyQuestions] = useState(questions);
@@ -55,6 +56,7 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
     setIsShuffled(false);
     setCurrent(0);
     setShowAnswer(false);
+    setSelectedOption(null);
     setRatings({});
     setSessionComplete(false);
   }, [questions]);
@@ -71,6 +73,7 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
     setIsShuffled(shuffle);
     setCurrent(0);
     setShowAnswer(false);
+    setSelectedOption(null);
     setRatings({});
     setSessionComplete(false);
   }
@@ -88,6 +91,7 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
 
     setCurrent((previous) => previous + 1);
     setShowAnswer(false);
+    setSelectedOption(null);
   }, [isLast, onRate, question]);
 
   useEffect(() => {
@@ -113,8 +117,15 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
   function restart() {
     setCurrent(0);
     setShowAnswer(false);
+    setSelectedOption(null);
     setRatings({});
     setSessionComplete(false);
+  }
+
+  function chooseOption(option: string) {
+    if (!question?.options || selectedOption) return;
+    setSelectedOption(option);
+    setShowAnswer(true);
   }
 
   if (sessionComplete) {
@@ -154,7 +165,8 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
         <div className="flex min-h-[325px] flex-col justify-center px-6 py-10 text-center sm:px-14">
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Câu hỏi</p>
           <div className="rich-content text-2xl font-semibold leading-relaxed text-slate-800 sm:text-3xl" dangerouslySetInnerHTML={{ __html: toClozeQuestionHtml(question.question) }} />
-          {showAnswer && <div className="mt-10 border-t border-rose-50 pt-8"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-500">Đáp án</p><div className="rich-content mt-3 text-xl font-semibold leading-relaxed text-slate-800 sm:text-2xl" dangerouslySetInnerHTML={{ __html: sanitizeHtml(toEditorHtml(question.answer)) }} /></div>}
+          {question.options?.length ? <div className="mx-auto mt-8 grid w-full max-w-2xl gap-3 text-left">{question.options.map((option, index) => { const chosen = selectedOption === option; const correct = question.correctOption === option; return <button key={`${option}-${index}`} type="button" onClick={() => chooseOption(option)} className={`rounded-xl border px-4 py-3 text-base transition ${showAnswer ? correct ? "border-teal-300 bg-teal-50 text-teal-800" : chosen ? "border-rose-300 bg-rose-50 text-rose-800" : "border-slate-100 bg-slate-50 text-slate-400" : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50"}`}><span className="mr-2 font-bold">{String.fromCharCode(65 + index)}.</span>{option}</button>; })}</div> : null}
+          {showAnswer && <div className="mt-10 border-t border-rose-50 pt-8"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-500">{question.options?.length ? "Giải thích" : "Đáp án"}</p><div className="rich-content mt-3 text-xl font-semibold leading-relaxed text-slate-800 sm:text-2xl" dangerouslySetInnerHTML={{ __html: sanitizeHtml(toEditorHtml(question.options?.length ? (question.explanation || question.answer) : question.answer)) }} /></div>}
         </div>
       </article>
 

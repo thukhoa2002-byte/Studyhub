@@ -20,6 +20,7 @@ interface Props {
   loading: boolean;
   onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerate: () => void;
+  onGenerateMcq: () => void;
   onImportDeck: (file: File) => Promise<void>;
   onCreateDeck: (title: string, questions: GeneratedQuestion[]) => void;
   onSaveDeck: (title: string, questions: GeneratedQuestion[]) => void | Promise<void>;
@@ -69,6 +70,7 @@ export default function DeckSetup({
   loading,
   onImageChange,
   onGenerate,
+  onGenerateMcq,
   onImportDeck,
   onCreateDeck,
   onSaveDeck,
@@ -335,14 +337,10 @@ export default function DeckSetup({
             onChange={onImageChange}
           />
 
-          <button
-            disabled={!preview || loading}
-            onClick={onGenerate}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-4 font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {loading ? "AI đang tạo thẻ..." : "Tạo thẻ và học"}
-            {!loading && <ArrowRight size={18} />}
-          </button>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            <button disabled={!preview || loading} onClick={onGenerate} className="flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-4 font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo Cloze"}{!loading && <ArrowRight size={18} />}</button>
+            <button disabled={!preview || loading} onClick={onGenerateMcq} className="flex items-center justify-center gap-2 rounded-lg bg-violet-400 px-5 py-4 font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo trắc nghiệm"}{!loading && <ArrowRight size={18} />}</button>
+          </div>
         </div>
       )}
     </section>
