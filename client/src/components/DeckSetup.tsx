@@ -3,6 +3,7 @@ import {
   ArrowRight,
   FileText,
   Plus,
+  Pencil,
   Sparkles,
   Trash2,
   UploadCloud,
@@ -176,8 +177,8 @@ export default function DeckSetup({
                 <span className="ml-3 text-xs text-slate-400">{deck.cards.length} thẻ</span>
                 </button>
                 {deck.owner_id === currentUserId && <>
-                  <button onClick={() => onEditDeck(deck)} className="rounded-md px-2 py-1 text-xs font-semibold text-teal-600 hover:bg-teal-50">Sửa</button>
-                  <button onClick={() => onDeleteDeck(deck)} className="rounded-md px-2 py-1 text-xs font-semibold text-rose-500 hover:bg-rose-50">Xóa</button>
+                  <button onClick={() => onEditDeck(deck)} title="Sửa bộ thẻ" aria-label="Sửa bộ thẻ" className="rounded-md p-2 text-teal-600 hover:bg-teal-50"><Pencil size={16} /></button>
+                  <button onClick={() => onDeleteDeck(deck)} title="Xóa bộ thẻ" aria-label="Xóa bộ thẻ" className="rounded-md p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={16} /></button>
                 </>}
               </div>
             ))}
