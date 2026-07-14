@@ -367,7 +367,7 @@ export default function App() {
             <div className="relative z-10">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-2xl">🌸</div>
               <h2 id="no-due-title" className="mt-4 text-xl font-bold text-rose-950">Hôm nay chưa có thẻ đến hạn</h2>
-              <p className="mt-2 text-sm text-slate-500">Bạn đã hoàn thành lịch ôn hôm nay rồi. Nghỉ một chút nhé!</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Bạn đã hoàn thành lịch ôn hôm nay rồi.<br />Nghỉ một chút nhé! 😊</p>
               <button type="button" onClick={() => setNoDueNotice(false)} className="mt-6 rounded-xl bg-teal-400 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500">Đóng</button>
             </div>
           </div>
