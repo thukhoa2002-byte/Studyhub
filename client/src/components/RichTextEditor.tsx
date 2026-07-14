@@ -2,7 +2,7 @@ import { AlignCenter, AlignLeft, AlignRight, Bold, Highlighter, Image as ImageIc
 import { useEffect, useRef } from "react";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
 
-interface Props { value: string; onChange: (value: string) => void; placeholder: string; }
+interface Props { value: string; onChange: (value: string) => void; placeholder: string; onClozeCreated?: (text: string) => void; }
 
 const commands = [
   ["bold", Bold, "Đậm"], ["italic", Italic, "Nghiêng"], ["underline", Underline, "Gạch chân"],
@@ -10,7 +10,7 @@ const commands = [
   ["justifyLeft", AlignLeft, "Căn trái"], ["justifyCenter", AlignCenter, "Căn giữa"], ["justifyRight", AlignRight, "Căn phải"],
 ] as const;
 
-export default function RichTextEditor({ value, onChange, placeholder }: Props) {
+export default function RichTextEditor({ value, onChange, placeholder, onClozeCreated }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const selectionRef = useRef<Range | null>(null);
@@ -92,6 +92,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
     range.insertNode(document.createTextNode(`{{c1::${text}}}`));
     rememberSelection();
     onChange(sanitizeHtml(editorRef.current.innerHTML));
+    onClozeCreated?.(text);
   }
   return <div className="overflow-hidden rounded-lg border border-rose-100 bg-white focus-within:border-rose-300">
     <div className="flex flex-wrap gap-1 border-b border-rose-50 bg-rose-50/50 p-2">

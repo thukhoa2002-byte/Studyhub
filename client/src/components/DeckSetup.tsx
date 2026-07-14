@@ -234,7 +234,7 @@ export default function DeckSetup({
                 key={card.id}
                 className="grid gap-3 rounded-lg border border-rose-100 bg-rose-50/30 p-4 sm:grid-cols-[1fr_1fr_auto]"
               >
-                <RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} placeholder={`Mặt trước thẻ ${index + 1}`} />
+                <RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} onClozeCreated={(text) => updateCard(card.id, "answer", text)} placeholder={`Mặt trước thẻ ${index + 1}`} />
                 <RichTextEditor value={card.answer} onChange={(value) => updateCard(card.id, "answer", value)} placeholder="Mặt sau" />
                 <button
                   onClick={() => removeCard(card.id)}
