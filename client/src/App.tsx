@@ -197,7 +197,11 @@ export default function App() {
       setQuestions(cards); setDeckTitle(title); setEditing(!startStudy); setCurrentSavedDeck({ ...currentSavedDeck, title, visibility, cards });
       if (startStudy) setMode("study");
       setSavedDecks(await listDecks(user.id));
-    } catch (error) { console.error(error); alert("Không thể lưu thay đổi bộ thẻ."); }
+    } catch (error) {
+      console.error(error);
+      alert(`Không thể lưu thay đổi bộ thẻ: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+      throw error;
+    }
   }
 
   async function saveEditedDeckAndStudy(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
