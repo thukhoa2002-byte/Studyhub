@@ -49,6 +49,18 @@ function newDraftCard(): DraftCard {
   };
 }
 
+function deckIcon(title: string) {
+  const name = title.toLowerCase();
+  if (name.includes("ngoại") || name.includes("ngoai")) return "🩺";
+  if (name.includes("sản") || name.includes("san")) return "🤰";
+  if (name.includes("nhi")) return "🧸";
+  if (name.includes("nội") || name.includes("noi")) return "🫁";
+  if (name.includes("giải phẫu") || name.includes("giai phau") || name.includes("sinh lý") || name.includes("sinh ly")) return "🫀";
+  if (name.includes("hóa sinh") || name.includes("hoa sinh")) return "🧪";
+  if (name.includes("di truyền") || name.includes("di truyen") || name.includes("sinh học") || name.includes("sinh hoc")) return "🧬";
+  return "📚";
+}
+
 export default function DeckSetup({
   preview,
   loading,
@@ -179,7 +191,7 @@ export default function DeckSetup({
             {savedDecks.map((deck) => (
               <div key={deck.id} className="flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
                 <button onClick={() => onOpenDeck(deck)} className="flex min-w-0 flex-1 items-center justify-between text-left">
-                <span className="truncate">{deck.visibility === "shared" ? "🌸" : "🔒"} {deck.title}</span>
+                <span className="truncate">{deckIcon(deck.title)} {deck.title}</span>
                 <span className="ml-3 text-xs text-slate-400">{deck.cards.length} thẻ</span>
                 </button>
                 {deck.owner_id === currentUserId && <>
