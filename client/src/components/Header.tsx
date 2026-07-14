@@ -24,7 +24,7 @@ export default function Header() {
 
             <h1 className="text-lg font-bold tracking-tight text-slate-900">
 
-              Học bài thôi
+              Học bài thoiii
 
             </h1>
 
