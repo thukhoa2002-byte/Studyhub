@@ -26,7 +26,22 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
       selection?.removeAllRanges();
       selection?.addRange(selectionRef.current);
     }
+    const before = editorRef.current?.innerHTML ?? "";
     document.execCommand(name, false);
+    if (name === "insertUnorderedList" && editorRef.current && !editorRef.current.innerHTML.includes("<ul")) {
+      const selection = window.getSelection();
+      const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : selectionRef.current;
+      const text = range?.toString() ?? "";
+      const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      if (range && lines.length > 0) {
+        const list = document.createElement("ul");
+        lines.forEach((line) => { const item = document.createElement("li"); item.textContent = line; list.appendChild(item); });
+        range.deleteContents();
+        range.insertNode(list);
+      } else if (editorRef.current.innerHTML === before) {
+        editorRef.current.innerHTML = `${editorRef.current.innerHTML}<ul><li><br></li></ul>`;
+      }
+    }
     rememberSelection();
     if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML));
   }
@@ -34,6 +49,6 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
     <div className="flex flex-wrap gap-1 border-b border-rose-50 bg-rose-50/50 p-2">
       {commands.map(([name, Icon, label]) => <button key={name} type="button" title={label} onMouseDown={(event) => event.preventDefault()} onClick={() => command(name)} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><Icon size={16} /></button>)}
     </div>
-    <div ref={editorRef} contentEditable role="textbox" aria-label={placeholder} data-placeholder={placeholder} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onInput={(event) => { rememberSelection(); onChange(sanitizeHtml(event.currentTarget.innerHTML)); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
+    <div ref={editorRef} contentEditable role="textbox" aria-label={placeholder} data-placeholder={placeholder} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onInput={(event) => { rememberSelection(); onChange(sanitizeHtml(event.currentTarget.innerHTML)); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
   </div>;
 }
