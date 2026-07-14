@@ -56,6 +56,7 @@ button:hover {
 @keyframes study-box-exit { 0% { opacity: 1; transform: translateX(0); } 65% { opacity: .9; transform: translateX(3%); } 100% { opacity: 0; transform: translateX(105%); } }
 .loading-progress { animation: loading-progress 1.35s ease-in-out infinite; transform-origin: left center; }
 .scan-preview { position: relative; border: 2px solid #f9a8d4; box-shadow: 0 8px 24px rgba(244,114,182,.18); }
+.scan-paper { position: relative; display: flex; height: 6rem; width: 5rem; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #f9a8d4; border-radius: 1.25rem; color: #e11d48; background: linear-gradient(145deg,#fff1f7,#fce7f3); box-shadow: 0 8px 24px rgba(244,114,182,.18); }
 .scan-line { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, transparent, #f43f5e, #2dd4bf, transparent); box-shadow: 0 0 12px #f43f5e; animation: scan-line 1.25s ease-in-out infinite; }
 @keyframes scan-line { 0% { transform: translateY(0); opacity: .25; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(90px); opacity: .25; } }
 @keyframes loading-progress { 0% { transform: translateX(-120%) scaleX(.8); opacity: .65; } 55% { transform: translateX(100%) scaleX(1.2); opacity: 1; } 100% { transform: translateX(260%) scaleX(.8); opacity: .65; } }

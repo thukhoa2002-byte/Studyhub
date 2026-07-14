@@ -1,3 +1,5 @@
+import { FileText } from "lucide-react";
+
 interface Props { title?: string; description?: string; imageSrc?: string; }
 
 export default function LoadingOverlay({ title = "Đang xử lý...", description = "Một chút thôi, mình đang chuẩn bị nội dung cho bạn.", imageSrc }: Props) {
@@ -6,7 +8,7 @@ export default function LoadingOverlay({ title = "Đang xử lý...", descriptio
 
       <div className="w-full max-w-md rounded-[32px] border border-rose-100 bg-gradient-to-br from-white via-rose-50/80 to-teal-50/80 p-8 text-center shadow-[0_24px_70px_rgba(190,24,93,0.2)] sm:p-10">
 
-        {imageSrc ? <div className="scan-preview mx-auto h-24 w-32 overflow-hidden rounded-3xl bg-slate-100"><img src={imageSrc} alt="Ảnh đang được đọc" className="h-full w-full object-cover" /><span className="scan-line" /></div> : <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-fuchsia-100 p-3"><img src="/brain-learning-icon.png" alt="" className="h-full w-full object-contain animate-pulse" /></div>}
+        <div className="scan-paper mx-auto" aria-label={imageSrc ? "Đang quét ảnh" : "Đang xử lý"}><FileText size={52} strokeWidth={1.5} /><span className="scan-line" /></div>
 
         <h2 className="mt-7 text-2xl font-bold text-rose-950">{title}</h2>
 
