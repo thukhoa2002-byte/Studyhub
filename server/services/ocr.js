@@ -5,7 +5,8 @@ export async function extractTextFromImage(file) {
   const base64Image = file.buffer.toString("base64");
 
   const response = await client.responses.create({
-    model: "gpt-5",
+    model: process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5-mini",
+    max_output_tokens: 6000,
     input: [
       {
         role: "user",

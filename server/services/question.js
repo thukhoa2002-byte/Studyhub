@@ -111,6 +111,7 @@ NGUYÊN TẮC
 
   const response = await client.responses.create({
     model: process.env.OPENAI_MODEL || "gpt-5-mini",
+    max_output_tokens: 5000,
     input: prompt,
     text: {
       format: {
