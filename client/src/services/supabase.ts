@@ -142,7 +142,7 @@ export async function updateDeck(
   if (deckError) throw deckError;
   const { error: deleteError } = await supabase.from("cards").delete().eq("deck_id", deckId);
   if (deleteError) throw deleteError;
-  const { error: cardsError } = await supabase.from("cards").insert(questions.map((question, position) => ({ ...(isUuid(question.id) ? { id: question.id } : {}), deck_id: deckId, front: question.question, back: question.answer, category: question.category, position })));
+  const { error: cardsError } = await supabase.from("cards").insert(questions.map((question, position) => ({ deck_id: deckId, front: question.question, back: question.answer, category: question.category, position })));
   if (cardsError) throw cardsError;
 }
 
