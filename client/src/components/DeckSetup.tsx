@@ -17,8 +17,8 @@ interface Props {
   loading: boolean;
   onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerate: () => void;
-  onImportDeck: (file: File, visibility: "private" | "shared") => Promise<void>;
-  onCreateDeck: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void;
+  onImportDeck: (file: File, shareEmails: string[]) => Promise<void>;
+  onCreateDeck: (title: string, questions: GeneratedQuestion[], shareEmails: string[]) => void;
   savedDecks: SavedDeck[];
   onOpenDeck: (deck: SavedDeck) => void;
   onEditDeck: (deck: SavedDeck) => void;
@@ -60,7 +60,7 @@ export default function DeckSetup({
 }: Props) {
   const [mode, setMode] = useState<SetupMode>("import");
   const [title, setTitle] = useState("Bộ thẻ mới");
-  const [visibility, setVisibility] = useState<"private" | "shared">("private");
+  const [shareEmails, setShareEmails] = useState("");
   const [cards, setCards] = useState<DraftCard[]>([
     newDraftCard(),
     newDraftCard(),
@@ -104,7 +104,7 @@ export default function DeckSetup({
         importance: index + 1,
         bookmarked: false,
       })),
-      visibility
+      shareEmails.split(",").map((email) => email.trim()).filter(Boolean)
     );
   }
 
@@ -155,15 +155,10 @@ export default function DeckSetup({
         </button>
       </div>
 
-      <div className="mb-6 flex flex-col gap-2 rounded-lg border border-rose-100 bg-white/75 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-rose-950">Lưu bộ thẻ ở đâu?</p>
-          <p className="text-xs text-slate-500">Đăng nhập để đồng bộ giữa các thiết bị.</p>
-        </div>
-        <select value={visibility} onChange={(event) => setVisibility(event.target.value as "private" | "shared")} className="rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-rose-300">
-          <option value="private">🔒 Chỉ mình tôi</option>
-          <option value="shared">🌸 Chia sẻ với mọi người</option>
-        </select>
+      <div className="mb-6 rounded-lg border border-rose-100 bg-white/75 px-4 py-3">
+        <p className="text-sm font-semibold text-rose-950">Cho phép email truy cập (tùy chọn)</p>
+        <p className="mb-2 text-xs text-slate-500">Nhập email, ngăn cách bằng dấu phẩy. Để trống nếu chỉ mình bạn dùng.</p>
+        <input value={shareEmails} onChange={(event) => setShareEmails(event.target.value)} placeholder="ban1@gmail.com, ban2@gmail.com" className="w-full rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm outline-none focus:border-rose-300" />
       </div>
 
       {savedDecks.length > 0 && (
@@ -212,7 +207,7 @@ export default function DeckSetup({
             onChange={async (event) => {
               const file = event.target.files?.[0];
               if (!file) return;
-              await onImportDeck(file, visibility);
+              await onImportDeck(file, shareEmails.split(",").map((email) => email.trim()).filter(Boolean));
               event.target.value = "";
             }}
           />

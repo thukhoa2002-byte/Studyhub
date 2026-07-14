@@ -50,11 +50,11 @@ export default function App() {
     void supabase.auth.getUser().then(({ data }) => refreshDecks(data.user));
   }, [refreshDecks]);
 
-  async function persistDeck(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
+  async function persistDeck(title: string, cards: GeneratedQuestion[], shareEmails: string[] = []) {
     if (!user || !supabase) return;
     try {
-      const saved = await saveDeck(user.id, title, cards, visibility);
-      if (saved) setCurrentSavedDeck({ ...saved, cards });
+      const saved = await saveDeck(user.id, title, cards, shareEmails);
+      if (saved) setCurrentSavedDeck({ ...saved, visibility: "private", cards });
       setSavedDecks(await listDecks(user.id));
     } catch (error) {
       console.error(error);
@@ -93,7 +93,7 @@ export default function App() {
     }
   }
 
-  async function onImportDeck(file: File, visibility: "private" | "shared") {
+  async function onImportDeck(file: File, shareEmails: string[]) {
     try {
       if (file.name.toLowerCase().endsWith(".apkg")) {
         setLoading(true);
@@ -108,7 +108,7 @@ export default function App() {
         setQuestions(response.data);
         setDeckTitle(response.title || file.name.replace(/\.[^.]+$/, ""));
         setMode("study");
-        await persistDeck(response.title || file.name.replace(/\.[^.]+$/, ""), response.data, visibility);
+        await persistDeck(response.title || file.name.replace(/\.[^.]+$/, ""), response.data, shareEmails);
         return;
       }
 
@@ -123,7 +123,7 @@ export default function App() {
       setQuestions(imported);
       setDeckTitle(file.name.replace(/\.[^.]+$/, ""));
       setMode("study");
-      await persistDeck(file.name.replace(/\.[^.]+$/, ""), imported, visibility);
+      await persistDeck(file.name.replace(/\.[^.]+$/, ""), imported, shareEmails);
     } catch (error) {
       console.error(error);
       alert("Không thể đọc file này.");
@@ -132,11 +132,11 @@ export default function App() {
     }
   }
 
-  function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[], visibility: "private" | "shared") {
+  function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[], shareEmails: string[]) {
     setQuestions(createdQuestions);
     setDeckTitle(title);
     setMode("study");
-    void persistDeck(title, createdQuestions, visibility);
+    void persistDeck(title, createdQuestions, shareEmails);
   }
 
   function openSavedDeck(deck: SavedDeck) {

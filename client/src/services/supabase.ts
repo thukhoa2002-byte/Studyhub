@@ -21,13 +21,13 @@ export async function saveDeck(
   userId: string,
   title: string,
   questions: GeneratedQuestion[],
-  visibility: "private" | "shared" = "private"
+  shareEmails: string[] = []
 ) {
   if (!supabase) return null;
 
   const { data: deck, error: deckError } = await supabase
     .from("decks")
-    .insert({ title, owner_id: userId, visibility, source: "web" })
+    .insert({ title, owner_id: userId, visibility: "private", source: "web" })
     .select("id, title, visibility, owner_id")
     .single();
 
@@ -45,6 +45,10 @@ export async function saveDeck(
   );
 
   if (cardsError) throw cardsError;
+  for (const email of shareEmails) {
+    const { error } = await supabase.rpc("share_deck_with_email", { p_deck_id: deck.id, p_email: email });
+    if (error) throw error;
+  }
   return deck;
 }
 
@@ -52,13 +56,12 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-export async function listDecks(userId: string): Promise<SavedDeck[]> {
+export async function listDecks(_userId: string): Promise<SavedDeck[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
     .from("decks")
     .select("id, title, visibility, owner_id, cards(id, front, back, category, position)")
-    .or(`owner_id.eq.${userId},visibility.eq.shared`)
     .order("created_at", { ascending: false });
 
   if (error) throw error;

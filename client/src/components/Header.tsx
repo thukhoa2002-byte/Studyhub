@@ -1,4 +1,3 @@
-import { BookOpen } from "lucide-react";
 import AuthPanel from "./AuthPanel";
 
 interface Props {
@@ -15,15 +14,7 @@ export default function Header({ onUserChange }: Props) {
 
         <div className="flex items-center gap-5">
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-300 to-teal-300 shadow-sm">
-
-            <BookOpen
-              size={22}
-              className="text-white"
-              strokeWidth={2.5}
-            />
-
-          </div>
+          <img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" className="h-11 w-11 rounded-xl object-contain" />
 
           <div>
 
@@ -42,7 +33,6 @@ export default function Header({ onUserChange }: Props) {
         {/* Right */}
 
         <div className="flex items-center gap-3">
-          <div className="hidden rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-500 sm:block">AI cards</div>
           <AuthPanel onUserChange={onUserChange ?? (() => undefined)} />
         </div>
 
