@@ -58,7 +58,8 @@ export default function App() {
       setSavedDecks(await listDecks(user.id));
     } catch (error) {
       console.error(error);
-      alert("Chưa lưu được bộ thẻ. Hãy kiểm tra bạn đã chạy file supabase/schema.sql chưa.");
+      const detail = error instanceof Error ? error.message : String(error);
+      alert(`Chưa lưu được bộ thẻ: ${detail}`);
     }
   }
 
