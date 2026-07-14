@@ -120,7 +120,7 @@ export default function DeckSetup({
           Chọn cách tạo bộ thẻ
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-rose-950 sm:text-4xl">
-          Học từ file Anki hoặc tạo thẻ mới
+          Nạp kiến thức vào bộ nhớ
         </h1>
       </div>
 
