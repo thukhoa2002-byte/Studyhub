@@ -162,9 +162,12 @@ function clozeToQuestions(fields, category) {
 
 function cleanText(value = "") {
   return String(value)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/div>|<\/p>|<\/li>/gi, "\n")
-    .replace(/<[^>]*>/g, "")
+    .replace(/<(?!\/?(?:b|strong|i|em|u|s|br|p|div|ul|ol|li|h1|h2|h3)\b)[^>]*>/gi, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
