@@ -50,7 +50,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         </div>)}
       </div>
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-        <button onClick={addCard} className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700"><Plus size={18} /> Thêm thẻ</button>
+        <button onClick={addCard} title="Thêm thẻ" aria-label="Thêm thẻ" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-rose-100 bg-white text-slate-700 hover:bg-rose-50"><Plus size={20} /></button>
         <button onClick={save} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500"><Check size={18} /> Lưu thay đổi</button>
       </div>
     </section>
