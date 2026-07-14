@@ -62,6 +62,14 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
     };
     reader.readAsDataURL(file);
   }
+  function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
+    const image = Array.from(event.clipboardData.items)
+      .find((item) => item.kind === "file" && item.type.startsWith("image/"))
+      ?.getAsFile();
+    if (!image) return;
+    event.preventDefault();
+    insertImage(image);
+  }
   function applyColor(commandName: "foreColor" | "hiliteColor", color: string) {
     editorRef.current?.focus();
     const selection = window.getSelection();
@@ -94,6 +102,6 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
       <button type="button" title="Chèn hình ảnh" aria-label="Chèn hình ảnh" onMouseDown={(event) => { event.preventDefault(); imageInputRef.current?.click(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><ImageIcon size={16} /></button>
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) insertImage(file); event.target.value = ""; }} />
     </div>
-    <div ref={editorRef} contentEditable role="textbox" aria-label={placeholder} data-placeholder={placeholder} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onInput={(event) => { rememberSelection(); onChange(sanitizeHtml(event.currentTarget.innerHTML)); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
+    <div ref={editorRef} contentEditable role="textbox" aria-label={placeholder} data-placeholder={placeholder} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onPaste={handlePaste} onInput={(event) => { rememberSelection(); onChange(sanitizeHtml(event.currentTarget.innerHTML)); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
   </div>;
 }
