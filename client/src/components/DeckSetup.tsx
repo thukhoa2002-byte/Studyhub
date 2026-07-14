@@ -219,11 +219,11 @@ export default function DeckSetup({
       )}
 
       {savedDecks.length > 0 && (
-        <div className="glass-panel mb-6 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
+        <div className="glass-panel deck-library-panel mb-6 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
           <p className="mb-3 text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {savedDecks.map((deck) => (
-              <div key={deck.id} className="glass-card flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
+              <div key={deck.id} className="glass-card deck-library-card relative flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
                 <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
                 <button onClick={() => onOpenDeck(deck)} className="flex min-w-0 flex-1 items-center justify-between text-left">
                 <span className="truncate">{deck.title}</span>
