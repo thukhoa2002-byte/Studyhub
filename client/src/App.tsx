@@ -78,6 +78,14 @@ export default function App() {
     void supabase.auth.getUser().then(({ data }) => refreshDecks(data.user));
   }, [refreshDecks]);
 
+  useEffect(() => {
+    if (!user) return;
+    const refresh = () => void refreshDecks(user);
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, [user, refreshDecks]);
+
   async function persistDeck(title: string, cards: GeneratedQuestion[], shareEmails: string[] = []) {
     if (!user || !supabase) return;
     try {

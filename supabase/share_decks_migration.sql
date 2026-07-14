@@ -6,14 +6,35 @@ create table if not exists public.deck_members (
 );
 alter table public.deck_members enable row level security;
 
+create table if not exists public.deck_share_invites (
+  deck_id uuid not null references public.decks(id) on delete cascade,
+  email text not null,
+  created_at timestamptz not null default now(),
+  primary key (deck_id, email)
+);
+alter table public.deck_share_invites enable row level security;
+
 create or replace function public.share_deck_with_email(p_deck_id uuid, p_email text)
 returns void language plpgsql security definer set search_path = public, auth as $$
 begin
   if not exists (select 1 from public.decks where id = p_deck_id and owner_id = auth.uid()) then raise exception 'Only the deck owner can share it'; end if;
+  insert into public.deck_share_invites(deck_id, email)
+  values (p_deck_id, lower(trim(p_email))) on conflict do nothing;
   insert into public.deck_members(deck_id, user_id)
   select p_deck_id, id from auth.users where lower(email) = lower(trim(p_email)) on conflict do nothing;
 end; $$;
 grant execute on function public.share_deck_with_email(uuid, text) to authenticated;
+
+create or replace function public.claim_pending_deck_shares()
+returns void language plpgsql security definer set search_path = public, auth as $$
+begin
+  insert into public.deck_members(deck_id, user_id)
+  select i.deck_id, auth.uid()
+  from public.deck_share_invites i
+  join auth.users u on u.id = auth.uid() and lower(u.email) = i.email
+  on conflict do nothing;
+end; $$;
+grant execute on function public.claim_pending_deck_shares() to authenticated;
 
 create or replace function public.list_deck_members(p_deck_id uuid)
 returns table(user_id uuid, email text)

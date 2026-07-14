@@ -64,6 +64,10 @@ function isUuid(value: string) {
 export async function listDecks(_userId: string): Promise<SavedDeck[]> {
   if (!supabase) return [];
 
+  // Nhận các lời mời đã được gửi trước khi tài khoản này đăng nhập.
+  const { error: claimError } = await supabase.rpc("claim_pending_deck_shares");
+  if (claimError) console.warn("Pending deck shares are not available yet", claimError.message);
+
   const { data, error } = await supabase
     .from("decks")
     .select("id, title, visibility, owner_id, cards(id, front, back, category, position)")
