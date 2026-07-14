@@ -5,9 +5,10 @@ import type { User } from "@supabase/supabase-js";
 
 interface Props {
   onUserChange: (user: User | null) => void;
+  specialUser?: boolean;
 }
 
-export default function AuthPanel({ onUserChange }: Props) {
+export default function AuthPanel({ onUserChange, specialUser = false }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -94,7 +95,12 @@ export default function AuthPanel({ onUserChange }: Props) {
   if (user) {
     const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
     return (
-      <div className="relative">
+      <div className="relative flex items-center gap-3">
+        {specialUser && <div className="special-note hidden items-center gap-1 text-center sm:flex" aria-label="Lời nhắn riêng">
+          <span className="hydrangea hydrangea-left" aria-hidden="true">✿</span>
+          <span>Tú ơii, cố lên.<br />Anh ở bên nèeee</span>
+          <span className="hydrangea hydrangea-right" aria-hidden="true">✿</span>
+        </div>}
         <button type="button" onClick={() => setMenuOpen((open) => !open)} aria-label="Mở tài khoản" className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-teal-100 bg-teal-50 text-teal-700 shadow-sm hover:border-teal-300">
           {avatar ? <img src={avatar} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : <UserRound size={19} />}
         </button>
