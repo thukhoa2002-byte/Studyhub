@@ -33,6 +33,7 @@ export default function App() {
   const [editing, setEditing] = useState(false);
   const [currentSavedDeck, setCurrentSavedDeck] = useState<SavedDeck | null>(null);
   const [sharingDeck, setSharingDeck] = useState<SavedDeck | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
 
   const refreshDecks = useCallback(async (nextUser: User | null) => {
     setUser(nextUser);
@@ -108,10 +109,7 @@ export default function App() {
           return;
         }
 
-        setQuestions(response.data);
-        setDeckTitle(response.title || file.name.replace(/\.[^.]+$/, ""));
-        setMode("study");
-        await persistDeck(response.title || file.name.replace(/\.[^.]+$/, ""), response.data);
+        setPendingImport({ title: response.title || file.name.replace(/\.[^.]+$/, ""), cards: response.data });
         return;
       }
 
@@ -123,16 +121,24 @@ export default function App() {
         return;
       }
 
-      setQuestions(imported);
-      setDeckTitle(file.name.replace(/\.[^.]+$/, ""));
-      setMode("study");
-      await persistDeck(file.name.replace(/\.[^.]+$/, ""), imported);
+      setPendingImport({ title: file.name.replace(/\.[^.]+$/, ""), cards: imported });
     } catch (error) {
       console.error(error);
       alert("Không thể đọc file này.");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function continueImportedDeck(studyNow: boolean) {
+    if (!pendingImport) return;
+    const imported = pendingImport;
+    setPendingImport(null);
+    setQuestions(imported.cards);
+    setDeckTitle(imported.title);
+    await persistDeck(imported.title, imported.cards);
+    if (studyNow) setMode("study");
+    else resetDeck();
   }
 
   function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[]) {
@@ -304,7 +310,15 @@ export default function App() {
         )}
 
       </main>
-      {sharingDeck && <ShareDeckDialog title={sharingDeck.title} onClose={() => setSharingDeck(null)} onShare={shareSavedDeck} />}
+        {sharingDeck && <ShareDeckDialog title={sharingDeck.title} onClose={() => setSharingDeck(null)} onShare={shareSavedDeck} />}
+        {pendingImport && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="import-next-title">
+          <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/70 to-teal-50/70 p-7 text-center shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Đã nạp bộ thẻ</p>
+            <h2 id="import-next-title" className="mt-2 text-2xl font-bold text-rose-950">Bạn muốn làm gì tiếp?</h2>
+            <p className="mt-2 text-sm text-slate-500">Bộ “{pendingImport.title}” có {pendingImport.cards.length} thẻ.</p>
+            <div className="mt-7 flex gap-3"><button onClick={() => void continueImportedDeck(false)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Để đó</button><button onClick={() => void continueImportedDeck(true)} className="flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white hover:bg-teal-500">Học liền</button></div>
+          </div>
+        </div>}
     </>
   );
 }
