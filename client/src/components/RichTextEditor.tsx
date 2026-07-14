@@ -26,6 +26,14 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
   const [showHighlightPalette, setShowHighlightPalette] = useState(false);
   const [showTextPalette, setShowTextPalette] = useState(false);
   useEffect(() => {
+    const closeOtherPalettes = () => {
+      setShowHighlightPalette(false);
+      setShowTextPalette(false);
+    };
+    window.addEventListener("rich-editor-close-palettes", closeOtherPalettes);
+    return () => window.removeEventListener("rich-editor-close-palettes", closeOtherPalettes);
+  }, []);
+  useEffect(() => {
     // Initialize the uncontrolled contenteditable exactly once. React must
     // never rewrite innerHTML while the user types: mobile browsers then move
     // the caret and may duplicate the previous character.
@@ -142,12 +150,18 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
     emitChange(editorRef.current.innerHTML);
     onClozeCreated?.(text);
   }
-  return <div className="overflow-hidden rounded-lg border border-rose-100 bg-white focus-within:border-rose-300">
+  function togglePalette(palette: "highlight" | "text") {
+    const shouldOpen = palette === "highlight" ? !showHighlightPalette : !showTextPalette;
+    window.dispatchEvent(new Event("rich-editor-close-palettes"));
+    if (palette === "highlight") setShowHighlightPalette(shouldOpen);
+    else setShowTextPalette(shouldOpen);
+  }
+  return <div className="overflow-visible rounded-lg border border-rose-100 bg-white focus-within:border-rose-300">
     <div className="flex flex-wrap gap-1 border-b border-rose-50 bg-rose-50/50 p-2">
       {commands.map(([name, Icon, label]) => <button key={name} type="button" title={label} onMouseDown={(event) => { event.preventDefault(); command(name); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><Icon size={16} /></button>)}
       <div className="relative">
-        <button type="button" title="Tô sáng" aria-label="Mở bảng màu highlight" onMouseDown={(event) => event.preventDefault()} onClick={() => setShowHighlightPalette((open) => !open)} className="relative inline-flex items-center gap-0.5 rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><PenLine size={16} /><span className="pointer-events-none absolute bottom-1 left-1.5 right-3 h-0.5 rounded-full bg-yellow-400" /><ChevronDown size={10} className="pointer-events-none" /></button>
-        {showHighlightPalette && <div className="absolute left-0 top-full z-40 mt-1 w-56 rounded-lg border border-slate-300 bg-white p-2 shadow-xl" onMouseDown={(event) => event.preventDefault()}>
+        <button type="button" title="Tô sáng" aria-label="Mở bảng màu highlight" onMouseDown={(event) => event.preventDefault()} onClick={() => togglePalette("highlight")} className="relative inline-flex items-center gap-0.5 rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><PenLine size={16} /><span className="pointer-events-none absolute bottom-1 left-1.5 right-3 h-0.5 rounded-full bg-yellow-400" /><ChevronDown size={10} className="pointer-events-none" /></button>
+        {showHighlightPalette && <div className="absolute left-0 top-full z-[100] mt-1 w-56 rounded-lg border border-slate-300 bg-white p-2 shadow-xl" onMouseDown={(event) => event.preventDefault()}>
           <button type="button" onClick={() => { applyColor("hiliteColor", "transparent"); setShowHighlightPalette(false); }} className="mb-2 flex h-7 w-full items-center justify-center rounded border border-slate-300 text-xs text-slate-700 hover:bg-slate-100">Không màu</button>
           <div className="grid grid-cols-10 gap-1">
             {paletteColors.map((color) => <button key={color} type="button" aria-label={`Highlight ${color}`} title={color} onClick={() => { applyColor("hiliteColor", color); setShowHighlightPalette(false); }} className="h-4 w-4 rounded-sm border border-slate-300 shadow-sm hover:scale-125" style={{ backgroundColor: color }} />)}
@@ -155,8 +169,8 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
         </div>}
       </div>
       <div className="relative">
-        <button type="button" title="Màu chữ" aria-label="Mở bảng màu chữ" onMouseDown={(event) => event.preventDefault()} onClick={() => setShowTextPalette((open) => !open)} className="relative inline-flex items-center gap-0.5 rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><CaseUpper size={16} /><span className="pointer-events-none absolute bottom-1 left-1.5 right-3 h-0.5 rounded-full bg-red-500" /><ChevronDown size={10} className="pointer-events-none" /></button>
-        {showTextPalette && <div className="absolute left-0 top-full z-40 mt-1 w-56 rounded-lg border border-slate-300 bg-white p-2 shadow-xl" onMouseDown={(event) => event.preventDefault()}>
+        <button type="button" title="Màu chữ" aria-label="Mở bảng màu chữ" onMouseDown={(event) => event.preventDefault()} onClick={() => togglePalette("text")} className="relative inline-flex items-center gap-0.5 rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><CaseUpper size={16} /><span className="pointer-events-none absolute bottom-1 left-1.5 right-3 h-0.5 rounded-full bg-red-500" /><ChevronDown size={10} className="pointer-events-none" /></button>
+        {showTextPalette && <div className="absolute left-0 top-full z-[100] mt-1 w-56 rounded-lg border border-slate-300 bg-white p-2 shadow-xl" onMouseDown={(event) => event.preventDefault()}>
           <button type="button" onClick={() => { applyColor("foreColor", "inherit"); setShowTextPalette(false); }} className="mb-2 flex h-7 w-full items-center justify-center rounded border border-slate-300 text-xs text-slate-700 hover:bg-slate-100">Màu mặc định</button>
           <div className="grid grid-cols-10 gap-1">
             {paletteColors.map((color) => <button key={color} type="button" aria-label={`Màu chữ ${color}`} title={color} onClick={() => { applyColor("foreColor", color); setShowTextPalette(false); }} className="h-4 w-4 rounded-sm border border-slate-300 shadow-sm hover:scale-125" style={{ backgroundColor: color }} />)}
