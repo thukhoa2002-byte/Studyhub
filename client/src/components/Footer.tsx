@@ -66,7 +66,7 @@ function Footer() {
     <footer className="mx-auto mt-8 w-full max-w-5xl px-5 pb-8 pt-2 text-center">
       <div className="rounded-2xl border border-rose-100/80 bg-white/55 px-6 py-6 shadow-sm backdrop-blur-sm sm:px-10">
         <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-rose-400">Lời nhắc hôm nay</p>
-        <blockquote className="mx-auto max-w-3xl text-base font-medium italic leading-7 text-rose-950 sm:text-lg">“{quote}”</blockquote>
+        <blockquote className="daily-quote mx-auto max-w-3xl text-base font-medium italic leading-7 text-rose-950 sm:text-lg">“{quote}”</blockquote>
         <cite className="mt-3 block text-sm font-semibold italic text-slate-500">— {author}</cite>
       </div>
       <p className="mt-5 text-xs text-slate-400">© 2026 Học bài thoiii</p>
