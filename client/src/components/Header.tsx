@@ -17,12 +17,6 @@ export default function Header({ onUserChange, specialUser = false }: Props) {
 
           <img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" className="h-16 w-16 rounded-xl object-contain" />
 
-          {specialUser && <div className="special-note hidden items-center gap-1 text-center sm:flex" aria-label="Lời nhắn riêng">
-            <span className="hydrangea hydrangea-left" aria-hidden="true">✿</span>
-            <span>Tú ơii, cố lên.<br />Anh ở bên nèeee</span>
-            <span className="hydrangea hydrangea-right" aria-hidden="true">✿</span>
-          </div>}
-
           <div>
 
             <h1 className="text-lg font-bold tracking-tight text-rose-950">
@@ -34,6 +28,12 @@ export default function Header({ onUserChange, specialUser = false }: Props) {
             <p className="text-xs font-medium text-rose-400">Học đều, nhớ lâu</p>
 
           </div>
+
+          {specialUser && <div className="special-note hidden items-center gap-1 text-center sm:flex" aria-label="Lời nhắn riêng">
+            <span className="hydrangea hydrangea-left" aria-hidden="true">✿</span>
+            <span>Tú ơii, cố lên.<br />Anh ở bên nèeee</span>
+            <span className="hydrangea hydrangea-right" aria-hidden="true">✿</span>
+          </div>}
 
         </div>
 
