@@ -1,52 +1,28 @@
-export default function LoadingOverlay() {
+interface Props { title?: string; description?: string; }
+
+export default function LoadingOverlay({ title = "Đang xử lý...", description = "Một chút thôi, mình đang chuẩn bị nội dung cho bạn." }: Props) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/20 px-4 backdrop-blur-md">
 
-      <div className="w-[420px] rounded-[32px] bg-white p-10 text-center shadow-2xl">
+      <div className="w-full max-w-md rounded-[32px] border border-rose-100 bg-gradient-to-br from-white via-rose-50/80 to-teal-50/80 p-8 text-center shadow-[0_24px_70px_rgba(190,24,93,0.2)] sm:p-10">
 
-        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100">
-
-          <svg
-            className="h-12 w-12 animate-spin text-blue-600"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-              className="opacity-20"
-            />
-
-            <path
-              fill="currentColor"
-              className="opacity-90"
-              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-            />
-
-          </svg>
+        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-fuchsia-100 p-3">
+          <img src="/brain-learning-icon.png" alt="" className="h-full w-full object-contain animate-pulse" />
 
         </div>
 
-        <h2 className="mt-8 text-3xl font-bold">
-          🤖 AI đang tạo câu hỏi
-        </h2>
+        <h2 className="mt-7 text-2xl font-bold text-rose-950">{title}</h2>
 
-        <p className="mt-4 text-slate-500">
-          Đang đọc tài liệu và chọn những ý quan trọng...
-        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
 
         <div className="mt-10 h-3 overflow-hidden rounded-full bg-slate-200">
 
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-600" />
+          <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-rose-300 to-teal-400" />
 
         </div>
 
         <p className="mt-5 text-sm text-slate-400">
-          Việc này chỉ mất vài giây
+          Đang chuẩn bị, bạn chờ mình một chút nhé 🌸
         </p>
 
       </div>

@@ -26,6 +26,8 @@ export default function App() {
   const [preview, setPreview] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [loadingTitle, setLoadingTitle] = useState("Đang xử lý...");
+  const [loadingDescription, setLoadingDescription] = useState("Một chút thôi, mình đang chuẩn bị nội dung cho bạn.");
 
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [user, setUser] = useState<User | null>(null);
@@ -82,6 +84,8 @@ export default function App() {
 
     try {
       setLoading(true);
+      setLoadingTitle("AI đang đọc ảnh...");
+      setLoadingDescription("Mình đang nhận diện nội dung và chọn những ý quan trọng để tạo thẻ.");
 
       const response = await generateQuestions(image);
 
@@ -99,9 +103,10 @@ export default function App() {
 
   async function onImportDeck(file: File) {
     try {
+      setLoading(true);
+      setLoadingTitle("Đang nạp bộ thẻ...");
+      setLoadingDescription("Mình đang đọc file và sắp xếp các mặt Front/Back.");
       if (file.name.toLowerCase().endsWith(".apkg")) {
-        setLoading(true);
-
         const response = await importAnkiPackage(file);
 
         if (response.data.length === 0) {
@@ -260,7 +265,7 @@ export default function App() {
 
   return (
     <>
-      {loading && <LoadingOverlay />}
+      {loading && <LoadingOverlay title={loadingTitle} description={loadingDescription} />}
 
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
