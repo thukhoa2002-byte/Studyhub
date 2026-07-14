@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
@@ -25,6 +25,13 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const [showDeckList, setShowDeckList] = useState(false);
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | null>(null);
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
+
+  useEffect(() => {
+    setTitle(initialTitle);
+    setQuestions(initialQuestions);
+    setVisibility(initialVisibility);
+    setShowDeckList(false);
+  }, [initialTitle, initialQuestions, initialVisibility]);
 
   function update(id: string, field: "question" | "answer", value: string) {
     setQuestions((current) => current.map((item) => item.id === id ? { ...item, [field]: value } : item));
