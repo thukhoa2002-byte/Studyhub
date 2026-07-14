@@ -39,6 +39,12 @@ export default function App() {
   const [pendingImport, setPendingImport] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [noDueNotice, setNoDueNotice] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<SavedDeck | null>(null);
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowWelcome(false), 1700);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const refreshDecks = useCallback(async (nextUser: User | null) => {
     setUser(nextUser);
@@ -302,6 +308,15 @@ export default function App() {
 
   return (
     <>
+      {showWelcome && <div className="welcome-screen" role="status" aria-live="polite">
+        <div className="welcome-card">
+          <div className="welcome-icon"><img src="/brain-learning-icon.png" alt="Não bộ đang học" /></div>
+          <p className="welcome-kicker">Học bài thoiii 🌸</p>
+          <h1>Chào bạn!</h1>
+          <p className="welcome-message">Mình cùng học một chút nhé.<br />Mỗi ngày tiến bộ một xíu là giỏi lắm rồi! 😊</p>
+          <div className="welcome-dots" aria-hidden="true"><span /><span /><span /></div>
+        </div>
+      </div>}
       {loading && <LoadingOverlay title={loadingTitle} description={loadingDescription} />}
 
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
