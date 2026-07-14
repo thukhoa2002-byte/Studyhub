@@ -55,7 +55,8 @@ function deckIcon(title: string) {
   if (name.includes("sản") || name.includes("san")) return "🤰";
   if (name.includes("nhi")) return "🧸";
   if (name.includes("nội") || name.includes("noi")) return "🫁";
-  if (name.includes("giải phẫu") || name.includes("giai phau") || name.includes("sinh lý") || name.includes("sinh ly")) return "🫀";
+  if (name.includes("giải phẫu") || name.includes("giai phau")) return "🦴";
+  if (name.includes("sinh lý") || name.includes("sinh ly")) return "💓";
   if (name.includes("hóa sinh") || name.includes("hoa sinh")) return "🧪";
   if (name.includes("di truyền") || name.includes("di truyen") || name.includes("sinh học") || name.includes("sinh hoc")) return "🧬";
   return "📚";
