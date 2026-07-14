@@ -10,7 +10,7 @@ interface Props {
 
 export default function Header({ onHome, onUserChange, specialUser = false, theme, onThemeChange }: Props) {
   return (
-    <header className="sticky top-0 z-50 border-b border-rose-100 bg-white/85 backdrop-blur-xl">
+    <header className="glass-header sticky top-0 z-50 border-b border-rose-100 bg-white/65 backdrop-blur-xl">
 
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
 

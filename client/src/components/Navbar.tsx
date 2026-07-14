@@ -16,7 +16,7 @@ export default function Navbar({
   onEdit,
 }: Props) {
   return (
-    <nav className="border-b border-rose-100 bg-white/80 backdrop-blur-xl">
+    <nav className="glass-header border-b border-rose-100 bg-white/60 backdrop-blur-xl">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-rose-950">
