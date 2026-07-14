@@ -263,7 +263,7 @@ export default function App() {
         )}
 
         {editing && currentSavedDeck ? (
-          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} onCancel={() => setEditing(false)} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
+          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} titleSuggestions={savedDecks.map((deck) => deck.title)} onCancel={() => setEditing(false)} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
         ) : questions.length === 0 ? (
           <DeckSetup
             preview={preview}

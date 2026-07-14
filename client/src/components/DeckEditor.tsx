@@ -10,9 +10,10 @@ interface Props {
   onCancel: () => void;
   onSave: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void | Promise<void>;
   onSaveAndStudy: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void | Promise<void>;
+  titleSuggestions?: string[];
 }
 
-export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave, onSaveAndStudy }: Props) {
+export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave, onSaveAndStudy, titleSuggestions = [] }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [visibility, setVisibility] = useState(initialVisibility);
   const [questions, setQuestions] = useState(initialQuestions);
@@ -38,7 +39,12 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         <button onClick={onCancel} className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white px-4 py-2 text-sm font-semibold text-slate-600"><X size={17} /> Hủy</button>
       </div>
       <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-        <input value={title} onChange={(event) => setTitle(event.target.value)} className="flex-1 rounded-lg border border-rose-100 bg-white px-4 py-3 font-semibold text-rose-950 outline-none focus:border-rose-300" />
+        <div className="flex-1">
+          <input list="deck-title-suggestions" value={title} onChange={(event) => setTitle(event.target.value)} className="w-full rounded-lg border border-rose-100 bg-white px-4 py-3 font-semibold text-rose-950 outline-none focus:border-rose-300" />
+          <datalist id="deck-title-suggestions">
+            {["Nội", "Ngoại", "Sản", "Nhi", "Cấp cứu", "Hồi sức", ...titleSuggestions].filter((name, index, all) => all.indexOf(name) === index).map((name) => <option key={name} value={name} />)}
+          </datalist>
+        </div>
         <select value={visibility} onChange={(event) => setVisibility(event.target.value as "private" | "shared")} className="rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
           <option value="private">🔒 Chỉ mình tôi</option><option value="shared">🌸 Chia sẻ</option>
         </select>
