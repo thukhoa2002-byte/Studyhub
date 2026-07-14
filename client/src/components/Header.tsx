@@ -1,6 +1,11 @@
 import { BookOpen } from "lucide-react";
+import AuthPanel from "./AuthPanel";
 
-export default function Header() {
+interface Props {
+  onUserChange?: (user: import("@supabase/supabase-js").User | null) => void;
+}
+
+export default function Header({ onUserChange }: Props) {
   return (
     <header className="sticky top-0 z-50 border-b border-rose-100 bg-white/85 backdrop-blur-xl">
 
@@ -36,7 +41,10 @@ export default function Header() {
 
         {/* Right */}
 
-        <div className="rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-500">AI cards</div>
+        <div className="flex items-center gap-3">
+          <div className="hidden rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-500 sm:block">AI cards</div>
+          <AuthPanel onUserChange={onUserChange ?? (() => undefined)} />
+        </div>
 
       </div>
 

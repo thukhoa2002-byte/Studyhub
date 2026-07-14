@@ -5,6 +5,7 @@ import type { GeneratedQuestion } from "../services/api";
 interface Props {
   questions: GeneratedQuestion[];
   toggleBookmark: (id: string) => void;
+  onRate?: (question: GeneratedQuestion, rating: number) => void | Promise<void>;
 }
 
 type Rating = "again" | "hard" | "good" | "easy";
@@ -31,7 +32,7 @@ const ratingText: Record<Rating, [string, string]> = {
   easy: ["Dễ", "4 ngày"],
 };
 
-export default function Study({ questions, toggleBookmark }: Props) {
+export default function Study({ questions, toggleBookmark, onRate }: Props) {
   const [current, setCurrent] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [ratings, setRatings] = useState<Record<string, Rating>>({});
@@ -55,6 +56,8 @@ export default function Study({ questions, toggleBookmark }: Props) {
 
   const rateCard = useCallback((rating: Rating) => {
     if (!question) return;
+    const ratingNumber = { again: 1, hard: 2, good: 3, easy: 4 }[rating];
+    void onRate?.(question, ratingNumber);
     setRatings((previous) => ({ ...previous, [question.id]: rating }));
 
     if (isLast) {
@@ -64,7 +67,7 @@ export default function Study({ questions, toggleBookmark }: Props) {
 
     setCurrent((previous) => previous + 1);
     setShowAnswer(false);
-  }, [isLast, question]);
+  }, [isLast, onRate, question]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {

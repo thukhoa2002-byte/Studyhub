@@ -8,14 +8,17 @@ import {
   UploadCloud,
 } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
+import type { SavedDeck } from "../services/supabase";
 
 interface Props {
   preview: string;
   loading: boolean;
   onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerate: () => void;
-  onImportDeck: (file: File) => Promise<void>;
-  onCreateDeck: (title: string, questions: GeneratedQuestion[]) => void;
+  onImportDeck: (file: File, visibility: "private" | "shared") => Promise<void>;
+  onCreateDeck: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void;
+  savedDecks: SavedDeck[];
+  onOpenDeck: (deck: SavedDeck) => void;
 }
 
 type SetupMode = "import" | "create" | "ai";
@@ -44,9 +47,12 @@ export default function DeckSetup({
   onGenerate,
   onImportDeck,
   onCreateDeck,
+  savedDecks,
+  onOpenDeck,
 }: Props) {
   const [mode, setMode] = useState<SetupMode>("import");
   const [title, setTitle] = useState("Bộ thẻ mới");
+  const [visibility, setVisibility] = useState<"private" | "shared">("private");
   const [cards, setCards] = useState<DraftCard[]>([
     newDraftCard(),
     newDraftCard(),
@@ -89,7 +95,8 @@ export default function DeckSetup({
         category: "Tự tạo",
         importance: index + 1,
         bookmarked: false,
-      }))
+      })),
+      visibility
     );
   }
 
@@ -140,6 +147,31 @@ export default function DeckSetup({
         </button>
       </div>
 
+      <div className="mb-6 flex flex-col gap-2 rounded-lg border border-rose-100 bg-white/75 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-rose-950">Lưu bộ thẻ ở đâu?</p>
+          <p className="text-xs text-slate-500">Đăng nhập để đồng bộ giữa các thiết bị.</p>
+        </div>
+        <select value={visibility} onChange={(event) => setVisibility(event.target.value as "private" | "shared")} className="rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-rose-300">
+          <option value="private">🔒 Chỉ mình tôi</option>
+          <option value="shared">🌸 Chia sẻ với mọi người</option>
+        </select>
+      </div>
+
+      {savedDecks.length > 0 && (
+        <div className="mb-6 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
+          <p className="mb-3 text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {savedDecks.map((deck) => (
+              <button key={deck.id} onClick={() => onOpenDeck(deck)} className="flex items-center justify-between rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
+                <span className="truncate">{deck.visibility === "shared" ? "🌸" : "🔒"} {deck.title}</span>
+                <span className="ml-3 text-xs text-slate-400">{deck.cards.length} thẻ</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {mode === "import" && (
         <div className="rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <label
@@ -166,7 +198,7 @@ export default function DeckSetup({
             onChange={async (event) => {
               const file = event.target.files?.[0];
               if (!file) return;
-              await onImportDeck(file);
+              await onImportDeck(file, visibility);
               event.target.value = "";
             }}
           />

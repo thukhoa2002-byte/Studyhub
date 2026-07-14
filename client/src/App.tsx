@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 
 import Header from "./components/Header";
 import Navbar from "./components/Navbar";
@@ -6,6 +7,7 @@ import DeckSetup from "./components/DeckSetup";
 import Study from "./components/Study";
 import Review from "./components/Review";
 import LoadingOverlay from "./components/LoadingOverlay";
+import { listDecks, saveDeck, saveReview, supabase, type SavedDeck } from "./services/supabase";
 
 import {
   generateQuestions,
@@ -24,6 +26,37 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [savedDecks, setSavedDecks] = useState<SavedDeck[]>([]);
+
+  const refreshDecks = useCallback(async (nextUser: User | null) => {
+    setUser(nextUser);
+    if (!nextUser || !supabase) {
+      setSavedDecks([]);
+      return;
+    }
+    try {
+      setSavedDecks(await listDecks(nextUser.id));
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    void supabase.auth.getUser().then(({ data }) => refreshDecks(data.user));
+  }, [refreshDecks]);
+
+  async function persistDeck(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
+    if (!user || !supabase) return;
+    try {
+      await saveDeck(user.id, title, cards, visibility);
+      setSavedDecks(await listDecks(user.id));
+    } catch (error) {
+      console.error(error);
+      alert("Chưa lưu được bộ thẻ. Hãy kiểm tra bạn đã chạy file supabase/schema.sql chưa.");
+    }
+  }
 
   function onImageChange(
     event: React.ChangeEvent<HTMLInputElement>
@@ -56,7 +89,7 @@ export default function App() {
     }
   }
 
-  async function onImportDeck(file: File) {
+  async function onImportDeck(file: File, visibility: "private" | "shared") {
     try {
       if (file.name.toLowerCase().endsWith(".apkg")) {
         setLoading(true);
@@ -71,6 +104,7 @@ export default function App() {
         setQuestions(response.data);
         setDeckTitle(response.title || file.name.replace(/\.[^.]+$/, ""));
         setMode("study");
+        await persistDeck(response.title || file.name.replace(/\.[^.]+$/, ""), response.data, visibility);
         return;
       }
 
@@ -85,6 +119,7 @@ export default function App() {
       setQuestions(imported);
       setDeckTitle(file.name.replace(/\.[^.]+$/, ""));
       setMode("study");
+      await persistDeck(file.name.replace(/\.[^.]+$/, ""), imported, visibility);
     } catch (error) {
       console.error(error);
       alert("Không thể đọc file này.");
@@ -93,9 +128,16 @@ export default function App() {
     }
   }
 
-  function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[]) {
+  function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[], visibility: "private" | "shared") {
     setQuestions(createdQuestions);
     setDeckTitle(title);
+    setMode("study");
+    void persistDeck(title, createdQuestions, visibility);
+  }
+
+  function openSavedDeck(deck: SavedDeck) {
+    setQuestions(deck.cards);
+    setDeckTitle(deck.title);
     setMode("study");
   }
 
@@ -149,7 +191,7 @@ export default function App() {
 
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
-        <Header />
+        <Header onUserChange={refreshDecks} />
 
         {questions.length > 0 && (
           <Navbar
@@ -169,11 +211,14 @@ export default function App() {
             onGenerate={onGenerate}
             onImportDeck={onImportDeck}
             onCreateDeck={onCreateDeck}
+            savedDecks={savedDecks}
+            onOpenDeck={openSavedDeck}
           />
         ) : mode === "study" ? (
           <Study
             questions={questions}
             toggleBookmark={toggleBookmark}
+            onRate={(question: GeneratedQuestion, rating: number) => { if (user) return saveReview(user.id, question, rating); }}
           />
         ) : (
           <Review

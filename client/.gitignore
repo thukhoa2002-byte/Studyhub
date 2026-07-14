@@ -4,6 +4,7 @@
 # Environment
 .env
 **/.env
+*.env.local
 server/.env
 
 # Node modules
