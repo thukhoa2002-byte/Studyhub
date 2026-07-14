@@ -3,8 +3,12 @@ import OpenAI from "openai";
 
 dotenv.config();
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+export function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("Thiếu OPENAI_API_KEY. Hãy thêm biến môi trường này để dùng tính năng AI.");
+  }
 
-export default client;
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}

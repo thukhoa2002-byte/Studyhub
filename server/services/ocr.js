@@ -1,6 +1,7 @@
-import client from "../config/openai.js";
+import { getOpenAIClient } from "../config/openai.js";
 
 export async function extractTextFromImage(file) {
+  const client = getOpenAIClient();
   const base64Image = file.buffer.toString("base64");
 
   const response = await client.responses.create({

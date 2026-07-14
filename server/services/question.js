@@ -1,7 +1,8 @@
-import client from "../config/openai.js";
+import { getOpenAIClient } from "../config/openai.js";
 import { questionSchema } from "../schema/questionSchema.js";
 
 export async function generateQuestions(text) {
+  const client = getOpenAIClient();
   const prompt = `
 Bạn là giảng viên Nội khoa chuyên biên soạn câu hỏi cho kỳ thi Bác sĩ Nội trú.
 

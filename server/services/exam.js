@@ -1,6 +1,7 @@
-import client from "../config/openai.js";
+import { getOpenAIClient } from "../config/openai.js";
 
 export async function gradeExam(questions) {
+  const client = getOpenAIClient();
   const response = await client.responses.create({
     model: "gpt-5",
     input: `
