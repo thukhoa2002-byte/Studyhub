@@ -38,6 +38,7 @@ export default function App() {
   const [sharingDeck, setSharingDeck] = useState<SavedDeck | null>(null);
   const [pendingImport, setPendingImport] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [noDueNotice, setNoDueNotice] = useState(false);
+  const [deleteCandidate, setDeleteCandidate] = useState<SavedDeck | null>(null);
 
   const refreshDecks = useCallback(async (nextUser: User | null) => {
     setUser(nextUser);
@@ -213,7 +214,14 @@ export default function App() {
   }
 
   async function removeSavedDeck(deck: SavedDeck) {
-    if (!user || !window.confirm(`Xóa bộ thẻ "${deck.title}"? Hành động này không thể hoàn tác.`)) return;
+    if (!user) return;
+    setDeleteCandidate(deck);
+  }
+
+  async function confirmDeleteDeck() {
+    if (!user || !deleteCandidate) return;
+    const deck = deleteCandidate;
+    setDeleteCandidate(null);
     try {
       await deleteDeck(user.id, deck.id);
       setSavedDecks(await listDecks(user.id));
@@ -362,6 +370,14 @@ export default function App() {
               <p className="mt-2 text-sm text-slate-500">Bạn đã hoàn thành lịch ôn hôm nay rồi. Nghỉ một chút nhé!</p>
               <button type="button" onClick={() => setNoDueNotice(false)} className="mt-6 rounded-xl bg-teal-400 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500">Đóng</button>
             </div>
+          </div>
+        </div>}
+        {deleteCandidate && <div className="fixed inset-0 z-[120] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+          <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/90 to-teal-50/80 p-7 shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-2xl">🗑️</div>
+            <h2 id="delete-title" className="mt-4 text-center text-xl font-bold text-rose-950">Xóa bộ thẻ?</h2>
+            <p className="mt-2 text-center text-sm leading-6 text-slate-500">“{deleteCandidate.title}” sẽ bị xóa vĩnh viễn và không thể khôi phục.</p>
+            <div className="mt-7 flex gap-3"><button type="button" onClick={() => setDeleteCandidate(null)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Hủy</button><button type="button" onClick={() => void confirmDeleteDeck()} className="flex-1 rounded-xl bg-rose-500 px-4 py-3 text-sm font-bold text-white hover:bg-rose-600">Xóa bộ thẻ</button></div>
           </div>
         </div>}
     </>
