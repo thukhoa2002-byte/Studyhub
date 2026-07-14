@@ -1,13 +1,30 @@
-const ALLOWED_TAGS = new Set(["B", "STRONG", "I", "EM", "U", "S", "BR", "P", "DIV", "UL", "OL", "LI", "H1", "H2", "H3", "IMG"]);
+const ALLOWED_TAGS = new Set(["B", "STRONG", "I", "EM", "U", "S", "BR", "P", "DIV", "UL", "OL", "LI", "H1", "H2", "H3", "SPAN", "IMG"]);
 
 export function toEditorHtml(value: string) {
   if (/<[a-z][\s\S]*>/i.test(value)) return sanitizeHtml(value);
-  return value.split(/\r?\n/).map((line) => line ? `<div>${escapeHtml(line)}</div>` : "<div><br></div>").join("");
+  const lines = value.split(/\r?\n/);
+  // Keep plain text inside a block. This gives the browser a stable editing
+  // line so the first Space does not create a stray line break.
+  // Browsers serialize a typed space inside contenteditable as `&nbsp;`.
+  // Decode that entity before escaping plain text, otherwise it appears as
+  // the literal characters "&nbsp;" after a save/re-render.
+  const plainLines = lines.map((line) => decodePlainText(line));
+  if (plainLines.length === 1) return `<div>${escapeHtml(plainLines[0])}</div>`;
+  return plainLines.map((line) => line ? `<div>${escapeHtml(line)}</div>` : "<div><br></div>").join("");
 }
 
 export function sanitizeHtml(value: string) {
   if (typeof DOMParser === "undefined") return escapeHtml(value);
   const document = new DOMParser().parseFromString(value, "text/html");
+  // execCommand may emit `<font color="…">` for text color. Normalize it to
+  // the style form used by our editor before applying the allow-list.
+  document.body.querySelectorAll("font").forEach((font) => {
+    const span = document.createElement("span");
+    const color = font.getAttribute("color");
+    if (color) span.setAttribute("style", `color:${color}`);
+    span.innerHTML = font.innerHTML;
+    font.replaceWith(span);
+  });
   document.body.querySelectorAll("*").forEach((element) => {
     if (!ALLOWED_TAGS.has(element.tagName)) {
       element.replaceWith(...Array.from(element.childNodes));
@@ -45,4 +62,18 @@ export function toClozeQuestionHtml(value: string) {
 
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function decodePlainText(value: string) {
+  // Older saves may contain either `&nbsp;` or the double-encoded
+  // `&amp;nbsp;`. Decode twice so those values never reappear as visible text.
+  let decoded = value;
+  if (typeof DOMParser !== "undefined") {
+    for (let pass = 0; pass < 2; pass += 1) {
+      const parsed = new DOMParser().parseFromString(decoded, "text/html").body.textContent ?? decoded;
+      if (parsed === decoded) break;
+      decoded = parsed;
+    }
+  }
+  return decoded.replace(/\u00a0/g, " ");
 }

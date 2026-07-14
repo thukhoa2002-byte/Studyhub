@@ -14,7 +14,26 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const selectionRef = useRef<Range | null>(null);
-  useEffect(() => { if (editorRef.current && editorRef.current.innerHTML !== toEditorHtml(value)) editorRef.current.innerHTML = toEditorHtml(value); }, [value]);
+  const lastEmittedValueRef = useRef<string | null>(null);
+  const initializedRef = useRef(false);
+  useEffect(() => {
+    // Initialize the uncontrolled contenteditable exactly once. React must
+    // never rewrite innerHTML while the user types: mobile browsers then move
+    // the caret and may duplicate the previous character.
+    if (!editorRef.current || initializedRef.current) return;
+    const nextHtml = value ? toEditorHtml(value) : "<div><br></div>";
+    if (editorRef.current.innerHTML !== nextHtml) editorRef.current.innerHTML = nextHtml;
+    lastEmittedValueRef.current = value;
+    initializedRef.current = true;
+  }, []);
+  function emitChange(html: string) {
+    // Keep typed spaces as normal spaces in the persisted HTML. Browsers often
+    // serialize the trailing space in a contenteditable as `&nbsp;`, which
+    // would otherwise come back as visible literal text after re-rendering.
+    const nextValue = sanitizeHtml(html).replace(/&nbsp;/gi, " ");
+    lastEmittedValueRef.current = nextValue;
+    onChange(nextValue);
+  }
   function rememberSelection() {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || !editorRef.current?.contains(selection.anchorNode)) return;
@@ -44,7 +63,7 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
       }
     }
     rememberSelection();
-    if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML));
+    if (editorRef.current) emitChange(editorRef.current.innerHTML);
   }
   function insertImage(file: File) {
     if (!file.type.startsWith("image/")) return;
@@ -58,7 +77,7 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
       if (selectionRef.current) selection?.addRange(selectionRef.current);
       document.execCommand("insertHTML", false, `<img src="${src}" alt="Ảnh thẻ" />`);
       rememberSelection();
-      onChange(sanitizeHtml(editorRef.current.innerHTML));
+      emitChange(editorRef.current.innerHTML);
     };
     reader.readAsDataURL(file);
   }
@@ -70,14 +89,28 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
     event.preventDefault();
     insertImage(image);
   }
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+    const shortcut = event.key.toLowerCase();
+    const commandName = shortcut === "b" ? "bold" : shortcut === "i" ? "italic" : shortcut === "u" ? "underline" : null;
+    if (!commandName) return;
+    event.preventDefault();
+    rememberSelection();
+    command(commandName);
+  }
   function applyColor(commandName: "foreColor" | "hiliteColor", color: string) {
     editorRef.current?.focus();
     const selection = window.getSelection();
     selection?.removeAllRanges();
     if (selectionRef.current) selection?.addRange(selectionRef.current);
+    const before = editorRef.current?.innerHTML ?? "";
     document.execCommand(commandName, false, color);
+    // Chromium uses `hiliteColor`; a few browsers only implement `backColor`.
+    if (commandName === "hiliteColor" && editorRef.current?.innerHTML === before) {
+      document.execCommand("backColor", false, color);
+    }
     rememberSelection();
-    if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML));
+    if (editorRef.current) emitChange(editorRef.current.innerHTML);
   }
   function insertCloze() {
     if (!editorRef.current) return;
@@ -91,7 +124,7 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
     range.deleteContents();
     range.insertNode(document.createTextNode(`{{c1::${text}}}`));
     rememberSelection();
-    onChange(sanitizeHtml(editorRef.current.innerHTML));
+    emitChange(editorRef.current.innerHTML);
     onClozeCreated?.(text);
   }
   return <div className="overflow-hidden rounded-lg border border-rose-100 bg-white focus-within:border-rose-300">
@@ -103,6 +136,6 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
       <button type="button" title="Chèn hình ảnh" aria-label="Chèn hình ảnh" onMouseDown={(event) => { event.preventDefault(); imageInputRef.current?.click(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><ImageIcon size={16} /></button>
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) insertImage(file); event.target.value = ""; }} />
     </div>
-    <div ref={editorRef} contentEditable role="textbox" aria-label={placeholder} data-placeholder={placeholder} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onPaste={handlePaste} onInput={(event) => { rememberSelection(); onChange(sanitizeHtml(event.currentTarget.innerHTML)); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
+    <div ref={editorRef} contentEditable suppressContentEditableWarning role="textbox" aria-label={placeholder} data-placeholder={placeholder} onBlur={(event) => { emitChange(event.currentTarget.innerHTML); }} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onKeyDown={handleKeyDown} onPaste={handlePaste} onInput={() => { rememberSelection(); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
   </div>;
 }

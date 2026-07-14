@@ -3,7 +3,6 @@ import {
   ArrowRight,
   FileText,
   ListChecks,
-  MessageCircle,
   Plus,
   Pencil,
   Save,
@@ -89,17 +88,12 @@ export default function DeckSetup({
 }: Props) {
   const [mode, setMode] = useState<SetupMode>("import");
   const [title, setTitle] = useState("");
-  const [cards, setCards] = useState<DraftCard[]>([
-    newDraftCard(),
-    newDraftCard(),
-    newDraftCard(),
-  ]);
+  const [cards, setCards] = useState<DraftCard[]>([newDraftCard()]);
   const [startingReview, setStartingReview] = useState(false);
 
   const validCards = cards.filter(
     (card) => card.question.trim() && card.answer.trim()
   );
-  const trailingEmptyCard = cards.length > 0 && cards[cards.length - 1].question.trim() === "" && cards[cards.length - 1].answer.trim() === "";
 
   function updateCard(
     id: string,
@@ -124,7 +118,7 @@ export default function DeckSetup({
   function startNewDeck() {
     setMode("create");
     setTitle("");
-    setCards([newDraftCard(), newDraftCard(), newDraftCard()]);
+    setCards([newDraftCard()]);
   }
 
   function createDeck() {
@@ -186,7 +180,7 @@ export default function DeckSetup({
       {savedDecks.length > 0 && (
         <div className="relative mb-6">
           {startingReview && <span className="study-runner" aria-hidden="true">🏃‍♂️</span>}
-          <div className={`flex flex-col gap-5 rounded-2xl border border-teal-100 bg-gradient-to-r from-rose-50 via-white to-teal-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8 ${startingReview ? "study-box-exit" : ""}`}>
+          <div className={`glass-panel flex flex-col gap-5 rounded-2xl border border-teal-100 bg-gradient-to-r from-rose-50 via-white to-teal-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8 ${startingReview ? "study-box-exit" : ""}`}>
           <div><p className="text-sm font-semibold text-teal-600">🌸 Ôn tập thông minh</p><h2 className="mt-1 text-2xl font-bold text-rose-950 sm:text-3xl">Hôm nay ôn gì nhỉ?</h2><p className="mt-2 text-sm text-slate-500">Ôn bài lẹ đi, Thầy sắp díiiii rồi!!!</p></div>
           <button disabled={startingReview} onClick={startDueReview} className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-6 py-4 text-sm font-bold text-white shadow-sm hover:bg-teal-500 disabled:cursor-wait sm:min-w-44">Ôn lẹ <ArrowRight size={18} className="ml-2" /></button>
           </div>
@@ -194,11 +188,11 @@ export default function DeckSetup({
       )}
 
       {savedDecks.length > 0 && (
-        <div className="mb-6 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
+        <div className="glass-panel mb-6 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
           <p className="mb-3 text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {savedDecks.map((deck) => (
-              <div key={deck.id} className="flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
+              <div key={deck.id} className="glass-card flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
                 <button onClick={() => onOpenDeck(deck)} className="flex min-w-0 flex-1 items-center justify-between text-left">
                 <span className="truncate">{deckIcon(deck.title)} {deck.title}</span>
                 <span className="ml-3 text-xs text-slate-400">{deck.cards.length} thẻ</span>
@@ -217,7 +211,7 @@ export default function DeckSetup({
       )}
 
       {mode === "import" && (
-        <div className="mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
+        <div className="glass-panel mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <label
             htmlFor="anki-file"
             className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"
@@ -250,7 +244,7 @@ export default function DeckSetup({
       )}
 
       {mode === "create" && (
-        <div className="mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
+        <div className="glass-panel mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
@@ -258,35 +252,29 @@ export default function DeckSetup({
             placeholder="Bộ thẻ mới"
           />
 
-          <div className="mt-6 space-y-4">
-            <div className="hidden grid-cols-[1fr_1fr_auto] gap-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400 sm:grid"><span>Front</span><span>Back</span><span /></div>
-            {cards.map((card, index) => (
-              <div
-                key={card.id}
-                className="grid gap-3 rounded-lg border border-dashed border-rose-200 bg-rose-50/30 p-4 sm:grid-cols-[1fr_1fr_auto]"
-              >
-                <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Front</p><RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} onClozeCreated={(text) => updateCard(card.id, "answer", text)} placeholder={`Mặt trước thẻ ${index + 1}`} /></div>
-                <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Back</p><RichTextEditor value={card.answer} onChange={(value) => updateCard(card.id, "answer", value)} placeholder="Mặt sau" /></div>
-                <button
-                  onClick={() => removeCard(card.id)}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                  aria-label="Xóa thẻ"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {trailingEmptyCard && <div className="mb-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
-            <MessageCircle size={19} className="shrink-0 text-amber-500" />
-            <span className="flex-1"><strong>Flashcard trống.</strong> Bạn muốn kiểm tra lại ô cuối không?</span>
-            <button type="button" onClick={() => setCards((current) => current.slice(0, -1))} className="shrink-0 rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-amber-950 hover:bg-amber-500">Kiểm tra ngay</button>
+          {validCards.length > 0 && <div className="mt-6 rounded-2xl border border-teal-100 bg-teal-50/50 p-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-teal-700">Đã thêm {validCards.length} thẻ</p>
+            <div className="space-y-2">
+              {validCards.map((card, index) => <div key={card.id} className="flex items-center gap-3 rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-slate-700">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">{index + 1}</span>
+                <span className="min-w-0 flex-1 truncate" dangerouslySetInnerHTML={{ __html: card.question }} />
+                <button type="button" onClick={() => removeCard(card.id)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Xóa thẻ ${index + 1}`}><Trash2 size={16} /></button>
+              </div>)}
+            </div>
           </div>}
+
+          {cards.slice(-1).map((card) => <div key={card.id} className="mt-6 rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-4">
+            <div className="mb-3 flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ mới</p><span className="text-xs text-slate-400">Front + Back</span></div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} onClozeCreated={(text) => updateCard(card.id, "answer", text)} placeholder="Mặt trước" /></div>
+              <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={card.answer} onChange={(value) => updateCard(card.id, "answer", value)} placeholder="Mặt sau" /></div>
+            </div>
+          </div>)}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
+              disabled={!cards[cards.length - 1]?.question.trim() || !cards[cards.length - 1]?.answer.trim()}
               onClick={() => setCards((previous) => [...previous, newDraftCard()])}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Plus size={18} />
               Thêm thẻ
@@ -300,7 +288,7 @@ export default function DeckSetup({
       )}
 
       {mode === "ai" && (
-        <div className="rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
+        <div className="glass-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <label
             htmlFor="upload"
             className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"

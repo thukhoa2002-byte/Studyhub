@@ -45,7 +45,6 @@ export async function saveDeck(
 
   const { error: cardsError } = await supabase.from("cards").insert(
     questions.map((question, position) => ({
-      ...(isUuid(question.id) ? { id: question.id } : {}),
       deck_id: deck.id,
       front: question.question,
       back: question.answer,
@@ -54,16 +53,16 @@ export async function saveDeck(
     }))
   );
 
-  if (cardsError) throw cardsError;
+  if (cardsError) {
+    // Do not leave an empty/orphaned deck behind when card insertion fails.
+    await supabase.from("decks").delete().eq("id", deck.id).eq("owner_id", userId);
+    throw cardsError;
+  }
   for (const email of shareEmails) {
     const { error } = await supabase.rpc("share_deck_with_email", { p_deck_id: deck.id, p_email: email });
     if (error) throw error;
   }
   return deck;
-}
-
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 export async function listDecks(_userId: string): Promise<SavedDeck[]> {
@@ -94,7 +93,7 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
     visibility: deck.visibility,
     owner_id: deck.owner_id,
     member_role: membershipByDeck.get(deck.id)?.role === "admin" ? "admin" : "member",
-    member_access: membershipByDeck.get(deck.id)?.access === "edit" ? "edit" : "view",
+    member_access: membershipByDeck.get(deck.id)?.role === "admin" || membershipByDeck.get(deck.id)?.access === "edit" ? "edit" : "view",
     cards: [...(deck.cards ?? [])]
       .sort((a, b) => a.position - b.position)
       .map((card) => ({
@@ -154,7 +153,7 @@ export async function listDeckMembers(deckId: string): Promise<DeckMember[]> {
     user_id: member.user_id ?? null,
     email: member.email,
     role: member.role === "admin" ? "admin" : "member",
-    access: (member as { access?: string | null }).access === "edit" ? "edit" : "view",
+    access: member.role === "admin" || (member as { access?: string | null }).access === "edit" ? "edit" : "view",
     is_owner: Boolean((member as { is_owner?: boolean }).is_owner),
   }));
 }

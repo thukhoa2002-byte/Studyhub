@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, Home, MessageCircle, Plus, Save, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Home, Plus, Save, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import RichTextEditor from "./RichTextEditor";
@@ -77,8 +77,6 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     if (next === "shared") onShareRequest();
   }
 
-  const trailingEmptyCard = questions.length > 0 && questions[questions.length - 1].question.trim() === "" && questions[questions.length - 1].answer.trim() === "";
-
   return (
     <section className="mx-auto max-w-5xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
@@ -110,17 +108,12 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
       </div>
       <div className="space-y-3">
         <div className="hidden grid-cols-[1fr_1fr_auto] gap-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400 sm:grid"><span>Front</span><span>Back</span><span /></div>
-        {questions.map((item, index) => <div key={item.id} data-card-id={item.id} className="grid gap-3 rounded-lg border border-dashed border-rose-200 bg-white/85 p-4 sm:grid-cols-[1fr_1fr_auto]">
+        {questions.map((item, index) => <div key={item.id} data-card-id={item.id} className="glass-card grid gap-3 rounded-lg border border-dashed border-rose-200 bg-white/85 p-4 sm:grid-cols-[1fr_1fr_auto]">
           <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Front</p><RichTextEditor value={item.question} onChange={(value) => update(item.id, "question", value)} onClozeCreated={(text) => update(item.id, "answer", text)} placeholder={`Mặt trước thẻ ${index + 1}`} /></div>
           <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Back</p><RichTextEditor value={item.answer} onChange={(value) => update(item.id, "answer", value)} placeholder="Mặt sau" /></div>
           <button onClick={() => setQuestions((current) => current.filter((card) => card.id !== item.id))} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
         </div>)}
       </div>
-      {trailingEmptyCard && <div className="mt-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
-        <MessageCircle size={19} className="shrink-0 text-amber-500" />
-        <span className="flex-1"><strong>Flashcard trống.</strong> Bạn muốn kiểm tra lại ô cuối không?</span>
-        <button type="button" onClick={() => setQuestions((current) => current.slice(0, -1))} className="shrink-0 rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-amber-950 hover:bg-amber-500">Kiểm tra ngay</button>
-      </div>}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
         <button onClick={addCard} title="Thêm thẻ" aria-label="Thêm thẻ" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-rose-100 bg-white text-slate-700 hover:bg-rose-50"><Plus size={20} /></button>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -130,7 +123,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         </div>
       </div>
       {pendingDeck && <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="switch-deck-title">
-        <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/70 to-teal-50/70 p-7 shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+        <div className="glass-dialog w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/70 to-teal-50/70 p-7 shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-500">✦</div>
           <p className="mt-4 text-center text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Chuyển bộ thẻ</p>
           <h2 id="switch-deck-title" className="mt-2 text-center text-xl font-bold text-rose-950">Lưu thay đổi trước khi chuyển?</h2>

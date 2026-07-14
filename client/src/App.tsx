@@ -81,7 +81,15 @@ export default function App() {
       return;
     }
     try {
-      setSavedDecks(await listDecks(nextUser.id));
+      const nextDecks = await listDecks(nextUser.id);
+      setSavedDecks(nextDecks);
+      // Keep an already-open editor in sync when an owner/admin changes this
+      // account's access from another session.
+      setCurrentSavedDeck((current) => {
+        if (!current) return current;
+        const fresh = nextDecks.find((deck) => deck.id === current.id);
+        return fresh ? { ...current, visibility: fresh.visibility, member_role: fresh.member_role, member_access: fresh.member_access } : current;
+      });
     } catch (error) {
       console.error(error);
     }
@@ -103,7 +111,13 @@ export default function App() {
     const refresh = () => void refreshDecks(user);
     const timer = window.setInterval(refresh, 15000);
     window.addEventListener("focus", refresh);
-    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+    const onVisibilityChange = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [user, refreshDecks]);
 
   async function persistDeck(title: string, cards: GeneratedQuestion[], shareEmails: string[] = []) {

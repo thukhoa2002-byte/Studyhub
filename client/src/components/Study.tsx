@@ -130,7 +130,7 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
   if (sessionComplete) {
     return (
       <section className="mx-auto flex min-h-[calc(100vh-176px)] max-w-3xl items-center px-5 py-10">
-        <div className="w-full rounded-3xl border border-rose-100 bg-white/90 p-8 text-center shadow-sm sm:p-12">
+        <div className="glass-dialog w-full rounded-3xl border border-rose-100 bg-white/90 p-8 text-center shadow-sm sm:p-12">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-500"><Check size={32} /></div>
           <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-rose-500">Hoàn thành phiên học</p>
           <h1 className="mt-3 text-3xl font-bold text-rose-950">Bạn đã học hết {studyQuestions.length} thẻ</h1>
@@ -158,7 +158,7 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
 
       <div className="mb-8 h-1.5 overflow-hidden rounded-full bg-rose-100"><div className="h-full rounded-full bg-teal-300 transition-all duration-500" style={{ width: `${progress}%` }} /></div>
 
-      <article className="min-h-[430px] overflow-hidden rounded-3xl border border-rose-100 bg-white/95 shadow-[0_18px_45px_rgba(244,114,182,0.12)]">
+      <article className="glass-card min-h-[430px] overflow-hidden rounded-3xl border border-rose-100 bg-white/95 shadow-[0_18px_45px_rgba(244,114,182,0.12)]">
         <div className="flex items-center justify-between border-b border-rose-50 px-6 py-5 sm:px-8">
           <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${categoryColor[question.category] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>{question.category}</span>
           <button onClick={() => toggleBookmark(question.id)} aria-label="Lưu thẻ để ôn lại" className={`rounded-lg p-2 ${question.bookmarked ? "bg-rose-50 text-rose-400" : "text-slate-400 hover:bg-rose-50 hover:text-rose-400"}`}><Bookmark size={20} fill={question.bookmarked ? "currentColor" : "none"} /></button>
