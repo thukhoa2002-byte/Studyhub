@@ -102,10 +102,10 @@ export default function App() {
 
   async function onGenerate() {
     if (!image) return;
-    if (aiCallsRemaining < 2) { alert("Số lượt AI ước tính đã hết."); return; }
+    if (aiCallsRemaining < 1) { alert("Số lượt AI ước tính đã hết."); return; }
 
     try {
-      setAiCallsRemaining((count) => count - 2);
+      setAiCallsRemaining((count) => count - 1);
       setLoading(true);
       setLoadingTitle("AI đang đọc ảnh...");
       setLoadingDescription("Mình đang nhận diện nội dung và chọn những ý quan trọng để tạo thẻ.");
