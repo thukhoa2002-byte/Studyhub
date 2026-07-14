@@ -20,6 +20,9 @@ interface Props {
   onCreateDeck: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void;
   savedDecks: SavedDeck[];
   onOpenDeck: (deck: SavedDeck) => void;
+  onEditDeck: (deck: SavedDeck) => void;
+  onDeleteDeck: (deck: SavedDeck) => void;
+  currentUserId?: string;
 }
 
 type SetupMode = "import" | "create" | "ai";
@@ -50,6 +53,9 @@ export default function DeckSetup({
   onCreateDeck,
   savedDecks,
   onOpenDeck,
+  onEditDeck,
+  onDeleteDeck,
+  currentUserId,
 }: Props) {
   const [mode, setMode] = useState<SetupMode>("import");
   const [title, setTitle] = useState("Bộ thẻ mới");
@@ -164,10 +170,16 @@ export default function DeckSetup({
           <p className="mb-3 text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {savedDecks.map((deck) => (
-              <button key={deck.id} onClick={() => onOpenDeck(deck)} className="flex items-center justify-between rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
+              <div key={deck.id} className="flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
+                <button onClick={() => onOpenDeck(deck)} className="flex min-w-0 flex-1 items-center justify-between text-left">
                 <span className="truncate">{deck.visibility === "shared" ? "🌸" : "🔒"} {deck.title}</span>
                 <span className="ml-3 text-xs text-slate-400">{deck.cards.length} thẻ</span>
-              </button>
+                </button>
+                {deck.owner_id === currentUserId && <>
+                  <button onClick={() => onEditDeck(deck)} className="rounded-md px-2 py-1 text-xs font-semibold text-teal-600 hover:bg-teal-50">Sửa</button>
+                  <button onClick={() => onDeleteDeck(deck)} className="rounded-md px-2 py-1 text-xs font-semibold text-rose-500 hover:bg-rose-50">Xóa</button>
+                </>}
+              </div>
             ))}
           </div>
         </div>

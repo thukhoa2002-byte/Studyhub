@@ -8,7 +8,7 @@ import Study from "./components/Study";
 import Review from "./components/Review";
 import DeckEditor from "./components/DeckEditor";
 import LoadingOverlay from "./components/LoadingOverlay";
-import { listDecks, saveDeck, saveReview, supabase, updateDeck, type SavedDeck } from "./services/supabase";
+import { deleteDeck, listDecks, saveDeck, saveReview, supabase, updateDeck, type SavedDeck } from "./services/supabase";
 
 import {
   generateQuestions,
@@ -146,6 +146,23 @@ export default function App() {
     setCurrentSavedDeck(deck);
   }
 
+  function editSavedDeck(deck: SavedDeck) {
+    openSavedDeck(deck);
+    setEditing(true);
+  }
+
+  async function removeSavedDeck(deck: SavedDeck) {
+    if (!user || !window.confirm(`Xóa bộ thẻ "${deck.title}"? Hành động này không thể hoàn tác.`)) return;
+    try {
+      await deleteDeck(user.id, deck.id);
+      setSavedDecks(await listDecks(user.id));
+      if (currentSavedDeck?.id === deck.id) resetDeck();
+    } catch (error) {
+      console.error(error);
+      alert("Không thể xóa bộ thẻ.");
+    }
+  }
+
   async function saveEditedDeck(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
     if (!user || !currentSavedDeck) return;
     try {
@@ -230,6 +247,9 @@ export default function App() {
             onCreateDeck={onCreateDeck}
             savedDecks={savedDecks}
             onOpenDeck={openSavedDeck}
+            onEditDeck={editSavedDeck}
+            onDeleteDeck={removeSavedDeck}
+            currentUserId={user?.id}
           />
         ) : mode === "study" ? (
           <Study
