@@ -6,8 +6,9 @@ import Navbar from "./components/Navbar";
 import DeckSetup from "./components/DeckSetup";
 import Study from "./components/Study";
 import Review from "./components/Review";
+import DeckEditor from "./components/DeckEditor";
 import LoadingOverlay from "./components/LoadingOverlay";
-import { listDecks, saveDeck, saveReview, supabase, type SavedDeck } from "./services/supabase";
+import { listDecks, saveDeck, saveReview, supabase, updateDeck, type SavedDeck } from "./services/supabase";
 
 import {
   generateQuestions,
@@ -28,6 +29,8 @@ export default function App() {
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [savedDecks, setSavedDecks] = useState<SavedDeck[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [currentSavedDeck, setCurrentSavedDeck] = useState<SavedDeck | null>(null);
 
   const refreshDecks = useCallback(async (nextUser: User | null) => {
     setUser(nextUser);
@@ -139,6 +142,16 @@ export default function App() {
     setQuestions(deck.cards);
     setDeckTitle(deck.title);
     setMode("study");
+    setCurrentSavedDeck(deck);
+  }
+
+  async function saveEditedDeck(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
+    if (!user || !currentSavedDeck) return;
+    try {
+      await updateDeck(user.id, currentSavedDeck.id, title, cards, visibility);
+      setQuestions(cards); setDeckTitle(title); setEditing(false); setCurrentSavedDeck({ ...currentSavedDeck, title, visibility, cards });
+      setSavedDecks(await listDecks(user.id));
+    } catch (error) { console.error(error); alert("Không thể lưu thay đổi bộ thẻ."); }
   }
 
   function resetDeck() {
@@ -200,10 +213,13 @@ export default function App() {
             deckTitle={deckTitle}
             onReset={resetDeck}
             onExport={exportDeck}
+            onEdit={() => setEditing(true)}
           />
         )}
 
-        {questions.length === 0 ? (
+        {editing && currentSavedDeck ? (
+          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} onCancel={() => setEditing(false)} onSave={saveEditedDeck} />
+        ) : questions.length === 0 ? (
           <DeckSetup
             preview={preview}
             loading={loading}

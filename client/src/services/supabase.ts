@@ -102,3 +102,19 @@ export async function saveReview(
     due_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   });
 }
+
+export async function updateDeck(
+  userId: string,
+  deckId: string,
+  title: string,
+  questions: GeneratedQuestion[],
+  visibility: "private" | "shared"
+) {
+  if (!supabase) return;
+  const { error: deckError } = await supabase.from("decks").update({ title, visibility, updated_at: new Date().toISOString() }).eq("id", deckId).eq("owner_id", userId);
+  if (deckError) throw deckError;
+  const { error: deleteError } = await supabase.from("cards").delete().eq("deck_id", deckId);
+  if (deleteError) throw deleteError;
+  const { error: cardsError } = await supabase.from("cards").insert(questions.map((question, position) => ({ ...(isUuid(question.id) ? { id: question.id } : {}), deck_id: deckId, front: question.question, back: question.answer, category: question.category, position })));
+  if (cardsError) throw cardsError;
+}
