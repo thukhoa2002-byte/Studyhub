@@ -2,6 +2,8 @@
 @import "tailwindcss";
 
 .rich-editor:empty::before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; }
+.rich-editor ul { list-style: disc; padding-left: 1.5rem; }
+.rich-editor ol { list-style: decimal; padding-left: 1.5rem; }
 .rich-content ul { list-style: disc; padding-left: 1.5rem; text-align: left; }
 .rich-content ol { list-style: decimal; padding-left: 1.5rem; text-align: left; }
 .rich-content p, .rich-content div { margin: 0.25rem 0; }
