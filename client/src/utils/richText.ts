@@ -1,4 +1,4 @@
-const ALLOWED_TAGS = new Set(["B", "STRONG", "I", "EM", "U", "S", "BR", "P", "DIV", "UL", "OL", "LI", "H1", "H2", "H3"]);
+const ALLOWED_TAGS = new Set(["B", "STRONG", "I", "EM", "U", "S", "BR", "P", "DIV", "UL", "OL", "LI", "H1", "H2", "H3", "IMG"]);
 
 export function toEditorHtml(value: string) {
   if (/<[a-z][\s\S]*>/i.test(value)) return sanitizeHtml(value);
@@ -14,6 +14,13 @@ export function sanitizeHtml(value: string) {
       return;
     }
     Array.from(element.attributes).forEach((attribute) => {
+      if (element.tagName === "IMG" && attribute.name === "src") {
+        const src = attribute.value.trim();
+        if (/^(data:image\/(png|jpeg|gif|webp);base64,|https?:\/\/)/i.test(src)) element.setAttribute("src", src);
+        else element.removeAttribute(attribute.name);
+        return;
+      }
+      if (element.tagName === "IMG" && attribute.name === "alt") return;
       if (attribute.name === "style") {
         const match = attribute.value.match(/text-align\s*:\s*(left|center|right|justify)/i);
         if (match) element.setAttribute("style", `text-align:${match[1].toLowerCase()}`);

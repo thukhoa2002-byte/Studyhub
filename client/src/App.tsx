@@ -194,6 +194,11 @@ export default function App() {
     } catch (error) { console.error(error); alert("Không thể lưu thay đổi bộ thẻ."); }
   }
 
+  async function saveEditedDeckAndStudy(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
+    await saveEditedDeck(title, cards, visibility);
+    setMode("study");
+  }
+
   function resetDeck() {
     setQuestions([]);
     setDeckTitle("");
@@ -258,7 +263,7 @@ export default function App() {
         )}
 
         {editing && currentSavedDeck ? (
-          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} onCancel={() => setEditing(false)} onSave={saveEditedDeck} />
+          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} onCancel={() => setEditing(false)} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
         ) : questions.length === 0 ? (
           <DeckSetup
             preview={preview}

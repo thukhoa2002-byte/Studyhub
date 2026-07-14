@@ -9,9 +9,10 @@ interface Props {
   visibility: "private" | "shared";
   onCancel: () => void;
   onSave: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void | Promise<void>;
+  onSaveAndStudy: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void | Promise<void>;
 }
 
-export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave }: Props) {
+export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave, onSaveAndStudy }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [visibility, setVisibility] = useState(initialVisibility);
   const [questions, setQuestions] = useState(initialQuestions);
@@ -24,10 +25,10 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     setQuestions((current) => [...current, { id: crypto.randomUUID(), question: "", answer: "", category: "Tự tạo", importance: 1, bookmarked: false }]);
   }
 
-  function save() {
+  function save(saveAndStudy = false) {
     const valid = questions.filter((item) => item.question.trim() && item.answer.trim());
     if (!title.trim() || valid.length === 0) return;
-    void onSave(title.trim(), valid, visibility);
+    void (saveAndStudy ? onSaveAndStudy(title.trim(), valid, visibility) : onSave(title.trim(), valid, visibility));
   }
 
   return (
@@ -51,7 +52,10 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
       </div>
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
         <button onClick={addCard} title="Thêm thẻ" aria-label="Thêm thẻ" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-rose-100 bg-white text-slate-700 hover:bg-rose-50"><Plus size={20} /></button>
-        <button onClick={save} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500"><Check size={18} /> Lưu thay đổi</button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button onClick={() => save(false)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-5 py-3 text-sm font-bold text-teal-700 hover:bg-teal-50"><Check size={18} /> Lưu</button>
+          <button onClick={() => save(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500"><Check size={18} /> Lưu &amp; học ngay</button>
+        </div>
       </div>
     </section>
   );

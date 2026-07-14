@@ -1,4 +1,4 @@
-import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, List, ListOrdered, Underline } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Bold, Image as ImageIcon, Italic, List, ListOrdered, Underline } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
 
@@ -12,6 +12,7 @@ const commands = [
 
 export default function RichTextEditor({ value, onChange, placeholder }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const selectionRef = useRef<Range | null>(null);
   useEffect(() => { if (editorRef.current && editorRef.current.innerHTML !== toEditorHtml(value)) editorRef.current.innerHTML = toEditorHtml(value); }, [value]);
   function rememberSelection() {
@@ -45,9 +46,27 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
     rememberSelection();
     if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML));
   }
+  function insertImage(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = typeof reader.result === "string" ? reader.result : "";
+      if (!src || !editorRef.current) return;
+      editorRef.current.focus();
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      if (selectionRef.current) selection?.addRange(selectionRef.current);
+      document.execCommand("insertHTML", false, `<img src="${src}" alt="Ảnh thẻ" />`);
+      rememberSelection();
+      onChange(sanitizeHtml(editorRef.current.innerHTML));
+    };
+    reader.readAsDataURL(file);
+  }
   return <div className="overflow-hidden rounded-lg border border-rose-100 bg-white focus-within:border-rose-300">
     <div className="flex flex-wrap gap-1 border-b border-rose-50 bg-rose-50/50 p-2">
       {commands.map(([name, Icon, label]) => <button key={name} type="button" title={label} onMouseDown={(event) => { event.preventDefault(); command(name); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><Icon size={16} /></button>)}
+      <button type="button" title="Chèn hình ảnh" aria-label="Chèn hình ảnh" onMouseDown={(event) => { event.preventDefault(); imageInputRef.current?.click(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><ImageIcon size={16} /></button>
+      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) insertImage(file); event.target.value = ""; }} />
     </div>
     <div ref={editorRef} contentEditable role="textbox" aria-label={placeholder} data-placeholder={placeholder} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onInput={(event) => { rememberSelection(); onChange(sanitizeHtml(event.currentTarget.innerHTML)); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
   </div>;
