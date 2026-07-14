@@ -14,7 +14,7 @@ export default function Header({ onUserChange }: Props) {
 
         <div className="flex items-center gap-5">
 
-          <img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" className="h-11 w-11 rounded-xl object-contain" />
+          <img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" className="h-16 w-16 rounded-xl object-contain" />
 
           <div>
 

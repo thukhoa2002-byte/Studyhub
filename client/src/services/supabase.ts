@@ -106,6 +106,14 @@ export async function saveReview(
   });
 }
 
+export async function shareDeckWithEmails(deckId: string, emails: string[]) {
+  if (!supabase) return;
+  for (const email of emails) {
+    const { error } = await supabase.rpc("share_deck_with_email", { p_deck_id: deckId, p_email: email });
+    if (error) throw error;
+  }
+}
+
 export async function updateDeck(
   userId: string,
   deckId: string,

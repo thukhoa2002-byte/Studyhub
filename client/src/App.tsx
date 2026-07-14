@@ -7,8 +7,9 @@ import DeckSetup from "./components/DeckSetup";
 import Study from "./components/Study";
 import Review from "./components/Review";
 import DeckEditor from "./components/DeckEditor";
+import ShareDeckDialog from "./components/ShareDeckDialog";
 import LoadingOverlay from "./components/LoadingOverlay";
-import { deleteDeck, listDecks, saveDeck, saveReview, supabase, updateDeck, type SavedDeck } from "./services/supabase";
+import { deleteDeck, listDecks, saveDeck, saveReview, shareDeckWithEmails, supabase, updateDeck, type SavedDeck } from "./services/supabase";
 
 import {
   generateQuestions,
@@ -31,6 +32,7 @@ export default function App() {
   const [savedDecks, setSavedDecks] = useState<SavedDeck[]>([]);
   const [editing, setEditing] = useState(false);
   const [currentSavedDeck, setCurrentSavedDeck] = useState<SavedDeck | null>(null);
+  const [sharingDeck, setSharingDeck] = useState<SavedDeck | null>(null);
 
   const refreshDecks = useCallback(async (nextUser: User | null) => {
     setUser(nextUser);
@@ -94,7 +96,7 @@ export default function App() {
     }
   }
 
-  async function onImportDeck(file: File, shareEmails: string[]) {
+  async function onImportDeck(file: File) {
     try {
       if (file.name.toLowerCase().endsWith(".apkg")) {
         setLoading(true);
@@ -109,7 +111,7 @@ export default function App() {
         setQuestions(response.data);
         setDeckTitle(response.title || file.name.replace(/\.[^.]+$/, ""));
         setMode("study");
-        await persistDeck(response.title || file.name.replace(/\.[^.]+$/, ""), response.data, shareEmails);
+        await persistDeck(response.title || file.name.replace(/\.[^.]+$/, ""), response.data);
         return;
       }
 
@@ -124,7 +126,7 @@ export default function App() {
       setQuestions(imported);
       setDeckTitle(file.name.replace(/\.[^.]+$/, ""));
       setMode("study");
-      await persistDeck(file.name.replace(/\.[^.]+$/, ""), imported, shareEmails);
+      await persistDeck(file.name.replace(/\.[^.]+$/, ""), imported);
     } catch (error) {
       console.error(error);
       alert("Không thể đọc file này.");
@@ -133,11 +135,17 @@ export default function App() {
     }
   }
 
-  function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[], shareEmails: string[]) {
+  function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[]) {
     setQuestions(createdQuestions);
     setDeckTitle(title);
     setMode("study");
-    void persistDeck(title, createdQuestions, shareEmails);
+    void persistDeck(title, createdQuestions);
+  }
+
+  async function shareSavedDeck(emails: string[]) {
+    if (!sharingDeck) return;
+    try { await shareDeckWithEmails(sharingDeck.id, emails); setSharingDeck(null); alert("Đã chia sẻ bộ thẻ."); }
+    catch (error) { alert(`Không thể chia sẻ: ${error instanceof Error ? error.message : JSON.stringify(error)}`); }
   }
 
   function openSavedDeck(deck: SavedDeck) {
@@ -250,6 +258,7 @@ export default function App() {
             onOpenDeck={openSavedDeck}
             onEditDeck={editSavedDeck}
             onDeleteDeck={removeSavedDeck}
+            onShareDeck={setSharingDeck}
             currentUserId={user?.id}
           />
         ) : mode === "study" ? (
@@ -266,6 +275,7 @@ export default function App() {
         )}
 
       </main>
+      {sharingDeck && <ShareDeckDialog title={sharingDeck.title} onClose={() => setSharingDeck(null)} onShare={shareSavedDeck} />}
     </>
   );
 }
