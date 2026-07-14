@@ -18,7 +18,7 @@ export interface SavedDeck {
 }
 
 export interface DeckMember {
-  user_id: string;
+  user_id: string | null;
   email: string;
 }
 
@@ -133,7 +133,7 @@ export async function listDeckMembers(deckId: string): Promise<DeckMember[]> {
 
 export async function removeDeckMember(deckId: string, memberId: string) {
   if (!supabase) return;
-  const { error } = await supabase.rpc("remove_deck_member", { p_deck_id: deckId, p_user_id: memberId });
+  const { error } = await supabase.rpc("remove_deck_share", { p_deck_id: deckId, p_email: memberId });
   if (error) throw error;
 }
 

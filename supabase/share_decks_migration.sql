@@ -39,13 +39,32 @@ grant execute on function public.claim_pending_deck_shares() to authenticated;
 create or replace function public.list_deck_members(p_deck_id uuid)
 returns table(user_id uuid, email text)
 language sql security definer set search_path = public, auth as $$
-  select u.id, u.email::text
-  from public.deck_members dm
-  join auth.users u on u.id = dm.user_id
+  select dm.user_id, i.email
+  from public.deck_share_invites i
+  left join public.deck_members dm on dm.deck_id = i.deck_id
+    and exists (select 1 from auth.users u where u.id = dm.user_id and lower(u.email) = i.email)
+  where i.deck_id = p_deck_id
+    and exists (select 1 from public.decks d where d.id = p_deck_id and d.owner_id = auth.uid())
+  union
+  select dm.user_id, u.email::text
+  from public.deck_members dm join auth.users u on u.id = dm.user_id
   where dm.deck_id = p_deck_id
-    and exists (select 1 from public.decks d where d.id = p_deck_id and d.owner_id = auth.uid());
+    and exists (select 1 from public.decks d where d.id = p_deck_id and d.owner_id = auth.uid())
+    and not exists (select 1 from public.deck_share_invites i where i.deck_id = p_deck_id and i.email = lower(u.email));
 $$;
 grant execute on function public.list_deck_members(uuid) to authenticated;
+
+create or replace function public.remove_deck_share(p_deck_id uuid, p_email text)
+returns void language plpgsql security definer set search_path = public, auth as $$
+begin
+  if not exists (select 1 from public.decks where id = p_deck_id and owner_id = auth.uid()) then
+    raise exception 'Only the deck owner can stop sharing it';
+  end if;
+  delete from public.deck_share_invites where deck_id = p_deck_id and email = lower(trim(p_email));
+  delete from public.deck_members dm using auth.users u
+    where dm.deck_id = p_deck_id and dm.user_id = u.id and lower(u.email) = lower(trim(p_email));
+end; $$;
+grant execute on function public.remove_deck_share(uuid, text) to authenticated;
 
 create or replace function public.remove_deck_member(p_deck_id uuid, p_user_id uuid)
 returns void language plpgsql security definer set search_path = public, auth as $$
