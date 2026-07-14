@@ -38,6 +38,13 @@ interface Props {
 
 type SetupMode = "import" | "create" | "ai";
 
+const deckIconOptions = [
+  ["🫁", "Hô hấp"], ["❤️", "Tim mạch"], ["🩺", "Thận niệu"], ["🍽️", "Tiêu hoá"],
+  ["🩸", "Huyết học"], ["🥗", "Dinh dưỡng"], ["🧸", "Nhi khoa"], ["🤰", "Sản khoa"],
+  ["🦴", "Giải phẫu"], ["💓", "Sinh lý"], ["🧪", "Hoá sinh"], ["🧬", "Di truyền"],
+  ["🎋", "Học tập"], ["📚", "Mặc định"],
+] as const;
+
 interface DraftCard {
   id: string;
   question: string;
@@ -68,6 +75,16 @@ function deckIcon(title: string) {
   return "📚";
 }
 
+function DeckIconPicker({ title, value, onChange }: { title: string; value: string; onChange: (icon: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return <div className="relative shrink-0">
+    <button type="button" title="Đổi icon bộ thẻ" aria-label={`Đổi icon cho ${title}`} onClick={() => setOpen((current) => !current)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-white/70 text-xl shadow-sm hover:border-teal-200 hover:bg-teal-50">{value}</button>
+    {open && <div className="absolute left-0 top-full z-[80] mt-2 grid w-64 grid-cols-7 gap-1.5 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-[0_18px_45px_rgba(15,118,110,.18)] backdrop-blur-xl" role="menu" aria-label="Bộ sưu tập icon">
+      {deckIconOptions.map(([icon, label]) => <button key={icon} type="button" title={label} aria-label={label} onClick={() => { onChange(icon); setOpen(false); }} className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:scale-110 hover:bg-teal-50 ${value === icon ? "bg-teal-100 ring-2 ring-teal-300" : ""}`}>{icon}</button>)}
+    </div>}
+  </div>;
+}
+
 export default function DeckSetup({
   preview,
   loading,
@@ -92,6 +109,9 @@ export default function DeckSetup({
   const [cards, setCards] = useState<DraftCard[]>([newDraftCard()]);
   const [startingReview, setStartingReview] = useState(false);
   const [showAddedCards, setShowAddedCards] = useState(false);
+  const [deckIcons, setDeckIcons] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem("hocbai-deck-icons") || "{}"); } catch { return {}; }
+  });
 
   const validCards = cards.filter(
     (card) => card.question.trim() && card.answer.trim()
@@ -122,6 +142,14 @@ export default function DeckSetup({
     setTitle("");
     setCards([newDraftCard()]);
     setShowAddedCards(false);
+  }
+
+  function updateDeckIcon(deckId: string, icon: string) {
+    setDeckIcons((current) => {
+      const next = { ...current, [deckId]: icon };
+      localStorage.setItem("hocbai-deck-icons", JSON.stringify(next));
+      return next;
+    });
   }
 
   function createDeck() {
@@ -196,8 +224,9 @@ export default function DeckSetup({
           <div className="grid gap-2 sm:grid-cols-2">
             {savedDecks.map((deck) => (
               <div key={deck.id} className="glass-card flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
+                <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
                 <button onClick={() => onOpenDeck(deck)} className="flex min-w-0 flex-1 items-center justify-between text-left">
-                <span className="truncate">{deckIcon(deck.title)} {deck.title}</span>
+                <span className="truncate">{deck.title}</span>
                 <span className="ml-3 text-xs text-slate-400">{deck.cards.length} thẻ</span>
                 </button>
                 {(deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit") && <>
