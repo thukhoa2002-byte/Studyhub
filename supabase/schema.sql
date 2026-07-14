@@ -65,5 +65,5 @@ create policy "delete cards in own decks" on public.cards for delete using (exis
 create policy "read own reviews" on public.card_reviews for select using (user_id = auth.uid());
 create policy "create own reviews" on public.card_reviews for insert with check (user_id = auth.uid());
 create policy "update own reviews" on public.card_reviews for update using (user_id = auth.uid());
-create policy "owners manage deck members" on public.deck_members for all using (exists (select 1 from public.decks where decks.id = deck_members.deck_id and decks.owner_id = auth.uid()));
-create policy "members can read membership" on public.deck_members for select using (user_id = auth.uid() or exists (select 1 from public.decks where decks.id = deck_members.deck_id and decks.owner_id = auth.uid()));
+create policy "owners manage deck members" on public.deck_members for all using (user_id = auth.uid());
+create policy "members can read membership" on public.deck_members for select using (user_id = auth.uid());

@@ -20,6 +20,6 @@ create policy "read shared or owned decks" on public.decks for select using (own
 drop policy if exists "read cards from visible decks" on public.cards;
 create policy "read cards from visible decks" on public.cards for select using (exists (select 1 from public.decks where decks.id = cards.deck_id and (decks.owner_id = auth.uid() or exists (select 1 from public.deck_members where deck_members.deck_id = decks.id and deck_members.user_id = auth.uid()))));
 drop policy if exists "owners manage deck members" on public.deck_members;
-create policy "owners manage deck members" on public.deck_members for all using (exists (select 1 from public.decks where decks.id = deck_members.deck_id and decks.owner_id = auth.uid()));
+create policy "owners manage deck members" on public.deck_members for all using (user_id = auth.uid());
 drop policy if exists "members can read membership" on public.deck_members;
-create policy "members can read membership" on public.deck_members for select using (user_id = auth.uid() or exists (select 1 from public.decks where decks.id = deck_members.deck_id and decks.owner_id = auth.uid()));
+create policy "members can read membership" on public.deck_members for select using (user_id = auth.uid());
