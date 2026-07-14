@@ -1,5 +1,6 @@
 const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000";
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:3000" : window.location.origin);
 
 export interface GeneratedQuestion {
   id: string;
@@ -59,6 +60,40 @@ export async function generateQuestions(
       typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
         : index.toString(),
+
+    bookmarked: false,
+  }));
+
+  return result;
+}
+
+export async function importAnkiPackage(
+  deck: File
+): Promise<GenerateQuestionsResponse> {
+  const formData = new FormData();
+
+  formData.append("deck", deck);
+
+  const response = await fetch(`${API_URL}/api/import-anki`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("Không thể đọc file Anki.");
+  }
+
+  const result =
+    (await response.json()) as GenerateQuestionsResponse;
+
+  result.data = result.data.map((question, index) => ({
+    ...question,
+
+    id: question.id || (
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : index.toString()
+    ),
 
     bookmarked: false,
   }));

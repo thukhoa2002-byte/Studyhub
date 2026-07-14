@@ -2,18 +2,21 @@ import { useState } from "react";
 
 import Header from "./components/Header";
 import Navbar from "./components/Navbar";
-import UploadImage from "./components/UploadImage";
+import DeckSetup from "./components/DeckSetup";
 import Study from "./components/Study";
 import Review from "./components/Review";
 import LoadingOverlay from "./components/LoadingOverlay";
 
 import {
   generateQuestions,
+  importAnkiPackage,
   type GeneratedQuestion,
 } from "./services/api";
 
 export default function App() {
   const [mode, setMode] = useState<"study" | "review">("study");
+
+  const [deckTitle, setDeckTitle] = useState("");
 
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
@@ -42,6 +45,7 @@ export default function App() {
       const response = await generateQuestions(image);
 
       setQuestions(response.data);
+      setDeckTitle(response.title || image.name);
 
       setMode("study");
     } catch (error) {
@@ -50,6 +54,80 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onImportDeck(file: File) {
+    try {
+      if (file.name.toLowerCase().endsWith(".apkg")) {
+        setLoading(true);
+
+        const response = await importAnkiPackage(file);
+
+        if (response.data.length === 0) {
+          alert("File .apkg chưa có thẻ học hợp lệ.");
+          return;
+        }
+
+        setQuestions(response.data);
+        setDeckTitle(response.title || file.name.replace(/\.[^.]+$/, ""));
+        setMode("study");
+        return;
+      }
+
+      const text = await file.text();
+      const imported = parseDeckText(text);
+
+      if (imported.length === 0) {
+        alert("File chưa có thẻ hợp lệ. Mỗi dòng cần có mặt trước và mặt sau.");
+        return;
+      }
+
+      setQuestions(imported);
+      setDeckTitle(file.name.replace(/\.[^.]+$/, ""));
+      setMode("study");
+    } catch (error) {
+      console.error(error);
+      alert("Không thể đọc file này.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[]) {
+    setQuestions(createdQuestions);
+    setDeckTitle(title);
+    setMode("study");
+  }
+
+  function resetDeck() {
+    setQuestions([]);
+    setDeckTitle("");
+    setImage(null);
+    setPreview("");
+    setMode("study");
+  }
+
+  function exportDeck() {
+    if (questions.length === 0) return;
+
+    const rows = questions
+      .map((question) =>
+        [question.question, question.answer, question.category]
+          .map(toTsvCell)
+          .join("\t")
+      )
+      .join("\n");
+
+    const blob = new Blob([rows], {
+      type: "text/tab-separated-values;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `${toFileName(deckTitle || "anki-deck")}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   function toggleBookmark(id: string) {
@@ -69,7 +147,7 @@ export default function App() {
     <>
       {loading && <LoadingOverlay />}
 
-      <main className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-white">
+      <main className="min-h-screen bg-slate-50">
 
         <Header />
 
@@ -77,15 +155,20 @@ export default function App() {
           <Navbar
             mode={mode}
             setMode={setMode}
+            deckTitle={deckTitle}
+            onReset={resetDeck}
+            onExport={exportDeck}
           />
         )}
 
         {questions.length === 0 ? (
-          <UploadImage
+          <DeckSetup
             preview={preview}
             loading={loading}
             onImageChange={onImageChange}
             onGenerate={onGenerate}
+            onImportDeck={onImportDeck}
+            onCreateDeck={onCreateDeck}
           />
         ) : mode === "study" ? (
           <Study
@@ -102,4 +185,110 @@ export default function App() {
       </main>
     </>
   );
+}
+
+function parseDeckText(text: string): GeneratedQuestion[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(parseDeckLine)
+    .filter((question): question is GeneratedQuestion => Boolean(question));
+}
+
+function parseDeckLine(line: string): GeneratedQuestion | null {
+  const columns = line.includes("\t") ? line.split("\t") : parseCsvLine(line);
+  const [front, back, category] = columns.map((column) => cleanCell(column));
+
+  if (front && back) {
+    return makeQuestion(front, back, category || "Anki");
+  }
+
+  const cloze = parseCloze(front || line);
+  if (cloze) return cloze;
+
+  return null;
+}
+
+function parseCsvLine(line: string): string[] {
+  const columns: string[] = [];
+  let current = "";
+  let quoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    const next = line[index + 1];
+
+    if (character === '"' && quoted && next === '"') {
+      current += '"';
+      index += 1;
+      continue;
+    }
+
+    if (character === '"') {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (character === "," && !quoted) {
+      columns.push(current);
+      current = "";
+      continue;
+    }
+
+    current += character;
+  }
+
+  columns.push(current);
+  return columns;
+}
+
+function parseCloze(text: string): GeneratedQuestion | null {
+  const match = text.match(/\{\{c\d+::(.+?)(?:::.*?)?\}\}/);
+  if (!match) return null;
+
+  const answer = cleanCell(match[1]);
+  const question = cleanCell(text.replace(match[0], "[...]"));
+
+  if (!question || !answer) return null;
+
+  return makeQuestion(question, answer, "Cloze");
+}
+
+function cleanCell(value = ""): string {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/^"|"$/g, "")
+    .trim();
+}
+
+function toTsvCell(value: string): string {
+  return value.replace(/\t/g, " ").replace(/\r?\n/g, "<br>");
+}
+
+function toFileName(value: string): string {
+  return value
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+}
+
+function makeQuestion(
+  question: string,
+  answer: string,
+  category: string
+): GeneratedQuestion {
+  return {
+    id:
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`,
+    question,
+    answer,
+    category,
+    importance: 1,
+    bookmarked: false,
+  };
 }

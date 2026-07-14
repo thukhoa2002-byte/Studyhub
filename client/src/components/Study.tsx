@@ -1,11 +1,5 @@
-import { useState } from "react";
-import {
-  Bookmark,
-  BookmarkCheck,
-  Check,
-  Sparkles,
-} from "lucide-react";
-
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Bookmark, Check, Clock3, RotateCcw, Sparkles } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 
 interface Props {
@@ -13,313 +7,141 @@ interface Props {
   toggleBookmark: (id: string) => void;
 }
 
+type Rating = "again" | "hard" | "good" | "easy";
+
 const categoryColor: Record<string, string> = {
-  "Định nghĩa":
-    "bg-pink-100 text-pink-700",
-
-  "Điều trị":
-    "bg-sky-100 text-sky-700",
-
-  "Chẩn đoán":
-    "bg-violet-100 text-violet-700",
-
-  Guideline:
-    "bg-emerald-100 text-emerald-700",
-
-  "Xét nghiệm":
-    "bg-amber-100 text-amber-700",
-
-  "Biến chứng":
-    "bg-red-100 text-red-700",
-
-  "Phân loại":
-    "bg-fuchsia-100 text-fuchsia-700",
+  "Định nghĩa": "bg-violet-50 text-violet-700 border-violet-100",
+  "Điều trị": "bg-sky-50 text-sky-700 border-sky-100",
+  "Chẩn đoán": "bg-amber-50 text-amber-700 border-amber-100",
+  Guideline: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  "Xét nghiệm": "bg-rose-50 text-rose-700 border-rose-100",
 };
 
-export default function Study({
-  questions,
-  toggleBookmark,
-}: Props) {
-  const [answers, setAnswers] =
-    useState<Record<string, string>>({});
-
-  const [checked, setChecked] =
-    useState<Record<string, boolean>>({});
-
-  function check(id: string) {
-    setChecked((prev) => ({
-      ...prev,
-      [id]: true,
-    }));
-  }
-
-  return (
-    <section className="mx-auto max-w-5xl px-6 py-12">
-
-      {/* Header */}
-
-      <div className="mb-10 rounded-[36px] border border-white bg-white/70 p-8 shadow-[0_20px_60px_rgba(0,0,0,.08)] backdrop-blur-xl">
-
-        <div className="flex items-center justify-between">
-
-          <div>
-
-            <div className="inline-flex items-center gap-2 rounded-full bg-pink-100 px-4 py-2 text-sm font-semibold text-pink-700">
-
-              <Sparkles size={16} />
-
-              Study Mode
-
-            </div>
-
-            <h1 className="mt-5 text-5xl font-black tracking-tight text-slate-800">
-
-              Học bài thôi
-
-            </h1>
-
-            <p className="mt-3 text-slate-500">
-
-              {questions.length} câu hỏi cần hoàn thành
-
-            </p>
-
-          </div>
-
-          <div className="hidden rounded-3xl bg-gradient-to-br from-pink-100 to-sky-100 p-8 text-center md:block">
-
-            <div className="text-sm font-semibold text-slate-600">
-
-              Tiến độ
-
-            </div>
-
-            <div className="mt-2 text-4xl font-black">
-
-              {Object.keys(checked).length}
-
-            </div>
-
-            <div className="text-slate-500">
-
-              / {questions.length}
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      <div className="space-y-8">
-
-        {questions.map((q, index) => {
-
-          const isChecked =
-            checked[q.id];
-
-          return (
-
-            <div
-              key={q.id}
-              className="rounded-[32px] border border-white bg-white/70 p-8 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-            >
-
-              <div className="flex items-start justify-between">
-
-                <div>
-
-                  <div className="text-sm font-semibold uppercase tracking-widest text-slate-400">
-
-                    Câu {index + 1}
-
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-3">
-
-                    <span
-                      className={`rounded-full px-4 py-2 text-sm font-bold ${
-                        categoryColor[q.category] ??
-                        "bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      {q.category}
-                    </span>
-
-                    <span className="rounded-full bg-yellow-100 px-4 py-2 text-sm font-bold text-yellow-700">
-
-                      ⭐ {q.importance}/10
-
-                    </span>
-
-                  </div>
-
-                </div>
-
-                <button
-                  onClick={() =>
-                    toggleBookmark(q.id)
-                  }
-                  className="rounded-2xl bg-slate-50 p-3 transition hover:scale-110"
-                >
-
-                  {q.bookmarked ? (
-
-                    <BookmarkCheck
-                      className="text-pink-500"
-                    />
-
-                  ) : (
-
-                    <Bookmark />
-
-                  )}
-
-                </button>
-
-              </div>
-
-              <div className="mt-8 rounded-3xl bg-gradient-to-r from-pink-50 via-white to-sky-50 p-7">
-
-                <div className="text-2xl font-bold leading-10 text-slate-800">
-
-                  {q.question}
-
-                </div>
-
-              </div>
-
-              <textarea
-                value={answers[q.id] ?? ""}
-                onChange={(e) =>
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [q.id]:
-                      e.target.value,
-                  }))
-                }
-                placeholder="Nhập đáp án..."
-                className="
-                mt-8
-                h-32
-                w-full
-                resize-none
-                rounded-3xl
-                border
-                border-pink-100
-                bg-pink-50/40
-                p-5
-                text-lg
-                outline-none
-                transition
-                focus:border-sky-300
-                focus:bg-white
-"
-              />
-                            {!isChecked ? (
-
-                <button
-                  onClick={() => check(q.id)}
-                  className="
-                    mt-7
-                    flex
-                    items-center
-                    gap-3
-                    rounded-2xl
-                    bg-gradient-to-r
-                    from-pink-400
-                    via-fuchsia-400
-                    to-sky-400
-                    px-8
-                    py-4
-                    text-lg
-                    font-bold
-                    text-white
-                    shadow-lg
-                    transition-all
-                    duration-300
-                    hover:-translate-y-1
-                    hover:shadow-2xl
-                    active:scale-[.98]
-                  "
-                >
-                  <Check size={20} />
-
-                  Check đáp án
-                </button>
-
-              ) : (
-
-                <div
-                  className="
-                    mt-8
-                    rounded-3xl
-                    border
-                    border-emerald-200
-                    bg-gradient-to-r
-                    from-emerald-50
-                    to-green-50
-                    p-7
-                    shadow-sm
-                    animate-in
-                    fade-in
-                  "
-                >
-
-                  <div className="flex items-center gap-2">
-
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500">
-
-                      <Check
-                        size={20}
-                        className="text-white"
-                      />
-
-                    </div>
-
-                    <div>
-
-                      <div className="text-sm font-semibold uppercase tracking-wider text-emerald-700">
-
-                        Đáp án
-
-                      </div>
-
-                      <div className="text-xs text-emerald-600">
-
-                        So sánh với câu trả lời của bạn
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                  <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-
-                    <div className="text-2xl font-bold text-slate-800">
-
-                      {q.answer}
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-              )}
-
-            </div>
-
-          );
-
-        })}
-
-      </div>
-
-    </section>
-
+const ratingStyle: Record<Rating, string> = {
+  again: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
+  hard: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+  good: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+  easy: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100",
+};
+
+const ratingText: Record<Rating, [string, string]> = {
+  again: ["Lại", "< 1 phút"],
+  hard: ["Khó", "< 6 phút"],
+  good: ["Tốt", "< 10 phút"],
+  easy: ["Dễ", "4 ngày"],
+};
+
+export default function Study({ questions, toggleBookmark }: Props) {
+  const [current, setCurrent] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [ratings, setRatings] = useState<Record<string, Rating>>({});
+  const [sessionComplete, setSessionComplete] = useState(false);
+
+  const answered = Object.keys(ratings).length;
+  const question = questions[current];
+  const progress = questions.length ? (answered / questions.length) * 100 : 0;
+  const isLast = current === questions.length - 1;
+  const correctCount = useMemo(
+    () => Object.values(ratings).filter((rating) => rating === "good" || rating === "easy").length,
+    [ratings]
   );
 
+  useEffect(() => {
+    setCurrent(0);
+    setShowAnswer(false);
+    setRatings({});
+    setSessionComplete(false);
+  }, [questions]);
+
+  const rateCard = useCallback((rating: Rating) => {
+    if (!question) return;
+    setRatings((previous) => ({ ...previous, [question.id]: rating }));
+
+    if (isLast) {
+      setSessionComplete(true);
+      return;
+    }
+
+    setCurrent((previous) => previous + 1);
+    setShowAnswer(false);
+  }, [isLast, question]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        setShowAnswer((shown) => !shown);
+      }
+
+      if (showAnswer) {
+        const rating = ({ "1": "again", "2": "hard", "3": "good", "4": "easy" } as const)[event.key];
+        if (rating) rateCard(rating);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showAnswer, rateCard]);
+
+  function restart() {
+    setCurrent(0);
+    setShowAnswer(false);
+    setRatings({});
+    setSessionComplete(false);
+  }
+
+  if (sessionComplete) {
+    return (
+      <section className="mx-auto flex min-h-[calc(100vh-176px)] max-w-3xl items-center px-5 py-10">
+        <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-12">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><Check size={32} /></div>
+          <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">Hoàn thành phiên học</p>
+          <h1 className="mt-3 text-3xl font-bold text-slate-900">Bạn đã học hết {questions.length} thẻ</h1>
+          <p className="mt-3 text-slate-500">{correctCount} thẻ được đánh giá Tốt hoặc Dễ. Hãy quay lại vào ngày mai để ôn lại.</p>
+          <button onClick={restart} className="mt-8 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-700"><RotateCcw size={18} /> Học lại phiên này</button>
+        </div>
+      </section>
+    );
+  }
+
+  if (!question) return null;
+
+  return (
+    <section className="mx-auto max-w-4xl px-5 py-8 sm:py-12">
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-slate-500">Phiên học hôm nay</p>
+          <p className="mt-1 text-sm text-slate-400">Còn {questions.length - answered} thẻ mới</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm font-medium text-slate-500"><Clock3 size={17} /> {current + 1} / {questions.length}</div>
+      </div>
+
+      <div className="mb-8 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }} /></div>
+
+      <article className="min-h-[430px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.08)]">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5 sm:px-8">
+          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${categoryColor[question.category] ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>{question.category}</span>
+          <button onClick={() => toggleBookmark(question.id)} aria-label="Lưu thẻ để ôn lại" className={`rounded-lg p-2 ${question.bookmarked ? "bg-amber-50 text-amber-500" : "text-slate-400 hover:bg-slate-100"}`}><Bookmark size={20} fill={question.bookmarked ? "currentColor" : "none"} /></button>
+        </div>
+
+        <div className="flex min-h-[325px] flex-col justify-center px-6 py-10 text-center sm:px-14">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Câu hỏi</p>
+          <h1 className="text-2xl font-semibold leading-relaxed text-slate-800 sm:text-3xl">{question.question}</h1>
+          {showAnswer && <div className="mt-10 border-t border-slate-100 pt-8"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Đáp án</p><p className="mt-3 text-xl font-semibold leading-relaxed text-slate-800 sm:text-2xl">{question.answer}</p></div>}
+        </div>
+      </article>
+
+      {!showAnswer ? (
+        <button onClick={() => setShowAnswer(true)} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 font-semibold text-white shadow-sm hover:bg-slate-700"><Sparkles size={18} /> Hiện đáp án</button>
+      ) : (
+        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {(Object.keys(ratingText) as Rating[]).map((rating) => <button key={rating} onClick={() => rateCard(rating)} className={`rounded-xl border px-3 py-3 text-center transition ${ratingStyle[rating]}`}><span className="block font-bold">{ratingText[rating][0]}</span><span className="mt-1 block text-xs opacity-70">{ratingText[rating][1]}</span></button>)}
+        </div>
+      )}
+      <p className="mt-5 text-center text-xs text-slate-400">Phím cách: lật thẻ · 1–4: Lại đến Dễ</p>
+    </section>
+  );
 }
