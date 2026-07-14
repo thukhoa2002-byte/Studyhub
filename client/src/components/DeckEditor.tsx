@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, Plus, Save, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Home, Plus, Save, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import RichTextEditor from "./RichTextEditor";
@@ -9,6 +9,7 @@ interface Props {
   questions: GeneratedQuestion[];
   visibility: "private" | "shared";
   onCancel: () => void;
+  onHome: () => void;
   onSave: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void | Promise<void>;
   onSaveAndStudy: (title: string, questions: GeneratedQuestion[], visibility: "private" | "shared") => void | Promise<void>;
   titleSuggestions?: string[];
@@ -18,7 +19,7 @@ interface Props {
   onShareRequest: () => void;
 }
 
-export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onSave, onSaveAndStudy, titleSuggestions = [], decks, currentDeckId, onSwitchDeck, onShareRequest }: Props) {
+export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onHome, onSave, onSaveAndStudy, titleSuggestions = [], decks, currentDeckId, onSwitchDeck, onShareRequest }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [visibility, setVisibility] = useState(initialVisibility);
   const [questions, setQuestions] = useState(initialQuestions);
@@ -108,7 +109,10 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         </div>)}
       </div>
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-        <button onClick={addCard} title="Thêm thẻ" aria-label="Thêm thẻ" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-rose-100 bg-white text-slate-700 hover:bg-rose-50"><Plus size={20} /></button>
+        <div className="flex gap-2">
+          <button onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Home size={19} /></button>
+          <button onClick={addCard} title="Thêm thẻ" aria-label="Thêm thẻ" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-rose-100 bg-white text-slate-700 hover:bg-rose-50"><Plus size={20} /></button>
+        </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button onClick={() => save(false)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-5 py-3 text-sm font-bold text-teal-700 hover:bg-teal-50"><Save size={18} /> Lưu</button>
           <button onClick={() => save(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500"><Check size={18} /> Lưu &amp; học ngay</button>

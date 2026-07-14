@@ -17,7 +17,7 @@ export default function LoadingOverlay({ title = "Đang xử lý...", descriptio
 
         <div className="mt-10 h-3 overflow-hidden rounded-full bg-slate-200">
 
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-rose-300 to-teal-400" />
+          <div className="loading-progress h-full w-2/5 rounded-full bg-gradient-to-r from-rose-300 via-fuchsia-400 to-teal-400" />
 
         </div>
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import type { User } from "@supabase/supabase-js";
 
 import Header from "./components/Header";
@@ -36,11 +37,19 @@ export default function App() {
   const [currentSavedDeck, setCurrentSavedDeck] = useState<SavedDeck | null>(null);
   const [sharingDeck, setSharingDeck] = useState<SavedDeck | null>(null);
   const [pendingImport, setPendingImport] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
+  const [noDueNotice, setNoDueNotice] = useState(false);
 
   const refreshDecks = useCallback(async (nextUser: User | null) => {
     setUser(nextUser);
     if (!nextUser || !supabase) {
       setSavedDecks([]);
+      setQuestions([]);
+      setDeckTitle("");
+      setImage(null);
+      setPreview("");
+      setEditing(false);
+      setCurrentSavedDeck(null);
+      setPendingImport(null);
       return;
     }
     try {
@@ -180,7 +189,7 @@ export default function App() {
     if (!user) { alert("Bạn cần đăng nhập để xem thẻ đến hạn."); return; }
     try {
       const due = await listDueCards(user.id);
-      if (due.length === 0) { alert("Hôm nay chưa có thẻ đến hạn 🌸"); return; }
+      if (due.length === 0) { setNoDueNotice(true); return; }
       beforeStudy?.();
       window.setTimeout(() => { setQuestions(due); setDeckTitle("Hôm nay ôn gì nhỉ?"); setMode("study"); }, 700);
     } catch (error) { alert(`Không thể tải thẻ đến hạn: ${error instanceof Error ? error.message : JSON.stringify(error)}`); }
@@ -303,7 +312,7 @@ export default function App() {
         )}
 
         {editing && currentSavedDeck ? (
-          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onShareRequest={() => setSharingDeck(currentSavedDeck)} onCancel={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
+          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onShareRequest={() => setSharingDeck(currentSavedDeck)} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
         ) : questions.length === 0 ? (
           <DeckSetup
             preview={preview}
@@ -342,6 +351,17 @@ export default function App() {
             <h2 id="import-next-title" className="mt-2 text-2xl font-bold text-rose-950">Bạn muốn làm gì tiếp?</h2>
             <p className="mt-2 text-sm text-slate-500">Bộ “{pendingImport.title}” có {pendingImport.cards.length} thẻ.</p>
             <div className="mt-7 flex gap-3"><button onClick={() => void continueImportedDeck(false)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Để đó</button><button onClick={() => void continueImportedDeck(true)} className="flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white hover:bg-teal-500">Học liền</button></div>
+          </div>
+        </div>}
+        {noDueNotice && <div className="fixed inset-0 z-[110] flex items-center justify-center overflow-hidden bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="no-due-title">
+          <div className="celebrate-modal relative w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/90 to-teal-50/90 p-8 text-center shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+            {Array.from({ length: 18 }, (_, index) => <span key={index} className="celebrate-ribbon" style={{ "--ribbon-angle": `${index * 20 - 170}deg`, "--ribbon-delay": `${(index % 6) * 70}ms`, "--ribbon-color": ["#fb7185", "#fbbf24", "#2dd4bf", "#c084fc"][index % 4] } as CSSProperties} />)}
+            <div className="relative z-10">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-2xl">🌸</div>
+              <h2 id="no-due-title" className="mt-4 text-xl font-bold text-rose-950">Hôm nay chưa có thẻ đến hạn</h2>
+              <p className="mt-2 text-sm text-slate-500">Bạn đã hoàn thành lịch ôn hôm nay rồi. Nghỉ một chút nhé!</p>
+              <button type="button" onClick={() => setNoDueNotice(false)} className="mt-6 rounded-xl bg-teal-400 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500">Đóng</button>
+            </div>
           </div>
         </div>}
     </>

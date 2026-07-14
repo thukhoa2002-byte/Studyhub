@@ -54,6 +54,12 @@ button:hover {
 .study-box-exit { animation: study-box-exit 700ms ease-in forwards; }
 @keyframes study-runner { from { left: 0; } to { left: calc(100% - 2.5rem); } }
 @keyframes study-box-exit { 0% { opacity: 1; transform: translateX(0); } 65% { opacity: .9; transform: translateX(3%); } 100% { opacity: 0; transform: translateX(105%); } }
+.loading-progress { animation: loading-progress 1.35s ease-in-out infinite; transform-origin: left center; }
+@keyframes loading-progress { 0% { transform: translateX(-120%) scaleX(.8); opacity: .65; } 55% { transform: translateX(100%) scaleX(1.2); opacity: 1; } 100% { transform: translateX(260%) scaleX(.8); opacity: .65; } }
+.celebrate-modal { animation: celebrate-modal-in .35s cubic-bezier(.2,.8,.2,1) both; }
+.celebrate-ribbon { position: absolute; left: 50%; top: 48%; width: 7px; height: 22px; border-radius: 999px; background: var(--ribbon-color); opacity: 0; transform: rotate(var(--ribbon-angle)) translateY(0) scale(.7); animation: celebrate-ribbon 900ms ease-out var(--ribbon-delay) both; }
+@keyframes celebrate-modal-in { from { opacity: 0; transform: scale(.92) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes celebrate-ribbon { 0% { opacity: 0; transform: rotate(var(--ribbon-angle)) translateY(0) scale(.7); } 18% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--ribbon-angle)) translateY(-150px) scale(1) ; } }
 
 ::-webkit-scrollbar {
   width: 8px;

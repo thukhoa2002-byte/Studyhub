@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { LogIn, LogOut, UserRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, LogIn, LogOut, UserRound } from "lucide-react";
 import { supabase } from "../services/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -11,6 +11,8 @@ export default function AuthPanel({ onUserChange }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const avatarInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -63,16 +65,46 @@ export default function AuthPanel({ onUserChange }: Props) {
     if (error) alert(`${error.message}${error.status ? ` (mã ${error.status})` : ""}`);
   }
 
+  async function updateAvatar(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !supabase || !user) return;
+    if (!file.type.startsWith("image/")) { alert("Vui lòng chọn một tệp hình ảnh."); return; }
+    if (file.size > 2 * 1024 * 1024) { alert("Ảnh đại diện nên nhỏ hơn 2 MB."); return; }
+    setBusy(true);
+    try {
+      const avatarUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Không thể đọc ảnh."));
+        reader.readAsDataURL(file);
+      });
+      const { data, error } = await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+      if (error) throw error;
+      setUser(data.user);
+      onUserChange(data.user);
+      setMenuOpen(false);
+    } catch (error) {
+      alert(`Không thể cập nhật ảnh đại diện: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (user) {
+    const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
     return (
-      <button
-        onClick={() => void supabase?.auth.signOut()}
-        className="inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100"
-      >
-        <UserRound size={14} />
-        {user.email}
-        <LogOut size={14} />
-      </button>
+      <div className="relative">
+        <button type="button" onClick={() => setMenuOpen((open) => !open)} aria-label="Mở tài khoản" className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-teal-100 bg-teal-50 text-teal-700 shadow-sm hover:border-teal-300">
+          {avatar ? <img src={avatar} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : <UserRound size={19} />}
+        </button>
+        {menuOpen && <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-rose-100 bg-white p-3 shadow-xl">
+          <p className="truncate px-2 pb-2 text-xs font-semibold text-slate-500">{user.email}</p>
+          <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={(event) => void updateAvatar(event)} />
+          <button type="button" disabled={busy} onClick={() => avatarInput.current?.click()} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50 disabled:opacity-50"><Camera size={16} /> Đổi ảnh đại diện</button>
+          <button type="button" onClick={() => { setMenuOpen(false); void supabase?.auth.signOut(); }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"><LogOut size={16} /> Đăng xuất</button>
+        </div>}
+      </div>
     );
   }
 
