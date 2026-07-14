@@ -55,6 +55,9 @@ button:hover {
 @keyframes study-runner { from { left: 0; } to { left: calc(100% - 2.5rem); } }
 @keyframes study-box-exit { 0% { opacity: 1; transform: translateX(0); } 65% { opacity: .9; transform: translateX(3%); } 100% { opacity: 0; transform: translateX(105%); } }
 .loading-progress { animation: loading-progress 1.35s ease-in-out infinite; transform-origin: left center; }
+.scan-preview { position: relative; border: 2px solid #f9a8d4; box-shadow: 0 8px 24px rgba(244,114,182,.18); }
+.scan-line { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, transparent, #f43f5e, #2dd4bf, transparent); box-shadow: 0 0 12px #f43f5e; animation: scan-line 1.25s ease-in-out infinite; }
+@keyframes scan-line { 0% { transform: translateY(0); opacity: .25; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(90px); opacity: .25; } }
 @keyframes loading-progress { 0% { transform: translateX(-120%) scaleX(.8); opacity: .65; } 55% { transform: translateX(100%) scaleX(1.2); opacity: 1; } 100% { transform: translateX(260%) scaleX(.8); opacity: .65; } }
 .celebrate-modal { animation: celebrate-modal-in .35s cubic-bezier(.2,.8,.2,1) both; }
 .celebrate-ribbon { position: absolute; left: 50%; top: 48%; width: 7px; height: 22px; border-radius: 999px; background: var(--ribbon-color); opacity: 0; transform: rotate(var(--ribbon-angle)) translateY(0) scale(.7); animation: celebrate-ribbon 900ms ease-out var(--ribbon-delay) both; }

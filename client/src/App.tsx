@@ -363,7 +363,7 @@ export default function App() {
           <div className="welcome-dots" aria-hidden="true"><span /><span /><span /></div>
         </div>
       </div>}
-      {loading && <LoadingOverlay title={loadingTitle} description={loadingDescription} />}
+      {loading && <LoadingOverlay title={loadingTitle} description={loadingDescription} imageSrc={preview || undefined} />}
 
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
