@@ -147,7 +147,7 @@ export default function App() {
     <>
       {loading && <LoadingOverlay />}
 
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
         <Header />
 

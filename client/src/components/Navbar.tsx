@@ -16,13 +16,13 @@ export default function Navbar({
   onExport,
 }: Props) {
   return (
-    <nav className="border-b border-slate-200 bg-white">
+    <nav className="border-b border-rose-100 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-slate-900">
+          <p className="truncate text-sm font-bold text-rose-950">
             {deckTitle || "Bộ thẻ đang học"}
           </p>
-          <p className="text-xs font-medium text-slate-500">Bộ thẻ hiện tại</p>
+          <p className="text-xs font-medium text-rose-400">Bộ thẻ hiện tại</p>
         </div>
 
         <div className="flex items-center gap-5">
@@ -30,8 +30,8 @@ export default function Navbar({
             onClick={() => setMode("study")}
             className={`flex items-center gap-2 border-b-2 py-2 text-sm font-semibold ${
               mode === "study"
-                ? "border-emerald-500 text-emerald-700"
-                : "border-transparent text-slate-500 hover:text-slate-800"
+                ? "border-rose-300 text-rose-600"
+                : "border-transparent text-slate-500 hover:text-rose-700"
             }`}
           >
             <BookOpen size={18} />
@@ -41,8 +41,8 @@ export default function Navbar({
             onClick={() => setMode("review")}
             className={`flex items-center gap-2 border-b-2 py-2 text-sm font-semibold ${
               mode === "review"
-                ? "border-emerald-500 text-emerald-700"
-                : "border-transparent text-slate-500 hover:text-slate-800"
+                ? "border-rose-300 text-rose-600"
+                : "border-transparent text-slate-500 hover:text-rose-700"
             }`}
           >
             <Bookmark size={18} />
@@ -50,14 +50,14 @@ export default function Navbar({
           </button>
           <button
             onClick={onExport}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-rose-50 hover:text-rose-700"
           >
             <Download size={17} />
             Xuất file
           </button>
           <button
             onClick={onReset}
-            className="ml-auto inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+            className="ml-auto inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-rose-50 hover:text-rose-700"
           >
             <Library size={17} />
             Đổi bộ

@@ -2,7 +2,7 @@ import { BookOpen } from "lucide-react";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-rose-100 bg-white/85 backdrop-blur-xl">
 
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
 
@@ -10,7 +10,7 @@ export default function Header() {
 
         <div className="flex items-center gap-5">
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-300 to-teal-300 shadow-sm">
 
             <BookOpen
               size={22}
@@ -22,13 +22,13 @@ export default function Header() {
 
           <div>
 
-            <h1 className="text-lg font-bold tracking-tight text-slate-900">
+            <h1 className="text-lg font-bold tracking-tight text-rose-950">
 
               Học bài thoiii
 
             </h1>
 
-            <p className="text-xs font-medium text-slate-500">Học đều, nhớ lâu</p>
+            <p className="text-xs font-medium text-rose-400">Học đều, nhớ lâu</p>
 
           </div>
 
@@ -36,7 +36,7 @@ export default function Header() {
 
         {/* Right */}
 
-        <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">AI cards</div>
+        <div className="rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-500">AI cards</div>
 
       </div>
 

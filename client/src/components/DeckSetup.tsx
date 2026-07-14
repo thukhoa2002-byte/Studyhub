@@ -96,21 +96,21 @@ export default function DeckSetup({
   return (
     <section className="mx-auto max-w-5xl px-5 py-8 sm:py-12">
       <div className="mb-7">
-        <p className="text-sm font-semibold text-emerald-700">
+        <p className="text-sm font-semibold text-rose-500">
           Chọn cách tạo bộ thẻ
         </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-rose-950 sm:text-4xl">
           Học từ file Anki hoặc tạo thẻ mới
         </h1>
       </div>
 
-      <div className="mb-6 grid gap-2 rounded-lg border border-slate-200 bg-white p-1 sm:grid-cols-3">
+      <div className="mb-6 grid gap-2 rounded-lg border border-rose-100 bg-white/80 p-1 shadow-sm sm:grid-cols-3">
         <button
           onClick={() => setMode("import")}
           className={`flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${
             mode === "import"
-              ? "bg-slate-900 text-white"
-              : "text-slate-600 hover:bg-slate-50"
+              ? "bg-rose-300 text-rose-950"
+              : "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
           }`}
         >
           <FileText size={18} />
@@ -120,8 +120,8 @@ export default function DeckSetup({
           onClick={() => setMode("create")}
           className={`flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${
             mode === "create"
-              ? "bg-slate-900 text-white"
-              : "text-slate-600 hover:bg-slate-50"
+              ? "bg-rose-300 text-rose-950"
+              : "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
           }`}
         >
           <Plus size={18} />
@@ -131,8 +131,8 @@ export default function DeckSetup({
           onClick={() => setMode("ai")}
           className={`flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${
             mode === "ai"
-              ? "bg-slate-900 text-white"
-              : "text-slate-600 hover:bg-slate-50"
+              ? "bg-rose-300 text-rose-950"
+              : "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
           }`}
         >
           <Sparkles size={18} />
@@ -141,12 +141,12 @@ export default function DeckSetup({
       </div>
 
       {mode === "import" && (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <label
             htmlFor="anki-file"
-            className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-6 text-center hover:border-emerald-400 hover:bg-emerald-50/50"
+            className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"
           >
-            <UploadCloud size={42} className="text-emerald-600" />
+            <UploadCloud size={42} className="text-rose-400" />
             <p className="mt-5 text-xl font-bold text-slate-900">
               Chọn file thẻ
             </p>
@@ -174,11 +174,11 @@ export default function DeckSetup({
       )}
 
       {mode === "create" && (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 text-lg font-semibold text-slate-900 outline-none focus:border-emerald-500"
+            className="w-full rounded-lg border border-rose-100 bg-white/90 px-4 py-3 text-lg font-semibold text-rose-950 outline-none focus:border-rose-300"
             placeholder="Tên bộ thẻ"
           />
 
@@ -186,14 +186,14 @@ export default function DeckSetup({
             {cards.map((card, index) => (
               <div
                 key={card.id}
-                className="grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-[1fr_1fr_auto]"
+                className="grid gap-3 rounded-lg border border-rose-100 bg-rose-50/30 p-4 sm:grid-cols-[1fr_1fr_auto]"
               >
                 <textarea
                   value={card.question}
                   onChange={(event) =>
                     updateCard(card.id, "question", event.target.value)
                   }
-                  className="min-h-24 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm outline-none focus:border-emerald-500"
+                  className="min-h-24 resize-y rounded-lg border border-rose-100 bg-white/90 px-3 py-3 text-sm outline-none focus:border-rose-300"
                   placeholder={`Mặt trước thẻ ${index + 1}`}
                 />
                 <textarea
@@ -201,7 +201,7 @@ export default function DeckSetup({
                   onChange={(event) =>
                     updateCard(card.id, "answer", event.target.value)
                   }
-                  className="min-h-24 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm outline-none focus:border-emerald-500"
+                  className="min-h-24 resize-y rounded-lg border border-rose-100 bg-white/90 px-3 py-3 text-sm outline-none focus:border-rose-300"
                   placeholder="Mặt sau"
                 />
                 <button
@@ -218,7 +218,7 @@ export default function DeckSetup({
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               onClick={() => setCards((previous) => [...previous, newDraftCard()])}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700"
             >
               <Plus size={18} />
               Thêm thẻ
@@ -226,7 +226,7 @@ export default function DeckSetup({
             <button
               disabled={validCards.length === 0}
               onClick={createDeck}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Bắt đầu học
               <ArrowRight size={18} />
@@ -236,10 +236,10 @@ export default function DeckSetup({
       )}
 
       {mode === "ai" && (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <label
             htmlFor="upload"
-            className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-6 text-center hover:border-emerald-400 hover:bg-emerald-50/50"
+            className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"
           >
             {preview ? (
               <img
@@ -249,7 +249,7 @@ export default function DeckSetup({
               />
             ) : (
               <>
-                <UploadCloud size={42} className="text-emerald-600" />
+                <UploadCloud size={42} className="text-rose-400" />
                 <p className="mt-5 text-xl font-bold text-slate-900">
                   Chọn ảnh bài học
                 </p>
@@ -271,7 +271,7 @@ export default function DeckSetup({
           <button
             disabled={!preview || loading}
             onClick={onGenerate}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-4 font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-4 font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? "AI đang tạo thẻ..." : "Tạo thẻ và học"}
             {!loading && <ArrowRight size={18} />}
