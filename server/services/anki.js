@@ -166,7 +166,7 @@ function cleanText(value = "") {
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/div>|<\/p>|<\/li>/gi, "\n")
+    .replace(/<\/div>|<\/p>/gi, "\n")
     .replace(/<(?!\/?(?:b|strong|i|em|u|s|br|p|div|ul|ol|li|h1|h2|h3)\b)[^>]*>/gi, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
