@@ -10,6 +10,7 @@ import Review from "./components/Review";
 import DeckEditor from "./components/DeckEditor";
 import ShareDeckDialog from "./components/ShareDeckDialog";
 import LoadingOverlay from "./components/LoadingOverlay";
+import { isSpecialUser } from "./config/access";
 import { deleteDeck, listDecks, listDueCards, saveDeck, saveReview, shareDeckWithEmails, supabase, updateDeck, type SavedDeck } from "./services/supabase";
 
 import {
@@ -44,6 +45,7 @@ export default function App() {
   const [generatedForAppend, setGeneratedForAppend] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
+  const specialUser = isSpecialUser(user?.email);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setShowWelcome(false), 1700);
@@ -312,6 +314,12 @@ export default function App() {
     resetDeck();
   }
 
+  function leaveStudy() {
+    setGeneratedForAppend(null);
+    setCurrentSavedDeck(null);
+    resetDeck();
+  }
+
   function exportDeck() {
     if (questions.length === 0) return;
 
@@ -361,7 +369,7 @@ export default function App() {
       </div>}
       {loading && <LoadingOverlay title={loadingTitle} description={loadingDescription} imageSrc={preview || undefined} />}
 
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
+      <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
         <Header onUserChange={refreshDecks} />
 
@@ -404,6 +412,7 @@ export default function App() {
             toggleBookmark={toggleBookmark}
             onRate={(question: GeneratedQuestion, rating: number) => { if (user) return saveReview(user.id, question, rating); }}
             onAddToDeck={generatedForAppend ? () => setPendingGenerated(generatedForAppend) : undefined}
+            onHome={leaveStudy}
           />
         ) : (
           <Review

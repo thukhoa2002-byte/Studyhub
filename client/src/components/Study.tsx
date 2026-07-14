@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bookmark, Check, Clock3, ListOrdered, Shuffle, Sparkles } from "lucide-react";
+import { Bookmark, Check, Clock3, Home, ListOrdered, Shuffle, Sparkles } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import { sanitizeHtml, toClozeQuestionHtml, toEditorHtml } from "../utils/richText";
 
@@ -8,6 +8,7 @@ interface Props {
   toggleBookmark: (id: string) => void;
   onRate?: (question: GeneratedQuestion, rating: number) => void | Promise<void>;
   onAddToDeck?: () => void;
+  onHome?: () => void;
 }
 
 type Rating = "again" | "hard" | "good" | "easy";
@@ -34,7 +35,7 @@ const ratingText: Record<Rating, [string, string]> = {
   easy: ["Dễ", "4 ngày"],
 };
 
-export default function Study({ questions, toggleBookmark, onRate, onAddToDeck }: Props) {
+export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, onHome }: Props) {
   const [current, setCurrent] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -129,7 +130,10 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck }
           <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-rose-500">Hoàn thành phiên học</p>
           <h1 className="mt-3 text-3xl font-bold text-rose-950">Bạn đã học hết {studyQuestions.length} thẻ</h1>
           <p className="mt-3 text-slate-500">{correctCount} thẻ được đánh giá Tốt hoặc Dễ. Hãy quay lại vào ngày mai để ôn lại.</p>
-          {onAddToDeck && <button onClick={onAddToDeck} className="mt-8 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-5 py-3 font-semibold text-violet-700 hover:bg-violet-100">＋ Thêm vào bộ thẻ hiện tại</button>}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {onAddToDeck && <button onClick={onAddToDeck} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-5 py-3 font-semibold text-violet-700 hover:bg-violet-100">＋ Thêm vào bộ thẻ hiện tại</button>}
+            {onHome && <button onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Home size={19} /></button>}
+          </div>
         </div>
       </section>
     );
