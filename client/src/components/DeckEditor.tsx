@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, Home, Plus, Save, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Home, MessageCircle, Plus, Save, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import RichTextEditor from "./RichTextEditor";
@@ -71,6 +71,8 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     if (next === "shared") onShareRequest();
   }
 
+  const trailingEmptyCard = questions.length > 0 && questions[questions.length - 1].question.trim() === "" && questions[questions.length - 1].answer.trim() === "";
+
   return (
     <section className="mx-auto max-w-5xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
@@ -108,6 +110,11 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           <button onClick={() => setQuestions((current) => current.filter((card) => card.id !== item.id))} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
         </div>)}
       </div>
+      {trailingEmptyCard && <div className="mt-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
+        <MessageCircle size={19} className="shrink-0 text-amber-500" />
+        <span className="flex-1"><strong>Flashcard trống.</strong> Bạn muốn kiểm tra lại ô cuối không?</span>
+        <button type="button" onClick={() => setQuestions((current) => current.slice(0, -1))} className="shrink-0 rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-amber-950 hover:bg-amber-500">Kiểm tra ngay</button>
+      </div>}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
         <div className="flex gap-2">
           <button onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Home size={19} /></button>

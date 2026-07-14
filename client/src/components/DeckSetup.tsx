@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ArrowRight,
   FileText,
+  MessageCircle,
   Plus,
   Pencil,
   Save,
@@ -91,6 +92,7 @@ export default function DeckSetup({
   const validCards = cards.filter(
     (card) => card.question.trim() && card.answer.trim()
   );
+  const trailingEmptyCard = cards.length > 0 && cards[cards.length - 1].question.trim() === "" && cards[cards.length - 1].answer.trim() === "";
 
   function updateCard(
     id: string,
@@ -279,6 +281,11 @@ export default function DeckSetup({
             ))}
           </div>
 
+          {trailingEmptyCard && <div className="mb-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
+            <MessageCircle size={19} className="shrink-0 text-amber-500" />
+            <span className="flex-1"><strong>Flashcard trống.</strong> Bạn muốn kiểm tra lại ô cuối không?</span>
+            <button type="button" onClick={() => setCards((current) => current.slice(0, -1))} className="shrink-0 rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-amber-950 hover:bg-amber-500">Kiểm tra ngay</button>
+          </div>}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               onClick={() => setCards((previous) => [...previous, newDraftCard()])}
