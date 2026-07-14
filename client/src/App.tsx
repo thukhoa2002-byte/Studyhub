@@ -58,7 +58,7 @@ export default function App() {
       setSavedDecks(await listDecks(user.id));
     } catch (error) {
       console.error(error);
-      const detail = error instanceof Error ? error.message : String(error);
+      const detail = error instanceof Error ? error.message : JSON.stringify(error);
       alert(`Chưa lưu được bộ thẻ: ${detail}`);
     }
   }
