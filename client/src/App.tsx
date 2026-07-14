@@ -126,7 +126,7 @@ export default function App() {
     if (aiCallsRemaining < 1) { alert("Số lượt AI ước tính đã hết."); return; }
     try {
       setAiCallsRemaining((count) => count - 1);
-      setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.\n\nĐây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không la làng khi làm trắc nghiệm nhé :)))");
+      setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.\n\nĐây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không chửi bậy khi làm trắc nghiệm nhé :)))");
       const response = await generateMultipleChoice(image);
       finishGenerated(response.title || "Trắc nghiệm", response.data);
     } catch (error) { console.error(error); alert("Không thể tạo câu trắc nghiệm."); }
