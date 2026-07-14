@@ -1,5 +1,5 @@
-const SPECIAL_EMAIL = "totentu162@gmail.com";
+const SPECIAL_EMAILS = new Set(["totentu162@gmail.com", "thukhoa2002@gmail.com"]);
 
 export function isSpecialUser(email?: string | null) {
-  return email?.trim().toLowerCase() === SPECIAL_EMAIL;
+  return email ? SPECIAL_EMAILS.has(email.trim().toLowerCase()) : false;
 }
