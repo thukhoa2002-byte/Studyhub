@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2, UserRound, UsersRound, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import RichTextEditor from "./RichTextEditor";
@@ -23,6 +23,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const [questions, setQuestions] = useState(initialQuestions);
   const [showDeckList, setShowDeckList] = useState(false);
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | null>(null);
+  const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
 
   function update(id: string, field: "question" | "answer", value: string) {
     setQuestions((current) => current.map((item) => item.id === id ? { ...item, [field]: value } : item));
@@ -55,6 +56,12 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     await onSwitchDeck(deck);
   }
 
+  function chooseVisibility(next: "private" | "shared") {
+    setVisibility(next);
+    setShowVisibilityMenu(false);
+    if (next === "shared") onShareRequest();
+  }
+
   return (
     <section className="mx-auto max-w-5xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
@@ -71,11 +78,19 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             {["Nội", "Ngoại", "Sản", "Nhi", "Cấp cứu", "Hồi sức", ...titleSuggestions].filter((name, index, all) => all.indexOf(name) === index).map((name) => <option key={name} value={name} />)}
           </datalist>
         </div>
-        <select value={visibility} onChange={(event) => { const next = event.target.value as "private" | "shared"; setVisibility(next); if (next === "shared") onShareRequest(); }} className="rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-          <option value="private">👤 Chỉ mình tôi</option><option value="shared">👥 Chia sẻ</option>
-        </select>
+        <div className="relative">
+          <button type="button" onClick={() => setShowVisibilityMenu((open) => !open)} className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white px-3 py-3 text-sm font-semibold text-slate-700">
+            {visibility === "private" ? <UserRound size={17} className="text-slate-500" /> : <UsersRound size={17} className="text-teal-500" />}
+            {visibility === "private" ? "Chỉ mình tôi" : "Chia sẻ"}<ChevronDown size={15} />
+          </button>
+          {showVisibilityMenu && <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-rose-100 bg-white p-1 shadow-lg">
+            <button type="button" onClick={() => chooseVisibility("private")} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50"><UserRound size={17} /> Chỉ mình tôi</button>
+            <button type="button" onClick={() => chooseVisibility("shared")} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-teal-700 hover:bg-teal-50"><UsersRound size={17} /> Chia sẻ</button>
+          </div>}
+        </div>
       </div>
       <div className="space-y-3">
+        <div className="hidden grid-cols-[1fr_1fr_auto] gap-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400 sm:grid"><span>Front</span><span>Back</span><span /></div>
         {questions.map((item, index) => <div key={item.id} className="grid gap-3 rounded-lg border border-rose-100 bg-white/85 p-4 sm:grid-cols-[1fr_1fr_auto]">
           <RichTextEditor value={item.question} onChange={(value) => update(item.id, "question", value)} onClozeCreated={(text) => update(item.id, "answer", text)} placeholder={`Mặt trước thẻ ${index + 1}`} />
           <RichTextEditor value={item.answer} onChange={(value) => update(item.id, "answer", value)} placeholder="Mặt sau" />

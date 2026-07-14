@@ -250,6 +250,7 @@ export default function DeckSetup({
           />
 
           <div className="mt-6 space-y-4">
+            <div className="hidden grid-cols-[1fr_1fr_auto] gap-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400 sm:grid"><span>Front</span><span>Back</span><span /></div>
             {cards.map((card, index) => (
               <div
                 key={card.id}
