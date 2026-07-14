@@ -40,6 +40,7 @@ export default function App() {
   const [pendingImport, setPendingImport] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [noDueNotice, setNoDueNotice] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<SavedDeck | null>(null);
+  const [pendingGenerated, setPendingGenerated] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function App() {
       setEditing(false);
       setCurrentSavedDeck(null);
       setPendingImport(null);
+      setPendingGenerated(null);
       return;
     }
     try {
@@ -106,10 +108,7 @@ export default function App() {
 
       const response = await generateQuestions(image);
 
-      setQuestions(response.data);
-      setDeckTitle(response.title || image.name);
-
-      setMode("study");
+      finishGenerated(response.title || image.name, response.data);
     } catch (error) {
       console.error(error);
       alert("Không thể tạo câu hỏi.");
@@ -123,9 +122,27 @@ export default function App() {
     try {
       setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.\n\nĐây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không la làng khi làm trắc nghiệm nhé :)))");
       const response = await generateMultipleChoice(image);
-      setQuestions(response.data); setDeckTitle(response.title || "Trắc nghiệm"); setMode("study");
+      finishGenerated(response.title || "Trắc nghiệm", response.data);
     } catch (error) { console.error(error); alert("Không thể tạo câu trắc nghiệm."); }
     finally { setLoading(false); }
+  }
+
+  function finishGenerated(title: string, cards: GeneratedQuestion[]) {
+    if (user && savedDecks.length > 0) {
+      setPendingGenerated({ title, cards });
+      return;
+    }
+    setQuestions(cards); setDeckTitle(title); setMode("study");
+  }
+
+  async function appendGeneratedToDeck(deck: SavedDeck) {
+    if (!user || !pendingGenerated) return;
+    const combined = [...deck.cards, ...pendingGenerated.cards];
+    try {
+      await updateDeck(user.id, deck.id, deck.title, combined, deck.visibility);
+      setQuestions(combined); setDeckTitle(deck.title); setCurrentSavedDeck({ ...deck, cards: combined }); setPendingGenerated(null); setMode("study");
+      setSavedDecks(await listDecks(user.id));
+    } catch (error) { alert(`Không thể thêm vào bộ thẻ: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   async function onImportDeck(file: File) {
@@ -405,6 +422,15 @@ export default function App() {
             <h2 id="delete-title" className="mt-4 text-center text-xl font-bold text-rose-950">Xóa bộ thẻ?</h2>
             <p className="mt-2 text-center text-sm leading-6 text-slate-500">“{deleteCandidate.title}” sẽ bị xóa vĩnh viễn và không thể khôi phục.</p>
             <div className="mt-7 flex gap-3"><button type="button" onClick={() => setDeleteCandidate(null)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Hủy</button><button type="button" onClick={() => void confirmDeleteDeck()} className="flex-1 rounded-xl bg-rose-500 px-4 py-3 text-sm font-bold text-white hover:bg-rose-600">Xóa bộ thẻ</button></div>
+          </div>
+        </div>}
+        {pendingGenerated && <div className="fixed inset-0 z-[115] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="append-title">
+          <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/90 to-teal-50/80 p-7 shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100 text-2xl">📚</div>
+            <h2 id="append-title" className="mt-4 text-center text-xl font-bold text-rose-950">Thêm vào bộ thẻ hiện có?</h2>
+            <p className="mt-2 text-center text-sm text-slate-500">AI vừa tạo {pendingGenerated.cards.length} câu. Chọn bộ thẻ để lưu chung:</p>
+            <div className="mt-5 max-h-44 space-y-2 overflow-y-auto">{savedDecks.map((deck) => <button key={deck.id} type="button" onClick={() => void appendGeneratedToDeck(deck)} className="flex w-full items-center justify-between rounded-xl border border-teal-100 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50"><span>{deck.title}</span><span className="text-xs text-slate-400">{deck.cards.length} thẻ</span></button>)}</div>
+            <button type="button" onClick={() => { setQuestions(pendingGenerated.cards); setDeckTitle(pendingGenerated.title); setPendingGenerated(null); setMode("study"); }} className="mt-5 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Học riêng bộ mới</button>
           </div>
         </div>}
     </>
