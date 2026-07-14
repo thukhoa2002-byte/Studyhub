@@ -121,7 +121,7 @@ export default function App() {
   async function onGenerateMcq() {
     if (!image) return;
     try {
-      setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.");
+      setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.\n\nĐây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không la làng khi làm trắc nghiệm nhé :)))");
       const response = await generateMultipleChoice(image);
       setQuestions(response.data); setDeckTitle(response.title || "Trắc nghiệm"); setMode("study");
     } catch (error) { console.error(error); alert("Không thể tạo câu trắc nghiệm."); }

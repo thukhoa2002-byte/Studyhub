@@ -13,7 +13,7 @@ export default function LoadingOverlay({ title = "Đang xử lý...", descriptio
 
         <h2 className="mt-7 text-2xl font-bold text-rose-950">{title}</h2>
 
-        <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
+        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-500">{description}</p>
 
         <div className="mt-10 h-3 overflow-hidden rounded-full bg-slate-200">
 

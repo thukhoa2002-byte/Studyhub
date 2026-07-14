@@ -341,7 +341,6 @@ export default function DeckSetup({
             <button disabled={!preview || loading} onClick={onGenerate} className="flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-4 font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo Cloze"}{!loading && <ArrowRight size={18} />}</button>
             <div>
               <button disabled={!preview || loading} onClick={onGenerateMcq} className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-400 px-5 py-4 font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo trắc nghiệm"}{!loading && <ArrowRight size={18} />}</button>
-              <p className="mt-2 text-center text-xs leading-5 text-slate-400">Đây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không la làng khi làm trắc nghiệm nhé :)))</p>
             </div>
           </div>
         </div>
