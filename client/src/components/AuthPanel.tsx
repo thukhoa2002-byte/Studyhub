@@ -96,7 +96,7 @@ export default function AuthPanel({ onUserChange, specialUser = false }: Props) 
     const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
     return (
       <div className="relative flex items-center gap-3">
-        {specialUser && <div className="special-note hidden items-center gap-1 text-center sm:flex" aria-label="Lời nhắn riêng">
+        {specialUser && <div className="special-note hidden shrink-0 items-center gap-1 whitespace-nowrap text-center sm:flex" aria-label="Lời nhắn riêng">
           <span className="hydrangea hydrangea-left" aria-hidden="true">✿</span>
           <span>Tú ơii, cố lên.<br />Anh ở bên nèeee</span>
           <span className="hydrangea hydrangea-right" aria-hidden="true">✿</span>
