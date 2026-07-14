@@ -116,9 +116,6 @@ export default function DeckSetup({
   return (
     <section className="mx-auto max-w-5xl px-5 py-8 sm:py-12">
       <div className="mb-7">
-        <p className="text-sm font-semibold text-rose-500">
-          Chọn cách tạo bộ thẻ
-        </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-rose-950 sm:text-4xl">
           Nạp kiến thức vào bộ nhớ
         </h1>
@@ -162,8 +159,15 @@ export default function DeckSetup({
 
 
       {savedDecks.length > 0 && (
+        <div className="mb-6 flex flex-col gap-5 rounded-2xl border border-teal-100 bg-gradient-to-r from-rose-50 via-white to-teal-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <div><p className="text-sm font-semibold text-teal-600">🌸 Ôn tập thông minh</p><h2 className="mt-1 text-2xl font-bold text-rose-950 sm:text-3xl">Hôm nay ôn gì nhỉ?</h2><p className="mt-2 text-sm text-slate-500">Ôn các thẻ đã đến hạn để nhớ lâu hơn.</p></div>
+          <button onClick={() => void onStudyDue()} className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-6 py-4 text-sm font-bold text-white shadow-sm hover:bg-teal-500 sm:min-w-44">Bắt đầu ôn <ArrowRight size={18} className="ml-2" /></button>
+        </div>
+      )}
+
+      {savedDecks.length > 0 && (
         <div className="mb-6 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
-          <div className="mb-3 flex items-center justify-between"><p className="text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p><button onClick={() => void onStudyDue()} className="rounded-lg bg-teal-100 px-3 py-2 text-xs font-bold text-teal-700 hover:bg-teal-200">Hôm nay ôn gì nhỉ?</button></div>
+          <p className="mb-3 text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {savedDecks.map((deck) => (
               <div key={deck.id} className="flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
