@@ -44,15 +44,13 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     setPendingDeck(deck);
   }
 
-  async function confirmSwitch(saveChanges: boolean) {
+  async function confirmSwitch() {
     if (!pendingDeck) return;
     const deck = pendingDeck;
     setPendingDeck(null);
     setShowDeckList(false);
-    if (saveChanges) {
-      const valid = questions.filter((item) => item.question.trim() && item.answer.trim());
-      await onSave(title.trim(), valid, visibility);
-    }
+    const valid = questions.filter((item) => item.question.trim() && item.answer.trim());
+    await onSave(title.trim(), valid, visibility);
     await onSwitchDeck(deck);
   }
 
@@ -90,15 +88,15 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           <button onClick={() => save(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500"><Check size={18} /> Lưu &amp; học ngay</button>
         </div>
       </div>
-      {pendingDeck && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 px-4" role="dialog" aria-modal="true" aria-labelledby="switch-deck-title">
-        <div className="w-full max-w-md rounded-2xl border border-rose-100 bg-white p-6 shadow-2xl">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Chuyển bộ thẻ</p>
-          <h2 id="switch-deck-title" className="mt-2 text-xl font-bold text-rose-950">Lưu thay đổi trước khi chuyển?</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Bạn đang sửa “{title}”. Hãy chọn cách xử lý trước khi mở “{pendingDeck.title}”.</p>
-          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button onClick={() => setPendingDeck(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Hủy</button>
-            <button onClick={() => void confirmSwitch(false)} className="rounded-lg border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50">Không lưu</button>
-            <button onClick={() => void confirmSwitch(true)} className="rounded-lg bg-teal-400 px-4 py-2 text-sm font-bold text-white hover:bg-teal-500">Lưu và chuyển</button>
+      {pendingDeck && <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="switch-deck-title">
+        <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/70 to-teal-50/70 p-7 shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-500">✦</div>
+          <p className="mt-4 text-center text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Chuyển bộ thẻ</p>
+          <h2 id="switch-deck-title" className="mt-2 text-center text-xl font-bold text-rose-950">Lưu thay đổi trước khi chuyển?</h2>
+          <p className="mt-2 text-center text-sm leading-6 text-slate-500">Bạn đang sửa “{title}”. Lưu lại trước khi mở “{pendingDeck.title}”.</p>
+          <div className="mt-7 flex gap-3">
+            <button onClick={() => setPendingDeck(null)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Hủy</button>
+            <button onClick={() => void confirmSwitch()} className="flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500">Lưu</button>
           </div>
         </div>
       </div>}
