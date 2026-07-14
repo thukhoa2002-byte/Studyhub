@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   ArrowRight,
+  ChevronDown,
   FileText,
   ListChecks,
   Plus,
@@ -90,6 +91,7 @@ export default function DeckSetup({
   const [title, setTitle] = useState("");
   const [cards, setCards] = useState<DraftCard[]>([newDraftCard()]);
   const [startingReview, setStartingReview] = useState(false);
+  const [showAddedCards, setShowAddedCards] = useState(false);
 
   const validCards = cards.filter(
     (card) => card.question.trim() && card.answer.trim()
@@ -119,6 +121,7 @@ export default function DeckSetup({
     setMode("create");
     setTitle("");
     setCards([newDraftCard()]);
+    setShowAddedCards(false);
   }
 
   function createDeck() {
@@ -252,21 +255,24 @@ export default function DeckSetup({
             placeholder="Bộ thẻ mới"
           />
 
-          {validCards.length > 0 && <div className="mt-6 rounded-2xl border border-teal-100 bg-teal-50/50 p-4">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-teal-700">Đã thêm {validCards.length} thẻ</p>
-            <div className="space-y-2">
+          {validCards.length > 0 && <div className="mt-6 overflow-hidden rounded-2xl border border-teal-100 bg-teal-50/50">
+            <button type="button" onClick={() => setShowAddedCards((open) => !open)} aria-expanded={showAddedCards} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.16em] text-teal-700 hover:bg-teal-50">
+              <span>Đã thêm {validCards.length} thẻ</span>
+              <ChevronDown size={17} className={`shrink-0 transition-transform duration-200 ${showAddedCards ? "rotate-180" : ""}`} />
+            </button>
+            {showAddedCards && <div className="space-y-2 border-t border-teal-100 p-3">
               {validCards.map((card, index) => <div key={card.id} className="flex items-center gap-3 rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-slate-700">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">{index + 1}</span>
                 <span className="min-w-0 flex-1 truncate" dangerouslySetInnerHTML={{ __html: card.question }} />
                 <button type="button" onClick={() => removeCard(card.id)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Xóa thẻ ${index + 1}`}><Trash2 size={16} /></button>
               </div>)}
-            </div>
+            </div>}
           </div>}
 
           {cards.slice(-1).map((card) => <div key={card.id} className="mt-6 rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-4">
             <div className="mb-3 flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ mới</p><span className="text-xs text-slate-400">Front + Back</span></div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} onClozeCreated={(text) => updateCard(card.id, "answer", text)} placeholder="Mặt trước" /></div>
+              <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} onClozeCreated={(text) => updateCard(card.id, "answer", text)} placeholder="Mặt trước" capitalizeFirst /></div>
               <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={card.answer} onChange={(value) => updateCard(card.id, "answer", value)} placeholder="Mặt sau" /></div>
             </div>
           </div>)}

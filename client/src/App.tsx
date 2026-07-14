@@ -11,6 +11,7 @@ import DeckEditor from "./components/DeckEditor";
 import ShareDeckDialog from "./components/ShareDeckDialog";
 import LoadingOverlay from "./components/LoadingOverlay";
 import PandaAssistant from "./components/PandaAssistant";
+import Footer from "./components/Footer";
 import { isSpecialUser } from "./config/access";
 import { deleteDeck, listDecks, listDueCards, saveDeck, saveReview, shareDeckWithEmails, supabase, updateDeck, type SavedDeck } from "./services/supabase";
 
@@ -487,6 +488,7 @@ export default function App() {
         )}
 
       </main>
+      <Footer />
       <PandaAssistant />
         {sharingDeck && <ShareDeckDialog deckId={sharingDeck.id} title={sharingDeck.title} onClose={() => setSharingDeck(null)} onShare={shareSavedDeck} />}
         {pendingImport && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="import-next-title">
