@@ -97,12 +97,13 @@ export async function saveReview(
     .maybeSingle();
   if (!card) return;
 
+  const intervalMs = { 1: 10 * 60 * 1000, 2: 24 * 60 * 60 * 1000, 3: 3 * 24 * 60 * 60 * 1000, 4: 7 * 24 * 60 * 60 * 1000 }[rating] ?? 24 * 60 * 60 * 1000;
   await supabase.from("card_reviews").upsert({
     user_id: userId,
     card_id: card.id,
     rating,
     last_reviewed_at: new Date().toISOString(),
-    due_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    due_at: new Date(Date.now() + intervalMs).toISOString(),
   });
 }
 
