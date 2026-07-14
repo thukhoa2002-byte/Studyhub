@@ -12,12 +12,28 @@ const commands = [
 
 export default function RichTextEditor({ value, onChange, placeholder }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const selectionRef = useRef<Range | null>(null);
   useEffect(() => { if (editorRef.current && editorRef.current.innerHTML !== toEditorHtml(value)) editorRef.current.innerHTML = toEditorHtml(value); }, [value]);
-  function command(name: string) { editorRef.current?.focus(); document.execCommand(name); if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML)); }
+  function rememberSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !editorRef.current?.contains(selection.anchorNode)) return;
+    selectionRef.current = selection.getRangeAt(0).cloneRange();
+  }
+  function command(name: string) {
+    editorRef.current?.focus();
+    if (selectionRef.current) {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(selectionRef.current);
+    }
+    document.execCommand(name, false);
+    rememberSelection();
+    if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML));
+  }
   return <div className="overflow-hidden rounded-lg border border-rose-100 bg-white focus-within:border-rose-300">
     <div className="flex flex-wrap gap-1 border-b border-rose-50 bg-rose-50/50 p-2">
       {commands.map(([name, Icon, label]) => <button key={name} type="button" title={label} onMouseDown={(event) => event.preventDefault()} onClick={() => command(name)} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><Icon size={16} /></button>)}
     </div>
-    <div ref={editorRef} contentEditable role="textbox" aria-label={placeholder} data-placeholder={placeholder} onInput={(event) => onChange(sanitizeHtml(event.currentTarget.innerHTML))} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
+    <div ref={editorRef} contentEditable role="textbox" aria-label={placeholder} data-placeholder={placeholder} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onInput={(event) => { rememberSelection(); onChange(sanitizeHtml(event.currentTarget.innerHTML)); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
   </div>;
 }
