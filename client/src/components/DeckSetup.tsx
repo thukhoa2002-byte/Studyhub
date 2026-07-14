@@ -26,6 +26,7 @@ interface Props {
   onEditDeck: (deck: SavedDeck) => void;
   onDeleteDeck: (deck: SavedDeck) => void;
   onShareDeck: (deck: SavedDeck) => void;
+  onStudyDue: () => void | Promise<void>;
   currentUserId?: string;
 }
 
@@ -61,6 +62,7 @@ export default function DeckSetup({
   onEditDeck,
   onDeleteDeck,
   onShareDeck,
+  onStudyDue,
   currentUserId,
 }: Props) {
   const [mode, setMode] = useState<SetupMode>("import");
@@ -161,7 +163,7 @@ export default function DeckSetup({
 
       {savedDecks.length > 0 && (
         <div className="mb-6 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
-          <p className="mb-3 text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
+          <div className="mb-3 flex items-center justify-between"><p className="text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p><button onClick={() => void onStudyDue()} className="rounded-lg bg-teal-100 px-3 py-2 text-xs font-bold text-teal-700 hover:bg-teal-200">Hôm nay ôn gì nhỉ?</button></div>
           <div className="grid gap-2 sm:grid-cols-2">
             {savedDecks.map((deck) => (
               <div key={deck.id} className="flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">

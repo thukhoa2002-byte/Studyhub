@@ -115,6 +115,21 @@ export async function shareDeckWithEmails(deckId: string, emails: string[]) {
   }
 }
 
+export async function listDueCards(userId: string): Promise<GeneratedQuestion[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("card_reviews")
+    .select("card_id, cards(id, front, back, category)")
+    .eq("user_id", userId)
+    .lte("due_at", new Date().toISOString());
+  if (error) throw error;
+  return (data ?? []).flatMap((row) => {
+    const card = Array.isArray(row.cards) ? row.cards[0] : row.cards;
+    if (!card) return [];
+    return [{ id: card.id, question: card.front, answer: card.back, category: card.category ?? "Ôn tập", importance: 1, bookmarked: false }];
+  });
+}
+
 export async function updateDeck(
   userId: string,
   deckId: string,

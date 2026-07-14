@@ -1,5 +1,4 @@
 import AuthPanel from "./AuthPanel";
-import ReminderSettings from "./ReminderSettings";
 
 interface Props {
   onUserChange?: (user: import("@supabase/supabase-js").User | null) => void;
@@ -34,7 +33,6 @@ export default function Header({ onUserChange }: Props) {
         {/* Right */}
 
         <div className="flex items-center gap-3">
-          <ReminderSettings />
           <AuthPanel onUserChange={onUserChange ?? (() => undefined)} />
         </div>
 

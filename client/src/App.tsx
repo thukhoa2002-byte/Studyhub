@@ -9,7 +9,7 @@ import Review from "./components/Review";
 import DeckEditor from "./components/DeckEditor";
 import ShareDeckDialog from "./components/ShareDeckDialog";
 import LoadingOverlay from "./components/LoadingOverlay";
-import { deleteDeck, listDecks, saveDeck, saveReview, shareDeckWithEmails, supabase, updateDeck, type SavedDeck } from "./services/supabase";
+import { deleteDeck, listDecks, listDueCards, saveDeck, saveReview, shareDeckWithEmails, supabase, updateDeck, type SavedDeck } from "./services/supabase";
 
 import {
   generateQuestions,
@@ -152,6 +152,15 @@ export default function App() {
     catch (error) { alert(`Không thể chia sẻ: ${error instanceof Error ? error.message : JSON.stringify(error)}`); }
   }
 
+  async function studyDueCards() {
+    if (!user) { alert("Bạn cần đăng nhập để xem thẻ đến hạn."); return; }
+    try {
+      const due = await listDueCards(user.id);
+      if (due.length === 0) { alert("Hôm nay chưa có thẻ đến hạn 🌸"); return; }
+      setQuestions(due); setDeckTitle("Hôm nay ôn gì nhỉ?"); setMode("study");
+    } catch (error) { alert(`Không thể tải thẻ đến hạn: ${error instanceof Error ? error.message : JSON.stringify(error)}`); }
+  }
+
   function openSavedDeck(deck: SavedDeck) {
     setQuestions(deck.cards);
     setDeckTitle(deck.title);
@@ -265,6 +274,7 @@ export default function App() {
             onDeleteDeck={removeSavedDeck}
             onShareDeck={setSharingDeck}
             currentUserId={user?.id}
+            onStudyDue={studyDueCards}
           />
         ) : mode === "study" ? (
           <Study
