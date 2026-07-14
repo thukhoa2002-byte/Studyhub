@@ -21,8 +21,25 @@ html {
 body{
     margin:0;
     font-family:"Be Vietnam Pro",sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
     background:#FFF7FB;
     color:#3B2430;
+}
+
+.rich-editor {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.75;
+}
+
+.rich-content {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-weight: 500;
+  line-height: 1.8;
+  letter-spacing: 0.005em;
 }
 
 button {

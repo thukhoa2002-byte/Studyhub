@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   ArrowRight,
+  Brain,
   FileText,
   Plus,
   Pencil,
@@ -116,7 +117,8 @@ export default function DeckSetup({
   return (
     <section className="mx-auto max-w-5xl px-5 py-8 sm:py-12">
       <div className="mb-7">
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-rose-950 sm:text-4xl">
+        <h1 className="mt-2 flex items-center gap-3 text-3xl font-bold tracking-tight text-rose-950 sm:text-4xl">
+          <span className="inline-flex rounded-2xl bg-fuchsia-100 p-2 text-fuchsia-500"><Brain size={30} strokeWidth={2.2} /></span>
           Nạp kiến thức vào bộ nhớ
         </h1>
       </div>
