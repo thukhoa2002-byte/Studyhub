@@ -17,6 +17,11 @@ export interface SavedDeck {
   cards: GeneratedQuestion[];
 }
 
+export interface DeckMember {
+  user_id: string;
+  email: string;
+}
+
 export async function saveDeck(
   userId: string,
   title: string,
@@ -113,6 +118,19 @@ export async function shareDeckWithEmails(deckId: string, emails: string[]) {
     const { error } = await supabase.rpc("share_deck_with_email", { p_deck_id: deckId, p_email: email });
     if (error) throw error;
   }
+}
+
+export async function listDeckMembers(deckId: string): Promise<DeckMember[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc("list_deck_members", { p_deck_id: deckId });
+  if (error) throw error;
+  return (data ?? []) as DeckMember[];
+}
+
+export async function removeDeckMember(deckId: string, memberId: string) {
+  if (!supabase) return;
+  const { error } = await supabase.rpc("remove_deck_member", { p_deck_id: deckId, p_user_id: memberId });
+  if (error) throw error;
 }
 
 export async function listDueCards(userId: string): Promise<GeneratedQuestion[]> {

@@ -15,6 +15,27 @@ begin
 end; $$;
 grant execute on function public.share_deck_with_email(uuid, text) to authenticated;
 
+create or replace function public.list_deck_members(p_deck_id uuid)
+returns table(user_id uuid, email text)
+language sql security definer set search_path = public, auth as $$
+  select u.id, u.email::text
+  from public.deck_members dm
+  join auth.users u on u.id = dm.user_id
+  where dm.deck_id = p_deck_id
+    and exists (select 1 from public.decks d where d.id = p_deck_id and d.owner_id = auth.uid());
+$$;
+grant execute on function public.list_deck_members(uuid) to authenticated;
+
+create or replace function public.remove_deck_member(p_deck_id uuid, p_user_id uuid)
+returns void language plpgsql security definer set search_path = public, auth as $$
+begin
+  if not exists (select 1 from public.decks where id = p_deck_id and owner_id = auth.uid()) then
+    raise exception 'Only the deck owner can stop sharing it';
+  end if;
+  delete from public.deck_members where deck_id = p_deck_id and user_id = p_user_id;
+end; $$;
+grant execute on function public.remove_deck_member(uuid, uuid) to authenticated;
+
 drop policy if exists "read shared or owned decks" on public.decks;
 create policy "read shared or owned decks" on public.decks for select using (owner_id = auth.uid() or exists (select 1 from public.deck_members where deck_members.deck_id = decks.id and deck_members.user_id = auth.uid()));
 drop policy if exists "read cards from visible decks" on public.cards;
