@@ -9,7 +9,7 @@ export default function Header({ onUserChange, specialUser = false }: Props) {
   return (
     <header className="sticky top-0 z-50 border-b border-rose-100 bg-white/85 backdrop-blur-xl">
 
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
+      <div className="relative mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
 
         {/* Logo */}
 
@@ -29,13 +29,13 @@ export default function Header({ onUserChange, specialUser = false }: Props) {
 
           </div>
 
-          {specialUser && <div className="special-note hidden items-center gap-1 text-center sm:flex" aria-label="Lời nhắn riêng">
-            <span className="hydrangea hydrangea-left" aria-hidden="true">✿</span>
-            <span>Tú ơii, cố lên.<br />Anh ở bên nèeee</span>
-            <span className="hydrangea hydrangea-right" aria-hidden="true">✿</span>
-          </div>}
-
         </div>
+
+        {specialUser && <div className="special-note absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 text-center sm:flex" aria-label="Lời nhắn riêng">
+          <span className="hydrangea hydrangea-left" aria-hidden="true">✿</span>
+          <span>Tú ơii, cố lên.<br />Anh ở bên nèeee</span>
+          <span className="hydrangea hydrangea-right" aria-hidden="true">✿</span>
+        </div>}
 
         {/* Right */}
 
