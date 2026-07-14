@@ -13,7 +13,13 @@ export function sanitizeHtml(value: string) {
       element.replaceWith(...Array.from(element.childNodes));
       return;
     }
-    Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
+    Array.from(element.attributes).forEach((attribute) => {
+      if (attribute.name === "style") {
+        const match = attribute.value.match(/text-align\s*:\s*(left|center|right|justify)/i);
+        if (match) element.setAttribute("style", `text-align:${match[1].toLowerCase()}`);
+        else element.removeAttribute(attribute.name);
+      } else element.removeAttribute(attribute.name);
+    });
   });
   return document.body.innerHTML;
 }
