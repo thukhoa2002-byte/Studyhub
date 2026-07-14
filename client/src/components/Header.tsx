@@ -1,13 +1,14 @@
 import AuthPanel from "./AuthPanel";
 
 interface Props {
+  onHome?: () => void;
   onUserChange?: (user: import("@supabase/supabase-js").User | null) => void;
   specialUser?: boolean;
   theme: "color" | "basic";
   onThemeChange: (theme: "color" | "basic") => void;
 }
 
-export default function Header({ onUserChange, specialUser = false, theme, onThemeChange }: Props) {
+export default function Header({ onHome, onUserChange, specialUser = false, theme, onThemeChange }: Props) {
   return (
     <header className="sticky top-0 z-50 border-b border-rose-100 bg-white/85 backdrop-blur-xl">
 
@@ -15,7 +16,7 @@ export default function Header({ onUserChange, specialUser = false, theme, onThe
 
         {/* Logo */}
 
-        <div className="flex items-center gap-5">
+        <button type="button" onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="flex items-center gap-5 rounded-xl text-left outline-none transition hover:bg-rose-50/70 focus-visible:ring-2 focus-visible:ring-rose-300">
 
           <img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" className="h-16 w-16 rounded-xl object-contain" />
 
@@ -31,7 +32,7 @@ export default function Header({ onUserChange, specialUser = false, theme, onThe
 
           </div>
 
-        </div>
+        </button>
 
         {/* Right */}
 

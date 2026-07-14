@@ -20,6 +20,9 @@ export interface SavedDeck {
 export interface DeckMember {
   user_id: string | null;
   email: string;
+  role: "admin" | "member";
+  access: "edit" | "view";
+  is_owner: boolean;
 }
 
 export async function saveDeck(
@@ -128,12 +131,38 @@ export async function listDeckMembers(deckId: string): Promise<DeckMember[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc("list_deck_members", { p_deck_id: deckId });
   if (error) throw error;
-  return (data ?? []) as DeckMember[];
+  return (data ?? []).map((member: { user_id?: string | null; email: string; role?: string | null }) => ({
+    user_id: member.user_id ?? null,
+    email: member.email,
+    role: member.role === "admin" ? "admin" : "member",
+    access: (member as { access?: string | null }).access === "edit" ? "edit" : "view",
+    is_owner: Boolean((member as { is_owner?: boolean }).is_owner),
+  }));
 }
 
 export async function removeDeckMember(deckId: string, memberId: string) {
   if (!supabase) return;
   const { error } = await supabase.rpc("remove_deck_share", { p_deck_id: deckId, p_email: memberId });
+  if (error) throw error;
+}
+
+export async function setDeckMemberRole(deckId: string, memberId: string, role: "admin" | "member") {
+  if (!supabase) return;
+  const { error } = await supabase.rpc("set_deck_member_role", {
+    p_deck_id: deckId,
+    p_user_id: memberId,
+    p_role: role,
+  });
+  if (error) throw error;
+}
+
+export async function setDeckMemberAccess(deckId: string, memberId: string, access: "edit" | "view") {
+  if (!supabase) return;
+  const { error } = await supabase.rpc("set_deck_member_access", {
+    p_deck_id: deckId,
+    p_user_id: memberId,
+    p_access: access,
+  });
   if (error) throw error;
 }
 

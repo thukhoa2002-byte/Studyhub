@@ -335,6 +335,18 @@ export default function App() {
     resetDeck();
   }
 
+  function goHome() {
+    setEditing(false);
+    setCurrentSavedDeck(null);
+    setSharingDeck(null);
+    setPendingImport(null);
+    setPendingGenerated(null);
+    setGeneratedForAppend(null);
+    setDeleteCandidate(null);
+    setNoDueNotice(false);
+    resetDeck();
+  }
+
   function exportDeck() {
     if (questions.length === 0) return;
 
@@ -386,14 +398,13 @@ export default function App() {
 
       <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
-        <Header onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} />
+        <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} />
 
         {questions.length > 0 && (
           <Navbar
             mode={mode}
             setMode={setMode}
             deckTitle={deckTitle}
-            onReset={resetDeck}
             onExport={exportDeck}
             onEdit={() => setEditing(true)}
           />

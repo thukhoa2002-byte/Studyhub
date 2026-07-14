@@ -1,10 +1,9 @@
-import { BookOpen, Bookmark, Download, Library, Pencil } from "lucide-react";
+import { BookOpen, Bookmark, Download, Pencil } from "lucide-react";
 
 interface Props {
   mode: "study" | "review";
   setMode: (mode: "study" | "review") => void;
   deckTitle: string;
-  onReset: () => void;
   onExport: () => void;
   onEdit: () => void;
 }
@@ -13,7 +12,6 @@ export default function Navbar({
   mode,
   setMode,
   deckTitle,
-  onReset,
   onExport,
   onEdit,
 }: Props) {
@@ -58,13 +56,6 @@ export default function Navbar({
             Xuất file
           </button>
           <button onClick={onEdit} className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-rose-50 hover:text-rose-700"><Pencil size={17} /> Sửa</button>
-          <button
-            onClick={onReset}
-            className="ml-auto inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-rose-50 hover:text-rose-700"
-          >
-            <Library size={17} />
-            Đổi bộ
-          </button>
         </div>
       </div>
     </nav>
