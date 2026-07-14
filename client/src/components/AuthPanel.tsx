@@ -54,6 +54,15 @@ export default function AuthPanel({ onUserChange }: Props) {
     }
   }
 
+  async function signInWithGoogle() {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) alert(`${error.message}${error.status ? ` (mã ${error.status})` : ""}`);
+  }
+
   if (user) {
     return (
       <button
@@ -68,18 +77,24 @@ export default function AuthPanel({ onUserChange }: Props) {
   }
 
   return (
-    <form onSubmit={(event) => { event.preventDefault(); void signIn(); }} className="flex items-center gap-2">
-      <input
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        type="email"
-        placeholder="Email để lưu bộ thẻ"
-        className="hidden w-44 rounded-full border border-rose-100 bg-white px-3 py-1.5 text-xs outline-none focus:border-rose-300 sm:block"
-      />
-      <button disabled={busy} className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-200 disabled:opacity-50">
-        <LogIn size={14} />
-        {busy ? "Đang gửi..." : "Đăng nhập"}
+    <div className="flex items-center gap-2">
+      <button onClick={() => void signInWithGoogle()} className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
+        <span className="font-bold text-blue-600">G</span>
+        Google
       </button>
-    </form>
+      <form onSubmit={(event) => { event.preventDefault(); void signIn(); }} className="flex items-center gap-2">
+        <input
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          type="email"
+          placeholder="Email"
+          className="hidden w-36 rounded-full border border-rose-100 bg-white px-3 py-1.5 text-xs outline-none focus:border-rose-300 sm:block"
+        />
+        <button disabled={busy} className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-200 disabled:opacity-50">
+          <LogIn size={14} />
+          {busy ? "Đang gửi..." : "Email"}
+        </button>
+      </form>
+    </div>
   );
 }
