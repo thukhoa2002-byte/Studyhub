@@ -42,6 +42,7 @@ export default function App() {
   const [deleteCandidate, setDeleteCandidate] = useState<SavedDeck | null>(null);
   const [pendingGenerated, setPendingGenerated] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setShowWelcome(false), 1700);
@@ -100,8 +101,10 @@ export default function App() {
 
   async function onGenerate() {
     if (!image) return;
+    if (aiCallsRemaining < 2) { alert("Số lượt AI ước tính đã hết."); return; }
 
     try {
+      setAiCallsRemaining((count) => count - 2);
       setLoading(true);
       setLoadingTitle("AI đang đọc ảnh...");
       setLoadingDescription("Mình đang nhận diện nội dung và chọn những ý quan trọng để tạo thẻ.");
@@ -119,7 +122,9 @@ export default function App() {
 
   async function onGenerateMcq() {
     if (!image) return;
+    if (aiCallsRemaining < 1) { alert("Số lượt AI ước tính đã hết."); return; }
     try {
+      setAiCallsRemaining((count) => count - 1);
       setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.\n\nĐây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không la làng khi làm trắc nghiệm nhé :)))");
       const response = await generateMultipleChoice(image);
       finishGenerated(response.title || "Trắc nghiệm", response.data);
@@ -235,6 +240,17 @@ export default function App() {
     setDeckTitle(deck.title);
     setMode("study");
     setCurrentSavedDeck(deck);
+  }
+
+  function createMcqFromDeck(deck: SavedDeck) {
+    const answers = deck.cards.map((card) => card.answer.replace(/<[^>]+>/g, "").trim()).filter(Boolean);
+    const cards = deck.cards.map((card, index) => {
+      const answer = card.answer.replace(/<[^>]+>/g, "").trim();
+      const distractors = answers.filter((item, answerIndex) => answerIndex !== index && item !== answer).slice(0, 3);
+      const options = [answer, ...distractors].sort(() => Math.random() - 0.5);
+      return { ...card, options, correctOption: answer, explanation: `Đáp án: ${answer}` };
+    }).filter((card) => card.options && card.options.length >= 2);
+    setQuestions(cards); setDeckTitle(`${deck.title} · Trắc nghiệm`); setCurrentSavedDeck(null); setMode("study");
   }
 
   function editSavedDeck(deck: SavedDeck) {
@@ -379,6 +395,8 @@ export default function App() {
             onEditDeck={editSavedDeck}
             onDeleteDeck={removeSavedDeck}
             onShareDeck={setSharingDeck}
+            onCreateMcqFromDeck={createMcqFromDeck}
+            aiCallsRemaining={aiCallsRemaining}
             currentUserId={user?.id}
             onStudyDue={studyDueCards}
           />

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ArrowRight,
   FileText,
+  ListChecks,
   MessageCircle,
   Plus,
   Pencil,
@@ -29,6 +30,8 @@ interface Props {
   onEditDeck: (deck: SavedDeck) => void;
   onDeleteDeck: (deck: SavedDeck) => void;
   onShareDeck: (deck: SavedDeck) => void;
+  onCreateMcqFromDeck: (deck: SavedDeck) => void;
+  aiCallsRemaining: number;
   onStudyDue: (beforeStudy?: () => void) => void | Promise<void>;
   currentUserId?: string;
 }
@@ -79,6 +82,8 @@ export default function DeckSetup({
   onEditDeck,
   onDeleteDeck,
   onShareDeck,
+  onCreateMcqFromDeck,
+  aiCallsRemaining,
   onStudyDue,
   currentUserId,
 }: Props) {
@@ -211,6 +216,7 @@ export default function DeckSetup({
                 </button>
                 {deck.owner_id === currentUserId && <>
                   <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="rounded-md p-2 text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
+                  <button onClick={() => onCreateMcqFromDeck(deck)} title="Tạo trắc nghiệm từ bộ thẻ" aria-label="Tạo trắc nghiệm từ bộ thẻ" className="rounded-md p-2 text-violet-600 hover:bg-violet-50"><ListChecks size={16} /></button>
                   <button onClick={startNewDeck} title="Tạo bộ thẻ mới cùng cấp" aria-label="Tạo bộ thẻ mới cùng cấp" className="rounded-md p-2 text-violet-600 hover:bg-violet-50"><Plus size={16} /></button>
                   <button onClick={() => onEditDeck(deck)} title="Sửa bộ thẻ" aria-label="Sửa bộ thẻ" className="rounded-md p-2 text-teal-600 hover:bg-teal-50"><Pencil size={16} /></button>
                   <button onClick={() => onDeleteDeck(deck)} title="Xóa bộ thẻ" aria-label="Xóa bộ thẻ" className="rounded-md p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={16} /></button>
@@ -343,6 +349,7 @@ export default function DeckSetup({
               <button disabled={!preview || loading} onClick={onGenerateMcq} className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-400 px-5 py-4 font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo trắc nghiệm"}{!loading && <ArrowRight size={18} />}</button>
             </div>
           </div>
+          <p className="mt-4 text-center text-xs font-semibold text-slate-400">Ước tính còn <span className="text-violet-500">{aiCallsRemaining} lượt gọi AI</span> · 0,01$/lượt</p>
         </div>
       )}
     </section>
