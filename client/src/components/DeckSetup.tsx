@@ -79,7 +79,7 @@ export default function DeckSetup({
   currentUserId,
 }: Props) {
   const [mode, setMode] = useState<SetupMode>("import");
-  const [title, setTitle] = useState("Bộ thẻ mới");
+  const [title, setTitle] = useState("");
   const [cards, setCards] = useState<DraftCard[]>([
     newDraftCard(),
     newDraftCard(),
@@ -112,7 +112,7 @@ export default function DeckSetup({
 
   function startNewDeck() {
     setMode("create");
-    setTitle("Bộ thẻ mới");
+    setTitle("");
     setCards([newDraftCard(), newDraftCard(), newDraftCard()]);
   }
 
@@ -180,8 +180,8 @@ export default function DeckSetup({
 
       {savedDecks.length > 0 && (
         <div className="mb-6 flex flex-col gap-5 rounded-2xl border border-teal-100 bg-gradient-to-r from-rose-50 via-white to-teal-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
-          <div><p className="text-sm font-semibold text-teal-600">🌸 Ôn tập thông minh</p><h2 className="mt-1 text-2xl font-bold text-rose-950 sm:text-3xl">Hôm nay ôn gì nhỉ?</h2><p className="mt-2 text-sm text-slate-500">Ôn các thẻ đã đến hạn để nhớ lâu hơn.</p></div>
-          <button onClick={() => void onStudyDue()} className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-6 py-4 text-sm font-bold text-white shadow-sm hover:bg-teal-500 sm:min-w-44">Bắt đầu ôn <ArrowRight size={18} className="ml-2" /></button>
+          <div><p className="text-sm font-semibold text-teal-600">🌸 Ôn tập thông minh</p><h2 className="mt-1 text-2xl font-bold text-rose-950 sm:text-3xl">Hôm nay ôn gì nhỉ?</h2><p className="mt-2 text-sm text-slate-500">Ôn bài lẹ đi, Thầy sắp díiiii rồi!!!</p></div>
+          <button onClick={() => void onStudyDue()} className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-6 py-4 text-sm font-bold text-white shadow-sm hover:bg-teal-500 sm:min-w-44">Ôn lẹ <ArrowRight size={18} className="ml-2" /></button>
         </div>
       )}
 
@@ -246,7 +246,7 @@ export default function DeckSetup({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             className="w-full rounded-lg border border-rose-100 bg-white/90 px-4 py-3 text-lg font-semibold text-rose-950 outline-none focus:border-rose-300"
-            placeholder="Tên bộ thẻ"
+            placeholder="Bộ thẻ mới"
           />
 
           <div className="mt-6 space-y-4">

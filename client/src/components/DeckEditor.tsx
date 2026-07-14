@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronDown, Plus, Trash2, UserRound, UsersRound, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import RichTextEditor from "./RichTextEditor";
@@ -80,12 +80,12 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         </div>
         <div className="relative">
           <button type="button" onClick={() => setShowVisibilityMenu((open) => !open)} className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white px-3 py-3 text-sm font-semibold text-slate-700">
-            {visibility === "private" ? <UserRound size={17} className="text-slate-500" /> : <UsersRound size={17} className="text-teal-500" />}
+            <img src={visibility === "private" ? "/privacy-user-final.png" : "/privacy-group-final.png"} alt="" className="h-5 w-5 object-contain" />
             {visibility === "private" ? "Chỉ mình tôi" : "Chia sẻ"}<ChevronDown size={15} />
           </button>
           {showVisibilityMenu && <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-rose-100 bg-white p-1 shadow-lg">
-            <button type="button" onClick={() => chooseVisibility("private")} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50"><UserRound size={17} /> Chỉ mình tôi</button>
-            <button type="button" onClick={() => chooseVisibility("shared")} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-teal-700 hover:bg-teal-50"><UsersRound size={17} /> Chia sẻ</button>
+            <button type="button" onClick={() => chooseVisibility("private")} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50"><img src="/privacy-user-final.png" alt="" className="h-5 w-5 object-contain" /> Chỉ mình tôi</button>
+            <button type="button" onClick={() => chooseVisibility("shared")} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-teal-700 hover:bg-teal-50"><img src="/privacy-group-final.png" alt="" className="h-5 w-5 object-contain" /> Chia sẻ</button>
           </div>}
         </div>
       </div>
