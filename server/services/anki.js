@@ -4,6 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { zstdDecompressSync } from "node:zlib";
 
 const CLOZE_PATTERN = /\{\{c\d+::(.*?)(?:::.*?)?\}\}/g;
 const MAX_APKG_BYTES = 120 * 1024 * 1024;
@@ -39,9 +40,10 @@ export async function importAnkiPackage(file) {
 }
 
 async function extractAnkiDatabase(packagePath) {
-  for (const entry of ["collection.anki21", "collection.anki2"]) {
+  for (const entry of ["collection.anki21b", "collection.anki21", "collection.anki2"]) {
     try {
-      return await unzipEntry(packagePath, entry);
+      const database = await unzipEntry(packagePath, entry);
+      return entry.endsWith("b") ? zstdDecompressSync(database) : database;
     } catch {
       // Try the next collection format used by Anki packages.
     }
