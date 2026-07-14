@@ -241,6 +241,12 @@ export default function App() {
     setMode("study");
   }
 
+  function cancelEditing() {
+    setEditing(false);
+    setCurrentSavedDeck(null);
+    resetDeck();
+  }
+
   function exportDeck() {
     if (questions.length === 0) return;
 
@@ -297,7 +303,7 @@ export default function App() {
         )}
 
         {editing && currentSavedDeck ? (
-          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onShareRequest={() => setSharingDeck(currentSavedDeck)} onCancel={() => setEditing(false)} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
+          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onShareRequest={() => setSharingDeck(currentSavedDeck)} onCancel={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
         ) : questions.length === 0 ? (
           <DeckSetup
             preview={preview}
