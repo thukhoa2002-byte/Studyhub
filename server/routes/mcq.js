@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import { createHash } from "node:crypto";
 import { getOpenAIClient } from "../config/openai.js";
+import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
@@ -11,7 +12,9 @@ router.post("/", upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "Không có ảnh." });
     const key = createHash("sha256").update(req.file.buffer).digest("hex");
-    if (cache.has(key)) return res.json(cache.get(key));
+    if (cache.has(key)) return res.json({ ...cache.get(key), aiCallsRemaining: getAiCallsRemaining() });
+    const aiCallsRemaining = consumeAiCall();
+    if (aiCallsRemaining === null) return res.status(429).json({ success: false, message: "Đã hết lượt AI dùng chung.", aiCallsRemaining: 0 });
     const client = getOpenAIClient();
     const response = await client.responses.create({
       model: process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5-mini",
@@ -26,7 +29,7 @@ router.post("/", upload.single("image"), async (req, res) => {
         }, required: ["question","answer","category","importance","options","correctOption","explanation"], additionalProperties: false } } }, required: ["title","questions"], additionalProperties: false
       } } },
     });
-    const payload = { success: true, text: "", title: response.output_parsed?.title ?? "Trắc nghiệm", data: response.output_parsed?.questions ?? JSON.parse(response.output_text).questions };
+    const payload = { success: true, text: "", title: response.output_parsed?.title ?? "Trắc nghiệm", data: response.output_parsed?.questions ?? JSON.parse(response.output_text).questions, aiCallsRemaining };
     cache.set(key, payload); if (cache.size > 50) cache.delete(cache.keys().next().value);
     return res.json(payload);
   } catch (error) { console.error(error); return res.status(500).json({ success: false, message: error.message }); }

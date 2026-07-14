@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 
 import { extractTextFromImage } from "../services/ocr.js";
 import { generateQuestions } from "../services/question.js";
+import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
 
 const router = express.Router();
 
@@ -26,7 +27,10 @@ router.post("/", upload.single("image"), async (req, res) => {
 
     const fingerprint = createHash("sha256").update(req.file.buffer).digest("hex");
     const cached = recentResults.get(fingerprint);
-    if (cached) return res.json(cached);
+    if (cached) return res.json({ ...cached, aiCallsRemaining: getAiCallsRemaining() });
+
+    const aiCallsRemaining = consumeAiCall();
+    if (aiCallsRemaining === null) return res.status(429).json({ success: false, message: "Đã hết lượt AI dùng chung.", aiCallsRemaining: 0 });
 
     const text = await extractTextFromImage(req.file);
 
@@ -37,6 +41,7 @@ router.post("/", upload.single("image"), async (req, res) => {
       text,
       title: result.title,
       data: result.questions,
+      aiCallsRemaining,
     };
     recentResults.set(fingerprint, payload);
     if (recentResults.size > 50) recentResults.delete(recentResults.keys().next().value);

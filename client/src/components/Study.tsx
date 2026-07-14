@@ -9,6 +9,7 @@ interface Props {
   onRate?: (question: GeneratedQuestion, rating: number) => void | Promise<void>;
   onAddToDeck?: () => void;
   onHome?: () => void;
+  onCurrentChange?: (questionId: string) => void;
 }
 
 type Rating = "again" | "hard" | "good" | "easy";
@@ -35,7 +36,7 @@ const ratingText: Record<Rating, [string, string]> = {
   easy: ["Dễ", "4 ngày"],
 };
 
-export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, onHome }: Props) {
+export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, onHome, onCurrentChange }: Props) {
   const [current, setCurrent] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -62,6 +63,10 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
     setRatings({});
     setSessionComplete(false);
   }, [questions]);
+
+  useEffect(() => {
+    if (question) onCurrentChange?.(question.id);
+  }, [question, onCurrentChange]);
 
   function changeOrder(shuffle: boolean) {
     const next = [...questions];

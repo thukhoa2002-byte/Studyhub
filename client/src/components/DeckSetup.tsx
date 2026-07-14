@@ -157,36 +157,25 @@ export default function DeckSetup({
         </h1>
       </div>
 
-      <div className="mb-6 grid gap-2 rounded-lg border border-rose-100 bg-white/80 p-1 shadow-sm sm:grid-cols-3">
+      <div className={`setup-mode-tabs setup-mode-tabs--${mode} mb-6 grid gap-2 rounded-lg border border-rose-100 bg-white/70 p-1 shadow-sm sm:grid-cols-3`}>
+        <span className="setup-mode-tabs__glider" aria-hidden="true" />
         <button
           onClick={() => setMode("import")}
-          className={`flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${
-            mode === "import"
-              ? "bg-rose-300 text-rose-950"
-              : "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
-          }`}
+          className={`setup-mode-tab flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${mode === "import" ? "setup-mode-tab--active" : "text-slate-600 hover:text-rose-700"}`}
         >
           <FileText size={18} />
           Nhập file
         </button>
         <button
           onClick={() => setMode("create")}
-          className={`flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${
-            mode === "create"
-              ? "bg-rose-300 text-rose-950"
-              : "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
-          }`}
+          className={`setup-mode-tab flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${mode === "create" ? "setup-mode-tab--active" : "text-slate-600 hover:text-rose-700"}`}
         >
           <Plus size={18} />
           Tạo mới
         </button>
         <button
           onClick={() => setMode("ai")}
-          className={`flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${
-            mode === "ai"
-              ? "bg-rose-300 text-rose-950"
-              : "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
-          }`}
+          className={`setup-mode-tab flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${mode === "ai" ? "setup-mode-tab--active" : "text-slate-600 hover:text-rose-700"}`}
         >
           <Sparkles size={18} />
           Từ ảnh
@@ -214,7 +203,7 @@ export default function DeckSetup({
                 <span className="truncate">{deckIcon(deck.title)} {deck.title}</span>
                 <span className="ml-3 text-xs text-slate-400">{deck.cards.length} thẻ</span>
                 </button>
-                {deck.owner_id === currentUserId && <>
+                {(deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit") && <>
                   <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="rounded-md p-2 text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
                   <button onClick={() => onCreateMcqFromDeck(deck)} title="Tạo trắc nghiệm từ bộ thẻ" aria-label="Tạo trắc nghiệm từ bộ thẻ" className="rounded-md p-2 text-violet-600 hover:bg-violet-50"><ListChecks size={16} /></button>
                   <button onClick={startNewDeck} title="Tạo bộ thẻ mới cùng cấp" aria-label="Tạo bộ thẻ mới cùng cấp" className="rounded-md p-2 text-violet-600 hover:bg-violet-50"><Plus size={16} /></button>
@@ -228,7 +217,7 @@ export default function DeckSetup({
       )}
 
       {mode === "import" && (
-        <div className="rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
+        <div className="mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <label
             htmlFor="anki-file"
             className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"
@@ -261,7 +250,7 @@ export default function DeckSetup({
       )}
 
       {mode === "create" && (
-        <div className="rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
+        <div className="mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}

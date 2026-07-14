@@ -16,7 +16,7 @@ export default function Header({ onHome, onUserChange, specialUser = false, them
 
         {/* Logo */}
 
-        <button type="button" onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="flex items-center gap-5 rounded-xl text-left outline-none transition hover:bg-rose-50/70 focus-visible:ring-2 focus-visible:ring-rose-300">
+        <button type="button" onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="flex cursor-pointer items-center gap-5 rounded-xl text-left outline-none transition hover:bg-rose-50/70 focus-visible:ring-2 focus-visible:ring-rose-300">
 
           <img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" className="h-16 w-16 rounded-xl object-contain" />
 

@@ -2,6 +2,13 @@ const API_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? "http://localhost:3000" : window.location.origin);
 
+export async function getAiCallsRemaining(): Promise<number | null> {
+  const response = await fetch(`${API_URL}/api/ai-usage`);
+  if (!response.ok) return null;
+  const result = (await response.json()) as { aiCallsRemaining?: number };
+  return typeof result.aiCallsRemaining === "number" ? result.aiCallsRemaining : null;
+}
+
 export interface GeneratedQuestion {
   id: string;
 
@@ -21,7 +28,7 @@ export async function generateMultipleChoice(image: File): Promise<GenerateQuest
   const formData = new FormData();
   formData.append("image", image);
   const response = await fetch(`${API_URL}/api/generate-mcq`, { method: "POST", body: formData });
-  if (!response.ok) throw new Error("Không thể tạo câu trắc nghiệm.");
+  if (!response.ok) { const error = (await response.json().catch(() => null)) as { message?: string } | null; throw new Error(error?.message || "Không thể tạo câu trắc nghiệm."); }
   const result = (await response.json()) as GenerateQuestionsResponse;
   result.data = result.data.map((question, index) => ({ ...question, id: crypto.randomUUID?.() ?? index.toString(), bookmarked: false }));
   return result;
@@ -45,6 +52,7 @@ export interface GenerateQuestionsResponse {
   title: string;
 
   data: GeneratedQuestion[];
+  aiCallsRemaining?: number;
 }
 
 export async function generateQuestions(
@@ -59,9 +67,7 @@ export async function generateQuestions(
     body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error("Không thể kết nối tới server.");
-  }
+  if (!response.ok) { const error = (await response.json().catch(() => null)) as { message?: string } | null; throw new Error(error?.message || "Không thể kết nối tới server."); }
 
   const result =
     (await response.json()) as GenerateQuestionsResponse;

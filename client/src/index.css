@@ -64,9 +64,11 @@ button:hover {
 .celebrate-ribbon { position: absolute; left: 50%; top: 48%; width: 7px; height: 22px; border-radius: 999px; background: var(--ribbon-color); opacity: 0; transform: rotate(var(--ribbon-angle)) translateY(0) scale(.7); animation: celebrate-ribbon 900ms ease-out var(--ribbon-delay) both; }
 @keyframes celebrate-modal-in { from { opacity: 0; transform: scale(.92) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @keyframes celebrate-ribbon { 0% { opacity: 0; transform: rotate(var(--ribbon-angle)) translateY(0) scale(.7); } 18% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--ribbon-angle)) translateY(-150px) scale(1) ; } }
-.welcome-screen { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 1.25rem; background: radial-gradient(circle at 20% 15%, #ffe4ef 0, #fff7fb 38%, #eefcf6 100%); animation: welcome-screen-out 420ms ease 1.28s forwards; }
-.welcome-card { width: min(100%, 30rem); border: 1px solid #fbcfe8; border-radius: 2rem; padding: 2.5rem 2rem; text-align: center; background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,241,247,.9) 52%, rgba(236,253,245,.9)); box-shadow: 0 24px 70px rgba(190,24,93,.16); animation: welcome-card-in 650ms cubic-bezier(.2,.8,.2,1) both; }
-.welcome-icon { width: 5.25rem; height: 5.25rem; margin: 0 auto 1.25rem; padding: .65rem; border-radius: 1.5rem; background: #fce7f3; animation: welcome-icon-float 1.5s ease-in-out infinite; }
+.welcome-screen { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 1.25rem; background: radial-gradient(circle at 20% 15%, #ffe4ef 0, #fff7fb 38%, #eefcf6 100%); animation: welcome-screen-in 520ms cubic-bezier(.22,1,.36,1) both; will-change: opacity; }
+.welcome-screen--closing { pointer-events: none; animation: welcome-screen-out 600ms cubic-bezier(.4,0,.2,1) both; }
+.welcome-card { width: min(100%, 30rem); border: 1px solid #fbcfe8; border-radius: 2rem; padding: 2.5rem 2rem; text-align: center; background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,241,247,.9) 52%, rgba(236,253,245,.9)); box-shadow: 0 24px 70px rgba(190,24,93,.16); animation: welcome-card-in 700ms cubic-bezier(.22,1,.36,1) 80ms both; will-change: transform, opacity; }
+.welcome-screen--closing .welcome-card { animation: welcome-card-out 520ms cubic-bezier(.4,0,.2,1) both; }
+.welcome-icon { width: 5.25rem; height: 5.25rem; margin: 0 auto 1.25rem; padding: .65rem; border-radius: 1.5rem; background: #fce7f3; animation: welcome-icon-pop 760ms cubic-bezier(.22,1,.36,1) 180ms both, welcome-icon-float 1.8s ease-in-out 940ms infinite; }
 .welcome-icon img { width: 100%; height: 100%; object-fit: contain; }
 .welcome-kicker { margin: 0; color: #e11d48; font-size: .8rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .welcome-card h1 { margin: .45rem 0 0; color: #4c0519; font-size: 2rem; font-weight: 800; }
@@ -75,6 +77,19 @@ button:hover {
 .welcome-dots span { width: .45rem; height: .45rem; border-radius: 999px; background: #2dd4bf; animation: welcome-dot 900ms ease-in-out infinite; }
 .welcome-dots span:nth-child(2) { animation-delay: 120ms; background: #fb7185; }
 .welcome-dots span:nth-child(3) { animation-delay: 240ms; background: #c084fc; }
+.setup-mode-tabs { position: relative; isolation: isolate; overflow: hidden; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); transform: translateZ(0); }
+.setup-mode-tabs::after { position: absolute; inset: 0; z-index: -1; pointer-events: none; content: ""; background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,.58) 48%, transparent 72%); transform: translateX(-120%); animation: liquid-glass-sheen 6s cubic-bezier(.4,0,.2,1) infinite; }
+.setup-mode-tabs__glider { position: absolute; z-index: 0; top: .25rem; bottom: .25rem; left: .25rem; width: calc((100% - .5rem) / 3); border: 1px solid rgba(251,113,133,.38); border-radius: .5rem; background: linear-gradient(135deg, rgba(253,164,175,.92), rgba(251,113,133,.72)); box-shadow: 0 5px 16px rgba(244,63,94,.2), inset 0 1px 0 rgba(255,255,255,.58); will-change: transform; transition: transform 720ms cubic-bezier(.16,1.18,.3,1), background 420ms ease, box-shadow 420ms ease; }
+.setup-mode-tabs__glider::after { position: absolute; inset: 1px; border-radius: inherit; pointer-events: none; content: ""; background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,.5) 48%, transparent 76%); transform: translateX(-120%); animation: liquid-glider-shine 3.8s ease-in-out infinite; }
+.setup-mode-tabs--create .setup-mode-tabs__glider { transform: translateX(100%); }
+.setup-mode-tabs--ai .setup-mode-tabs__glider { transform: translateX(200%); background: linear-gradient(135deg, rgba(253,164,175,.92), rgba(244,114,182,.76)); }
+.setup-mode-tab { position: relative; z-index: 1; min-height: 2.75rem; transition: color 360ms ease, transform 360ms cubic-bezier(.22,1,.36,1); }
+.setup-mode-tab:hover { transform: translateY(-1px) scale(1.01); }
+.setup-mode-tab--active { color: #4c0519; }
+.mode-panel { animation: mode-panel-in 560ms cubic-bezier(.22,1,.36,1) both; transform-origin: 50% 0; will-change: opacity, transform, filter; }
+@keyframes mode-panel-in { from { opacity: 0; filter: blur(4px); transform: translateY(12px) scale(.985); } 70% { filter: blur(0); transform: translateY(-1px) scale(1.002); } to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } }
+@keyframes liquid-glass-sheen { 0%, 38% { transform: translateX(-120%); } 68%, 100% { transform: translateX(120%); } }
+@keyframes liquid-glider-shine { 0%, 35% { transform: translateX(-120%); opacity: 0; } 52% { opacity: 1; } 70%, 100% { transform: translateX(120%); opacity: 0; } }
 .special-note { position: relative; color: #be185d; font-size: .68rem; font-weight: 800; line-height: 1.25; letter-spacing: .01em; }
 .hydrangea { display: inline-block; color: #f472b6; font-size: 1.25rem; text-shadow: 0 0 0 #f9a8d4, 5px 2px 0 #f9a8d4, -4px 3px 0 #fbcfe8; animation: hydrangea-sway 2.2s ease-in-out infinite; }
 .hydrangea-right { animation-delay: .5s; }
@@ -88,10 +103,25 @@ html[data-theme="basic"] main { background: #fafafa !important; }
 .panda-bamboo { position: absolute; left: 12%; bottom: 30%; font-size: 1.45rem; transform-origin: 85% 50%; animation: panda-chew 1.15s ease-in-out infinite; filter: drop-shadow(0 2px 2px rgba(15,23,42,.15)); }
 @keyframes panda-bob { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-2px) rotate(-1deg); } }
 @keyframes panda-chew { 0%,100% { transform: rotate(-18deg) translate(0,0); } 50% { transform: rotate(-5deg) translate(5px,-1px); } }
-@keyframes welcome-card-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes welcome-screen-out { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+@keyframes welcome-screen-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes welcome-card-in { from { opacity: 0; transform: translateY(24px) scale(.94); } 70% { transform: translateY(-2px) scale(1.005); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes welcome-card-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-12px) scale(.98); } }
+@keyframes welcome-screen-out { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
+@keyframes welcome-icon-pop { from { opacity: 0; transform: scale(.72) rotate(-7deg); } 70% { transform: scale(1.06) rotate(2deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
 @keyframes welcome-icon-float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
 @keyframes welcome-dot { 0%,100% { transform: scale(.75); opacity: .45; } 50% { transform: scale(1.25); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-screen,
+  .welcome-screen--closing,
+  .welcome-card,
+  .welcome-screen--closing .welcome-card,
+  .welcome-icon,
+  .welcome-dots span { animation: none !important; }
+  .setup-mode-tabs::after,
+  .setup-mode-tabs__glider,
+  .mode-panel { animation: none !important; transition: none !important; }
+}
 
 ::-webkit-scrollbar {
   width: 8px;

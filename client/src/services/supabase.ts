@@ -15,6 +15,8 @@ export interface SavedDeck {
   visibility: "private" | "shared";
   owner_id: string;
   cards: GeneratedQuestion[];
+  member_role?: "admin" | "member";
+  member_access?: "edit" | "view";
 }
 
 export interface DeckMember {
@@ -35,7 +37,7 @@ export async function saveDeck(
 
   const { data: deck, error: deckError } = await supabase
     .from("decks")
-    .insert({ title, owner_id: userId, visibility: "private", source: "web" })
+    .insert({ title, owner_id: userId, visibility: shareEmails.length > 0 ? "shared" : "private", source: "web" })
     .select("id, title, visibility, owner_id")
     .single();
 
@@ -78,11 +80,21 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
 
   if (error) throw error;
 
+  // Members can read their own membership row through RLS. Owners receive
+  // edit access implicitly, while shared members use the stored access mode.
+  const { data: memberships } = await supabase
+    .from("deck_members")
+    .select("deck_id, role, access")
+    .eq("user_id", _userId);
+  const membershipByDeck = new Map((memberships ?? []).map((item) => [item.deck_id, item]));
+
   return (data ?? []).map((deck) => ({
     id: deck.id,
     title: deck.title,
     visibility: deck.visibility,
     owner_id: deck.owner_id,
+    member_role: membershipByDeck.get(deck.id)?.role === "admin" ? "admin" : "member",
+    member_access: membershipByDeck.get(deck.id)?.access === "edit" ? "edit" : "view",
     cards: [...(deck.cards ?? [])]
       .sort((a, b) => a.position - b.position)
       .map((card) => ({
@@ -125,6 +137,13 @@ export async function shareDeckWithEmails(deckId: string, emails: string[]) {
     const { error } = await supabase.rpc("share_deck_with_email", { p_deck_id: deckId, p_email: email });
     if (error) throw error;
   }
+  // Sharing is also the deck's visibility state. Keep it in sync so the
+  // editor immediately shows "Chia sẻ" after the first invitation.
+  const { error: visibilityError } = await supabase
+    .from("decks")
+    .update({ visibility: "shared", updated_at: new Date().toISOString() })
+    .eq("id", deckId);
+  if (visibilityError) throw visibilityError;
 }
 
 export async function listDeckMembers(deckId: string): Promise<DeckMember[]> {
@@ -182,14 +201,14 @@ export async function listDueCards(userId: string): Promise<GeneratedQuestion[]>
 }
 
 export async function updateDeck(
-  userId: string,
+  _userId: string,
   deckId: string,
   title: string,
   questions: GeneratedQuestion[],
   visibility: "private" | "shared"
 ) {
   if (!supabase) return;
-  const { error: deckError } = await supabase.from("decks").update({ title, visibility, updated_at: new Date().toISOString() }).eq("id", deckId).eq("owner_id", userId);
+  const { error: deckError } = await supabase.from("decks").update({ title, visibility, updated_at: new Date().toISOString() }).eq("id", deckId);
   if (deckError) throw deckError;
   const { error: deleteError } = await supabase.from("cards").delete().eq("deck_id", deckId);
   if (deleteError) throw deleteError;

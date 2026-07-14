@@ -9,6 +9,7 @@ import clozeRouter from "./routes/cloze.js";
 import gradingRouter from "./routes/grading.js";
 import ankiRouter from "./routes/anki.js";
 import mcqRouter from "./routes/mcq.js";
+import { getAiCallsRemaining } from "./services/aiUsage.js";
 
 dotenv.config();
 
@@ -27,6 +28,10 @@ app.get("/api/health", (req, res) => {
     message: "Backend OK",
     version: "1.0.0",
   });
+});
+
+app.get("/api/ai-usage", (req, res) => {
+  res.json({ aiCallsRemaining: getAiCallsRemaining() });
 });
 
 // API

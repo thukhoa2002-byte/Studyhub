@@ -113,7 +113,7 @@ begin
     raise exception 'Only an administrator can change access';
   end if;
   if p_user_id = auth.uid() then raise exception 'The owner access cannot be changed'; end if;
-  update public.deck_members set access = p_access where deck_id = p_deck_id and user_id = p_user_id and role = 'admin';
+  update public.deck_members set access = p_access where deck_id = p_deck_id and user_id = p_user_id;
 end; $$;
 grant execute on function public.set_deck_member_access(uuid, uuid, text) to authenticated;
 
@@ -121,6 +121,26 @@ drop policy if exists "read shared or owned decks" on public.decks;
 create policy "read shared or owned decks" on public.decks for select using (owner_id = auth.uid() or exists (select 1 from public.deck_members where deck_members.deck_id = decks.id and deck_members.user_id = auth.uid()));
 drop policy if exists "read cards from visible decks" on public.cards;
 create policy "read cards from visible decks" on public.cards for select using (exists (select 1 from public.decks where decks.id = cards.deck_id and (decks.owner_id = auth.uid() or exists (select 1 from public.deck_members where deck_members.deck_id = decks.id and deck_members.user_id = auth.uid()))));
+drop policy if exists "update shared decks with edit access" on public.decks;
+create policy "update shared decks with edit access" on public.decks for update using (
+  owner_id = auth.uid() or exists (
+    select 1 from public.deck_members dm
+    where dm.deck_id = decks.id and dm.user_id = auth.uid() and (dm.role = 'admin' or dm.access = 'edit')
+  )
+) with check (
+  owner_id = auth.uid() or exists (
+    select 1 from public.deck_members dm
+    where dm.deck_id = decks.id and dm.user_id = auth.uid() and (dm.role = 'admin' or dm.access = 'edit')
+  )
+);
+drop policy if exists "edit cards in shared decks" on public.cards;
+create policy "edit cards in shared decks" on public.cards for all using (
+  exists (select 1 from public.decks d join public.deck_members dm on dm.deck_id = d.id
+    where d.id = cards.deck_id and dm.user_id = auth.uid() and (dm.role = 'admin' or dm.access = 'edit'))
+) with check (
+  exists (select 1 from public.decks d join public.deck_members dm on dm.deck_id = d.id
+    where d.id = cards.deck_id and dm.user_id = auth.uid() and (dm.role = 'admin' or dm.access = 'edit'))
+);
 drop policy if exists "owners manage deck members" on public.deck_members;
 create policy "owners manage deck members" on public.deck_members for all using (user_id = auth.uid());
 drop policy if exists "members can read membership" on public.deck_members;

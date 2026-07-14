@@ -18,11 +18,13 @@ import {
   generateQuestions,
   generateMultipleChoice,
   importAnkiPackage,
+  getAiCallsRemaining,
   type GeneratedQuestion,
 } from "./services/api";
 
 export default function App() {
   const [mode, setMode] = useState<"study" | "review">("study");
+  const [studyCurrentId, setStudyCurrentId] = useState<string | null>(null);
 
   const [deckTitle, setDeckTitle] = useState("");
 
@@ -45,6 +47,7 @@ export default function App() {
   const [pendingGenerated, setPendingGenerated] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [generatedForAppend, setGeneratedForAppend] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [welcomeClosing, setWelcomeClosing] = useState(false);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
   const [theme, setTheme] = useState<"color" | "basic">(() => (localStorage.getItem("hocbai-theme") === "basic" ? "basic" : "color"));
   const specialUser = isSpecialUser(user?.email);
@@ -55,8 +58,12 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowWelcome(false), 1700);
-    return () => window.clearTimeout(timer);
+    const closeTimer = window.setTimeout(() => setWelcomeClosing(true), 1500);
+    const removeTimer = window.setTimeout(() => setShowWelcome(false), 2100);
+    return () => {
+      window.clearTimeout(closeTimer);
+      window.clearTimeout(removeTimer);
+    };
   }, []);
 
   const refreshDecks = useCallback(async (nextUser: User | null) => {
@@ -84,6 +91,12 @@ export default function App() {
     if (!supabase) return;
     void supabase.auth.getUser().then(({ data }) => refreshDecks(data.user));
   }, [refreshDecks]);
+
+  useEffect(() => {
+    void getAiCallsRemaining().then((remaining) => {
+      if (remaining !== null) setAiCallsRemaining(remaining);
+    }).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -119,15 +132,14 @@ export default function App() {
 
   async function onGenerate() {
     if (!image) return;
-    if (aiCallsRemaining < 1) { alert("Số lượt AI ước tính đã hết."); return; }
 
     try {
-      setAiCallsRemaining((count) => count - 1);
       setLoading(true);
       setLoadingTitle("AI đang đọc ảnh...");
       setLoadingDescription("Mình đang nhận diện nội dung và chọn những ý quan trọng để tạo thẻ.");
 
       const response = await generateQuestions(image);
+      if (typeof response.aiCallsRemaining === "number") setAiCallsRemaining(response.aiCallsRemaining);
 
       finishGenerated(response.title || image.name, response.data);
     } catch (error) {
@@ -140,11 +152,10 @@ export default function App() {
 
   async function onGenerateMcq() {
     if (!image) return;
-    if (aiCallsRemaining < 1) { alert("Số lượt AI ước tính đã hết."); return; }
     try {
-      setAiCallsRemaining((count) => count - 1);
       setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.\n\nĐây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không chửi bậy khi làm trắc nghiệm nhé :)))");
       const response = await generateMultipleChoice(image);
+      if (typeof response.aiCallsRemaining === "number") setAiCallsRemaining(response.aiCallsRemaining);
       finishGenerated(response.title || "Trắc nghiệm", response.data);
     } catch (error) { console.error(error); alert("Không thể tạo câu trắc nghiệm."); }
     finally { setLoading(false); }
@@ -236,7 +247,12 @@ export default function App() {
 
   async function shareSavedDeck(emails: string[]) {
     if (!sharingDeck) return;
-    try { await shareDeckWithEmails(sharingDeck.id, emails); }
+    try {
+      await shareDeckWithEmails(sharingDeck.id, emails);
+      setCurrentSavedDeck((current) => current && current.id === sharingDeck.id ? { ...current, visibility: "shared" } : current);
+      setSavedDecks((decks) => decks.map((deck) => deck.id === sharingDeck.id ? { ...deck, visibility: "shared" } : deck));
+      setSharingDeck((current) => current ? { ...current, visibility: "shared" } : current);
+    }
     catch (error) { alert(`Không thể chia sẻ: ${error instanceof Error ? error.message : JSON.stringify(error)}`); }
   }
 
@@ -347,6 +363,14 @@ export default function App() {
     resetDeck();
   }
 
+  function editCurrentCard() {
+    if (!currentSavedDeck) {
+      alert("Hãy lưu bộ thẻ trước khi chỉnh sửa.");
+      return;
+    }
+    setEditing(true);
+  }
+
   function exportDeck() {
     if (questions.length === 0) return;
 
@@ -385,7 +409,7 @@ export default function App() {
 
   return (
     <>
-      {showWelcome && <div className="welcome-screen" role="status" aria-live="polite">
+      {showWelcome && <div className={`welcome-screen${welcomeClosing ? " welcome-screen--closing" : ""}`} role="status" aria-live="polite">
         <div className="welcome-card">
           <div className="welcome-icon"><img src="/brain-learning-icon.png" alt="Não bộ đang học" /></div>
           <p className="welcome-kicker">Học bài thoiii 🌸</p>
@@ -406,12 +430,12 @@ export default function App() {
             setMode={setMode}
             deckTitle={deckTitle}
             onExport={exportDeck}
-            onEdit={() => setEditing(true)}
+            onEdit={editCurrentCard}
           />
         )}
 
         {editing && currentSavedDeck ? (
-          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onShareRequest={() => setSharingDeck(currentSavedDeck)} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
+          <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onShareRequest={() => setSharingDeck(currentSavedDeck)} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
         ) : questions.length === 0 ? (
           <DeckSetup
             preview={preview}
@@ -439,6 +463,7 @@ export default function App() {
             onRate={(question: GeneratedQuestion, rating: number) => { if (user) return saveReview(user.id, question, rating); }}
             onAddToDeck={generatedForAppend ? () => setPendingGenerated(generatedForAppend) : undefined}
             onHome={leaveStudy}
+            onCurrentChange={setStudyCurrentId}
           />
         ) : (
           <Review
