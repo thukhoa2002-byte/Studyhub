@@ -185,18 +185,18 @@ export default function App() {
     }
   }
 
-  async function saveEditedDeck(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
+  async function saveEditedDeck(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared", startStudy = false) {
     if (!user || !currentSavedDeck) return;
     try {
       await updateDeck(user.id, currentSavedDeck.id, title, cards, visibility);
-      setQuestions(cards); setDeckTitle(title); setEditing(false); setCurrentSavedDeck({ ...currentSavedDeck, title, visibility, cards });
+      setQuestions(cards); setDeckTitle(title); setEditing(!startStudy); setCurrentSavedDeck({ ...currentSavedDeck, title, visibility, cards });
+      if (startStudy) setMode("study");
       setSavedDecks(await listDecks(user.id));
     } catch (error) { console.error(error); alert("Không thể lưu thay đổi bộ thẻ."); }
   }
 
   async function saveEditedDeckAndStudy(title: string, cards: GeneratedQuestion[], visibility: "private" | "shared") {
-    await saveEditedDeck(title, cards, visibility);
-    setMode("study");
+    await saveEditedDeck(title, cards, visibility, true);
   }
 
   function resetDeck() {
