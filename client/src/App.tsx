@@ -41,6 +41,7 @@ export default function App() {
   const [noDueNotice, setNoDueNotice] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<SavedDeck | null>(null);
   const [pendingGenerated, setPendingGenerated] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
+  const [generatedForAppend, setGeneratedForAppend] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
 
@@ -138,6 +139,7 @@ export default function App() {
       return;
     }
     setQuestions(cards); setDeckTitle(title); setMode("study");
+    setGeneratedForAppend({ title, cards });
   }
 
   async function appendGeneratedToDeck(deck: SavedDeck) {
@@ -145,7 +147,7 @@ export default function App() {
     const combined = [...deck.cards, ...pendingGenerated.cards];
     try {
       await updateDeck(user.id, deck.id, deck.title, combined, deck.visibility);
-      setQuestions(combined); setDeckTitle(deck.title); setCurrentSavedDeck({ ...deck, cards: combined }); setPendingGenerated(null); setMode("study");
+      setQuestions(combined); setDeckTitle(deck.title); setCurrentSavedDeck({ ...deck, cards: combined }); setPendingGenerated(null); setGeneratedForAppend(null); setMode("study");
       setSavedDecks(await listDecks(user.id));
     } catch (error) { alert(`Không thể thêm vào bộ thẻ: ${error instanceof Error ? error.message : String(error)}`); }
   }
@@ -405,6 +407,7 @@ export default function App() {
             questions={questions}
             toggleBookmark={toggleBookmark}
             onRate={(question: GeneratedQuestion, rating: number) => { if (user) return saveReview(user.id, question, rating); }}
+            onAddToDeck={generatedForAppend ? () => setPendingGenerated(generatedForAppend) : undefined}
           />
         ) : (
           <Review
@@ -448,7 +451,7 @@ export default function App() {
             <h2 id="append-title" className="mt-4 text-center text-xl font-bold text-rose-950">Thêm vào bộ thẻ hiện có?</h2>
             <p className="mt-2 text-center text-sm text-slate-500">AI vừa tạo {pendingGenerated.cards.length} câu. Chọn bộ thẻ để lưu chung:</p>
             <div className="mt-5 max-h-44 space-y-2 overflow-y-auto">{savedDecks.map((deck) => <button key={deck.id} type="button" onClick={() => void appendGeneratedToDeck(deck)} className="flex w-full items-center justify-between rounded-xl border border-teal-100 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50"><span>{deck.title}</span><span className="text-xs text-slate-400">{deck.cards.length} thẻ</span></button>)}</div>
-            <button type="button" onClick={() => { setQuestions(pendingGenerated.cards); setDeckTitle(pendingGenerated.title); setPendingGenerated(null); setMode("study"); }} className="mt-5 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Học riêng bộ mới</button>
+            <button type="button" onClick={() => { setQuestions(pendingGenerated.cards); setDeckTitle(pendingGenerated.title); setGeneratedForAppend(pendingGenerated); setPendingGenerated(null); setMode("study"); }} className="mt-5 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Học riêng bộ mới</button>
           </div>
         </div>}
     </>

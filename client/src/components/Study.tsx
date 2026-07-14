@@ -7,6 +7,7 @@ interface Props {
   questions: GeneratedQuestion[];
   toggleBookmark: (id: string) => void;
   onRate?: (question: GeneratedQuestion, rating: number) => void | Promise<void>;
+  onAddToDeck?: () => void;
 }
 
 type Rating = "again" | "hard" | "good" | "easy";
@@ -33,7 +34,7 @@ const ratingText: Record<Rating, [string, string]> = {
   easy: ["Dễ", "4 ngày"],
 };
 
-export default function Study({ questions, toggleBookmark, onRate }: Props) {
+export default function Study({ questions, toggleBookmark, onRate, onAddToDeck }: Props) {
   const [current, setCurrent] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -128,6 +129,7 @@ export default function Study({ questions, toggleBookmark, onRate }: Props) {
           <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-rose-500">Hoàn thành phiên học</p>
           <h1 className="mt-3 text-3xl font-bold text-rose-950">Bạn đã học hết {studyQuestions.length} thẻ</h1>
           <p className="mt-3 text-slate-500">{correctCount} thẻ được đánh giá Tốt hoặc Dễ. Hãy quay lại vào ngày mai để ôn lại.</p>
+          {onAddToDeck && <button onClick={onAddToDeck} className="mt-8 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-5 py-3 font-semibold text-violet-700 hover:bg-violet-100">＋ Thêm vào bộ thẻ hiện tại</button>}
         </div>
       </section>
     );

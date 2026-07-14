@@ -349,7 +349,7 @@ export default function DeckSetup({
               <button disabled={!preview || loading} onClick={onGenerateMcq} className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-400 px-5 py-4 font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo trắc nghiệm"}{!loading && <ArrowRight size={18} />}</button>
             </div>
           </div>
-          <p className="mt-4 text-center text-xs font-semibold text-slate-400">Ước tính còn <span className="text-violet-500">{aiCallsRemaining} lượt gọi AI</span> · 0,01$/lượt</p>
+          <p className="mt-2 text-right text-[10px] font-medium text-slate-300" title="Số lượt AI ước tính còn lại">{aiCallsRemaining}</p>
         </div>
       )}
     </section>
