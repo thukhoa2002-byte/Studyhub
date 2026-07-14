@@ -142,6 +142,10 @@ export default function App() {
     void persistDeck(title, createdQuestions);
   }
 
+  function onSaveDeck(title: string, cards: GeneratedQuestion[]) {
+    void persistDeck(title, cards);
+  }
+
   async function shareSavedDeck(emails: string[]) {
     if (!sharingDeck) return;
     try { await shareDeckWithEmails(sharingDeck.id, emails); setSharingDeck(null); alert("Đã chia sẻ bộ thẻ."); }
@@ -254,6 +258,7 @@ export default function App() {
             onGenerate={onGenerate}
             onImportDeck={onImportDeck}
             onCreateDeck={onCreateDeck}
+            onSaveDeck={onSaveDeck}
             savedDecks={savedDecks}
             onOpenDeck={openSavedDeck}
             onEditDeck={editSavedDeck}

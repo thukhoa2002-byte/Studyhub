@@ -20,6 +20,7 @@ interface Props {
   onGenerate: () => void;
   onImportDeck: (file: File) => Promise<void>;
   onCreateDeck: (title: string, questions: GeneratedQuestion[]) => void;
+  onSaveDeck: (title: string, questions: GeneratedQuestion[]) => void | Promise<void>;
   savedDecks: SavedDeck[];
   onOpenDeck: (deck: SavedDeck) => void;
   onEditDeck: (deck: SavedDeck) => void;
@@ -54,6 +55,7 @@ export default function DeckSetup({
   onGenerate,
   onImportDeck,
   onCreateDeck,
+  onSaveDeck,
   savedDecks,
   onOpenDeck,
   onEditDeck,
@@ -95,18 +97,18 @@ export default function DeckSetup({
 
   function createDeck() {
     if (validCards.length === 0) return;
+    onCreateDeck(title.trim() || "Bộ thẻ mới", buildQuestions());
+  }
 
-    onCreateDeck(
-      title.trim() || "Bộ thẻ mới",
-      validCards.map((card, index) => ({
+  function buildQuestions(): GeneratedQuestion[] {
+    return validCards.map((card, index) => ({
         id: card.id,
         question: card.question.trim(),
         answer: card.answer.trim(),
         category: "Tự tạo",
         importance: index + 1,
         bookmarked: false,
-      })),
-    );
+      }));
   }
 
   return (
@@ -247,14 +249,10 @@ export default function DeckSetup({
               <Plus size={18} />
               Thêm thẻ
             </button>
-            <button
-              disabled={validCards.length === 0}
-              onClick={createDeck}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Lưu & bắt đầu học
-              <ArrowRight size={18} />
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button disabled={validCards.length === 0} onClick={() => void onSaveDeck(title.trim() || "Bộ thẻ mới", buildQuestions())} className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-5 py-3 text-sm font-bold text-teal-700 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-40">Lưu</button>
+              <button disabled={validCards.length === 0} onClick={createDeck} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40">Lưu &amp; học ngay <ArrowRight size={18} /></button>
+            </div>
           </div>
         </div>
       )}
