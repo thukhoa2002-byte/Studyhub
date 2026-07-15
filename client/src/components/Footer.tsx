@@ -69,7 +69,7 @@ function Footer() {
         <blockquote className="daily-quote mx-auto max-w-3xl text-base font-medium italic leading-7 text-rose-950 sm:text-lg">“{quote}”</blockquote>
         <cite className="mt-3 block text-sm font-semibold italic text-slate-500">— {author}</cite>
       </div>
-      <p className="mt-5 text-xs text-slate-400">© 2026 Học bài thoiii</p>
+      <p className="mt-5 text-xs text-slate-400">© 2026 Học bài thoiii · <span className="font-semibold tracking-wide text-slate-500">bdtk v1.0.0</span></p>
     </footer>
   );
 }
