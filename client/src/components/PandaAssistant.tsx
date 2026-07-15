@@ -3,6 +3,15 @@ import { useEffect, useMemo, useState } from "react";
 
 type PandaAction = "sleep" | "wake" | "eat" | "nap" | "study" | "exercise";
 
+const PANDA_TITLES: Record<PandaAction, string> = {
+  sleep: "Panda đi ngủ đây! 🐼",
+  wake: "Panda thức dậy rồi! 🐼",
+  eat: "Panda ăn sáng đây! 🐼",
+  nap: "Panda nghỉ trưa đây! 🐼",
+  study: "Panda học bài đây! 🐼",
+  exercise: "Panda đi chơi đây! 🐼",
+};
+
 function getPandaRoutine(date: Date): { action: PandaAction; label: string; message: string; emoji: string } {
   const minutes = date.getHours() * 60 + date.getMinutes();
   if (minutes >= 6 * 60 + 15 && minutes < 7 * 60 + 30) return { action: "eat", label: "Thức dậy · vệ sinh · ăn uống", message: "Panda vừa thức dậy, vệ sinh và đang gặm trúc nạp năng lượng cho ngày mới.", emoji: "🎋" };
@@ -31,7 +40,7 @@ export default function PandaAssistant() {
     <div className="fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-2 sm:bottom-7 sm:right-7">
       {open && <div className="relative w-60 rounded-2xl border border-rose-100 bg-white/95 p-4 text-sm text-slate-600 shadow-[0_16px_40px_rgba(190,24,93,0.18)] backdrop-blur">
         <button type="button" onClick={() => setOpen(false)} aria-label="Đóng trợ lý" className="absolute right-2 top-2 rounded-full p-1 text-slate-400 hover:bg-rose-50"><X size={14} /></button>
-        <p className="pr-5 font-bold text-rose-950">Panda học bài đây! 🐼</p>
+        <p className="pr-5 font-bold text-rose-950">{PANDA_TITLES[routine.action]}</p>
         <p className="mt-1 font-semibold text-teal-600">{routine.label} · {routine.emoji}</p>
         <p className="mt-1 text-[11px] font-medium text-slate-400">Cập nhật lúc {timeLabel}</p>
         <p className="mt-1 leading-5">{routine.message}</p>
