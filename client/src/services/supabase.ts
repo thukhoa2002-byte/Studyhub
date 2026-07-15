@@ -17,6 +17,11 @@ export interface SavedDeck {
   cards: GeneratedQuestion[];
   member_role?: "admin" | "member";
   member_access?: "edit" | "view";
+  review_stats: {
+    new: number;
+    learning: number;
+    due: number;
+  };
 }
 
 export interface DeckMember {
@@ -87,16 +92,33 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
     .eq("user_id", _userId);
   const membershipByDeck = new Map((memberships ?? []).map((item) => [item.deck_id, item]));
 
-  return (data ?? []).map((deck) => ({
-    id: deck.id,
-    title: deck.title,
-    visibility: deck.visibility,
-    owner_id: deck.owner_id,
-    member_role: membershipByDeck.get(deck.id)?.role === "admin" ? "admin" : "member",
-    member_access: membershipByDeck.get(deck.id)?.role === "admin" || membershipByDeck.get(deck.id)?.access === "edit" ? "edit" : "view",
-    cards: [...(deck.cards ?? [])]
-      .sort((a, b) => a.position - b.position)
-      .map((card) => ({
+  const { data: reviews, error: reviewsError } = await supabase
+    .from("card_reviews")
+    .select("card_id, due_at")
+    .eq("user_id", _userId);
+  if (reviewsError) console.warn("Card review status is not available yet", reviewsError.message);
+  const reviewByCard = new Map((reviews ?? []).map((review) => [review.card_id, review]));
+  const now = Date.now();
+
+  return (data ?? []).map((deck) => {
+    const deckCards = [...(deck.cards ?? [])].sort((a, b) => a.position - b.position);
+    const reviewStats = deckCards.reduce((stats, card) => {
+      const review = reviewByCard.get(card.id);
+      if (!review) stats.new += 1;
+      else if (new Date(review.due_at).getTime() <= now) stats.due += 1;
+      else stats.learning += 1;
+      return stats;
+    }, { new: 0, learning: 0, due: 0 });
+
+    return {
+      id: deck.id,
+      title: deck.title,
+      visibility: deck.visibility,
+      owner_id: deck.owner_id,
+      member_role: membershipByDeck.get(deck.id)?.role === "admin" ? "admin" : "member",
+      member_access: membershipByDeck.get(deck.id)?.role === "admin" || membershipByDeck.get(deck.id)?.access === "edit" ? "edit" : "view",
+      review_stats: reviewStats,
+      cards: deckCards.map((card) => ({
         id: card.id,
         question: card.front,
         answer: card.back,
@@ -104,7 +126,8 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
         importance: 1,
         bookmarked: false,
       })),
-  }));
+    };
+  });
 }
 
 export async function saveReview(

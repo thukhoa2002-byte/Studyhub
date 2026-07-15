@@ -287,16 +287,38 @@ export default function DeckSetup({
       )}
 
       {savedDecks.length > 0 && (
-        <div className="glass-panel deck-library-panel mb-6 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
-          <p className="mb-3 text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
-          <div className="grid gap-2 sm:grid-cols-2">
+        <div className="glass-panel deck-library-panel mb-6 rounded-2xl border border-teal-100 bg-teal-50/60 p-3 sm:p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
+            <p className="text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500" aria-label="Trạng thái thẻ">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-sky-400" />Mới</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-400" />Đang học</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />Đến hạn</span>
+            </div>
+          </div>
+          <div className="mb-1 hidden grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem_5.5rem] items-center gap-2 border-b border-teal-100 px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:grid">
+            <span>Bộ thẻ</span>
+            <span className="text-center">Mới</span>
+            <span className="text-center">Đang học</span>
+            <span className="text-center">Đến hạn</span>
+            <span aria-hidden="true" />
+          </div>
+          <div className="space-y-2">
             {savedDecks.map((deck) => (
-              <div key={deck.id} className="glass-card deck-library-card relative flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm hover:bg-teal-100">
-                <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
-                <button onClick={() => onOpenDeck(deck)} className="flex min-w-0 flex-1 items-center justify-between text-left">
-                <span className="truncate">{deck.title}</span>
-                <span className="ml-3 text-xs text-slate-400">{deck.cards.length} thẻ</span>
-                </button>
+              <div key={deck.id} className="glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-teal-50 sm:grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem_5.5rem]">
+                <div className="flex min-w-0 items-center gap-2">
+                  <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
+                  <button onClick={() => onOpenDeck(deck)} className="min-w-0 flex-1 text-left">
+                    <span className="block truncate">{deck.title}</span>
+                    <span className="mt-0.5 block text-[11px] font-medium text-slate-400">{deck.cards.length} thẻ</span>
+                  </button>
+                </div>
+                <div className="col-span-2 grid grid-cols-3 rounded-lg bg-slate-50/80 px-2 py-2 sm:col-span-1 sm:contents">
+                  <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Mới</span><span className="font-bold text-sky-500">{deck.review_stats?.new ?? deck.cards.length}</span></div>
+                  <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Đang học</span><span className="font-bold text-rose-500">{deck.review_stats?.learning ?? 0}</span></div>
+                  <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Đến hạn</span><span className="font-bold text-emerald-500">{deck.review_stats?.due ?? 0}</span></div>
+                </div>
+                <div className="absolute right-3 top-3 flex items-center gap-0.5 sm:static sm:justify-end">
                 {(deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit") && <>
                   <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="rounded-md p-2 text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
                   <div className="relative">
@@ -328,6 +350,7 @@ export default function DeckSetup({
                     )}
                   </div>
                 </>}
+                </div>
               </div>
             ))}
           </div>

@@ -134,7 +134,7 @@ export default function App() {
     if (!user || !supabase) return;
     try {
       const saved = await saveDeck(user.id, title, cards, shareEmails);
-      if (saved) setCurrentSavedDeck({ ...saved, visibility: "private", cards });
+      if (saved) setCurrentSavedDeck({ ...saved, visibility: "private", cards, review_stats: { new: cards.length, learning: 0, due: 0 } });
       setSavedDecks(await listDecks(user.id));
     } catch (error) {
       console.error(error);
