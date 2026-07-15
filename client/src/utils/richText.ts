@@ -60,6 +60,10 @@ export function toClozeQuestionHtml(value: string) {
   return sanitizeHtml(toEditorHtml(value)).replace(/\{\{c\d+::([\s\S]*?)\}\}/gi, '<span class="cloze-blank" aria-label="Ô điền khuyết">_____</span>');
 }
 
+export function toClozeRevealedHtml(value: string) {
+  return sanitizeHtml(toEditorHtml(value)).replace(/\{\{c\d+::([\s\S]*?)\}\}/gi, '<span class="cloze-answer">$1</span>');
+}
+
 export function toClozeAnswerHtml(value: string) {
   const answers = Array.from(value.matchAll(/\{\{c\d+::([\s\S]*?)\}\}/gi), (match) => {
     const parsed = new DOMParser().parseFromString(match[1], "text/html");
