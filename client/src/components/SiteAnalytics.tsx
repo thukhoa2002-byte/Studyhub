@@ -42,25 +42,16 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
   const [onlineVisitors, setOnlineVisitors] = useState<OnlineVisitor[]>([]);
   const [activePanel, setActivePanel] = useState<DetailPanel | null>(null);
   const [unavailable, setUnavailable] = useState(false);
-
-  useEffect(() => {
-    // Give Supabase a brief moment to restore an existing session so a signed
-    // in visit is not counted once as a guest and again as a member.
-    const timer = window.setTimeout(() => {
-      void recordSiteVisit(userId).catch((error) => {
-        console.warn("Site visit analytics are not configured yet", error);
-      });
-    }, userId ? 0 : 1_200);
-    return () => window.clearTimeout(timer);
-  }, [userId]);
+  const [analyticsRefreshVersion, setAnalyticsRefreshVersion] = useState(0);
 
   useEffect(() => {
     const client = supabase;
     if (!client) return;
     const visitorKey = getVisitorKey(userId);
     const channel = client.channel("site-presence", {
-      config: { presence: { key: visitorKey } },
+      config: { presence: { key: visitorKey }, broadcast: { self: true } },
     });
+    let recordTimer: number | undefined;
 
     const updateOnlineVisitors = () => {
       const uniqueVisitors = new Map<string, OnlineVisitor>();
@@ -85,18 +76,31 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
       .on("presence", { event: "sync" }, updateOnlineVisitors)
       .on("presence", { event: "join" }, updateOnlineVisitors)
       .on("presence", { event: "leave" }, updateOnlineVisitors)
+      .on("broadcast", { event: "visit-recorded" }, () => setAnalyticsRefreshVersion((version) => version + 1))
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           // Presence payload intentionally excludes email. Only the protected
           // analytics RPC below resolves visitor keys to account labels.
           await channel.track({ visitor_key: visitorKey, online_at: new Date().toISOString() });
           updateOnlineVisitors();
+          // Give Supabase a brief moment to restore an existing session so a
+          // signed-in visit is not counted once as guest and again as member.
+          recordTimer = window.setTimeout(() => {
+            void recordSiteVisit(userId).then(() => channel.send({
+              type: "broadcast",
+              event: "visit-recorded",
+              payload: {},
+            })).catch((error) => {
+              console.warn("Site visit analytics are not configured yet", error);
+            });
+          }, userId ? 0 : 1_200);
         }
       });
 
     const timer = window.setInterval(updateOnlineVisitors, 10_000);
     return () => {
       window.clearInterval(timer);
+      if (recordTimer !== undefined) window.clearTimeout(recordTimer);
       void channel.untrack();
       void client.removeChannel(channel);
     };
@@ -124,7 +128,7 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
       active = false;
       window.clearInterval(timer);
     };
-  }, [visible]);
+  }, [analyticsRefreshVersion, visible]);
 
   if (!visible) return null;
 
