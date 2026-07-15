@@ -23,7 +23,9 @@ export default function PandaAssistant() {
   }, []);
   const routine = useMemo(() => getPandaRoutine(now), [now]);
   const timeLabel = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-  const scene = routine.action === "sleep" || routine.action === "nap" ? "🌳" : routine.action === "exercise" ? "🎉✨" : "";
+  const sleeping = routine.action === "sleep" || routine.action === "nap";
+  const pandaImage = sleeping ? "/panda-sleeping-branch.png" : "/panda-assistant.png";
+  const scene = routine.action === "exercise" ? "🎉✨" : "";
 
   return (
     <div className="fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-2 sm:bottom-7 sm:right-7">
@@ -36,7 +38,7 @@ export default function PandaAssistant() {
       </div>}
       <button type="button" onClick={() => setOpen((value) => !value)} aria-label={`Mở trợ lý AI Panda: ${routine.label}`} title={routine.label} className="group relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-rose-100 to-teal-100 shadow-[0_10px_30px_rgba(15,118,110,0.2)] transition hover:scale-105 sm:h-24 sm:w-24">
         {scene && <span className={`panda-scene panda-scene-${routine.action}`} aria-hidden="true">{scene}</span>}
-        <img src="/panda-assistant.png" alt="Trợ lý AI Panda" className={`panda-bob panda-action-${routine.action} relative z-[1] h-full w-full object-contain`} />
+        <img src={pandaImage} alt={sleeping ? "Panda đang ngủ trên cành cây" : "Trợ lý AI Panda"} className={`panda-bob panda-action-${routine.action} relative z-[1] h-full w-full rounded-full object-cover`} />
         <span className={`panda-prop panda-prop-${routine.action}`} aria-hidden="true">{routine.emoji}</span>
         <span className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-teal-400 text-white shadow-sm"><MessageCircle size={14} /></span>
       </button>
