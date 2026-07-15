@@ -31,10 +31,10 @@ const ratingStyle: Record<Rating, string> = {
 };
 
 const ratingText: Record<Rating, [string, string]> = {
-  again: ["Lại", "< 1 phút"],
-  hard: ["Khó", "< 6 phút"],
-  good: ["Tốt", "< 10 phút"],
-  easy: ["Dễ", "4 ngày"],
+  again: ["Lại", "10 phút"],
+  hard: ["Khó", "1 ngày"],
+  good: ["Tốt", "3 ngày"],
+  easy: ["Dễ", "7 ngày"],
 };
 
 interface SavedStudyProgress {
