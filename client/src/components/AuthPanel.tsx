@@ -106,7 +106,7 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
         <button type="button" onClick={() => setMenuOpen((open) => !open)} aria-label="Mở tài khoản" className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-teal-100 bg-teal-50 text-teal-700 shadow-sm hover:border-teal-300">
           {avatar ? <img src={avatar} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : <UserRound size={19} />}
         </button>
-        {menuOpen && <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-rose-100 bg-white p-3 shadow-xl">
+        {menuOpen && <div className="absolute right-0 top-full z-[80] mt-2 w-64 rounded-2xl border border-rose-100 bg-white p-3 shadow-[0_20px_55px_rgba(15,23,42,.2)]">
           <p className="truncate px-2 pb-2 text-xs font-semibold text-slate-500">{user.email}</p>
           <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={(event) => void updateAvatar(event)} />
           <button type="button" disabled={busy} onClick={() => avatarInput.current?.click()} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50 disabled:opacity-50"><Camera size={16} /> Đổi ảnh đại diện</button>

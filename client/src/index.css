@@ -59,7 +59,7 @@ button:hover {
 
 button:active { transform: translateY(0) scale(.97); }
 
-.glass-header { position: relative; isolation: isolate; overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,.8), 0 10px 28px rgba(148,163,184,.08); }
+.glass-header { position: relative; isolation: isolate; overflow: visible; box-shadow: 0 1px 0 rgba(255,255,255,.8), 0 10px 28px rgba(148,163,184,.08); }
 .glass-header::after { position: absolute; inset: 0; z-index: -1; pointer-events: none; content: ""; background: linear-gradient(105deg, transparent 18%, rgba(255,255,255,.46) 45%, transparent 70%); transform: translateX(-120%); animation: liquid-glass-sheen 8s cubic-bezier(.4,0,.2,1) infinite; }
 
 .glass-panel,
