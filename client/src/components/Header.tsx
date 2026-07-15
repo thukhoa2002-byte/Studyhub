@@ -6,9 +6,11 @@ interface Props {
   specialUser?: boolean;
   theme: "color" | "basic";
   onThemeChange: (theme: "color" | "basic") => void;
+  sharedDeckNotificationsEnabled: boolean;
+  onSharedDeckNotificationsChange: (enabled: boolean) => void;
 }
 
-export default function Header({ onHome, onUserChange, specialUser = false, theme, onThemeChange }: Props) {
+export default function Header({ onHome, onUserChange, specialUser = false, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange }: Props) {
   return (
     <header className="glass-header sticky top-0 z-50 border-b border-rose-100 bg-white/65 backdrop-blur-xl">
 
@@ -37,7 +39,7 @@ export default function Header({ onHome, onUserChange, specialUser = false, them
         {/* Right */}
 
         <div className="flex shrink-0 items-center gap-3">
-          <AuthPanel onUserChange={onUserChange ?? (() => undefined)} specialUser={specialUser} theme={theme} onThemeChange={onThemeChange} />
+          <AuthPanel onUserChange={onUserChange ?? (() => undefined)} specialUser={specialUser} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
         </div>
 
       </div>

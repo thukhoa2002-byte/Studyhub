@@ -12,9 +12,10 @@ import ShareDeckDialog from "./components/ShareDeckDialog";
 import LoadingOverlay from "./components/LoadingOverlay";
 import PandaAssistant from "./components/PandaAssistant";
 import SiteAnalytics from "./components/SiteAnalytics";
+import SharedDeckNotification from "./components/SharedDeckNotification";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
-import { deleteDeck, listDecks, listDueCards, saveDeck, saveReview, shareDeckWithEmails, supabase, updateDeck, type SavedDeck } from "./services/supabase";
+import { deleteDeck, dismissDeckActivityNotification, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
 
 import {
   generateQuestions,
@@ -54,6 +55,8 @@ export default function App() {
   const [welcomeClosing, setWelcomeClosing] = useState(false);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
   const [theme, setTheme] = useState<"color" | "basic">(() => (localStorage.getItem("hocbai-theme") === "basic" ? "basic" : "color"));
+  const [sharedDeckNotificationsEnabled, setSharedDeckNotificationsEnabled] = useState(true);
+  const [deckActivityNotifications, setDeckActivityNotifications] = useState<DeckActivityNotification[]>([]);
   const specialUser = isSpecialUser(user?.email);
   const analyticsAdmin = isAnalyticsAdmin(user?.email);
   const [dailyQuote, dailyAuthor] = getDailyQuote();
@@ -66,6 +69,42 @@ export default function App() {
   useEffect(() => {
     setupDeckRef.current = currentSavedDeck;
   }, [currentSavedDeck]);
+
+  useEffect(() => {
+    if (!user) {
+      setSharedDeckNotificationsEnabled(true);
+      setDeckActivityNotifications([]);
+      return;
+    }
+    let active = true;
+    const refreshNotifications = async () => {
+      try {
+        const enabled = await getDeckNotificationsEnabled(user.id);
+        const notifications = enabled ? await listDeckActivityNotifications(user.id) : [];
+        if (!active) return;
+        setSharedDeckNotificationsEnabled(enabled);
+        setDeckActivityNotifications(notifications);
+      } catch (error) { console.warn("Shared deck notifications are not available yet", error); }
+    };
+    void refreshNotifications();
+    const timer = window.setInterval(() => void refreshNotifications(), 15000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [user]);
+
+  async function changeSharedDeckNotifications(enabled: boolean) {
+    setSharedDeckNotificationsEnabled(enabled);
+    if (!user) return;
+    try {
+      await setDeckNotificationsEnabled(user.id, enabled);
+      setDeckActivityNotifications(enabled ? await listDeckActivityNotifications(user.id) : []);
+    } catch (error) { console.error(error); }
+  }
+
+  async function dismissSharedDeckNotification(notificationId: string) {
+    setDeckActivityNotifications((items) => items.filter((item) => item.id !== notificationId));
+    if (!user) return;
+    try { await dismissDeckActivityNotification(user.id, notificationId); } catch (error) { console.error(error); }
+  }
 
   useEffect(() => {
     const closeTimer = window.setTimeout(() => setWelcomeClosing(true), 4500);
@@ -490,7 +529,7 @@ export default function App() {
 
       <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
 
-        <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} />
+        <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
         {questions.length > 0 && (
           <Navbar
@@ -544,6 +583,7 @@ export default function App() {
         )}
 
       </main>
+      {!showWelcome && deckActivityNotifications.length > 0 && <SharedDeckNotification notifications={deckActivityNotifications} onDismiss={(notificationId) => void dismissSharedDeckNotification(notificationId)} onDisable={() => void changeSharedDeckNotifications(false)} />}
       <Footer />
       <PandaAssistant />
         {sharingDeck && <ShareDeckDialog deckId={sharingDeck.id} title={sharingDeck.title} onClose={() => setSharingDeck(null)} onShare={shareSavedDeck} />}

@@ -32,6 +32,61 @@ export interface DeckMember {
   is_owner: boolean;
 }
 
+export interface DeckActivityNotification {
+  id: string;
+  deck_id: string;
+  deck_title: string;
+  actor_label: string;
+  created_at: string;
+}
+
+export async function getDeckNotificationsEnabled(userId: string): Promise<boolean> {
+  if (!supabase) return true;
+  const { data, error } = await supabase.from("deck_notification_preferences").select("enabled").eq("user_id", userId).maybeSingle();
+  if (error) {
+    if (/deck_notification_preferences|schema cache/i.test(error.message)) return true;
+    throw error;
+  }
+  return data?.enabled !== false;
+}
+
+export async function setDeckNotificationsEnabled(userId: string, enabled: boolean) {
+  if (!supabase) return;
+  const { error } = await supabase.from("deck_notification_preferences").upsert({ user_id: userId, enabled, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function listDeckActivityNotifications(userId: string): Promise<DeckActivityNotification[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("deck_activity_notifications")
+    .select("id, deck_id, actor_label, created_at, decks(title)")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) {
+    if (/deck_activity_notifications|schema cache/i.test(error.message)) return [];
+    throw error;
+  }
+  const ids = (data ?? []).map((item) => item.id);
+  if (ids.length === 0) return [];
+  const { data: reads, error: readsError } = await supabase.from("deck_activity_notification_reads").select("notification_id").eq("user_id", userId).in("notification_id", ids);
+  if (readsError) throw readsError;
+  const readIds = new Set((reads ?? []).map((item) => item.notification_id));
+  return (data ?? []).filter((item) => !readIds.has(item.id)).map((item) => ({
+    id: item.id,
+    deck_id: item.deck_id,
+    deck_title: Array.isArray(item.decks) ? item.decks[0]?.title ?? "Bộ thẻ chung" : (item.decks as { title?: string } | null)?.title ?? "Bộ thẻ chung",
+    actor_label: item.actor_label || "Một thành viên",
+    created_at: item.created_at,
+  }));
+}
+
+export async function dismissDeckActivityNotification(userId: string, notificationId: string) {
+  if (!supabase) return;
+  const { error } = await supabase.from("deck_activity_notification_reads").upsert({ user_id: userId, notification_id: notificationId, read_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
 export async function saveDeck(
   userId: string,
   title: string,
@@ -275,7 +330,7 @@ export async function updateDeck(
 
   const existingIds = new Set((existingCards ?? []).map((card) => card.id));
   const retainedIds = new Set<string>();
-  const newCards: Array<{ id?: string; deck_id: string; front: string; back: string; category: string; position: number; scope?: "personal"; personal_owner_id?: string }> = [];
+  const newCards: Array<{ id?: string; deck_id: string; front: string; back: string; category: string; position: number; scope?: "personal"; personal_owner_id?: string; creator_label?: string }> = [];
 
   for (const [position, question] of questions.entries()) {
     const card = { front: question.question, back: question.answer, category: question.category, position };
@@ -288,6 +343,7 @@ export async function updateDeck(
         ...(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(question.id) ? { id: question.id } : {}),
         deck_id: deckId,
         ...card,
+        ...(question.creatorLabel ? { creator_label: question.creatorLabel } : {}),
         ...(question.scope === "personal" ? { scope: "personal" as const, personal_owner_id: userId } : {}),
       });
     }

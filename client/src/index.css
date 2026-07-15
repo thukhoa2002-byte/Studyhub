@@ -181,6 +181,8 @@ html[data-theme="basic"] main { background: #fafafa !important; }
 @keyframes welcome-icon-float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
 @keyframes welcome-dot { 0%,100% { transform: scale(.75); opacity: .45; } 50% { transform: scale(1.25); opacity: 1; } }
 @keyframes welcome-progress-fill { from { width: 0; } to { width: 100%; } }
+@keyframes shared-deck-toast-in { from { opacity: 0; transform: translate3d(24px,-6px,0) scale(.96); } 70% { transform: translate3d(-2px,0,0) scale(1.005); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } }
+.shared-deck-toast { animation: shared-deck-toast-in 520ms cubic-bezier(.22,1,.36,1) both; }
 
 @media (prefers-reduced-motion: reduce) {
   .welcome-screen,
@@ -190,6 +192,7 @@ html[data-theme="basic"] main { background: #fafafa !important; }
   .welcome-icon,
   .welcome-progress span,
   .welcome-dots span { animation: none !important; }
+  .shared-deck-toast { animation: none !important; }
   .setup-mode-tabs::after,
   .setup-mode-tabs__glider,
   .mode-panel { animation: none !important; transition: none !important; }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, LogIn, LogOut, UserRound } from "lucide-react";
+import { Bell, BellOff, Camera, LogIn, LogOut, UserRound } from "lucide-react";
 import { supabase } from "../services/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -8,9 +8,11 @@ interface Props {
   specialUser?: boolean;
   theme: "color" | "basic";
   onThemeChange: (theme: "color" | "basic") => void;
+  sharedDeckNotificationsEnabled: boolean;
+  onSharedDeckNotificationsChange: (enabled: boolean) => void;
 }
 
-export default function AuthPanel({ onUserChange, specialUser = false, theme, onThemeChange }: Props) {
+export default function AuthPanel({ onUserChange, specialUser = false, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -111,6 +113,13 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
           <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={(event) => void updateAvatar(event)} />
           <button type="button" disabled={busy} onClick={() => avatarInput.current?.click()} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50 disabled:opacity-50"><Camera size={16} /> Đổi ảnh đại diện</button>
           <button type="button" onClick={() => { setMenuOpen(false); void supabase?.auth.signOut(); }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"><LogOut size={16} /> Đăng xuất</button>
+          <div className="mt-2 border-t border-slate-100 pt-2">
+            <button type="button" role="switch" aria-checked={sharedDeckNotificationsEnabled} onClick={() => onSharedDeckNotificationsChange(!sharedDeckNotificationsEnabled)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50">
+              {sharedDeckNotificationsEnabled ? <Bell size={16} className="text-teal-600" /> : <BellOff size={16} className="text-slate-400" />}
+              <span className="flex-1">Thông báo bộ thẻ</span>
+              <span className={`relative h-5 w-9 rounded-full transition ${sharedDeckNotificationsEnabled ? "bg-teal-400" : "bg-slate-200"}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${sharedDeckNotificationsEnabled ? "translate-x-[18px]" : "translate-x-0.5"}`} /></span>
+            </button>
+          </div>
           <div className="mt-2 border-t border-slate-100 pt-2"><p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Background</p><div className="flex gap-1 rounded-xl bg-slate-50 p-1"><button type="button" onClick={() => onThemeChange("color")} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "color" ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>Color</button><button type="button" onClick={() => onThemeChange("basic")} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button></div></div>
         </div>}
       </div>
