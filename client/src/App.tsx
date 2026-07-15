@@ -11,8 +11,9 @@ import DeckEditor from "./components/DeckEditor";
 import ShareDeckDialog from "./components/ShareDeckDialog";
 import LoadingOverlay from "./components/LoadingOverlay";
 import PandaAssistant from "./components/PandaAssistant";
+import SiteAnalytics from "./components/SiteAnalytics";
 import Footer, { getDailyQuote } from "./components/Footer";
-import { isSpecialUser } from "./config/access";
+import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
 import { deleteDeck, listDecks, listDueCards, saveDeck, saveReview, shareDeckWithEmails, supabase, updateDeck, type SavedDeck } from "./services/supabase";
 
 import {
@@ -54,6 +55,7 @@ export default function App() {
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
   const [theme, setTheme] = useState<"color" | "basic">(() => (localStorage.getItem("hocbai-theme") === "basic" ? "basic" : "color"));
   const specialUser = isSpecialUser(user?.email);
+  const analyticsAdmin = isAnalyticsAdmin(user?.email);
   const [dailyQuote, dailyAuthor] = getDailyQuote();
 
   useEffect(() => {
@@ -489,6 +491,8 @@ export default function App() {
             onEdit={editCurrentCard}
           />
         )}
+
+        <SiteAnalytics userId={user?.id} visible={analyticsAdmin && !editing && questions.length === 0} />
 
         {editing && currentSavedDeck ? (
           <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} />
