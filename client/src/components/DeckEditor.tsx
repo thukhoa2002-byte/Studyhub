@@ -18,9 +18,10 @@ interface Props {
   currentDeckId: string;
   onSwitchDeck: (deck: SavedDeck) => void | Promise<void>;
   focusQuestionId?: string | null;
+  currentUserLabel: string;
 }
 
-export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility, onCancel, onHome, onSave, onSaveAndStudy, titleSuggestions = [], decks, currentDeckId, onSwitchDeck, focusQuestionId }: Props) {
+export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility, onCancel, onHome, onSave, onSaveAndStudy, titleSuggestions = [], decks, currentDeckId, onSwitchDeck, focusQuestionId, currentUserLabel }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [questions, setQuestions] = useState(initialQuestions);
   const [activeQuestionId, setActiveQuestionId] = useState(focusQuestionId || initialQuestions[0]?.id || "");
@@ -65,7 +66,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   }
 
   function addCard(scope: "shared" | "personal" = "shared") {
-    const card = { id: crypto.randomUUID(), scope, question: "", answer: "", category: "Tự tạo", importance: 1, bookmarked: false };
+    const card = { id: crypto.randomUUID(), scope, creatorLabel: currentUserLabel, question: "", answer: "", category: "Tự tạo", importance: 1, bookmarked: false };
     setQuestions((current) => [...current, card]);
     setActiveQuestionId(card.id);
     setShowCardList(false);
@@ -147,7 +148,10 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
 
         {activeQuestion && <div key={activeQuestion.id} data-card-id={activeQuestion.id} className="mt-5 rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ {activeQuestionIndex + 1}</p>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ {activeQuestionIndex + 1}</p>
+              {visibility === "shared" && <p className="mt-1 text-[11px] font-medium text-slate-400">Đã thêm bởi: <span className="font-semibold text-slate-500">{activeQuestion.creatorLabel || "Chủ bộ thẻ"}</span></p>}
+            </div>
             <button disabled={questions.length <= 1} onClick={() => removeCard(activeQuestion.id)} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">

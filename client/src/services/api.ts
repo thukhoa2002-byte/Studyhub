@@ -13,6 +13,7 @@ export interface GeneratedQuestion {
   id: string;
 
   scope?: "shared" | "personal";
+  creatorLabel?: string;
 
   question: string;
   answer: string;

@@ -79,10 +79,22 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
 
   let { data, error } = await supabase
     .from("decks")
-    .select("id, title, visibility, owner_id, cards(id, front, back, category, position, scope, personal_owner_id)")
+    .select("id, title, visibility, owner_id, cards(id, front, back, category, position, scope, personal_owner_id, creator_label)")
     .order("created_at", { ascending: false });
 
-  // Keep the site usable while the personal-card migration is being applied.
+  // The creator label was added after personal cards. Keep existing projects
+  // usable while either migration is still being applied.
+  if (error && /creator_label/i.test(error.message)) {
+    const fallback = await supabase
+      .from("decks")
+      .select("id, title, visibility, owner_id, cards(id, front, back, category, position, scope, personal_owner_id)")
+      .order("created_at", { ascending: false });
+    data = fallback.data?.map((deck) => ({
+      ...deck,
+      cards: (deck.cards ?? []).map((card) => ({ ...card, creator_label: null })),
+    })) ?? null;
+    error = fallback.error;
+  }
   if (error && /scope|personal_owner_id/i.test(error.message)) {
     const fallback = await supabase
       .from("decks")
@@ -94,6 +106,7 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
         ...card,
         scope: "shared",
         personal_owner_id: null,
+        creator_label: null,
       })),
     })) ?? null;
     error = fallback.error;
@@ -137,6 +150,7 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
       cards: deckCards.map((card) => ({
         id: card.id,
         scope: (card as { scope?: string }).scope === "personal" ? "personal" : "shared",
+        creatorLabel: (card as { creator_label?: string | null }).creator_label || undefined,
         question: card.front,
         answer: card.back,
         category: card.category ?? "Anki",
