@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Check, ChevronDown, Home, Plus, Save, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Home, Plus, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import RichTextEditor from "./RichTextEditor";
@@ -26,6 +26,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const [showCardList, setShowCardList] = useState(false);
   const [showDeckList, setShowDeckList] = useState(false);
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | null>(null);
+  const pendingAutoSaveRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     setTitle(initialTitle);
@@ -33,7 +34,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     setActiveQuestionId(focusQuestionId || initialQuestions[0]?.id || "");
     setShowCardList(false);
     setShowDeckList(false);
-  }, [initialTitle, initialQuestions, focusQuestionId]);
+  }, [currentDeckId]);
 
   useEffect(() => {
     if (!focusQuestionId) return;
@@ -44,7 +45,15 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const activeQuestionIndex = activeQuestion ? questions.findIndex((item) => item.id === activeQuestion.id) : -1;
 
   function update(id: string, field: "question" | "answer", value: string) {
-    setQuestions((current) => current.map((item) => item.id === id ? { ...item, [field]: value } : item));
+    const nextQuestions = questions.map((item) => item.id === id ? { ...item, [field]: value } : item);
+    setQuestions(nextQuestions);
+    const updatedCard = nextQuestions.find((item) => item.id === id);
+    if (title.trim() && updatedCard?.question.trim() && updatedCard.answer.trim()) {
+      const valid = nextQuestions.filter((item) => item.question.trim() && item.answer.trim());
+      pendingAutoSaveRef.current = pendingAutoSaveRef.current.catch(() => undefined).then(async () => {
+        try { await onSave(title.trim(), valid, visibility); } catch { /* The parent already shows the save error. */ }
+      });
+    }
   }
 
   function addCard() {
@@ -64,10 +73,11 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     });
   }
 
-  function save(saveAndStudy = false) {
+  async function save(saveAndStudy = false) {
     const valid = questions.filter((item) => item.question.trim() && item.answer.trim());
     if (!title.trim() || valid.length === 0) return;
-    void (saveAndStudy ? onSaveAndStudy(title.trim(), valid, visibility) : onSave(title.trim(), valid, visibility));
+    await pendingAutoSaveRef.current.catch(() => undefined);
+    await (saveAndStudy ? onSaveAndStudy(title.trim(), valid, visibility) : onSave(title.trim(), valid, visibility));
   }
 
   function switchDeck(deck: SavedDeck) {
@@ -135,8 +145,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           <button disabled={!activeQuestion?.question.trim() || !activeQuestion?.answer.trim()} onClick={addCard} title="Thêm thẻ" className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"><Plus size={18} /> Thêm thẻ</button>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Home size={19} /></button>
-          <button onClick={() => save(false)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-5 py-3 text-sm font-bold text-teal-700 hover:bg-teal-50"><Save size={18} /> Lưu</button>
-          <button onClick={() => save(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500"><Check size={18} /> Lưu &amp; học ngay</button>
+          <button onClick={() => void save(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500"><Check size={18} /> Lưu &amp; học ngay</button>
         </div>
         </div>
       </div>

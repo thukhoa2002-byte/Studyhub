@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { User } from "@supabase/supabase-js";
 
@@ -41,6 +41,8 @@ export default function App() {
   const [savedDecks, setSavedDecks] = useState<SavedDeck[]>([]);
   const [editing, setEditing] = useState(false);
   const [currentSavedDeck, setCurrentSavedDeck] = useState<SavedDeck | null>(null);
+  const setupDeckRef = useRef<SavedDeck | null>(null);
+  const setupSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [sharingDeck, setSharingDeck] = useState<SavedDeck | null>(null);
   const [pendingImport, setPendingImport] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [noDueNotice, setNoDueNotice] = useState(false);
@@ -58,6 +60,10 @@ export default function App() {
     localStorage.setItem("hocbai-theme", theme);
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    setupDeckRef.current = currentSavedDeck;
+  }, [currentSavedDeck]);
 
   useEffect(() => {
     const closeTimer = window.setTimeout(() => setWelcomeClosing(true), 4500);
@@ -250,15 +256,43 @@ export default function App() {
     setMode("study");
   }
 
+  function persistSetupDeck(title: string, cards: GeneratedQuestion[]) {
+    if (!user || !supabase) return Promise.resolve();
+    setupSaveQueueRef.current = setupSaveQueueRef.current.catch(() => undefined).then(async () => {
+      try {
+        const existingDeck = setupDeckRef.current;
+        if (!existingDeck) {
+          const saved = await saveDeck(user.id, title, cards);
+          if (saved) {
+            const nextDeck = { ...saved, visibility: saved.visibility ?? "private", cards } as SavedDeck;
+            setupDeckRef.current = nextDeck;
+            setCurrentSavedDeck(nextDeck);
+          }
+        } else {
+          await updateDeck(user.id, existingDeck.id, title, cards, existingDeck.visibility);
+          const nextDeck = { ...existingDeck, title, cards };
+          setupDeckRef.current = nextDeck;
+          setCurrentSavedDeck(nextDeck);
+        }
+        setSavedDecks(await listDecks(user.id));
+      } catch (error) {
+        console.error(error);
+        const detail = error instanceof Error ? error.message : JSON.stringify(error);
+        alert(`Chưa tự động lưu được bộ thẻ: ${detail}`);
+      }
+    });
+    return setupSaveQueueRef.current;
+  }
+
   function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[]) {
     setQuestions(createdQuestions);
     setDeckTitle(title);
     setMode("study");
-    void persistDeck(title, createdQuestions);
+    void persistSetupDeck(title, createdQuestions);
   }
 
   function onSaveDeck(title: string, cards: GeneratedQuestion[]) {
-    void persistDeck(title, cards);
+    void persistSetupDeck(title, cards);
   }
 
   async function shareSavedDeck(emails: string[]) {
