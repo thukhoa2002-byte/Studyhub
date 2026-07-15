@@ -3,6 +3,16 @@
 alter table public.cards add column if not exists created_by uuid references auth.users(id) on delete set null;
 alter table public.cards add column if not exists creator_label text;
 
+-- Older shares may already have members while the deck still says private.
+-- Normalize that state so the editor can show shared-deck warnings reliably.
+update public.decks d
+set visibility = 'shared', updated_at = now()
+where d.visibility <> 'shared'
+  and (
+    exists (select 1 from public.deck_members dm where dm.deck_id = d.id)
+    or exists (select 1 from public.deck_share_invites di where di.deck_id = d.id)
+  );
+
 -- Existing cards belong to the original deck owner.
 update public.cards c
 set created_by = d.owner_id,

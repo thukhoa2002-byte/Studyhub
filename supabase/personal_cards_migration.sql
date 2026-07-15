@@ -34,6 +34,8 @@ drop policy if exists "create cards in own decks" on public.cards;
 drop policy if exists "update cards in own decks" on public.cards;
 drop policy if exists "delete cards in own decks" on public.cards;
 drop policy if exists "edit cards in shared decks" on public.cards;
+drop policy if exists "manage shared cards" on public.cards;
+drop policy if exists "manage own personal cards" on public.cards;
 
 create policy "manage shared cards" on public.cards for all using (
   scope = 'shared'

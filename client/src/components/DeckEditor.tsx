@@ -29,6 +29,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const [showDeckList, setShowDeckList] = useState(false);
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | null>(null);
   const [showAddScopeDialog, setShowAddScopeDialog] = useState(false);
+  const [showIncompleteCardDialog, setShowIncompleteCardDialog] = useState(false);
   const pendingAutoSaveRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
@@ -71,6 +72,15 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     setActiveQuestionId(card.id);
     setShowCardList(false);
     setShowAddScopeDialog(false);
+  }
+
+  function requestAddCard() {
+    if (!activeQuestion?.question.trim() || !activeQuestion.answer.trim()) {
+      setShowIncompleteCardDialog(true);
+      return;
+    }
+    if (visibility === "shared") setShowAddScopeDialog(true);
+    else addCard();
   }
 
   function removeCard(id: string) {
@@ -161,7 +171,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         </div>}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button disabled={!activeQuestion?.question.trim() || !activeQuestion?.answer.trim()} onClick={() => visibility === "shared" ? setShowAddScopeDialog(true) : addCard()} title="Thêm thẻ" className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"><Plus size={18} /> Thêm thẻ</button>
+          <button onClick={requestAddCard} title="Thêm thẻ" className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700"><Plus size={18} /> Thêm thẻ</button>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Home size={19} /></button>
           <button onClick={() => void save(false)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white/80 px-5 py-3 text-sm font-bold text-teal-700 hover:bg-teal-50"><Save size={18} /> Lưu</button>
@@ -198,6 +208,14 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             </button>
           </div>
           <button type="button" onClick={() => setShowAddScopeDialog(false)} className="mt-4 w-full rounded-xl px-4 py-3 text-sm font-bold text-slate-500 hover:bg-white/70">Hủy</button>
+        </div>
+      </div>}
+      {showIncompleteCardDialog && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-labelledby="incomplete-card-title">
+        <div className="glass-dialog w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/80 to-amber-50/70 p-7 text-center shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600"><AlertTriangle size={23} /></div>
+          <h2 id="incomplete-card-title" className="mt-4 text-xl font-bold text-rose-950">Thẻ hiện tại chưa hoàn chỉnh</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Hãy nhập đủ Front và Back, hoặc xóa thẻ trống này trước khi thêm thẻ tiếp theo.</p>
+          <button type="button" onClick={() => setShowIncompleteCardDialog(false)} className="mt-6 w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white hover:bg-teal-500">Quay lại nhập</button>
         </div>
       </div>}
     </section>
