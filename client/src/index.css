@@ -80,6 +80,7 @@ button:active { transform: translateY(0) scale(.97); }
 .glass-dialog { box-shadow: 0 26px 70px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.82); }
 .deck-library-panel,
 .deck-library-card { overflow: visible; }
+.deck-library-panel:has([role="menu"]) { z-index: 90; }
 .deck-library-card:has([role="menu"]) { z-index: 75; }
 input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box-shadow: 0 0 0 3px rgba(244,114,182,.13), 0 8px 22px rgba(244,114,182,.08); }
 

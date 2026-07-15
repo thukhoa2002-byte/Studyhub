@@ -1,17 +1,38 @@
 import React, { useState } from "react";
 import {
+  Activity,
+  Ambulance,
   ArrowRight,
+  Baby,
+  Bean,
+  Bone,
+  Brain,
   ChevronDown,
+  Dna,
+  Droplets,
+  Ear,
+  Eye,
   FileText,
+  FlaskConical,
+  HeartPulse,
+  Hospital,
   ListChecks,
   Plus,
   Pencil,
+  Ribbon,
+  Salad,
   Save,
+  Scissors,
   Share2,
+  Soup,
   Sparkles,
+  Stethoscope,
+  Syringe,
   Trash2,
   UploadCloud,
+  Wind,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import RichTextEditor from "./RichTextEditor";
@@ -38,12 +59,43 @@ interface Props {
 
 type SetupMode = "import" | "create" | "ai";
 
-const deckIconOptions = [
-  ["🫁", "Hô hấp"], ["❤️", "Tim mạch"], ["🩺", "Thận niệu"], ["🍽️", "Tiêu hoá"],
-  ["🩸", "Huyết học"], ["🥗", "Dinh dưỡng"], ["🧸", "Nhi khoa"], ["🤰", "Sản khoa"],
-  ["🦴", "Giải phẫu"], ["💓", "Sinh lý"], ["🧪", "Hoá sinh"], ["🧬", "Di truyền"],
-  ["🎋", "Học tập"], ["📚", "Mặc định"],
-] as const;
+interface DeckIconOption {
+  id: string;
+  label: string;
+  Icon: LucideIcon;
+  iconClass: string;
+  tileClass: string;
+}
+
+const deckIconOptions: DeckIconOption[] = [
+  { id: "respiratory", label: "Hô hấp", Icon: Wind, iconClass: "text-sky-600", tileClass: "bg-sky-50" },
+  { id: "cardiology", label: "Tim mạch", Icon: HeartPulse, iconClass: "text-rose-600", tileClass: "bg-rose-50" },
+  { id: "nephrology", label: "Thận – tiết niệu", Icon: Bean, iconClass: "text-amber-700", tileClass: "bg-amber-50" },
+  { id: "gastroenterology", label: "Tiêu hoá", Icon: Soup, iconClass: "text-orange-600", tileClass: "bg-orange-50" },
+  { id: "hematology", label: "Huyết học", Icon: Droplets, iconClass: "text-red-600", tileClass: "bg-red-50" },
+  { id: "nutrition", label: "Dinh dưỡng", Icon: Salad, iconClass: "text-lime-700", tileClass: "bg-lime-50" },
+  { id: "pediatrics", label: "Nhi khoa", Icon: Baby, iconClass: "text-cyan-600", tileClass: "bg-cyan-50" },
+  { id: "obstetrics", label: "Sản khoa", Icon: Activity, iconClass: "text-pink-600", tileClass: "bg-pink-50" },
+  { id: "surgery", label: "Ngoại khoa", Icon: Scissors, iconClass: "text-indigo-600", tileClass: "bg-indigo-50" },
+  { id: "orthopedics", label: "Chấn thương chỉnh hình", Icon: Bone, iconClass: "text-stone-600", tileClass: "bg-stone-100" },
+  { id: "neurology", label: "Thần kinh", Icon: Brain, iconClass: "text-violet-600", tileClass: "bg-violet-50" },
+  { id: "ophthalmology", label: "Mắt", Icon: Eye, iconClass: "text-blue-600", tileClass: "bg-blue-50" },
+  { id: "ent", label: "Tai mũi họng", Icon: Ear, iconClass: "text-teal-600", tileClass: "bg-teal-50" },
+  { id: "oncology", label: "Ung bướu", Icon: Ribbon, iconClass: "text-fuchsia-600", tileClass: "bg-fuchsia-50" },
+  { id: "emergency", label: "Cấp cứu", Icon: Ambulance, iconClass: "text-red-600", tileClass: "bg-red-50" },
+  { id: "laboratory", label: "Xét nghiệm", Icon: FlaskConical, iconClass: "text-purple-600", tileClass: "bg-purple-50" },
+  { id: "genetics", label: "Di truyền", Icon: Dna, iconClass: "text-emerald-600", tileClass: "bg-emerald-50" },
+  { id: "general", label: "Tổng quát", Icon: Stethoscope, iconClass: "text-slate-600", tileClass: "bg-slate-100" },
+  { id: "hospital", label: "Bệnh viện", Icon: Hospital, iconClass: "text-teal-700", tileClass: "bg-teal-50" },
+  { id: "injection", label: "Tiêm chủng", Icon: Syringe, iconClass: "text-cyan-700", tileClass: "bg-cyan-50" },
+];
+
+const legacyDeckIconIds: Record<string, string> = {
+  "🫁": "respiratory", "❤️": "cardiology", "🩺": "general", "🍽️": "gastroenterology",
+  "🩸": "hematology", "🥗": "nutrition", "🧸": "pediatrics", "🤰": "obstetrics",
+  "🦴": "orthopedics", "💓": "cardiology", "🧪": "laboratory", "🧬": "genetics",
+  "🎋": "general", "📚": "general",
+};
 
 interface DraftCard {
   id: string;
@@ -64,23 +116,36 @@ function newDraftCard(): DraftCard {
 
 function deckIcon(title: string) {
   const name = title.toLowerCase();
-  if (name.includes("ngoại") || name.includes("ngoai")) return "🩺";
-  if (name.includes("sản") || name.includes("san")) return "🤰";
-  if (name.includes("nhi")) return "🧸";
-  if (name.includes("nội") || name.includes("noi")) return "🫁";
-  if (name.includes("giải phẫu") || name.includes("giai phau")) return "🦴";
-  if (name.includes("sinh lý") || name.includes("sinh ly")) return "💓";
-  if (name.includes("hóa sinh") || name.includes("hoa sinh")) return "🧪";
-  if (name.includes("di truyền") || name.includes("di truyen") || name.includes("sinh học") || name.includes("sinh hoc")) return "🧬";
-  return "📚";
+  if (name.includes("hô hấp") || name.includes("ho hap") || name.includes("phổi") || name.includes("phoi")) return "respiratory";
+  if (name.includes("tim") || name.includes("mạch") || name.includes("mach")) return "cardiology";
+  if (name.includes("thận") || name.includes("than") || name.includes("tiết niệu") || name.includes("tiet nieu")) return "nephrology";
+  if (name.includes("tiêu hoá") || name.includes("tiêu hóa") || name.includes("tieu hoa")) return "gastroenterology";
+  if (name.includes("huyết") || name.includes("huyet")) return "hematology";
+  if (name.includes("dinh dưỡng") || name.includes("dinh duong")) return "nutrition";
+  if (name.includes("nhi")) return "pediatrics";
+  if (name.includes("sản") || name.includes("san")) return "obstetrics";
+  if (name.includes("ngoại") || name.includes("ngoai") || name.includes("phẫu thuật") || name.includes("phau thuat")) return "surgery";
+  if (name.includes("xương") || name.includes("xuong") || name.includes("chấn thương") || name.includes("chan thuong") || name.includes("giải phẫu") || name.includes("giai phau")) return "orthopedics";
+  if (name.includes("thần kinh") || name.includes("than kinh")) return "neurology";
+  if (name.includes("mắt") || name.includes("mat") || name.includes("nhãn") || name.includes("nhan")) return "ophthalmology";
+  if (name.includes("tai mũi họng") || name.includes("tai mui hong")) return "ent";
+  if (name.includes("ung bướu") || name.includes("ung buou") || name.includes("ung thư") || name.includes("ung thu")) return "oncology";
+  if (name.includes("cấp cứu") || name.includes("cap cuu")) return "emergency";
+  if (name.includes("xét nghiệm") || name.includes("xet nghiem") || name.includes("hoá sinh") || name.includes("hóa sinh") || name.includes("hoa sinh")) return "laboratory";
+  if (name.includes("di truyền") || name.includes("di truyen") || name.includes("sinh học") || name.includes("sinh hoc")) return "genetics";
+  if (name.includes("nội") || name.includes("noi")) return "hospital";
+  return "general";
 }
 
 function DeckIconPicker({ title, value, onChange }: { title: string; value: string; onChange: (icon: string) => void }) {
   const [open, setOpen] = useState(false);
+  const selectedId = legacyDeckIconIds[value] || value || deckIcon(title);
+  const selected = deckIconOptions.find((option) => option.id === selectedId) || deckIconOptions.find((option) => option.id === deckIcon(title)) || deckIconOptions[0];
+  const SelectedIcon = selected.Icon;
   return <div className="relative shrink-0">
-    <button type="button" title="Đổi icon bộ thẻ" aria-label={`Đổi icon cho ${title}`} onClick={() => setOpen((current) => !current)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-white/70 text-xl shadow-sm hover:border-teal-200 hover:bg-teal-50">{value}</button>
-    {open && <div className="absolute left-0 top-full z-[80] mt-2 grid w-64 grid-cols-7 gap-1.5 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-[0_18px_45px_rgba(15,118,110,.18)] backdrop-blur-xl" role="menu" aria-label="Bộ sưu tập icon">
-      {deckIconOptions.map(([icon, label]) => <button key={icon} type="button" title={label} aria-label={label} onClick={() => { onChange(icon); setOpen(false); }} className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:scale-110 hover:bg-teal-50 ${value === icon ? "bg-teal-100 ring-2 ring-teal-300" : ""}`}>{icon}</button>)}
+    <button type="button" title={`${selected.label} · Bấm để đổi icon`} aria-label={`Đổi icon cho ${title}`} onClick={() => setOpen((current) => !current)} className={`flex h-9 w-9 items-center justify-center rounded-xl border border-white/80 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 ${selected.tileClass}`}><SelectedIcon size={19} strokeWidth={2} className={selected.iconClass} /></button>
+    {open && <div className="absolute left-0 top-full z-[100] mt-2 grid w-80 grid-cols-4 gap-2 rounded-2xl border border-white/90 bg-white/95 p-3 shadow-[0_20px_55px_rgba(15,118,110,.22)] backdrop-blur-2xl" role="menu" aria-label="Bộ sưu tập icon khoa bệnh viện">
+      {deckIconOptions.map(({ id, label, Icon, iconClass, tileClass }) => <button key={id} type="button" title={label} aria-label={label} onClick={() => { onChange(id); setOpen(false); }} className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-transparent px-1 py-2 text-center transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-sm ${selected.id === id ? "border-teal-300 bg-teal-50 ring-2 ring-teal-200" : "bg-white/70"}`}><span className={`flex h-8 w-8 items-center justify-center rounded-lg ${tileClass}`}><Icon size={18} strokeWidth={2} className={iconClass} /></span><span className="line-clamp-2 text-[10px] font-semibold leading-tight text-slate-600">{label}</span></button>)}
     </div>}
   </div>;
 }
