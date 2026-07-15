@@ -24,6 +24,8 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const [title, setTitle] = useState(initialTitle);
   const [visibility, setVisibility] = useState(initialVisibility);
   const [questions, setQuestions] = useState(initialQuestions);
+  const [activeQuestionId, setActiveQuestionId] = useState(focusQuestionId || initialQuestions[0]?.id || "");
+  const [showCardList, setShowCardList] = useState(false);
   const [showDeckList, setShowDeckList] = useState(false);
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | null>(null);
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
@@ -31,21 +33,39 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   useEffect(() => {
     setTitle(initialTitle);
     setQuestions(initialQuestions);
+    setActiveQuestionId(focusQuestionId || initialQuestions[0]?.id || "");
+    setShowCardList(false);
     setVisibility(initialVisibility);
     setShowDeckList(false);
-  }, [initialTitle, initialQuestions, initialVisibility]);
+  }, [initialTitle, initialQuestions, initialVisibility, focusQuestionId]);
 
   useEffect(() => {
     if (!focusQuestionId) return;
-    window.setTimeout(() => document.querySelector(`[data-card-id="${focusQuestionId}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
-  }, [focusQuestionId]);
+    if (questions.some((item) => item.id === focusQuestionId)) setActiveQuestionId(focusQuestionId);
+  }, [focusQuestionId, questions]);
+
+  const activeQuestion = questions.find((item) => item.id === activeQuestionId) || questions[0];
+  const activeQuestionIndex = activeQuestion ? questions.findIndex((item) => item.id === activeQuestion.id) : -1;
 
   function update(id: string, field: "question" | "answer", value: string) {
     setQuestions((current) => current.map((item) => item.id === id ? { ...item, [field]: value } : item));
   }
 
   function addCard() {
-    setQuestions((current) => [...current, { id: crypto.randomUUID(), question: "", answer: "", category: "Tự tạo", importance: 1, bookmarked: false }]);
+    const card = { id: crypto.randomUUID(), question: "", answer: "", category: "Tự tạo", importance: 1, bookmarked: false };
+    setQuestions((current) => [...current, card]);
+    setActiveQuestionId(card.id);
+    setShowCardList(false);
+  }
+
+  function removeCard(id: string) {
+    setQuestions((current) => {
+      if (current.length <= 1) return current;
+      const index = current.findIndex((item) => item.id === id);
+      const next = current.filter((item) => item.id !== id);
+      if (id === activeQuestionId) setActiveQuestionId(next[Math.min(Math.max(index, 0), next.length - 1)]?.id || "");
+      return next;
+    });
   }
 
   function save(saveAndStudy = false) {
@@ -106,20 +126,38 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           </div>}
         </div>
       </div>
-      <div className="space-y-3">
-        <div className="hidden grid-cols-[1fr_1fr_auto] gap-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400 sm:grid"><span>Front</span><span>Back</span><span /></div>
-        {questions.map((item, index) => <div key={item.id} data-card-id={item.id} className="glass-card grid gap-3 rounded-lg border border-dashed border-rose-200 bg-white/85 p-4 sm:grid-cols-[1fr_1fr_auto]">
-          <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Front</p><RichTextEditor value={item.question} onChange={(value) => update(item.id, "question", value)} onClozeCreated={(text) => update(item.id, "answer", text)} placeholder={`Mặt trước thẻ ${index + 1}`} capitalizeFirst /></div>
-          <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Back</p><RichTextEditor value={item.answer} onChange={(value) => update(item.id, "answer", value)} placeholder="Mặt sau" /></div>
-          <button onClick={() => setQuestions((current) => current.filter((card) => card.id !== item.id))} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
-        </div>)}
-      </div>
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-        <button onClick={addCard} title="Thêm thẻ" aria-label="Thêm thẻ" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-rose-100 bg-white text-slate-700 hover:bg-rose-50"><Plus size={20} /></button>
+      <div className="glass-panel mode-panel rounded-2xl border border-rose-100 bg-white/85 p-4 shadow-sm sm:p-6">
+        <div className="overflow-hidden rounded-2xl border border-teal-100 bg-teal-50/50">
+          <button type="button" onClick={() => setShowCardList((open) => !open)} aria-expanded={showCardList} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.16em] text-teal-700 hover:bg-teal-50">
+            <span>Đã có {questions.length} thẻ · Đang sửa thẻ {activeQuestionIndex + 1}</span>
+            <ChevronDown size={17} className={`shrink-0 transition-transform duration-200 ${showCardList ? "rotate-180" : ""}`} />
+          </button>
+          {showCardList && <div className="max-h-64 space-y-2 overflow-y-auto border-t border-teal-100 p-3">
+            {questions.map((item, index) => <button key={item.id} type="button" onClick={() => { setActiveQuestionId(item.id); setShowCardList(false); }} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition ${item.id === activeQuestion?.id ? "border-teal-200 bg-teal-100/70 text-teal-900" : "border-white/80 bg-white/85 text-slate-700 hover:border-teal-100 hover:bg-white"}`}>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-teal-700 shadow-sm">{index + 1}</span>
+              <span className="min-w-0 flex-1 truncate" dangerouslySetInnerHTML={{ __html: item.question || "<em>Thẻ trống</em>" }} />
+            </button>)}
+          </div>}
+        </div>
+
+        {activeQuestion && <div key={activeQuestion.id} data-card-id={activeQuestion.id} className="mt-5 rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ {activeQuestionIndex + 1}</p><p className="mt-1 text-xs text-slate-400">Chỉnh sửa từng thẻ giống chế độ tạo mới</p></div>
+            <button disabled={questions.length <= 1} onClick={() => removeCard(activeQuestion.id)} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={activeQuestion.question} onChange={(value) => update(activeQuestion.id, "question", value)} onClozeCreated={(text) => update(activeQuestion.id, "answer", text)} placeholder="Mặt trước" capitalizeFirst /></div>
+            <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={activeQuestion.answer} onChange={(value) => update(activeQuestion.id, "answer", value)} placeholder="Mặt sau" /></div>
+          </div>
+        </div>}
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button disabled={!activeQuestion?.question.trim() || !activeQuestion?.answer.trim()} onClick={addCard} title="Thêm thẻ" className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"><Plus size={18} /> Thêm thẻ</button>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Home size={19} /></button>
           <button onClick={() => save(false)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-5 py-3 text-sm font-bold text-teal-700 hover:bg-teal-50"><Save size={18} /> Lưu</button>
           <button onClick={() => save(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-white hover:bg-teal-500"><Check size={18} /> Lưu &amp; học ngay</button>
+        </div>
         </div>
       </div>
       {pendingDeck && <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="switch-deck-title">
