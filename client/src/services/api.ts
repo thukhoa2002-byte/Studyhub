@@ -12,6 +12,8 @@ export async function getAiCallsRemaining(): Promise<number | null> {
 export interface GeneratedQuestion {
   id: string;
 
+  scope?: "shared" | "personal";
+
   question: string;
   answer: string;
 

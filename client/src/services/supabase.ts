@@ -77,11 +77,27 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
   const { error: claimError } = await supabase.rpc("claim_pending_deck_shares");
   if (claimError) console.warn("Pending deck shares are not available yet", claimError.message);
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("decks")
-    .select("id, title, visibility, owner_id, cards(id, front, back, category, position)")
+    .select("id, title, visibility, owner_id, cards(id, front, back, category, position, scope, personal_owner_id)")
     .order("created_at", { ascending: false });
 
+  // Keep the site usable while the personal-card migration is being applied.
+  if (error && /scope|personal_owner_id/i.test(error.message)) {
+    const fallback = await supabase
+      .from("decks")
+      .select("id, title, visibility, owner_id, cards(id, front, back, category, position)")
+      .order("created_at", { ascending: false });
+    data = fallback.data?.map((deck) => ({
+      ...deck,
+      cards: (deck.cards ?? []).map((card) => ({
+        ...card,
+        scope: "shared",
+        personal_owner_id: null,
+      })),
+    })) ?? null;
+    error = fallback.error;
+  }
   if (error) throw error;
 
   // Members can read their own membership row through RLS. Owners receive
@@ -120,6 +136,7 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
       review_stats: reviewStats,
       cards: deckCards.map((card) => ({
         id: card.id,
+        scope: (card as { scope?: string }).scope === "personal" ? "personal" : "shared",
         question: card.front,
         answer: card.back,
         category: card.category ?? "Anki",
@@ -223,7 +240,7 @@ export async function listDueCards(userId: string): Promise<GeneratedQuestion[]>
 }
 
 export async function updateDeck(
-  _userId: string,
+  userId: string,
   deckId: string,
   title: string,
   questions: GeneratedQuestion[],
@@ -244,7 +261,7 @@ export async function updateDeck(
 
   const existingIds = new Set((existingCards ?? []).map((card) => card.id));
   const retainedIds = new Set<string>();
-  const newCards: Array<{ deck_id: string; front: string; back: string; category: string; position: number }> = [];
+  const newCards: Array<{ id?: string; deck_id: string; front: string; back: string; category: string; position: number; scope?: "personal"; personal_owner_id?: string }> = [];
 
   for (const [position, question] of questions.entries()) {
     const card = { front: question.question, back: question.answer, category: question.category, position };
@@ -253,7 +270,12 @@ export async function updateDeck(
       const { error } = await supabase.from("cards").update(card).eq("deck_id", deckId).eq("id", question.id);
       if (error) throw error;
     } else {
-      newCards.push({ deck_id: deckId, ...card });
+      newCards.push({
+        ...(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(question.id) ? { id: question.id } : {}),
+        deck_id: deckId,
+        ...card,
+        ...(question.scope === "personal" ? { scope: "personal" as const, personal_owner_id: userId } : {}),
+      });
     }
   }
 

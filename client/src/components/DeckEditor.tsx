@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Home, Plus, Save, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Home, Plus, Save, Trash2, UserRound, Users, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
@@ -27,6 +27,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const [showCardList, setShowCardList] = useState(false);
   const [showDeckList, setShowDeckList] = useState(false);
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | null>(null);
+  const [showAddScopeDialog, setShowAddScopeDialog] = useState(false);
   const pendingAutoSaveRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
@@ -63,11 +64,12 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     }
   }
 
-  function addCard() {
-    const card = { id: crypto.randomUUID(), question: "", answer: "", category: "Tự tạo", importance: 1, bookmarked: false };
+  function addCard(scope: "shared" | "personal" = "shared") {
+    const card = { id: crypto.randomUUID(), scope, question: "", answer: "", category: "Tự tạo", importance: 1, bookmarked: false };
     setQuestions((current) => [...current, card]);
     setActiveQuestionId(card.id);
     setShowCardList(false);
+    setShowAddScopeDialog(false);
   }
 
   function removeCard(id: string) {
@@ -155,7 +157,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         </div>}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button disabled={!activeQuestion?.question.trim() || !activeQuestion?.answer.trim()} onClick={addCard} title="Thêm thẻ" className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"><Plus size={18} /> Thêm thẻ</button>
+          <button disabled={!activeQuestion?.question.trim() || !activeQuestion?.answer.trim()} onClick={() => visibility === "shared" ? setShowAddScopeDialog(true) : addCard()} title="Thêm thẻ" className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"><Plus size={18} /> Thêm thẻ</button>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Home size={19} /></button>
           <button onClick={() => void save(false)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white/80 px-5 py-3 text-sm font-bold text-teal-700 hover:bg-teal-50"><Save size={18} /> Lưu</button>
@@ -173,6 +175,25 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             <button onClick={() => setPendingDeck(null)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Hủy</button>
             <button onClick={() => void confirmSwitch()} className="flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500">Lưu</button>
           </div>
+        </div>
+      </div>}
+      {showAddScopeDialog && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-labelledby="add-card-scope-title">
+        <div className="glass-dialog w-full max-w-lg rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/80 to-teal-50/80 p-7 shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600"><AlertTriangle size={23} /></div>
+          <p className="mt-4 text-center text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Bộ thẻ đang được chia sẻ</p>
+          <h2 id="add-card-scope-title" className="mt-2 text-center text-xl font-bold text-rose-950">Bạn muốn lưu thẻ mới ở đâu?</h2>
+          <p className="mx-auto mt-2 max-w-md text-center text-sm leading-6 text-slate-500">Hãy chọn kỹ trước khi thêm. Thẻ chung sẽ xuất hiện với tất cả thành viên; thẻ cá nhân chỉ tài khoản của bạn nhìn thấy và học được.</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => addCard("personal")} className="flex items-center gap-3 rounded-2xl border border-teal-200 bg-white/90 px-4 py-4 text-left hover:bg-teal-50">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-700"><UserRound size={20} /></span>
+              <span><strong className="block text-sm text-teal-900">Chỉ thêm cho tôi</strong><span className="mt-1 block text-xs font-medium text-slate-500">Không ảnh hưởng người khác</span></span>
+            </button>
+            <button type="button" onClick={() => addCard("shared")} className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-white/90 px-4 py-4 text-left hover:bg-rose-50">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600"><Users size={20} /></span>
+              <span><strong className="block text-sm text-rose-950">Thêm vào bộ thẻ chung</strong><span className="mt-1 block text-xs font-medium text-slate-500">Mọi thành viên đều thấy</span></span>
+            </button>
+          </div>
+          <button type="button" onClick={() => setShowAddScopeDialog(false)} className="mt-4 w-full rounded-xl px-4 py-3 text-sm font-bold text-slate-500 hover:bg-white/70">Hủy</button>
         </div>
       </div>}
     </section>
