@@ -5,8 +5,27 @@ export interface SiteAnalyticsSummary {
   uniqueVisitors: number;
 }
 
+export interface SiteVisitorDetail {
+  visitorKey: string;
+  label: string;
+  visitCount: number;
+  lastVisitedAt: string;
+}
+
+export interface SiteVisitDetail {
+  id: number;
+  visitorKey: string;
+  label: string;
+  visitedAt: string;
+}
+
+export interface SiteAnalyticsDetails {
+  visitors: SiteVisitorDetail[];
+  visits: SiteVisitDetail[];
+}
+
 const VISITOR_ID_KEY = "hocbaithoiii-visitor-id";
-let visitRecorded = false;
+let recordedVisitorKey: string | null = null;
 
 function getDeviceVisitorId() {
   let visitorId = localStorage.getItem(VISITOR_ID_KEY);
@@ -22,13 +41,15 @@ export function getVisitorKey(userId?: string | null) {
 }
 
 export async function recordSiteVisit(userId?: string | null) {
-  if (!supabase || visitRecorded) return;
-  visitRecorded = true;
+  if (!supabase) return;
+  const visitorKey = getVisitorKey(userId);
+  if (recordedVisitorKey === visitorKey) return;
+  recordedVisitorKey = visitorKey;
   const { error } = await supabase.rpc("record_site_visit", {
-    p_visitor_key: getVisitorKey(userId),
+    p_visitor_key: visitorKey,
   });
   if (error) {
-    visitRecorded = false;
+    recordedVisitorKey = null;
     throw error;
   }
 }
@@ -41,5 +62,29 @@ export async function getSiteAnalytics(): Promise<SiteAnalyticsSummary> {
   return {
     totalVisits: Number(row?.total_visits ?? 0),
     uniqueVisitors: Number(row?.unique_visitors ?? 0),
+  };
+}
+
+export async function getSiteAnalyticsDetails(): Promise<SiteAnalyticsDetails> {
+  if (!supabase) return { visitors: [], visits: [] };
+  const [{ data: visitors, error: visitorsError }, { data: visits, error: visitsError }] = await Promise.all([
+    supabase.rpc("get_site_analytics_visitors"),
+    supabase.rpc("get_site_visit_history", { p_limit: 100 }),
+  ]);
+  if (visitorsError) throw visitorsError;
+  if (visitsError) throw visitsError;
+  return {
+    visitors: (visitors ?? []).map((row: Record<string, unknown>) => ({
+      visitorKey: String(row.visitor_key ?? ""),
+      label: String(row.visitor_label ?? "Khách"),
+      visitCount: Number(row.visit_count ?? 0),
+      lastVisitedAt: String(row.last_visited_at ?? ""),
+    })),
+    visits: (visits ?? []).map((row: Record<string, unknown>) => ({
+      id: Number(row.visit_id ?? 0),
+      visitorKey: String(row.visitor_key ?? ""),
+      label: String(row.visitor_label ?? "Khách"),
+      visitedAt: String(row.visited_at ?? ""),
+    })),
   };
 }
