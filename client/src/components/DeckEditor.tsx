@@ -16,28 +16,24 @@ interface Props {
   decks: SavedDeck[];
   currentDeckId: string;
   onSwitchDeck: (deck: SavedDeck) => void | Promise<void>;
-  onShareRequest: () => void;
   focusQuestionId?: string | null;
 }
 
-export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility: initialVisibility, onCancel, onHome, onSave, onSaveAndStudy, titleSuggestions = [], decks, currentDeckId, onSwitchDeck, onShareRequest, focusQuestionId }: Props) {
+export default function DeckEditor({ title: initialTitle, questions: initialQuestions, visibility, onCancel, onHome, onSave, onSaveAndStudy, titleSuggestions = [], decks, currentDeckId, onSwitchDeck, focusQuestionId }: Props) {
   const [title, setTitle] = useState(initialTitle);
-  const [visibility, setVisibility] = useState(initialVisibility);
   const [questions, setQuestions] = useState(initialQuestions);
   const [activeQuestionId, setActiveQuestionId] = useState(focusQuestionId || initialQuestions[0]?.id || "");
   const [showCardList, setShowCardList] = useState(false);
   const [showDeckList, setShowDeckList] = useState(false);
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | null>(null);
-  const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
 
   useEffect(() => {
     setTitle(initialTitle);
     setQuestions(initialQuestions);
     setActiveQuestionId(focusQuestionId || initialQuestions[0]?.id || "");
     setShowCardList(false);
-    setVisibility(initialVisibility);
     setShowDeckList(false);
-  }, [initialTitle, initialQuestions, initialVisibility, focusQuestionId]);
+  }, [initialTitle, initialQuestions, focusQuestionId]);
 
   useEffect(() => {
     if (!focusQuestionId) return;
@@ -91,19 +87,13 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     await onSwitchDeck(deck);
   }
 
-  function chooseVisibility(next: "private" | "shared") {
-    setVisibility(next);
-    setShowVisibilityMenu(false);
-    if (next === "shared") onShareRequest();
-  }
-
   return (
     <section className="mx-auto max-w-5xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div><p className="text-sm font-semibold text-rose-500">Chỉnh sửa</p><h1 className="text-3xl font-bold text-rose-950">Sửa bộ thẻ</h1></div>
         <button onClick={onCancel} className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white px-4 py-2 text-sm font-semibold text-slate-600"><X size={17} /> Hủy</button>
       </div>
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+      <div className="mb-5">
         <div className="relative flex-1">
           <input list="deck-title-suggestions" value={title} onFocus={() => setShowDeckList(true)} onChange={(event) => setTitle(event.target.value)} className="w-full rounded-lg border border-rose-100 bg-white px-4 py-3 pr-11 font-semibold text-rose-950 outline-none focus:border-rose-300" />
           <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setShowDeckList((open) => !open)} aria-label="Mở danh sách bộ thẻ cùng cấp" title="Bộ thẻ cùng cấp" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><ChevronDown size={17} className={showDeckList ? "rotate-180 transition-transform" : "transition-transform"} /></button>
@@ -114,16 +104,6 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           <datalist id="deck-title-suggestions">
             {["Nội", "Ngoại", "Sản", "Nhi", "Cấp cứu", "Hồi sức", ...titleSuggestions].filter((name, index, all) => all.indexOf(name) === index).map((name) => <option key={name} value={name} />)}
           </datalist>
-        </div>
-        <div className="relative">
-          <button type="button" onClick={() => setShowVisibilityMenu((open) => !open)} className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white px-3 py-3 text-sm font-semibold text-slate-700">
-            <img src={visibility === "private" ? "/privacy-user-final.png" : "/privacy-group-final.png"} alt="" className="h-5 w-5 object-contain" />
-            {visibility === "private" ? "Chỉ mình tôi" : "Chia sẻ"}<ChevronDown size={15} />
-          </button>
-          {showVisibilityMenu && <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-rose-100 bg-white p-1 shadow-lg">
-            <button type="button" onClick={() => chooseVisibility("private")} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50"><img src="/privacy-user-final.png" alt="" className="h-5 w-5 object-contain" /> Chỉ mình tôi</button>
-            <button type="button" onClick={() => chooseVisibility("shared")} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-teal-700 hover:bg-teal-50"><img src="/privacy-group-final.png" alt="" className="h-5 w-5 object-contain" /> Chia sẻ</button>
-          </div>}
         </div>
       </div>
       <div className="glass-panel mode-panel rounded-2xl border border-rose-100 bg-white/85 p-4 shadow-sm sm:p-6">
