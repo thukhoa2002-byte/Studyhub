@@ -313,20 +313,20 @@ export default function DeckSetup({
                 </div>
                 <div className="absolute right-3 top-3 flex items-center gap-0.5 sm:static sm:justify-end">
                 {(deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit") && <>
-                  <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="rounded-md p-2 text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
-                  <div className="relative">
+                  <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
+                  <div className="relative h-9 w-9 shrink-0">
                     <button
                       type="button"
                       onClick={() => setOpenDeckMenuId((current) => current === deck.id ? null : deck.id)}
                       title="Tùy chọn bộ thẻ"
                       aria-label="Tùy chọn bộ thẻ"
                       aria-expanded={openDeckMenuId === deck.id}
-                      className="rounded-md p-2 text-slate-600 hover:bg-slate-100"
+                      className="flex h-9 w-9 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
                     >
                       <Settings2 size={17} />
                     </button>
                     {openDeckMenuId === deck.id && (
-                      <div className="glass-panel absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
+                      <div role="menu" className="absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
                         <button type="button" onClick={() => { setOpenDeckMenuId(null); onCreateMcqFromDeck(deck); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-violet-700 hover:bg-violet-50">
                           <ListChecks size={16} />
                           <span>Tạo trắc nghiệm</span>
