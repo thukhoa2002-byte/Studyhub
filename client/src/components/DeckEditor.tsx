@@ -128,7 +128,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
               <span>Front</span>
               <span className="border-l border-teal-100 pl-3">Back</span>
             </div>
-            {questions.map((item, index) => <button key={item.id} type="button" onClick={() => { setActiveQuestionId(item.id); setShowCardList(false); }} className={`grid w-full grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${item.id === activeQuestion?.id ? "border-teal-200 bg-teal-100/70 text-teal-900" : "border-white/80 bg-white/85 text-slate-700 hover:border-teal-100 hover:bg-white"}`}>
+            {questions.map((item, index) => <button key={item.id} type="button" onClick={() => setActiveQuestionId(item.id)} className={`grid w-full grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${item.id === activeQuestion?.id ? "border-teal-200 bg-teal-100/70 text-teal-900" : "border-white/80 bg-white/85 text-slate-700 hover:border-teal-100 hover:bg-white"}`}>
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-teal-700 shadow-sm">{index + 1}</span>
               <span className="min-w-0 truncate pr-2" dangerouslySetInnerHTML={{ __html: item.question || "<em>Thẻ trống</em>" }} />
               <span className="min-w-0 truncate border-l border-teal-100 pl-3" dangerouslySetInnerHTML={{ __html: item.answer || "<em>Thẻ trống</em>" }} />
