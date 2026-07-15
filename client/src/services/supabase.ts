@@ -232,10 +232,40 @@ export async function updateDeck(
   if (!supabase) return;
   const { error: deckError } = await supabase.from("decks").update({ title, visibility, updated_at: new Date().toISOString() }).eq("id", deckId);
   if (deckError) throw deckError;
-  const { error: deleteError } = await supabase.from("cards").delete().eq("deck_id", deckId);
-  if (deleteError) throw deleteError;
-  const { error: cardsError } = await supabase.from("cards").insert(questions.map((question, position) => ({ deck_id: deckId, front: question.question, back: question.answer, category: question.category, position })));
-  if (cardsError) throw cardsError;
+
+  // Keep existing card IDs stable. Review schedules belong to (user_id,
+  // card_id), so replacing every card here would erase every member's
+  // personal learning history whenever a shared deck is edited.
+  const { data: existingCards, error: existingCardsError } = await supabase
+    .from("cards")
+    .select("id")
+    .eq("deck_id", deckId);
+  if (existingCardsError) throw existingCardsError;
+
+  const existingIds = new Set((existingCards ?? []).map((card) => card.id));
+  const retainedIds = new Set<string>();
+  const newCards: Array<{ deck_id: string; front: string; back: string; category: string; position: number }> = [];
+
+  for (const [position, question] of questions.entries()) {
+    const card = { front: question.question, back: question.answer, category: question.category, position };
+    if (existingIds.has(question.id)) {
+      retainedIds.add(question.id);
+      const { error } = await supabase.from("cards").update(card).eq("deck_id", deckId).eq("id", question.id);
+      if (error) throw error;
+    } else {
+      newCards.push({ deck_id: deckId, ...card });
+    }
+  }
+
+  const removedIds = [...existingIds].filter((id) => !retainedIds.has(id));
+  if (removedIds.length > 0) {
+    const { error } = await supabase.from("cards").delete().eq("deck_id", deckId).in("id", removedIds);
+    if (error) throw error;
+  }
+  if (newCards.length > 0) {
+    const { error } = await supabase.from("cards").insert(newCards);
+    if (error) throw error;
+  }
 }
 
 export async function deleteDeck(userId: string, deckId: string) {

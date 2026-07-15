@@ -195,8 +195,10 @@ export default function App() {
     const combined = [...deck.cards, ...pendingGenerated.cards];
     try {
       await updateDeck(user.id, deck.id, deck.title, combined, deck.visibility);
-      setQuestions(combined); setDeckTitle(deck.title); setCurrentSavedDeck({ ...deck, cards: combined }); setPendingGenerated(null); setGeneratedForAppend(null); setMode("study");
-      setSavedDecks(await listDecks(user.id));
+      const nextDecks = await listDecks(user.id);
+      const freshDeck = nextDecks.find((item) => item.id === deck.id) ?? { ...deck, cards: combined };
+      setQuestions(freshDeck.cards); setDeckTitle(deck.title); setCurrentSavedDeck(freshDeck); setPendingGenerated(null); setGeneratedForAppend(null); setMode("study");
+      setSavedDecks(nextDecks);
     } catch (error) { alert(`Không thể thêm vào bộ thẻ: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
@@ -276,7 +278,13 @@ export default function App() {
           setupDeckRef.current = nextDeck;
           setCurrentSavedDeck(nextDeck);
         }
-        setSavedDecks(await listDecks(user.id));
+        const nextDecks = await listDecks(user.id);
+        const freshDeck = nextDecks.find((deck) => deck.id === setupDeckRef.current?.id);
+        if (freshDeck) {
+          setupDeckRef.current = freshDeck;
+          setCurrentSavedDeck(freshDeck);
+        }
+        setSavedDecks(nextDecks);
       } catch (error) {
         console.error(error);
         const detail = error instanceof Error ? error.message : JSON.stringify(error);
@@ -369,9 +377,11 @@ export default function App() {
     if (!user || !currentSavedDeck) return;
     try {
       await updateDeck(user.id, currentSavedDeck.id, title, cards, visibility);
-      setQuestions(cards); setDeckTitle(title); setEditing(!startStudy); setCurrentSavedDeck({ ...currentSavedDeck, title, visibility, cards });
+      const nextDecks = await listDecks(user.id);
+      const freshDeck = nextDecks.find((deck) => deck.id === currentSavedDeck.id) ?? { ...currentSavedDeck, title, visibility, cards };
+      setQuestions(freshDeck.cards); setDeckTitle(title); setEditing(!startStudy); setCurrentSavedDeck(freshDeck);
       if (startStudy) setMode("study");
-      setSavedDecks(await listDecks(user.id));
+      setSavedDecks(nextDecks);
     } catch (error) {
       console.error(error);
       alert(`Không thể lưu thay đổi bộ thẻ: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
