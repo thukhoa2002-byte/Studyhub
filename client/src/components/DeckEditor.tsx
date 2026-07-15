@@ -31,6 +31,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const [showAddScopeDialog, setShowAddScopeDialog] = useState(false);
   const [showIncompleteCardDialog, setShowIncompleteCardDialog] = useState(false);
   const [addScope, setAddScope] = useState<"shared" | "personal">(() => localStorage.getItem("shared-deck-card-scope") === "shared" ? "shared" : "personal");
+  const [hasRememberedAddScope, setHasRememberedAddScope] = useState(() => localStorage.getItem("shared-deck-card-scope") !== null);
   const pendingAutoSaveRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
@@ -80,12 +81,19 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
       setShowIncompleteCardDialog(true);
       return;
     }
-    if (visibility === "shared") setShowAddScopeDialog(true);
+    if (visibility === "shared" && !hasRememberedAddScope) setShowAddScopeDialog(true);
+    else if (visibility === "shared") addCard(addScope);
     else addCard();
+  }
+
+  function chooseAddScope(scope: "shared" | "personal") {
+    setAddScope(scope);
+    if (hasRememberedAddScope) localStorage.setItem("shared-deck-card-scope", scope);
   }
 
   function confirmAddCard() {
     localStorage.setItem("shared-deck-card-scope", addScope);
+    setHasRememberedAddScope(true);
     addCard(addScope);
   }
 
@@ -180,8 +188,8 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <button onClick={requestAddCard} title="Thêm thẻ" className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700"><Plus size={18} /> Thêm thẻ</button>
             {visibility === "shared" && <div className="inline-flex rounded-xl border border-rose-100 bg-white/75 p-1 shadow-sm" aria-label="Phạm vi thẻ mới">
-              <button type="button" aria-pressed={addScope === "personal"} onClick={() => setAddScope("personal")} className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition sm:flex-none ${addScope === "personal" ? "bg-teal-100 text-teal-700 shadow-sm" : "text-slate-400 hover:bg-white hover:text-slate-600"}`}><UserRound size={14} /> Mình tôi</button>
-              <button type="button" aria-pressed={addScope === "shared"} onClick={() => setAddScope("shared")} className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition sm:flex-none ${addScope === "shared" ? "bg-rose-100 text-rose-600 shadow-sm" : "text-slate-400 hover:bg-white hover:text-slate-600"}`}><Users size={14} /> Chia sẻ</button>
+              <button type="button" aria-pressed={addScope === "personal"} onClick={() => chooseAddScope("personal")} className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition sm:flex-none ${addScope === "personal" ? "bg-teal-100 text-teal-700 shadow-sm" : "text-slate-400 hover:bg-white hover:text-slate-600"}`}><UserRound size={14} /> Mình tôi</button>
+              <button type="button" aria-pressed={addScope === "shared"} onClick={() => chooseAddScope("shared")} className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition sm:flex-none ${addScope === "shared" ? "bg-rose-100 text-rose-600 shadow-sm" : "text-slate-400 hover:bg-white hover:text-slate-600"}`}><Users size={14} /> Chia sẻ</button>
             </div>}
           </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -210,11 +218,11 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           <h2 id="add-card-scope-title" className="mt-2 text-center text-xl font-bold text-rose-950">Bạn muốn lưu thẻ mới ở đâu?</h2>
           <p className="mx-auto mt-2 max-w-md text-center text-sm leading-6 text-slate-500">Hãy chọn kỹ trước khi thêm. Thẻ chung sẽ xuất hiện với tất cả thành viên; thẻ cá nhân chỉ tài khoản của bạn nhìn thấy và học được.</p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <button type="button" onClick={() => setAddScope("personal")} aria-pressed={addScope === "personal"} className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${addScope === "personal" ? "border-teal-300 bg-teal-50 ring-2 ring-teal-100" : "border-teal-100 bg-white/90 hover:bg-teal-50"}`}>
+            <button type="button" onClick={() => chooseAddScope("personal")} aria-pressed={addScope === "personal"} className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${addScope === "personal" ? "border-teal-300 bg-teal-50 ring-2 ring-teal-100" : "border-teal-100 bg-white/90 hover:bg-teal-50"}`}>
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-700"><UserRound size={20} /></span>
               <span><strong className="block text-sm text-teal-900">Chỉ thêm cho tôi</strong><span className="mt-1 block text-xs font-medium text-slate-500">Không ảnh hưởng người khác</span></span>{addScope === "personal" && <Check className="ml-auto shrink-0 text-teal-600" size={18} />}
             </button>
-            <button type="button" onClick={() => setAddScope("shared")} aria-pressed={addScope === "shared"} className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${addScope === "shared" ? "border-rose-300 bg-rose-50 ring-2 ring-rose-100" : "border-rose-100 bg-white/90 hover:bg-rose-50"}`}>
+            <button type="button" onClick={() => chooseAddScope("shared")} aria-pressed={addScope === "shared"} className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${addScope === "shared" ? "border-rose-300 bg-rose-50 ring-2 ring-rose-100" : "border-rose-100 bg-white/90 hover:bg-rose-50"}`}>
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600"><Users size={20} /></span>
               <span><strong className="block text-sm text-rose-950">Thêm vào bộ thẻ chung</strong><span className="mt-1 block text-xs font-medium text-slate-500">Mọi thành viên đều thấy</span></span>{addScope === "shared" && <Check className="ml-auto shrink-0 text-rose-500" size={18} />}
             </button>
