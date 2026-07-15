@@ -369,7 +369,7 @@ export default function DeckSetup({
             <div className="mb-3 flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ mới</p><span className="text-xs text-slate-400">Front + Back</span></div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} onClozeCreated={(text) => updateCard(card.id, "answer", text)} placeholder="Mặt trước" capitalizeFirst /></div>
-              <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={card.answer} onChange={(value) => updateCard(card.id, "answer", value)} placeholder="Mặt sau" /></div>
+              <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={card.answer} onChange={(value) => updateCard(card.id, "answer", value)} placeholder="Mặt sau" capitalizeFirst /></div>
             </div>
           </div>)}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

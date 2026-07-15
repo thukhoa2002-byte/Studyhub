@@ -137,7 +137,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={activeQuestion.question} onChange={(value) => update(activeQuestion.id, "question", value)} onClozeCreated={(text) => update(activeQuestion.id, "answer", text)} placeholder="Mặt trước" capitalizeFirst /></div>
-            <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={activeQuestion.answer} onChange={(value) => update(activeQuestion.id, "answer", value)} placeholder="Mặt sau" /></div>
+            <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={activeQuestion.answer} onChange={(value) => update(activeQuestion.id, "answer", value)} placeholder="Mặt sau" capitalizeFirst /></div>
           </div>
         </div>}
 
