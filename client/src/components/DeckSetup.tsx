@@ -296,13 +296,6 @@ export default function DeckSetup({
               <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />Đến hạn</span>
             </div>
           </div>
-          <div className="mb-1 hidden grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem_5.5rem] items-center gap-2 border-b border-teal-100 px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400 sm:grid">
-            <span>Bộ thẻ</span>
-            <span className="text-center">Mới</span>
-            <span className="text-center">Đang học</span>
-            <span className="text-center">Đến hạn</span>
-            <span aria-hidden="true" />
-          </div>
           <div className="space-y-2">
             {savedDecks.map((deck) => (
               <div key={deck.id} className="glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-teal-50 sm:grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem_5.5rem]">
