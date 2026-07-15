@@ -35,6 +35,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
+import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
 import RichTextEditor from "./RichTextEditor";
 
 interface Props {
@@ -187,8 +188,12 @@ export default function DeckSetup({
     field: "question" | "answer",
     value: string
   ) {
-    const nextCards = cards.map((card) =>
-      card.id === id ? { ...card, [field]: value } : card
+    const previousCard = cards.find((card) => card.id === id);
+    const syncedAnswer = field === "question" ? toClozeAnswerHtml(value) : "";
+    const shouldSyncAnswer = field === "question" && (Boolean(syncedAnswer) || hasCloze(previousCard?.question ?? ""));
+    const nextCards = cards.map((card) => card.id === id
+      ? { ...card, [field]: value, ...(shouldSyncAnswer ? { answer: syncedAnswer } : {}) }
+      : card
     );
     setCards(nextCards);
     const updatedCard = nextCards.find((card) => card.id === id);
@@ -369,7 +374,7 @@ export default function DeckSetup({
           {cards.slice(-1).map((card) => <div key={card.id} className="mt-6 rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-4">
             <div className="mb-3 flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ mới</p><span className="text-xs text-slate-400">Front + Back</span></div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} onClozeCreated={(text) => updateCard(card.id, "answer", text)} placeholder="Mặt trước" capitalizeFirst /></div>
+              <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={card.question} onChange={(value) => updateCard(card.id, "question", value)} placeholder="Mặt trước" capitalizeFirst /></div>
               <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={card.answer} onChange={(value) => updateCard(card.id, "answer", value)} placeholder="Mặt sau" capitalizeFirst /></div>
             </div>
           </div>)}

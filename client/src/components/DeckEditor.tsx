@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Home, Plus, Save, Trash2, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
+import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
 import RichTextEditor from "./RichTextEditor";
 
 interface Props {
@@ -45,7 +46,13 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const activeQuestionIndex = activeQuestion ? questions.findIndex((item) => item.id === activeQuestion.id) : -1;
 
   function update(id: string, field: "question" | "answer", value: string) {
-    const nextQuestions = questions.map((item) => item.id === id ? { ...item, [field]: value } : item);
+    const previousQuestion = questions.find((item) => item.id === id);
+    const syncedAnswer = field === "question" ? toClozeAnswerHtml(value) : "";
+    const shouldSyncAnswer = field === "question" && (Boolean(syncedAnswer) || hasCloze(previousQuestion?.question ?? ""));
+    const nextQuestions = questions.map((item) => item.id === id
+      ? { ...item, [field]: value, ...(shouldSyncAnswer ? { answer: syncedAnswer } : {}) }
+      : item
+    );
     setQuestions(nextQuestions);
     const updatedCard = nextQuestions.find((item) => item.id === id);
     if (title.trim() && updatedCard?.question.trim() && updatedCard.answer.trim()) {
@@ -142,7 +149,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             <button disabled={questions.length <= 1} onClick={() => removeCard(activeQuestion.id)} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={activeQuestion.question} onChange={(value) => update(activeQuestion.id, "question", value)} onClozeCreated={(text) => update(activeQuestion.id, "answer", text)} placeholder="Mặt trước" capitalizeFirst /></div>
+            <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={activeQuestion.question} onChange={(value) => update(activeQuestion.id, "question", value)} placeholder="Mặt trước" capitalizeFirst /></div>
             <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={activeQuestion.answer} onChange={(value) => update(activeQuestion.id, "answer", value)} placeholder="Mặt sau" capitalizeFirst /></div>
           </div>
         </div>}

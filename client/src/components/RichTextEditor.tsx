@@ -2,7 +2,7 @@ import { AlignCenter, AlignLeft, AlignRight, Bold, CaseUpper, ChevronDown, Clipb
 import { useEffect, useRef, useState } from "react";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
 
-interface Props { value: string; onChange: (value: string) => void; placeholder: string; onClozeCreated?: (text: string) => void; capitalizeFirst?: boolean; }
+interface Props { value: string; onChange: (value: string) => void; placeholder: string; capitalizeFirst?: boolean; }
 
 const commands = [
   ["bold", Bold, "Đậm"], ["italic", Italic, "Nghiêng"], ["underline", Underline, "Gạch chân"],
@@ -17,7 +17,7 @@ const paletteColors = [
   "#ea9999", "#f9cb9c", "#ffe599", "#b6d7a8", "#a2c4c9", "#9fc5e8", "#b4a7d6", "#d5a6bd", "#cccccc", "#000000",
 ] as const;
 
-export default function RichTextEditor({ value, onChange, placeholder, onClozeCreated, capitalizeFirst = false }: Props) {
+export default function RichTextEditor({ value, onChange, placeholder, capitalizeFirst = false }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const selectionRef = useRef<Range | null>(null);
@@ -180,7 +180,6 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
     range.insertNode(document.createTextNode(`{{c1::${text}}}`));
     rememberSelection();
     emitChange(editorRef.current.innerHTML);
-    onClozeCreated?.(text);
   }
   function togglePalette(palette: "highlight" | "text") {
     const shouldOpen = palette === "highlight" ? !showHighlightPalette : !showTextPalette;

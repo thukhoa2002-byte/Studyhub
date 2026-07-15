@@ -60,6 +60,18 @@ export function toClozeQuestionHtml(value: string) {
   return sanitizeHtml(toEditorHtml(value)).replace(/\{\{c\d+::([\s\S]*?)\}\}/gi, '<span class="cloze-blank" aria-label="Ô điền khuyết">_____</span>');
 }
 
+export function toClozeAnswerHtml(value: string) {
+  const answers = Array.from(value.matchAll(/\{\{c\d+::([\s\S]*?)\}\}/gi), (match) => {
+    const parsed = new DOMParser().parseFromString(match[1], "text/html");
+    return (parsed.body.textContent ?? "").trim();
+  }).filter(Boolean);
+  return answers.map((answer) => `<div>${escapeHtml(answer)}</div>`).join("");
+}
+
+export function hasCloze(value: string) {
+  return /\{\{c\d+::[\s\S]*?\}\}/i.test(value);
+}
+
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
