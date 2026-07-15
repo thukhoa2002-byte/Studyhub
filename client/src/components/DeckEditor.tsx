@@ -122,7 +122,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
 
         {activeQuestion && <div key={activeQuestion.id} data-card-id={activeQuestion.id} className="mt-5 rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ {activeQuestionIndex + 1}</p><p className="mt-1 text-xs text-slate-400">Chỉnh sửa từng thẻ giống chế độ tạo mới</p></div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ {activeQuestionIndex + 1}</p>
             <button disabled={questions.length <= 1} onClick={() => removeCard(activeQuestion.id)} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
