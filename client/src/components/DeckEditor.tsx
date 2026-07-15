@@ -122,10 +122,16 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             <span>Đã có {questions.length} thẻ · Đang sửa thẻ {activeQuestionIndex + 1}</span>
             <ChevronDown size={17} className={`shrink-0 transition-transform duration-200 ${showCardList ? "rotate-180" : ""}`} />
           </button>
-          {showCardList && <div className="max-h-64 space-y-2 overflow-y-auto border-t border-teal-100 p-3">
-            {questions.map((item, index) => <button key={item.id} type="button" onClick={() => { setActiveQuestionId(item.id); setShowCardList(false); }} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition ${item.id === activeQuestion?.id ? "border-teal-200 bg-teal-100/70 text-teal-900" : "border-white/80 bg-white/85 text-slate-700 hover:border-teal-100 hover:bg-white"}`}>
+          {showCardList && <div className="max-h-72 space-y-2 overflow-y-auto border-t border-teal-100 p-3">
+            <div className="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] gap-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400" aria-hidden="true">
+              <span />
+              <span>Front</span>
+              <span className="border-l border-teal-100 pl-3">Back</span>
+            </div>
+            {questions.map((item, index) => <button key={item.id} type="button" onClick={() => { setActiveQuestionId(item.id); setShowCardList(false); }} className={`grid w-full grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${item.id === activeQuestion?.id ? "border-teal-200 bg-teal-100/70 text-teal-900" : "border-white/80 bg-white/85 text-slate-700 hover:border-teal-100 hover:bg-white"}`}>
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-teal-700 shadow-sm">{index + 1}</span>
-              <span className="min-w-0 flex-1 truncate" dangerouslySetInnerHTML={{ __html: item.question || "<em>Thẻ trống</em>" }} />
+              <span className="min-w-0 truncate pr-2" dangerouslySetInnerHTML={{ __html: item.question || "<em>Thẻ trống</em>" }} />
+              <span className="min-w-0 truncate border-l border-teal-100 pl-3" dangerouslySetInnerHTML={{ __html: item.answer || "<em>Thẻ trống</em>" }} />
             </button>)}
           </div>}
         </div>
