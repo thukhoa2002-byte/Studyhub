@@ -43,6 +43,18 @@ export default function RichTextEditor({ value, onChange, placeholder, onClozeCr
     lastEmittedValueRef.current = value;
     initializedRef.current = true;
   }, []);
+  useEffect(() => {
+    // Accept changes produced outside this editor (for example, the Front
+    // cloze action writing its selected answer into Back). Never rewrite the
+    // focused editor: doing that while someone types moves the caret and can
+    // duplicate characters.
+    if (!initializedRef.current || !editorRef.current) return;
+    if (value === lastEmittedValueRef.current) return;
+    if (document.activeElement === editorRef.current) return;
+    const nextHtml = value ? toEditorHtml(value) : "<div><br></div>";
+    if (editorRef.current.innerHTML !== nextHtml) editorRef.current.innerHTML = nextHtml;
+    lastEmittedValueRef.current = value;
+  }, [value]);
   function emitChange(html: string) {
     // Keep typed spaces as normal spaces in the persisted HTML. Browsers often
     // serialize the trailing space in a contenteditable as `&nbsp;`, which
