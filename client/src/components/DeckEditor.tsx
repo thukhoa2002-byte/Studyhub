@@ -32,6 +32,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const [showIncompleteCardDialog, setShowIncompleteCardDialog] = useState(false);
   const [addScope, setAddScope] = useState<"shared" | "personal">(() => localStorage.getItem("shared-deck-card-scope") === "shared" ? "shared" : "personal");
   const [hasRememberedAddScope, setHasRememberedAddScope] = useState(() => localStorage.getItem("shared-deck-card-scope") !== null);
+  const [showAddScopeMenu, setShowAddScopeMenu] = useState(false);
   const pendingAutoSaveRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
@@ -77,6 +78,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   }
 
   function requestAddCard() {
+    setShowAddScopeMenu(false);
     if (!activeQuestion?.question.trim() || !activeQuestion.answer.trim()) {
       setShowIncompleteCardDialog(true);
       return;
@@ -88,6 +90,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
 
   function chooseAddScope(scope: "shared" | "personal") {
     setAddScope(scope);
+    setShowAddScopeMenu(false);
     if (hasRememberedAddScope) localStorage.setItem("shared-deck-card-scope", scope);
   }
 
@@ -185,12 +188,18 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
         </div>}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <button onClick={requestAddCard} title="Thêm thẻ" className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700"><Plus size={18} /> Thêm thẻ</button>
-            {visibility === "shared" && <div className="inline-flex rounded-xl border border-rose-100 bg-white/75 p-1 shadow-sm" aria-label="Phạm vi thẻ mới">
-              <button type="button" aria-pressed={addScope === "personal"} onClick={() => chooseAddScope("personal")} className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition sm:flex-none ${addScope === "personal" ? "bg-teal-100 text-teal-700 shadow-sm" : "text-slate-400 hover:bg-white hover:text-slate-600"}`}><UserRound size={14} /> Mình tôi</button>
-              <button type="button" aria-pressed={addScope === "shared"} onClick={() => chooseAddScope("shared")} className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition sm:flex-none ${addScope === "shared" ? "bg-rose-100 text-rose-600 shadow-sm" : "text-slate-400 hover:bg-white hover:text-slate-600"}`}><Users size={14} /> Chia sẻ</button>
-            </div>}
+          <div className="relative inline-flex self-start rounded-xl border border-rose-100 bg-white/85 shadow-sm">
+            <button onClick={requestAddCard} title="Thêm thẻ" className="inline-flex min-h-12 items-center gap-2 rounded-l-xl px-4 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700">
+              <Plus size={18} />
+              <span><span className="block">Thêm thẻ</span>{visibility === "shared" && <span className={`block text-[10px] font-bold ${addScope === "personal" ? "text-teal-600" : "text-rose-500"}`}>{addScope === "personal" ? "Mình tôi" : "Chia sẻ"}</span>}</span>
+            </button>
+            {visibility === "shared" && <>
+              <button type="button" onClick={() => setShowAddScopeMenu((open) => !open)} aria-expanded={showAddScopeMenu} aria-label="Đổi phạm vi thẻ mới" title="Đổi phạm vi thẻ mới" className="inline-flex w-10 items-center justify-center rounded-r-xl border-l border-rose-100 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><ChevronDown size={16} className={`transition-transform ${showAddScopeMenu ? "rotate-180" : ""}`} /></button>
+              {showAddScopeMenu && <div role="menu" className="absolute bottom-full left-0 z-[80] mb-2 w-52 rounded-2xl border border-rose-100 bg-white p-1.5 shadow-[0_18px_45px_rgba(15,23,42,.18)]">
+                <button type="button" role="menuitemradio" aria-checked={addScope === "personal"} onClick={() => chooseAddScope("personal")} className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${addScope === "personal" ? "bg-teal-50 text-teal-700" : "text-slate-600 hover:bg-slate-50"}`}><UserRound size={16} /> Mình tôi {addScope === "personal" && <Check size={15} className="ml-auto" />}</button>
+                <button type="button" role="menuitemradio" aria-checked={addScope === "shared"} onClick={() => chooseAddScope("shared")} className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${addScope === "shared" ? "bg-rose-50 text-rose-600" : "text-slate-600 hover:bg-slate-50"}`}><Users size={16} /> Chia sẻ {addScope === "shared" && <Check size={15} className="ml-auto" />}</button>
+              </div>}
+            </>}
           </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Home size={19} /></button>
