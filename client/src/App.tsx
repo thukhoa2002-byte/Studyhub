@@ -524,6 +524,7 @@ export default function App() {
             onAddToDeck={generatedForAppend ? () => setPendingGenerated(generatedForAppend) : undefined}
             onHome={leaveStudy}
             onCurrentChange={setStudyCurrentId}
+            progressId={`${user?.id ?? "guest"}:${currentSavedDeck?.id ?? deckTitle}`}
           />
         ) : (
           <Review

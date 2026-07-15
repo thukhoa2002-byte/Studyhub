@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bookmark, Check, Clock3, Home, ListOrdered, Shuffle, Sparkles } from "lucide-react";
+import { Bookmark, Check, Clock3, Home, ListOrdered, LogOut, Save, Shuffle, Sparkles } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import { sanitizeHtml, toClozeQuestionHtml, toEditorHtml } from "../utils/richText";
 
@@ -10,6 +10,7 @@ interface Props {
   onAddToDeck?: () => void;
   onHome?: () => void;
   onCurrentChange?: (questionId: string) => void;
+  progressId?: string;
 }
 
 type Rating = "again" | "hard" | "good" | "easy";
@@ -36,7 +37,14 @@ const ratingText: Record<Rating, [string, string]> = {
   easy: ["Dễ", "4 ngày"],
 };
 
-export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, onHome, onCurrentChange }: Props) {
+interface SavedStudyProgress {
+  currentQuestionId: string;
+  orderedQuestionIds: string[];
+  ratings: Record<string, Rating>;
+  isShuffled: boolean;
+}
+
+export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, onHome, onCurrentChange, progressId }: Props) {
   const [current, setCurrent] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -44,6 +52,8 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
   const [sessionComplete, setSessionComplete] = useState(false);
   const [studyQuestions, setStudyQuestions] = useState(questions);
   const [isShuffled, setIsShuffled] = useState(false);
+  const [progressSaved, setProgressSaved] = useState(false);
+  const progressStorageKey = progressId ? `hocbaithoiii-study-progress:${progressId}` : null;
 
   const answered = Object.keys(ratings).length;
   const question = studyQuestions[current];
@@ -55,14 +65,38 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
   );
 
   useEffect(() => {
-    setStudyQuestions(questions);
-    setIsShuffled(false);
-    setCurrent(0);
+    let nextQuestions = questions;
+    let nextCurrent = 0;
+    let nextRatings: Record<string, Rating> = {};
+    let nextShuffled = false;
+
+    if (progressStorageKey) {
+      try {
+        const stored = localStorage.getItem(progressStorageKey);
+        if (stored) {
+          const saved = JSON.parse(stored) as SavedStudyProgress;
+          const questionById = new Map(questions.map((item) => [item.id, item]));
+          const restored = saved.orderedQuestionIds.map((id) => questionById.get(id)).filter((item): item is GeneratedQuestion => Boolean(item));
+          const restoredIds = new Set(restored.map((item) => item.id));
+          nextQuestions = [...restored, ...questions.filter((item) => !restoredIds.has(item.id))];
+          nextCurrent = Math.max(0, nextQuestions.findIndex((item) => item.id === saved.currentQuestionId));
+          nextRatings = Object.fromEntries(Object.entries(saved.ratings ?? {}).filter(([id]) => questionById.has(id))) as Record<string, Rating>;
+          nextShuffled = Boolean(saved.isShuffled);
+        }
+      } catch {
+        localStorage.removeItem(progressStorageKey);
+      }
+    }
+
+    setStudyQuestions(nextQuestions);
+    setIsShuffled(nextShuffled);
+    setCurrent(nextCurrent);
     setShowAnswer(false);
     setSelectedOption(null);
-    setRatings({});
+    setRatings(nextRatings);
     setSessionComplete(false);
-  }, [questions]);
+    setProgressSaved(false);
+  }, [questions, progressStorageKey]);
 
   useEffect(() => {
     if (question) onCurrentChange?.(question.id);
@@ -83,6 +117,24 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
     setSelectedOption(null);
     setRatings({});
     setSessionComplete(false);
+    setProgressSaved(false);
+  }
+
+  function saveProgress() {
+    if (!progressStorageKey || !question) return;
+    const saved: SavedStudyProgress = {
+      currentQuestionId: question.id,
+      orderedQuestionIds: studyQuestions.map((item) => item.id),
+      ratings,
+      isShuffled,
+    };
+    localStorage.setItem(progressStorageKey, JSON.stringify(saved));
+    setProgressSaved(true);
+    window.setTimeout(() => setProgressSaved(false), 1800);
+  }
+
+  function exitStudy() {
+    onHome?.();
   }
 
   const rateCard = useCallback((rating: Rating) => {
@@ -92,6 +144,7 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
     setRatings((previous) => ({ ...previous, [question.id]: rating }));
 
     if (isLast) {
+      if (progressStorageKey) localStorage.removeItem(progressStorageKey);
       setSessionComplete(true);
       return;
     }
@@ -99,7 +152,7 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
     setCurrent((previous) => previous + 1);
     setShowAnswer(false);
     setSelectedOption(null);
-  }, [isLast, onRate, question]);
+  }, [isLast, onRate, progressStorageKey, question]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -153,7 +206,12 @@ export default function Study({ questions, toggleBookmark, onRate, onAddToDeck, 
           <p className="text-sm font-semibold text-rose-500">Phiên học hôm nay</p>
           <p className="mt-1 text-sm text-slate-400">Còn {studyQuestions.length - answered} thẻ mới</p>
         </div>
-        <div className="flex items-center gap-2"><div className="flex items-center gap-1 rounded-lg border border-rose-100 bg-white/80 p-1"><button onClick={() => changeOrder(true)} title="Trộn bộ thẻ" aria-label="Trộn bộ thẻ" className={`rounded-md p-2 ${isShuffled ? "bg-rose-100 text-rose-600" : "text-slate-400 hover:bg-rose-50"}`}><Shuffle size={17} /></button><button onClick={() => changeOrder(false)} title="Học theo thứ tự" aria-label="Học theo thứ tự" className={`rounded-md p-2 ${!isShuffled ? "bg-teal-50 text-teal-600" : "text-slate-400 hover:bg-teal-50"}`}><ListOrdered size={17} /></button></div><div className="flex items-center gap-2 text-sm font-medium text-slate-500"><Clock3 size={17} /> {current + 1} / {studyQuestions.length}</div></div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button type="button" onClick={saveProgress} className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition ${progressSaved ? "border-teal-200 bg-teal-50 text-teal-700" : "border-rose-100 bg-white/80 text-slate-600 hover:bg-rose-50 hover:text-rose-700"}`} title="Lưu vị trí đang học"><Save size={16} /> {progressSaved ? "Đã lưu" : "Lưu tiến trình"}</button>
+          <button type="button" onClick={exitStudy} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 text-xs font-bold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700" title="Thoát về màn hình chính"><LogOut size={16} /> Thoát</button>
+          <div className="flex items-center gap-1 rounded-lg border border-rose-100 bg-white/80 p-1"><button onClick={() => changeOrder(true)} title="Trộn bộ thẻ" aria-label="Trộn bộ thẻ" className={`rounded-md p-2 ${isShuffled ? "bg-rose-100 text-rose-600" : "text-slate-400 hover:bg-rose-50"}`}><Shuffle size={17} /></button><button onClick={() => changeOrder(false)} title="Học theo thứ tự" aria-label="Học theo thứ tự" className={`rounded-md p-2 ${!isShuffled ? "bg-teal-50 text-teal-600" : "text-slate-400 hover:bg-teal-50"}`}><ListOrdered size={17} /></button></div>
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-500"><Clock3 size={17} /> {current + 1} / {studyQuestions.length}</div>
+        </div>
       </div>
 
       <div className="mb-8 h-1.5 overflow-hidden rounded-full bg-rose-100"><div className="h-full rounded-full bg-teal-300 transition-all duration-500" style={{ width: `${progress}%` }} /></div>
