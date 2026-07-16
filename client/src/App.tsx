@@ -17,7 +17,7 @@ import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import DrugsPage from "./components/DrugsPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
-import { deleteDeck, dismissDeckActivityNotification, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
+import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
 
 import {
   generateQuestions,
@@ -55,6 +55,7 @@ export default function App() {
   const [deleteCandidate, setDeleteCandidate] = useState<SavedDeck | null>(null);
   const [pendingGenerated, setPendingGenerated] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [generatedForAppend, setGeneratedForAppend] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
+  const [appendingDeckId, setAppendingDeckId] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [welcomeClosing, setWelcomeClosing] = useState(false);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
@@ -251,15 +252,32 @@ export default function App() {
   }
 
   async function appendGeneratedToDeck(deck: SavedDeck) {
-    if (!user || !pendingGenerated) return;
-    const combined = [...deck.cards, ...pendingGenerated.cards];
+    if (!user || !pendingGenerated || appendingDeckId) return;
+    setAppendingDeckId(deck.id);
     try {
-      await updateDeck(user.id, deck.id, deck.title, combined, deck.visibility);
-      const nextDecks = await listDecks(user.id);
-      const freshDeck = nextDecks.find((item) => item.id === deck.id) ?? { ...deck, cards: combined };
+      const appendedCards = await appendCardsToDeck(user.id, deck.id, pendingGenerated.cards);
+      const appendedById = new Map(appendedCards.map((card) => [card.id, card]));
+      const localDeck = { ...deck, cards: [...deck.cards, ...appendedCards] };
+      let nextDecks: SavedDeck[];
+      try {
+        nextDecks = await listDecks(user.id);
+      } catch (refreshError) {
+        console.warn("Cards were appended, but refreshing decks failed", refreshError);
+        nextDecks = savedDecks.map((item) => item.id === deck.id ? localDeck : item);
+      }
+      const refreshedDeck = nextDecks.find((item) => item.id === deck.id);
+      const freshDeck = refreshedDeck
+        ? { ...refreshedDeck, cards: refreshedDeck.cards.map((card) => appendedById.has(card.id) ? { ...card, ...appendedById.get(card.id)! } : card) }
+        : localDeck;
+      nextDecks = nextDecks.map((item) => item.id === deck.id ? freshDeck : item);
       setQuestions(freshDeck.cards); setDeckTitle(deck.title); setCurrentSavedDeck(freshDeck); setPendingGenerated(null); setGeneratedForAppend(null); setMode("study");
       setSavedDecks(nextDecks);
-    } catch (error) { alert(`Không thể thêm vào bộ thẻ: ${error instanceof Error ? error.message : String(error)}`); }
+    } catch (error) {
+      console.error(error);
+      alert(`Không thể thêm vào bộ thẻ: ${formatUnknownError(error)}`);
+    } finally {
+      setAppendingDeckId(null);
+    }
   }
 
   async function onImportDeck(file: File) {
@@ -652,12 +670,27 @@ export default function App() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100 text-2xl">📚</div>
             <h2 id="append-title" className="mt-4 text-center text-xl font-bold text-rose-950">Thêm vào bộ thẻ hiện có?</h2>
             <p className="mt-2 text-center text-sm text-slate-500">AI vừa tạo {pendingGenerated.cards.length} câu. Chọn bộ thẻ để lưu chung:</p>
-            <div className="mt-5 max-h-44 space-y-2 overflow-y-auto">{savedDecks.map((deck) => <button key={deck.id} type="button" onClick={() => void appendGeneratedToDeck(deck)} className="flex w-full items-center justify-between rounded-xl border border-teal-100 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50"><span>{deck.title}</span><span className="text-xs text-slate-400">{deck.cards.length} thẻ</span></button>)}</div>
-            <button type="button" onClick={() => { setQuestions(pendingGenerated.cards); setDeckTitle(pendingGenerated.title); setGeneratedForAppend(pendingGenerated); setPendingGenerated(null); setMode("study"); }} className="mt-5 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Học riêng bộ mới</button>
+            <div className="mt-5 max-h-44 space-y-2 overflow-y-auto">
+              {savedDecks.filter((deck) => deck.owner_id === user?.id || deck.member_access === "edit").map((deck) => <button key={deck.id} type="button" disabled={appendingDeckId !== null} onClick={() => void appendGeneratedToDeck(deck)} className="flex w-full items-center justify-between rounded-xl border border-teal-100 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60"><span>{appendingDeckId === deck.id ? "Đang thêm..." : deck.title}</span><span className="text-xs text-slate-400">{deck.cards.length} thẻ</span></button>)}
+              {savedDecks.every((deck) => deck.owner_id !== user?.id && deck.member_access !== "edit") && <p className="rounded-xl bg-white/70 px-4 py-3 text-center text-sm text-slate-500">Bạn chưa có bộ thẻ nào được phép chỉnh sửa.</p>}
+            </div>
+            <button type="button" disabled={appendingDeckId !== null} onClick={() => { setQuestions(pendingGenerated.cards); setDeckTitle(pendingGenerated.title); setGeneratedForAppend(pendingGenerated); setPendingGenerated(null); setMode("study"); }} className="mt-5 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-60">Học riêng bộ mới</button>
           </div>
         </div>}
     </>
   );
+}
+
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const value = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const parts = [value.message, value.details, value.hint]
+      .filter((part): part is string => typeof part === "string" && part.trim().length > 0);
+    if (parts.length > 0) return `${parts.join(" — ")}${value.code ? ` (mã ${String(value.code)})` : ""}`;
+    try { return JSON.stringify(error); } catch { return "Lỗi không xác định."; }
+  }
+  return String(error);
 }
 
 function parseDeckText(text: string): GeneratedQuestion[] {

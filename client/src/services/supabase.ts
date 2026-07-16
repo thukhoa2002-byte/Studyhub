@@ -9,6 +9,43 @@ export const supabase =
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
 
+const CARD_METADATA_PREFIX = "__hocbai_card_v1__:";
+
+function encodeCardCategory(question: GeneratedQuestion): string {
+  if (!question.options?.length && !question.correctOption && !question.explanation) {
+    return question.category || "Anki";
+  }
+  return `${CARD_METADATA_PREFIX}${JSON.stringify({
+    category: question.category || "Trắc nghiệm",
+    importance: question.importance || 1,
+    options: question.options || [],
+    correctOption: question.correctOption || question.answer,
+    explanation: question.explanation || "",
+  })}`;
+}
+
+function decodeCardCategory(value: string | null | undefined): Partial<GeneratedQuestion> & { category: string } {
+  if (!value?.startsWith(CARD_METADATA_PREFIX)) return { category: value || "Anki" };
+  try {
+    const metadata = JSON.parse(value.slice(CARD_METADATA_PREFIX.length)) as {
+      category?: string;
+      importance?: number;
+      options?: string[];
+      correctOption?: string;
+      explanation?: string;
+    };
+    return {
+      category: metadata.category || "Trắc nghiệm",
+      importance: metadata.importance || 1,
+      options: Array.isArray(metadata.options) ? metadata.options : undefined,
+      correctOption: metadata.correctOption,
+      explanation: metadata.explanation,
+    };
+  } catch {
+    return { category: "Trắc nghiệm" };
+  }
+}
+
 export interface SavedDeck {
   id: string;
   title: string;
@@ -108,7 +145,7 @@ export async function saveDeck(
       deck_id: deck.id,
       front: question.question,
       back: question.answer,
-      category: question.category,
+      category: encodeCardCategory(question),
       position,
     }))
   );
@@ -202,16 +239,19 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
       member_role: membershipByDeck.get(deck.id)?.role === "admin" ? "admin" : "member",
       member_access: membershipByDeck.get(deck.id)?.role === "admin" || membershipByDeck.get(deck.id)?.access === "edit" ? "edit" : "view",
       review_stats: reviewStats,
-      cards: deckCards.map((card) => ({
-        id: card.id,
-        scope: (card as { scope?: string }).scope === "personal" ? "personal" : "shared",
-        creatorLabel: (card as { creator_label?: string | null }).creator_label || undefined,
-        question: card.front,
-        answer: card.back,
-        category: card.category ?? "Anki",
-        importance: 1,
-        bookmarked: false,
-      })),
+      cards: deckCards.map((card) => {
+        const metadata = decodeCardCategory(card.category);
+        return {
+          id: card.id,
+          scope: (card as { scope?: string }).scope === "personal" ? "personal" : "shared",
+          creatorLabel: (card as { creator_label?: string | null }).creator_label || undefined,
+          question: card.front,
+          answer: card.back,
+          importance: 1,
+          bookmarked: false,
+          ...metadata,
+        };
+      }),
     };
   });
 }
@@ -304,7 +344,8 @@ export async function listDueCards(userId: string): Promise<GeneratedQuestion[]>
   return (data ?? []).flatMap((row) => {
     const card = Array.isArray(row.cards) ? row.cards[0] : row.cards;
     if (!card) return [];
-    return [{ id: card.id, question: card.front, answer: card.back, category: card.category ?? "Ôn tập", importance: 1, bookmarked: false }];
+    const metadata = decodeCardCategory(card.category);
+    return [{ id: card.id, question: card.front, answer: card.back, importance: 1, bookmarked: false, ...metadata }];
   });
 }
 
@@ -333,7 +374,7 @@ export async function updateDeck(
   const newCards: Array<{ id?: string; deck_id: string; front: string; back: string; category: string; position: number; scope?: "personal"; personal_owner_id?: string; creator_label?: string }> = [];
 
   for (const [position, question] of questions.entries()) {
-    const card = { front: question.question, back: question.answer, category: question.category, position };
+    const card = { front: question.question, back: question.answer, category: encodeCardCategory(question), position };
     if (existingIds.has(question.id)) {
       retainedIds.add(question.id);
       const { error } = await supabase.from("cards").update(card).eq("deck_id", deckId).eq("id", question.id);
@@ -358,6 +399,53 @@ export async function updateDeck(
     const { error } = await supabase.from("cards").insert(newCards);
     if (error) throw error;
   }
+}
+
+export async function appendCardsToDeck(
+  userId: string,
+  deckId: string,
+  questions: GeneratedQuestion[]
+): Promise<GeneratedQuestion[]> {
+  if (!supabase) return questions;
+
+  const validQuestions = questions.filter((question) => question.question.trim() && question.answer.trim());
+  if (validQuestions.length === 0) throw new Error("Không có câu hỏi hợp lệ để thêm.");
+
+  const { data: lastCards, error: positionError } = await supabase
+    .from("cards")
+    .select("position")
+    .eq("deck_id", deckId)
+    .order("position", { ascending: false })
+    .limit(1);
+  if (positionError) throw positionError;
+
+  const firstPosition = (lastCards?.[0]?.position ?? -1) + 1;
+  const cardsWithStableIds = validQuestions.map((question) => ({
+    ...question,
+    id: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(question.id)
+      ? question.id
+      : crypto.randomUUID(),
+  }));
+
+  // This operation is intentionally insert-only. Reusing updateDeck here used
+  // to rewrite every old card and could report a duplicate-key error after the
+  // new AI cards had already been saved. Stable IDs + ignoreDuplicates also
+  // make a repeated click safe.
+  const { error } = await supabase.from("cards").upsert(
+    cardsWithStableIds.map((question, index) => ({
+      id: question.id,
+      deck_id: deckId,
+      front: question.question,
+      back: question.answer,
+      category: encodeCardCategory(question),
+      position: firstPosition + index,
+      ...(question.scope === "personal" ? { scope: "personal", personal_owner_id: userId } : {}),
+    })),
+    { onConflict: "id", ignoreDuplicates: true }
+  );
+  if (error) throw error;
+
+  return cardsWithStableIds;
 }
 
 export async function deleteDeck(userId: string, deckId: string) {
