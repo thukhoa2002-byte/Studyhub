@@ -9,7 +9,6 @@ import clozeRouter from "./routes/cloze.js";
 import gradingRouter from "./routes/grading.js";
 import ankiRouter from "./routes/anki.js";
 import mcqRouter from "./routes/mcq.js";
-import drugsRouter from "./routes/drugs.js";
 import { getAiCallsRemaining } from "./services/aiUsage.js";
 
 dotenv.config();
@@ -40,7 +39,6 @@ app.use("/api/generate-cloze", clozeRouter);
 app.use("/api/grading", gradingRouter);
 app.use("/api/import-anki", ankiRouter);
 app.use("/api/generate-mcq", mcqRouter);
-app.use("/api/drugs", drugsRouter);
 
 if (existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));

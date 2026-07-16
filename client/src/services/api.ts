@@ -122,29 +122,3 @@ export async function importAnkiPackage(
 
   return result;
 }
-
-export interface DrugSummarySections {
-  indications: string[];
-  contraindications: string[];
-  dosage: string[];
-  mechanism: string[];
-  liverKidney: string[];
-}
-
-export interface DrugLookupResult {
-  query: string;
-  genericName: string;
-  brandName: string;
-  manufacturer: string;
-  route: string[];
-  effectiveTime: string;
-  summary: DrugSummarySections;
-  sourceUrl: string;
-}
-
-export async function searchDrug(query: string): Promise<DrugLookupResult> {
-  const response = await fetch(`${API_URL}/api/drugs/search?q=${encodeURIComponent(query)}`);
-  const result = (await response.json().catch(() => null)) as { success?: boolean; message?: string; drug?: DrugLookupResult } | null;
-  if (!response.ok || !result?.drug) throw new Error(result?.message || "Không thể tra cứu thuốc.");
-  return result.drug;
-}
