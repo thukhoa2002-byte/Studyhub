@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Globe2, LockKeyhole, Pencil, Play, RotateCcw, ShieldCheck, Trash2, Trophy, UserMinus, UserPlus, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Globe2, LockKeyhole, Pencil, Play, RotateCcw, ShieldCheck, Trash2, Trophy, UserMinus, UserPlus, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
+import McqIcon from "./McqIcon";
 import { addMcqAdmin, archiveMcqBank, deleteMcqBank, hasMcqAdminAccess, listMcqAdmins, listMcqBanks, listMcqBankStates, mcqLibraryErrorMessage, removeMcqAdmin, saveMcqBank, type McqAdminAccess, type McqBankState, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
 
 type Option = { id: string; text: string };
@@ -289,13 +290,13 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
       {adminAccessReady && isAdmin && userId && <div id="mcq-admin-studio"><McqAdminStudio userId={userId} drafts={libraryBanks} requestedBank={requestedEditBank} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} /></div>}
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={32} strokeWidth={1.9} /></div>
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><McqIcon size={34} strokeWidth={1.8} /></div>
           <div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Khu vực luyện tập</p><h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1><p className="mt-1 text-sm text-slate-500">Chọn một bộ đề để bắt đầu làm trắc nghiệm.</p></div>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {decks.map((deck) => <article key={deck.key} className="group relative rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
             <button type="button" onClick={() => openDeck(deck)} className="block w-full text-left">
-              <div className="flex items-start justify-between gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><CircleHelp size={24} /></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span></div>
+              <div className="flex items-start justify-between gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><McqIcon size={26} /></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span></div>
               <h2 className="mt-5 text-xl font-extrabold text-rose-950">{deck.title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{deck.description}</p>
               <div className="mt-6 flex items-center justify-end text-sm font-bold text-violet-700"><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">Bắt đầu<Play size={15} fill="currentColor" /></span></div>
             </button>
@@ -322,7 +323,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
         <div className="mb-6"><button type="button" onClick={returnToDeckList} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50"><ArrowLeft size={17} />Danh sách bộ MCQ</button></div>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-15 w-15 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={30} strokeWidth={2} /></div>
+            <div className="flex h-15 w-15 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><McqIcon size={31} strokeWidth={1.85} /></div>
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Bộ trắc nghiệm</p>
               <h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">{activeDeck?.title}</h1>

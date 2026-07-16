@@ -1,4 +1,6 @@
-import { BookOpen, BookOpenCheck, CircleHelp, Pill } from "lucide-react";
+import { BookOpen, BookOpenCheck, Pill } from "lucide-react";
+import type { ComponentType } from "react";
+import McqIcon from "./McqIcon";
 
 export type WorkspaceTab = "flashcards" | "mcq" | "guidelines" | "drugs";
 
@@ -7,9 +9,9 @@ interface Props {
   onChange: (tab: WorkspaceTab) => void;
 }
 
-const tabs: Array<{ id: WorkspaceTab; label: string; icon: typeof BookOpen }> = [
+const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
   { id: "flashcards", label: "Flashcard", icon: BookOpen },
-  { id: "mcq", label: "MCQ", icon: CircleHelp },
+  { id: "mcq", label: "MCQ", icon: McqIcon },
   { id: "guidelines", label: "Guidelines", icon: BookOpenCheck },
   { id: "drugs", label: "Drugs", icon: Pill },
 ];
