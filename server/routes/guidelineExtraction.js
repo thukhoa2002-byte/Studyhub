@@ -25,6 +25,7 @@ const schema = {
     condition: textField,
     publicationYear: { type: "integer" },
     versionLabel: textField,
+    sourceUrl: textField,
     entries: {
       type: "array",
       items: {
@@ -52,7 +53,7 @@ const schema = {
       },
     },
   },
-  required: ["documentTitle", "society", "condition", "publicationYear", "versionLabel", "entries"],
+  required: ["documentTitle", "society", "condition", "publicationYear", "versionLabel", "sourceUrl", "entries"],
   additionalProperties: false,
 };
 
@@ -85,6 +86,7 @@ router.post("/", upload.fields([{ name: "document", maxCount: 1 }, { name: "supp
 PHẠM VI NGƯỜI DÙNG QUAN TÂM: ${focus || "Toàn bộ khuyến cáo thuốc quan trọng trong tài liệu"}.
 
 NGUYÊN TẮC AN TOÀN BẮT BUỘC:
+- Tự đọc metadata ở trang bìa/đầu tài liệu: documentTitle, society, condition, publicationYear, versionLabel. sourceUrl chỉ lấy URL/DOI chính thức có in trong PDF; nếu không có thì để chuỗi rỗng, không tự đoán URL.
 - Chỉ dùng thông tin có thật trong PDF này. Tuyệt đối không dùng kiến thức bên ngoài, không suy đoán và không tự điền dữ liệu còn thiếu.
 - Mỗi mục phải đại diện cho một khuyến cáo độc lập. Bao gồm cả khuyến cáo dùng thuốc và khuyến cáo không dùng thuốc.
 - Trả entries đúng thứ tự xuất hiện trong tài liệu, từ chương đầu đến chương cuối; không sắp xếp lại theo tên thuốc.

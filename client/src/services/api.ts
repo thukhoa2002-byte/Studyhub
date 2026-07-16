@@ -91,6 +91,7 @@ export interface GuidelineExtractionResponse {
     condition: string;
     publicationYear: number;
     versionLabel: string;
+    sourceUrl: string;
     entries: ExtractedGuidelineEntry[];
   };
   aiCallsRemaining?: number;

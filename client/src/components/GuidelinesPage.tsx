@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   BookOpenCheck,
@@ -26,7 +26,7 @@ import {
   type GuidelineDocument,
   type GuidelineEntry,
 } from "../services/guidelines";
-import { extractGuidelinePdf } from "../services/api";
+import { extractGuidelinePdf, type GuidelineExtractionResponse } from "../services/api";
 
 interface Props {
   user: User | null;
@@ -55,6 +55,18 @@ function errorMessage(error: unknown) {
   return String(error);
 }
 
+function extractionKey(file: File, supplementFile: File | null, focus: string) {
+  return `${file.name}:${file.size}:${file.lastModified}|${supplementFile?.name || ""}:${supplementFile?.size || 0}:${supplementFile?.lastModified || 0}|${focus}`;
+}
+
+function guidelineCondition(value: string, title: string): GuidelineCondition {
+  const text = `${value} ${title}`.toUpperCase();
+  if (/\bACS\b|ACUTE CORONARY|HỘI CHỨNG VÀNH/.test(text)) return "ACS";
+  if (/\bHF\b|HEART FAILURE|SUY TIM/.test(text)) return "HF";
+  if (/\bAF\b|ATRIAL FIBRILLATION|RUNG NHĨ/.test(text)) return "AF";
+  return "Khác";
+}
+
 export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   const [documents, setDocuments] = useState<GuidelineDocument[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -64,6 +76,9 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   const [showDocumentForm, setShowDocumentForm] = useState(false);
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [entryForm, setEntryForm] = useState(emptyEntry);
+  const [aiReading, setAiReading] = useState(false);
+  const [preparedExtraction, setPreparedExtraction] = useState<{ key: string; response: GuidelineExtractionResponse } | null>(null);
+  const documentFormRef = useRef<HTMLFormElement>(null);
 
   const selectedDocument = useMemo(
     () => documents.find((document) => document.id === selectedId) ?? null,
@@ -105,9 +120,40 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       .catch((error) => setNotice(errorMessage(error)));
   }, [selectedId]);
 
+  async function readDocumentWithAi() {
+    const formElement = documentFormRef.current;
+    if (!formElement || aiReading || busy) return;
+    const form = new FormData(formElement);
+    const file = form.get("file") as File | null;
+    const supplementFile = form.get("supplementFile") as File | null;
+    const focus = String(form.get("focus") || "").trim();
+    if (!file?.size) { setNotice("Hãy chọn PDF guideline chính trước."); return; }
+    if ((file.size + (supplementFile?.size || 0)) > 14 * 1024 * 1024) { setNotice("Tổng hai PDF không được vượt quá 14 MB khi dùng AI."); return; }
+    setAiReading(true);
+    setNotice("Gemini đang đọc metadata, đề mục, bảng khuyến cáo và Supplementary Data...");
+    try {
+      const response = await extractGuidelinePdf(file, supplementFile, focus);
+      if (typeof response.aiCallsRemaining === "number") onAiCallsRemaining?.(response.aiCallsRemaining);
+      const metadata = response.data;
+      const setValue = (name: string, value: string) => {
+        const field = formElement.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
+        if (field && value) field.value = value;
+      };
+      setValue("title", metadata.documentTitle);
+      setValue("society", metadata.society);
+      setValue("condition", guidelineCondition(metadata.condition, metadata.documentTitle));
+      if (metadata.publicationYear >= 1900 && metadata.publicationYear <= 2200) setValue("publicationYear", String(metadata.publicationYear));
+      setValue("versionLabel", metadata.versionLabel);
+      if (/^https?:\/\//i.test(metadata.sourceUrl)) setValue("sourceUrl", metadata.sourceUrl);
+      setPreparedExtraction({ key: extractionKey(file, supplementFile, focus), response });
+      setNotice(`AI đã tự điền thông tin và chuẩn bị ${metadata.entries.length} khuyến cáo. Bạn kiểm tra các ô rồi bấm Lưu tài liệu.`);
+    } catch (error) { setNotice(errorMessage(error)); }
+    finally { setAiReading(false); }
+  }
+
   async function submitDocument(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!user || busy) return;
+    if (!user || busy || aiReading) return;
     const form = new FormData(event.currentTarget);
     const file = form.get("file") as File | null;
     const supplementFile = form.get("supplementFile") as File | null;
@@ -143,7 +189,8 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       setShowDocumentForm(false);
       if (autoExtract && file?.size) {
         setNotice("Gemini đang đọc PDF và tạo các bản nháp có trang nguồn. File dài có thể mất vài phút...");
-        const extracted = await extractGuidelinePdf(file, supplementFile, focus);
+        const key = extractionKey(file, supplementFile, focus);
+        const extracted = preparedExtraction?.key === key ? preparedExtraction.response : await extractGuidelinePdf(file, supplementFile, focus);
         if (typeof extracted.aiCallsRemaining === "number") onAiCallsRemaining?.(extracted.aiCallsRemaining);
         const drafts = extracted.data.entries.map((entry, index) => ({
           document_id: created.id,
@@ -163,6 +210,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
         }));
         const saved = await createGuidelineEntries(user.id, drafts);
         setEntries(saved);
+        setPreparedExtraction(null);
         setNotice(saved.length > 0
           ? `AI đã tạo ${saved.length} bản nháp. Hãy mở PDF và đối chiếu từng mục trước khi xác nhận.`
           : "AI chưa tìm thấy khuyến cáo thuốc đủ căn cứ trong PDF. Tài liệu vẫn đã được lưu.");
@@ -233,7 +281,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
 
         {notice && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/85 px-4 py-3 text-sm leading-6 text-amber-900">{notice}</div>}
 
-        {showDocumentForm && <form onSubmit={submitDocument} className="mt-6 grid gap-4 rounded-3xl border border-rose-100 bg-white/75 p-5 sm:grid-cols-2">
+        {showDocumentForm && <form ref={documentFormRef} onSubmit={submitDocument} className="mt-6 grid gap-4 rounded-3xl border border-rose-100 bg-white/75 p-5 sm:grid-cols-2">
           <label className="text-sm font-bold text-slate-700">Tên guideline<input name="title" required placeholder="2024 ESC Guidelines for AF" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
           <label className="text-sm font-bold text-slate-700">Hiệp hội<input name="society" required defaultValue="ESC" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
           <label className="text-sm font-bold text-slate-700">Bệnh<select name="condition" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3"><option>ACS</option><option>HF</option><option>AF</option><option>Khác</option></select></label>
@@ -241,11 +289,12 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <label className="text-sm font-bold text-slate-700">Phiên bản<input name="versionLabel" placeholder="Full guideline / Focused update" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
           <label className="text-sm font-bold text-slate-700">Quyền xem<select name="visibility" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3"><option value="private">Chỉ mình tôi</option><option value="shared">Chia sẻ bản đã kiểm duyệt</option></select></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">Link nguồn chính thức<input name="sourceUrl" required type="url" placeholder="https://www.escardio.org/..." className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
-          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF guideline chính<input name="file" type="file" accept="application/pdf,.pdf" className="mt-2 block w-full rounded-xl border border-dashed border-teal-200 bg-teal-50/55 px-4 py-4 text-sm" /></label>
-          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF Supplementary Data (không bắt buộc)<input name="supplementFile" type="file" accept="application/pdf,.pdf" className="mt-2 block w-full rounded-xl border border-dashed border-violet-200 bg-violet-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tổng hai file tối đa 14 MB khi dùng AI · mỗi file tối đa 25 MB nếu chỉ lưu</span></label>
+          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF guideline chính<input name="file" required type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-teal-200 bg-teal-50/55 px-4 py-4 text-sm" /></label>
+          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF Supplementary Data (không bắt buộc)<input name="supplementFile" type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-violet-200 bg-violet-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tổng hai file tối đa 14 MB khi dùng AI · mỗi file tối đa 25 MB nếu chỉ lưu</span></label>
           <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 text-sm text-slate-700"><input name="autoExtract" type="checkbox" defaultChecked className="mt-1 h-4 w-4 accent-teal-500" /><span><strong className="block text-teal-800">AI tự trích xuất tất cả khuyến cáo sau khi upload</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Bao gồm Class/LoE, bản dịch tiếng Việt và dữ liệu thuốc trong Supplementary Data. Mỗi lần xử lý dùng 1 lượt Gemini; kết quả luôn là bản nháp.</span></span></label>
-          <label className="text-sm font-bold text-slate-700 sm:col-span-2">Phạm vi muốn AI tập trung (không bắt buộc)<input name="focus" placeholder="Ví dụ: kháng đông trong AF; thuốc điều trị HFrEF; liều và điều chỉnh theo thận" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
-          <div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={() => setShowDocumentForm(false)} className="rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-sm font-bold text-slate-500">Hủy</button><button disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy && <Loader2 className="animate-spin" size={17} />} {busy ? "Đang xử lý PDF..." : "Lưu & để AI đọc"}</button></div>
+          <label className="text-sm font-bold text-slate-700 sm:col-span-2">Phạm vi muốn AI tập trung (không bắt buộc)<input name="focus" onChange={() => setPreparedExtraction(null)} placeholder="Ví dụ: kháng đông trong AF; thuốc điều trị HFrEF; liều và điều chỉnh theo thận" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
+          <div className="sm:col-span-2 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-teal-50 p-4"><button type="button" disabled={aiReading || busy} onClick={() => void readDocumentWithAi()} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-extrabold text-white shadow-sm disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={18} /> : <BookOpenCheck size={18} />} {aiReading ? "AI đang đọc toàn bộ tài liệu..." : preparedExtraction ? "AI đã điền · Đọc lại" : "AI đọc file & tự điền các ô"}</button><p className="mt-2 text-center text-xs font-medium text-slate-500">Sau khi AI điền, bạn chỉ cần kiểm tra/chỉnh lại trước khi lưu.</p></div>
+          <div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={() => setShowDocumentForm(false)} className="rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-sm font-bold text-slate-500">Hủy</button><button disabled={busy || aiReading} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy && <Loader2 className="animate-spin" size={17} />} {busy ? "Đang lưu..." : preparedExtraction ? "Lưu tài liệu đã kiểm tra" : "Lưu & để AI đọc"}</button></div>
         </form>}
 
         <div className="mt-7 grid gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
