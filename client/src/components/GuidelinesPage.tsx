@@ -99,14 +99,19 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     if (!user || busy) return;
     const form = new FormData(event.currentTarget);
     const file = form.get("file") as File | null;
+    const supplementFile = form.get("supplementFile") as File | null;
     const autoExtract = form.get("autoExtract") === "on";
     const focus = String(form.get("focus") || "").trim();
-    if (autoExtract && (!file?.size || file.type !== "application/pdf")) {
+    if (autoExtract && (!file?.size || (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")))) {
       setNotice("Hãy chọn một file PDF để AI tự trích xuất.");
       return;
     }
-    if (autoExtract && file && file.size > 14 * 1024 * 1024) {
-      setNotice("AI đọc trực tiếp file tối đa 14 MB. Bạn có thể nén PDF hoặc bỏ chọn AI để chỉ lưu tài liệu.");
+    if (supplementFile?.size && supplementFile.type !== "application/pdf" && !supplementFile.name.toLowerCase().endsWith(".pdf")) {
+      setNotice("Supplementary Data phải là file PDF.");
+      return;
+    }
+    if (autoExtract && ((file?.size || 0) + (supplementFile?.size || 0)) > 14 * 1024 * 1024) {
+      setNotice("Tổng dung lượng guideline và Supplementary Data tối đa 14 MB khi dùng AI. Bạn có thể nén PDF hoặc chỉ lưu tài liệu.");
       return;
     }
     setBusy(true);
@@ -120,13 +125,14 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
         sourceUrl: String(form.get("sourceUrl") || ""),
         visibility: String(form.get("visibility")) === "shared" ? "shared" : "private",
         file: file?.size ? file : null,
+        supplementFile: supplementFile?.size ? supplementFile : null,
       });
       setDocuments((items) => [created, ...items]);
       setSelectedId(created.id);
       setShowDocumentForm(false);
       if (autoExtract && file?.size) {
         setNotice("Gemini đang đọc PDF và tạo các bản nháp có trang nguồn. File dài có thể mất vài phút...");
-        const extracted = await extractGuidelinePdf(file, focus);
+        const extracted = await extractGuidelinePdf(file, supplementFile, focus);
         if (typeof extracted.aiCallsRemaining === "number") onAiCallsRemaining?.(extracted.aiCallsRemaining);
         const drafts = extracted.data.entries.map((entry) => ({
           document_id: created.id,
@@ -219,8 +225,9 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <label className="text-sm font-bold text-slate-700">Phiên bản<input name="versionLabel" placeholder="Full guideline / Focused update" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
           <label className="text-sm font-bold text-slate-700">Quyền xem<select name="visibility" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3"><option value="private">Chỉ mình tôi</option><option value="shared">Chia sẻ bản đã kiểm duyệt</option></select></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">Link nguồn chính thức<input name="sourceUrl" required type="url" placeholder="https://www.escardio.org/..." className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
-          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF của bạn<input name="file" type="file" accept="application/pdf,.pdf" className="mt-2 block w-full rounded-xl border border-dashed border-teal-200 bg-teal-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tối đa 14 MB khi dùng AI · tối đa 25 MB nếu chỉ lưu tài liệu</span></label>
-          <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 text-sm text-slate-700"><input name="autoExtract" type="checkbox" defaultChecked className="mt-1 h-4 w-4 accent-teal-500" /><span><strong className="block text-teal-800">AI tự trích xuất khuyến cáo thuốc sau khi upload</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Mỗi lần xử lý dùng 1 lượt Gemini. Kết quả luôn là bản nháp, chưa phải tư vấn điều trị.</span></span></label>
+          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF guideline chính<input name="file" type="file" accept="application/pdf,.pdf" className="mt-2 block w-full rounded-xl border border-dashed border-teal-200 bg-teal-50/55 px-4 py-4 text-sm" /></label>
+          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF Supplementary Data (không bắt buộc)<input name="supplementFile" type="file" accept="application/pdf,.pdf" className="mt-2 block w-full rounded-xl border border-dashed border-violet-200 bg-violet-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tổng hai file tối đa 14 MB khi dùng AI · mỗi file tối đa 25 MB nếu chỉ lưu</span></label>
+          <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 text-sm text-slate-700"><input name="autoExtract" type="checkbox" defaultChecked className="mt-1 h-4 w-4 accent-teal-500" /><span><strong className="block text-teal-800">AI tự trích xuất tất cả khuyến cáo sau khi upload</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Bao gồm Class/LoE, bản dịch tiếng Việt và dữ liệu thuốc trong Supplementary Data. Mỗi lần xử lý dùng 1 lượt Gemini; kết quả luôn là bản nháp.</span></span></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">Phạm vi muốn AI tập trung (không bắt buộc)<input name="focus" placeholder="Ví dụ: kháng đông trong AF; thuốc điều trị HFrEF; liều và điều chỉnh theo thận" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
           <div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={() => setShowDocumentForm(false)} className="rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-sm font-bold text-slate-500">Hủy</button><button disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy && <Loader2 className="animate-spin" size={17} />} {busy ? "Đang xử lý PDF..." : "Lưu & để AI đọc"}</button></div>
         </form>}
@@ -235,7 +242,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <div className="min-w-0">
             {!selectedDocument ? <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-rose-200 text-sm text-slate-400">Chọn hoặc thêm một guideline.</div> : <>
               <div className="rounded-3xl border border-rose-100 bg-white/78 p-5">
-                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> PDF riêng</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
+                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> Guideline PDF</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><FileText size={16} /> Supplement</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
                 <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">Phục vụ học tập. Luôn kiểm tra tài liệu gốc, đặc điểm người bệnh, chức năng gan–thận và hướng dẫn sử dụng thuốc trước quyết định điều trị.</div>
               </div>
 
@@ -258,7 +265,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
               </form>}
 
               <div className="mt-5 space-y-4">{entries.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">Chưa có khuyến cáo thuốc được tóm tắt.</div> : entries.map((entry) => <article key={entry.id} className="rounded-3xl border border-rose-100 bg-white/78 p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.13em] text-teal-600">{entry.topic || selectedDocument.condition}</p><h3 className="mt-1 text-lg font-extrabold text-rose-950">{entry.drug_name}</h3>{entry.clinical_context && <p className="mt-1 text-sm text-slate-500">{entry.clinical_context}</p>}</div><span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold ${entry.status === "reviewed" ? "bg-teal-50 text-teal-700" : "bg-amber-50 text-amber-700"}`}>{entry.status === "reviewed" ? <CheckCircle2 size={14} /> : <Clock3 size={14} />}{entry.status === "reviewed" ? "Đã kiểm duyệt" : "Bản nháp"}</span></div>
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.13em] text-teal-600">{entry.topic || selectedDocument.condition}</p><h3 className="mt-1 text-lg font-extrabold text-rose-950">{entry.drug_name === "Không áp dụng" ? "Khuyến cáo chung" : entry.drug_name}</h3>{entry.clinical_context && <p className="mt-1 text-sm text-slate-500">{entry.clinical_context}</p>}</div><span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold ${entry.status === "reviewed" ? "bg-teal-50 text-teal-700" : "bg-amber-50 text-amber-700"}`}>{entry.status === "reviewed" ? <CheckCircle2 size={14} /> : <Clock3 size={14} />}{entry.status === "reviewed" ? "Đã kiểm duyệt" : "Bản nháp"}</span></div>
                 <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-700">{entry.recommendation_summary}</p>
                 <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">{entry.dose && <Detail label="Liều/cách dùng" value={entry.dose} />}{entry.renal_adjustment && <Detail label="Điều chỉnh theo thận" value={entry.renal_adjustment} />}{entry.hepatic_adjustment && <Detail label="Điều chỉnh theo gan" value={entry.hepatic_adjustment} />}{entry.contraindications && <Detail label="Chống chỉ định/thận trọng" value={entry.contraindications} />}{entry.monitoring && <Detail label="Theo dõi" value={entry.monitoring} />}</div>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-rose-50 pt-4"><p className="text-xs font-semibold text-slate-500">Nguồn: {selectedDocument.society} {selectedDocument.publication_year} · {entry.page_reference}{entry.recommendation_class && ` · Class ${entry.recommendation_class}`}{entry.evidence_level && ` · LoE ${entry.evidence_level}`}</p>{ownsSelected && <div className="flex gap-2"><button type="button" onClick={() => void toggleReviewed(entry)} className="rounded-lg border border-teal-200 px-3 py-1.5 text-xs font-bold text-teal-700">{entry.status === "reviewed" ? "Trả về bản nháp" : "Xác nhận đã đối chiếu"}</button><button type="button" onClick={() => void deleteGuidelineEntry(entry.id).then(() => setEntries((items) => items.filter((item) => item.id !== entry.id))).catch((error) => setNotice(errorMessage(error)))} className="rounded-lg border border-rose-100 p-1.5 text-rose-500"><Trash2 size={15} /></button></div>}</div>

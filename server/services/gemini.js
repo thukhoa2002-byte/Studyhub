@@ -19,8 +19,10 @@ function extractResponseText(payload) {
   throw new Error("Gemini không trả về nội dung.");
 }
 
-export async function generateStructuredFromFile({ file, prompt, schema, maxOutputTokens = 12000, timeoutMs = 90_000 }) {
+export async function generateStructuredFromFile({ file, files, prompt, schema, maxOutputTokens = 12000, timeoutMs = 90_000 }) {
   const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const inputFiles = files?.length ? files : file ? [file] : [];
+  if (inputFiles.length === 0) throw new Error("Không có file để Gemini xử lý.");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -39,12 +41,15 @@ export async function generateStructuredFromFile({ file, prompt, schema, maxOutp
             role: "user",
             parts: [
               { text: prompt },
-              {
+              ...inputFiles.flatMap((inputFile, index) => [
+                ...(inputFiles.length > 1 ? [{ text: index === 0 ? "TÀI LIỆU 1 — GUIDELINE CHÍNH" : `TÀI LIỆU ${index + 1} — SUPPLEMENTARY DATA` }] : []),
+                {
                 inlineData: {
-                  mimeType: file.mimetype,
-                  data: file.buffer.toString("base64"),
+                  mimeType: inputFile.mimetype,
+                  data: inputFile.buffer.toString("base64"),
                 },
-              },
+                },
+              ]),
             ],
           }],
           generationConfig: {

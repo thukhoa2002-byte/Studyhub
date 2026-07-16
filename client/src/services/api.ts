@@ -96,9 +96,10 @@ export interface GuidelineExtractionResponse {
   aiCallsRemaining?: number;
 }
 
-export async function extractGuidelinePdf(document: File, focus = ""): Promise<GuidelineExtractionResponse> {
+export async function extractGuidelinePdf(document: File, supplement?: File | null, focus = ""): Promise<GuidelineExtractionResponse> {
   const formData = new FormData();
   formData.append("document", document);
+  if (supplement?.size) formData.append("supplement", supplement);
   formData.append("focus", focus);
   const response = await fetch(`${API_URL}/api/extract-guideline`, { method: "POST", body: formData });
   if (!response.ok) {

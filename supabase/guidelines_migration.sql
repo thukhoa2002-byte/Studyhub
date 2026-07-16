@@ -11,10 +11,13 @@ create table if not exists public.guideline_documents (
   version_label text not null default '',
   source_url text not null,
   file_path text,
+  supplement_file_path text,
   visibility text not null default 'private' check (visibility in ('private', 'shared')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.guideline_documents add column if not exists supplement_file_path text;
 
 create table if not exists public.guideline_entries (
   id uuid primary key default gen_random_uuid(),

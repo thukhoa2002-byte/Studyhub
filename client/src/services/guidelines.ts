@@ -13,6 +13,7 @@ export interface GuidelineDocument {
   version_label: string;
   source_url: string;
   file_path: string | null;
+  supplement_file_path: string | null;
   visibility: "private" | "shared";
   created_at: string;
 }
@@ -46,6 +47,7 @@ export interface NewGuidelineDocument {
   sourceUrl: string;
   visibility: "private" | "shared";
   file?: File | null;
+  supplementFile?: File | null;
 }
 
 export type NewGuidelineEntry = Omit<GuidelineEntry, "id" | "owner_id" | "created_at" | "status">;
@@ -69,6 +71,7 @@ export async function listGuidelineDocuments(): Promise<GuidelineDocument[]> {
 export async function createGuidelineDocument(userId: string, input: NewGuidelineDocument): Promise<GuidelineDocument> {
   const client = requireSupabase();
   let filePath: string | null = null;
+  let supplementFilePath: string | null = null;
 
   if (input.file) {
     const safeName = input.file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
@@ -77,6 +80,18 @@ export async function createGuidelineDocument(userId: string, input: NewGuidelin
       .from("guideline-files")
       .upload(filePath, input.file, { contentType: "application/pdf", upsert: false });
     if (uploadError) throw uploadError;
+  }
+
+  if (input.supplementFile) {
+    const safeName = input.supplementFile.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+    supplementFilePath = `${userId}/${crypto.randomUUID()}/supplement-${safeName}`;
+    const { error: uploadError } = await client.storage
+      .from("guideline-files")
+      .upload(supplementFilePath, input.supplementFile, { contentType: "application/pdf", upsert: false });
+    if (uploadError) {
+      if (filePath) await client.storage.from("guideline-files").remove([filePath]);
+      throw uploadError;
+    }
   }
 
   const { data, error } = await client
@@ -90,13 +105,15 @@ export async function createGuidelineDocument(userId: string, input: NewGuidelin
       version_label: input.versionLabel.trim(),
       source_url: input.sourceUrl.trim(),
       file_path: filePath,
+      supplement_file_path: supplementFilePath,
       visibility: input.visibility,
     })
     .select("*")
     .single();
 
   if (error) {
-    if (filePath) await client.storage.from("guideline-files").remove([filePath]);
+    const uploadedPaths = [filePath, supplementFilePath].filter((path): path is string => Boolean(path));
+    if (uploadedPaths.length) await client.storage.from("guideline-files").remove(uploadedPaths);
     throw error;
   }
   return data as GuidelineDocument;
@@ -106,7 +123,8 @@ export async function deleteGuidelineDocument(document: GuidelineDocument) {
   const client = requireSupabase();
   const { error } = await client.from("guideline_documents").delete().eq("id", document.id);
   if (error) throw error;
-  if (document.file_path) await client.storage.from("guideline-files").remove([document.file_path]);
+  const paths = [document.file_path, document.supplement_file_path].filter((path): path is string => Boolean(path));
+  if (paths.length) await client.storage.from("guideline-files").remove(paths);
 }
 
 export async function getGuidelineFileUrl(filePath: string): Promise<string> {

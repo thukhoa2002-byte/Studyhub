@@ -56,11 +56,18 @@ const schema = {
   additionalProperties: false,
 };
 
-router.post("/", upload.single("document"), async (req, res) => {
+router.post("/", upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ success: false, message: "Chưa có file PDF." });
+    const document = req.files?.document?.[0];
+    const supplement = req.files?.supplement?.[0];
+    if (!document) return res.status(400).json({ success: false, message: "Chưa có file guideline chính." });
+    const inputFiles = [document, supplement].filter(Boolean);
+    const totalBytes = inputFiles.reduce((sum, file) => sum + file.size, 0);
+    if (totalBytes > MAX_PDF_BYTES) return res.status(413).json({ success: false, message: "Tổng dung lượng guideline và supplement không được vượt quá 14 MB." });
     const focus = String(req.body?.focus || "").trim();
-    const key = createHash("sha256").update(req.file.buffer).update(focus).digest("hex");
+    const hash = createHash("sha256").update(document.buffer);
+    if (supplement) hash.update(supplement.buffer);
+    const key = hash.update(focus).digest("hex");
     if (cache.has(key)) return res.json({ ...cache.get(key), aiCallsRemaining: getAiCallsRemaining() });
 
     const aiCallsRemaining = consumeAiCall();
@@ -69,23 +76,28 @@ router.post("/", upload.single("document"), async (req, res) => {
     }
 
     const result = await generateStructuredFromFile({
-      file: req.file,
+      files: inputFiles,
       schema,
-      maxOutputTokens: 16000,
+      maxOutputTokens: 24000,
       timeoutMs: 180_000,
-      prompt: `Bạn là bác sĩ chuyên đọc guideline. Hãy trích xuất các khuyến cáo LIÊN QUAN ĐẾN THUỐC từ chính PDF đính kèm thành dữ liệu tiếng Việt để ôn thi và tra cứu.
+      prompt: `Bạn là bác sĩ chuyên đọc guideline và supplementary data. Hãy trích xuất TOÀN BỘ KHUYẾN CÁO CHÍNH THỨC từ các PDF đính kèm, dịch chính xác sang tiếng Việt và cấu trúc thành dữ liệu để ôn thi, tra cứu.
 
 PHẠM VI NGƯỜI DÙNG QUAN TÂM: ${focus || "Toàn bộ khuyến cáo thuốc quan trọng trong tài liệu"}.
 
 NGUYÊN TẮC AN TOÀN BẮT BUỘC:
 - Chỉ dùng thông tin có thật trong PDF này. Tuyệt đối không dùng kiến thức bên ngoài, không suy đoán và không tự điền dữ liệu còn thiếu.
-- Mỗi mục phải đại diện cho một thuốc/nhóm thuốc trong một bối cảnh lâm sàng cụ thể. Gộp các câu trùng nhau nhưng không làm mất điều kiện áp dụng.
+- Mỗi mục phải đại diện cho một khuyến cáo độc lập. Bao gồm cả khuyến cáo dùng thuốc và khuyến cáo không dùng thuốc.
+- Với khuyến cáo liên quan thuốc: drugName ghi đúng thuốc/nhóm thuốc; trích đầy đủ chỉ định, đối tượng, thời điểm, liều/cách dùng, điều chỉnh gan-thận, chống chỉ định/thận trọng và theo dõi nếu tài liệu có nêu.
+- Với khuyến cáo không liên quan thuốc: drugName ghi chính xác "Không áp dụng"; không tự gán thuốc.
 - Giữ nguyên số liệu, đơn vị, liều, khoảng cách dùng, ngưỡng eGFR/CrCl, chống chỉ định, Class và Level of Evidence như tài liệu.
-- pageReference bắt buộc ghi trang in trên tài liệu và/hoặc số bảng/hình/mục, ví dụ "Trang 42, Bảng 8". Nếu không xác định chắc chắn, ghi "Không xác định trong tài liệu"; không bịa số trang.
+- recommendationClass và evidenceLevel phải được lấy cho mọi khuyến cáo nếu bảng/câu nguồn có ghi. Không suy ra Class hoặc LoE từ cách diễn đạt.
+- pageReference bắt buộc mở đầu bằng "Guideline chính" hoặc "Supplementary Data", sau đó ghi trang in trên tài liệu và/hoặc số bảng/hình/mục, ví dụ "Supplementary Data — Trang 42, Bảng S8". Nếu không xác định chắc chắn, ghi "Không xác định trong tài liệu"; không bịa số trang.
 - Với dose, renalAdjustment, hepaticAdjustment, contraindications, monitoring, recommendationClass hoặc evidenceLevel: nếu PDF không nêu thì ghi "Không nêu trong tài liệu".
-- recommendationSummary phải ngắn, chính xác, giữ rõ đối tượng, thời điểm, điều kiện và mức khuyến cáo.
+- recommendationSummary là bản dịch tiếng Việt trung thành, rõ chủ thể, hành động, đối tượng, thời điểm và điều kiện. Giữ nguyên tên thuốc quốc tế, viết tắt chuẩn và số liệu; không diễn giải làm thay đổi mức độ mạnh/yếu của câu nguồn.
 - Không biến nội dung mô tả thành khuyến cáo điều trị. Không trích tài liệu tham khảo nằm cuối PDF như thể đó là khuyến cáo của guideline.
-- Không tạo mục trùng lặp. Trả được bao nhiêu mục có căn cứ chắc chắn thì trả bấy nhiêu, không ép số lượng.
+- Quét các bảng Recommendation, bảng trong phụ lục, chú thích bảng và phần văn bản liên quan thuốc trong Supplementary Data.
+- Không tạo mục trùng lặp giữa guideline chính và supplement. Nếu supplement bổ sung liều, gan-thận, chống chỉ định hoặc theo dõi cho một khuyến cáo chính, hãy hợp nhất và trích cả hai nguồn trong pageReference.
+- Mục tiêu là trích đủ tất cả khuyến cáo có căn cứ, không chỉ chọn ý nổi bật. Tuy nhiên, bỏ nội dung mô tả không phải khuyến cáo và không đủ căn cứ.
 - Tất cả mục được xem là BẢN NHÁP chờ người dùng đối chiếu PDF, không được tự tuyên bố đã kiểm duyệt.
 
 Trả đúng JSON theo schema, không thêm văn bản ngoài JSON.`,
