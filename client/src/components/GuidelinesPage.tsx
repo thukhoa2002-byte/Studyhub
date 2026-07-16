@@ -23,6 +23,7 @@ import {
   getGuidelineFileUrl,
   listGuidelineDocuments,
   listGuidelineEntries,
+  setGuidelineEntriesStatus,
   setGuidelineEntryStatus,
   setGuidelineDocumentVisibility,
   type GuidelineCondition,
@@ -307,6 +308,25 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     } catch (error) { setNotice(errorMessage(error)); }
   }
 
+  async function confirmAllEntries() {
+    if (!ownsSelected || !selectedDocument || busy) return;
+    const draftCount = entries.filter((entry) => entry.status !== "reviewed").length;
+    if (draftCount === 0) {
+      setNotice("Tất cả khuyến cáo trong guideline này đã được xác nhận.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await setGuidelineEntriesStatus(selectedDocument.id, "reviewed");
+      setEntries((items) => items.map((item) => ({ ...item, status: "reviewed" })));
+      setNotice(`Đã xác nhận toàn bộ ${entries.length} khuyến cáo. Bạn có thể đăng công khai guideline sau khi đã đối chiếu với PDF gốc.`);
+    } catch (error) {
+      setNotice(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function togglePublished() {
     if (!ownsSelected || !selectedDocument) return;
     const nextVisibility = selectedDocument.visibility === "shared" ? "private" : "shared";
@@ -384,7 +404,10 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
                 <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">Phục vụ học tập. Luôn kiểm tra tài liệu gốc, đặc điểm người bệnh, chức năng gan–thận và hướng dẫn sử dụng thuốc trước quyết định điều trị.</div>
               </div>
 
-              {ownsSelected && <div className="mt-4 flex justify-end"><button type="button" onClick={() => setShowEntryForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white"><Plus size={17} /> Thêm khuyến cáo</button></div>}
+              {ownsSelected && <div className="mt-4 flex flex-wrap justify-end gap-2">
+                <button type="button" disabled={busy || entries.length === 0 || entries.every((entry) => entry.status === "reviewed")} onClick={() => void confirmAllEntries()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm font-bold text-teal-700 disabled:cursor-not-allowed disabled:opacity-45"><CheckCircle2 size={17} /> {busy ? "Đang xác nhận..." : "Xác nhận toàn bộ"}</button>
+                <button type="button" onClick={() => setShowEntryForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white"><Plus size={17} /> Thêm khuyến cáo</button>
+              </div>}
 
               {showEntryForm && <form onSubmit={submitEntry} className="mt-4 grid gap-3 rounded-3xl border border-rose-100 bg-white/80 p-5 sm:grid-cols-2">
                 <Field label="Thuốc/nhóm thuốc (nếu có)" value={entryForm.drug_name} onChange={(value) => setEntryForm((form) => ({ ...form, drug_name: value }))} />

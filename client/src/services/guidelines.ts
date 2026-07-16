@@ -193,6 +193,15 @@ export async function setGuidelineEntryStatus(entryId: string, status: Guideline
   if (error) throw error;
 }
 
+export async function setGuidelineEntriesStatus(documentId: string, status: GuidelineStatus): Promise<void> {
+  const client = requireSupabase();
+  const { error } = await client
+    .from("guideline_entries")
+    .update({ status })
+    .eq("document_id", documentId);
+  if (error) throw error;
+}
+
 export async function deleteGuidelineEntry(entryId: string): Promise<void> {
   const client = requireSupabase();
   const { error } = await client.from("guideline_entries").delete().eq("id", entryId);
