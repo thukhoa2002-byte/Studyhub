@@ -87,6 +87,8 @@ PHẠM VI NGƯỜI DÙNG QUAN TÂM: ${focus || "Toàn bộ khuyến cáo thuốc
 NGUYÊN TẮC AN TOÀN BẮT BUỘC:
 - Chỉ dùng thông tin có thật trong PDF này. Tuyệt đối không dùng kiến thức bên ngoài, không suy đoán và không tự điền dữ liệu còn thiếu.
 - Mỗi mục phải đại diện cho một khuyến cáo độc lập. Bao gồm cả khuyến cáo dùng thuốc và khuyến cáo không dùng thuốc.
+- Trả entries đúng thứ tự xuất hiện trong tài liệu, từ chương đầu đến chương cuối; không sắp xếp lại theo tên thuốc.
+- topic phải giữ cấu trúc đề mục của nguồn và dịch sang tiếng Việt theo mẫu "Chương/Mục lớn › Mục nhỏ › Bảng khuyến cáo". Nếu là bảng, phải ghi đúng số và tên bảng; không gom các bảng khác nhau vào cùng một topic.
 - Với khuyến cáo liên quan thuốc: drugName ghi đúng thuốc/nhóm thuốc; trích đầy đủ chỉ định, đối tượng, thời điểm, liều/cách dùng, điều chỉnh gan-thận, chống chỉ định/thận trọng và theo dõi nếu tài liệu có nêu.
 - Với khuyến cáo không liên quan thuốc: drugName ghi chính xác "Không áp dụng"; không tự gán thuốc.
 - Giữ nguyên số liệu, đơn vị, liều, khoảng cách dùng, ngưỡng eGFR/CrCl, chống chỉ định, Class và Level of Evidence như tài liệu.

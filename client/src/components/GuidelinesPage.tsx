@@ -46,6 +46,7 @@ const emptyEntry = {
   recommendation_class: "",
   evidence_level: "",
   page_reference: "",
+  source_order: 0,
 };
 
 function errorMessage(error: unknown) {
@@ -69,6 +70,16 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     [documents, selectedId]
   );
   const ownsSelected = selectedDocument?.owner_id === user?.id;
+  const entryGroups = useMemo(() => {
+    const groups = new Map<string, GuidelineEntry[]>();
+    for (const entry of entries) {
+      const title = entry.topic.trim() || selectedDocument?.condition || "Khuyến cáo";
+      const group = groups.get(title) ?? [];
+      group.push(entry);
+      groups.set(title, group);
+    }
+    return Array.from(groups, ([title, items]) => ({ title, items }));
+  }, [entries, selectedDocument?.condition]);
 
   const refreshDocuments = useCallback(async () => {
     if (!user) return;
@@ -134,7 +145,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
         setNotice("Gemini đang đọc PDF và tạo các bản nháp có trang nguồn. File dài có thể mất vài phút...");
         const extracted = await extractGuidelinePdf(file, supplementFile, focus);
         if (typeof extracted.aiCallsRemaining === "number") onAiCallsRemaining?.(extracted.aiCallsRemaining);
-        const drafts = extracted.data.entries.map((entry) => ({
+        const drafts = extracted.data.entries.map((entry, index) => ({
           document_id: created.id,
           topic: entry.topic,
           drug_name: entry.drugName,
@@ -148,6 +159,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           recommendation_class: entry.recommendationClass,
           evidence_level: entry.evidenceLevel,
           page_reference: entry.pageReference,
+          source_order: index + 1,
         }));
         const saved = await createGuidelineEntries(user.id, drafts);
         setEntries(saved);
@@ -166,7 +178,11 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     if (!user || !selectedDocument || busy) return;
     setBusy(true);
     try {
-      const created = await createGuidelineEntry(user.id, { ...entryForm, document_id: selectedDocument.id });
+      const created = await createGuidelineEntry(user.id, {
+        ...entryForm,
+        document_id: selectedDocument.id,
+        source_order: Math.max(0, ...entries.map((entry) => entry.source_order || 0)) + 1,
+      });
       setEntries((items) => [created, ...items]);
       setEntryForm(emptyEntry);
       setShowEntryForm(false);
@@ -264,12 +280,29 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
                 <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setShowEntryForm(false)} className="rounded-xl border border-rose-100 px-4 py-2 text-sm font-bold text-slate-500">Hủy</button><button disabled={busy} className="rounded-xl bg-teal-400 px-5 py-2 text-sm font-bold text-white disabled:opacity-50">Lưu bản nháp</button></div>
               </form>}
 
-              <div className="mt-5 space-y-4">{entries.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">Chưa có khuyến cáo thuốc được tóm tắt.</div> : entries.map((entry) => <article key={entry.id} className="rounded-3xl border border-rose-100 bg-white/78 p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.13em] text-teal-600">{entry.topic || selectedDocument.condition}</p><h3 className="mt-1 text-lg font-extrabold text-rose-950">{entry.drug_name === "Không áp dụng" ? "Khuyến cáo chung" : entry.drug_name}</h3>{entry.clinical_context && <p className="mt-1 text-sm text-slate-500">{entry.clinical_context}</p>}</div><span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold ${entry.status === "reviewed" ? "bg-teal-50 text-teal-700" : "bg-amber-50 text-amber-700"}`}>{entry.status === "reviewed" ? <CheckCircle2 size={14} /> : <Clock3 size={14} />}{entry.status === "reviewed" ? "Đã kiểm duyệt" : "Bản nháp"}</span></div>
-                <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-700">{entry.recommendation_summary}</p>
-                <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">{entry.dose && <Detail label="Liều/cách dùng" value={entry.dose} />}{entry.renal_adjustment && <Detail label="Điều chỉnh theo thận" value={entry.renal_adjustment} />}{entry.hepatic_adjustment && <Detail label="Điều chỉnh theo gan" value={entry.hepatic_adjustment} />}{entry.contraindications && <Detail label="Chống chỉ định/thận trọng" value={entry.contraindications} />}{entry.monitoring && <Detail label="Theo dõi" value={entry.monitoring} />}</div>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-rose-50 pt-4"><p className="text-xs font-semibold text-slate-500">Nguồn: {selectedDocument.society} {selectedDocument.publication_year} · {entry.page_reference}{entry.recommendation_class && ` · Class ${entry.recommendation_class}`}{entry.evidence_level && ` · LoE ${entry.evidence_level}`}</p>{ownsSelected && <div className="flex gap-2"><button type="button" onClick={() => void toggleReviewed(entry)} className="rounded-lg border border-teal-200 px-3 py-1.5 text-xs font-bold text-teal-700">{entry.status === "reviewed" ? "Trả về bản nháp" : "Xác nhận đã đối chiếu"}</button><button type="button" onClick={() => void deleteGuidelineEntry(entry.id).then(() => setEntries((items) => items.filter((item) => item.id !== entry.id))).catch((error) => setNotice(errorMessage(error)))} className="rounded-lg border border-rose-100 p-1.5 text-rose-500"><Trash2 size={15} /></button></div>}</div>
-              </article>)}</div>
+              <div className="mt-5 space-y-6">{entries.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">Chưa có khuyến cáo được dịch.</div> : entryGroups.map((group, groupIndex) => <section key={group.title} className="overflow-hidden rounded-3xl border border-rose-100 bg-white/85 shadow-sm">
+                <header className="border-b border-rose-100 bg-gradient-to-r from-rose-100 via-rose-50 to-teal-50 px-5 py-4">
+                  <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-rose-500">Phần {groupIndex + 1}</p>
+                  <h3 className="mt-1 text-base font-extrabold leading-6 text-rose-950">{group.title}</h3>
+                </header>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px] border-collapse text-left">
+                    <thead><tr className="bg-slate-50/90 text-[11px] font-extrabold uppercase tracking-[.12em] text-slate-500"><th className="px-5 py-3">Khuyến cáo tiếng Việt</th><th className="w-24 px-3 py-3 text-center">Class</th><th className="w-24 px-3 py-3 text-center">LoE</th><th className="w-20 px-3 py-3 text-center">Duyệt</th></tr></thead>
+                    <tbody>{group.items.map((entry) => <tr key={entry.id} className="border-t border-slate-100 align-top hover:bg-rose-50/25">
+                      <td className="px-5 py-4">
+                        {entry.clinical_context && <p className="mb-1 text-xs font-bold text-teal-700">{entry.clinical_context}</p>}
+                        <p className="whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-800">{entry.recommendation_summary}</p>
+                        {entry.drug_name !== "Không áp dụng" && <p className="mt-2 text-xs font-extrabold text-rose-700">Thuốc/nhóm thuốc: {entry.drug_name}</p>}
+                        <DrugFacts entry={entry} />
+                        <p className="mt-3 text-[11px] font-semibold text-slate-400">{selectedDocument.society} {selectedDocument.publication_year} · {entry.page_reference}</p>
+                      </td>
+                      <td className={`px-3 py-4 text-center text-sm font-black ${classTone(entry.recommendation_class)}`}>{entry.recommendation_class || "—"}</td>
+                      <td className={`px-3 py-4 text-center text-sm font-black ${evidenceTone(entry.evidence_level)}`}>{entry.evidence_level || "—"}</td>
+                      <td className="px-3 py-4"><div className="flex flex-col items-center gap-2"><span title={entry.status === "reviewed" ? "Đã kiểm duyệt" : "Bản nháp"} className={`grid h-8 w-8 place-items-center rounded-full ${entry.status === "reviewed" ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>{entry.status === "reviewed" ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}</span>{ownsSelected && <><button type="button" title={entry.status === "reviewed" ? "Trả về bản nháp" : "Xác nhận đã đối chiếu"} onClick={() => void toggleReviewed(entry)} className="rounded-lg border border-teal-200 px-2 py-1 text-[10px] font-bold text-teal-700">{entry.status === "reviewed" ? "Bản nháp" : "Xác nhận"}</button><button type="button" title="Xóa khuyến cáo" onClick={() => void deleteGuidelineEntry(entry.id).then(() => setEntries((items) => items.filter((item) => item.id !== entry.id))).catch((error) => setNotice(errorMessage(error)))} className="rounded-lg border border-rose-100 p-1.5 text-rose-500"><Trash2 size={14} /></button></>}</div></td>
+                    </tr>)}</tbody>
+                  </table>
+                </div>
+              </section>)}</div>
             </>}
           </div>
         </div>
@@ -282,6 +315,35 @@ function Field({ label, value, onChange, required = false, placeholder = "", wid
   return <label className={`text-sm font-bold text-slate-700 ${wide ? "sm:col-span-2" : ""}`}>{label}<input required={required} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="mt-1.5 w-full rounded-xl border border-rose-100 bg-white px-3 py-2.5 font-medium" /></label>;
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl bg-slate-50/85 p-3"><p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-slate-400">{label}</p><p className="mt-1 whitespace-pre-wrap font-medium leading-6 text-slate-700">{value}</p></div>;
+function hasSourceValue(value: string) {
+  return Boolean(value && !/^không (nêu|áp dụng|xác định)/i.test(value.trim()));
+}
+
+function DrugFacts({ entry }: { entry: GuidelineEntry }) {
+  const facts = [
+    ["Liều/cách dùng", entry.dose],
+    ["Thận", entry.renal_adjustment],
+    ["Gan", entry.hepatic_adjustment],
+    ["Chống chỉ định/thận trọng", entry.contraindications],
+    ["Theo dõi", entry.monitoring],
+  ].filter(([, value]) => hasSourceValue(value));
+  if (facts.length === 0) return null;
+  return <div className="mt-3 grid gap-2 sm:grid-cols-2">{facts.map(([label, value]) => <div key={label} className="rounded-xl border border-teal-100 bg-teal-50/55 px-3 py-2"><span className="text-[10px] font-extrabold uppercase tracking-[.1em] text-teal-700">{label}</span><p className="mt-0.5 whitespace-pre-wrap text-xs font-medium leading-5 text-slate-600">{value}</p></div>)}</div>;
+}
+
+function classTone(value: string) {
+  const normalized = value.trim().toUpperCase().replaceAll(" ", "");
+  if (normalized === "I") return "bg-emerald-100 text-emerald-800";
+  if (normalized === "IIA") return "bg-sky-100 text-sky-800";
+  if (normalized === "IIB") return "bg-amber-100 text-amber-800";
+  if (normalized === "III") return "bg-rose-100 text-rose-800";
+  return "bg-slate-50 text-slate-500";
+}
+
+function evidenceTone(value: string) {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "A") return "bg-violet-100 text-violet-800";
+  if (normalized === "B") return "bg-indigo-100 text-indigo-800";
+  if (normalized === "C") return "bg-slate-200 text-slate-700";
+  return "bg-slate-50 text-slate-500";
 }

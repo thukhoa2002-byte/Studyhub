@@ -35,10 +35,13 @@ create table if not exists public.guideline_entries (
   recommendation_class text not null default '',
   evidence_level text not null default '',
   page_reference text not null,
+  source_order integer not null default 0,
   status text not null default 'draft' check (status in ('draft', 'reviewed')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.guideline_entries add column if not exists source_order integer not null default 0;
 
 alter table public.guideline_documents enable row level security;
 alter table public.guideline_entries enable row level security;

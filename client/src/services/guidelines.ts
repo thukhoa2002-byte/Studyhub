@@ -34,6 +34,7 @@ export interface GuidelineEntry {
   recommendation_class: string;
   evidence_level: string;
   page_reference: string;
+  source_order: number;
   status: GuidelineStatus;
   created_at: string;
 }
@@ -140,7 +141,8 @@ export async function listGuidelineEntries(documentId: string): Promise<Guidelin
     .from("guideline_entries")
     .select("*")
     .eq("document_id", documentId)
-    .order("created_at", { ascending: false });
+    .order("source_order", { ascending: true })
+    .order("created_at", { ascending: true });
   if (error) throw error;
   return (data ?? []) as GuidelineEntry[];
 }
