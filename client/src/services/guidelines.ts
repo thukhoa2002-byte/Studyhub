@@ -138,6 +138,17 @@ export async function createGuidelineEntry(userId: string, input: NewGuidelineEn
   return data as GuidelineEntry;
 }
 
+export async function createGuidelineEntries(userId: string, inputs: NewGuidelineEntry[]): Promise<GuidelineEntry[]> {
+  if (inputs.length === 0) return [];
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from("guideline_entries")
+    .insert(inputs.map((input) => ({ ...input, owner_id: userId, status: "draft" })))
+    .select("*");
+  if (error) throw error;
+  return (data ?? []) as GuidelineEntry[];
+}
+
 export async function setGuidelineEntryStatus(entryId: string, status: GuidelineStatus): Promise<void> {
   const client = requireSupabase();
   const { error } = await client.from("guideline_entries").update({ status }).eq("id", entryId);

@@ -68,6 +68,46 @@ export interface GenerateQuestionsResponse {
   aiCallsRemaining?: number;
 }
 
+export interface ExtractedGuidelineEntry {
+  topic: string;
+  drugName: string;
+  clinicalContext: string;
+  recommendationSummary: string;
+  dose: string;
+  renalAdjustment: string;
+  hepaticAdjustment: string;
+  contraindications: string;
+  monitoring: string;
+  recommendationClass: string;
+  evidenceLevel: string;
+  pageReference: string;
+}
+
+export interface GuidelineExtractionResponse {
+  success: boolean;
+  data: {
+    documentTitle: string;
+    society: string;
+    condition: string;
+    publicationYear: number;
+    versionLabel: string;
+    entries: ExtractedGuidelineEntry[];
+  };
+  aiCallsRemaining?: number;
+}
+
+export async function extractGuidelinePdf(document: File, focus = ""): Promise<GuidelineExtractionResponse> {
+  const formData = new FormData();
+  formData.append("document", document);
+  formData.append("focus", focus);
+  const response = await fetch(`${API_URL}/api/extract-guideline`, { method: "POST", body: formData });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(error?.message || "Không thể đọc guideline bằng AI.");
+  }
+  return (await response.json()) as GuidelineExtractionResponse;
+}
+
 export async function generateQuestions(
   image: File
 ): Promise<GenerateQuestionsResponse> {

@@ -19,10 +19,10 @@ function extractResponseText(payload) {
   throw new Error("Gemini không trả về nội dung.");
 }
 
-export async function generateStructuredFromImage({ file, prompt, schema, maxOutputTokens = 12000 }) {
+export async function generateStructuredFromFile({ file, prompt, schema, maxOutputTokens = 12000, timeoutMs = 90_000 }) {
   const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(
@@ -68,7 +68,7 @@ export async function generateStructuredFromImage({ file, prompt, schema, maxOut
     return JSON.parse(extractResponseText(payload));
   } catch (error) {
     if (error?.name === "AbortError") {
-      throw new Error("Gemini xử lý quá lâu. Vui lòng thử lại với ảnh nhỏ hơn.");
+      throw new Error("Gemini xử lý quá lâu. Vui lòng thử lại với file nhỏ hơn hoặc chọn phạm vi trích xuất hẹp hơn.");
     }
     throw error;
   } finally {
@@ -76,3 +76,4 @@ export async function generateStructuredFromImage({ file, prompt, schema, maxOut
   }
 }
 
+export const generateStructuredFromImage = generateStructuredFromFile;
