@@ -18,6 +18,8 @@ import {
   createGuidelineEntries,
   deleteGuidelineDocument,
   deleteGuidelineEntry,
+  deleteGuidelineEntries,
+  downloadGuidelineFile,
   getGuidelineFileUrl,
   listGuidelineDocuments,
   listGuidelineEntries,
@@ -133,7 +135,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     if (!file?.size) { setNotice("Hãy chọn PDF guideline chính trước."); return; }
     if ((file.size + (supplementFile?.size || 0)) > 40 * 1024 * 1024) { setNotice("Tổng hai PDF không được vượt quá 40 MB khi dùng AI."); return; }
     setAiReading(true);
-    setNotice("Gemini đang đọc metadata, đề mục, bảng khuyến cáo và Supplementary Data...");
+    setNotice("Gemini đang lập danh mục và dịch toàn bộ bảng khuyến cáo từ What’s new đến cuối tài liệu. File dài có thể mất vài phút...");
     try {
       const response = await extractGuidelinePdf(file, supplementFile, focus);
       if (typeof response.aiCallsRemaining === "number") onAiCallsRemaining?.(response.aiCallsRemaining);
@@ -149,7 +151,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       setValue("versionLabel", metadata.versionLabel);
       if (/^https?:\/\//i.test(metadata.sourceUrl)) setValue("sourceUrl", metadata.sourceUrl);
       setPreparedExtraction({ key: extractionKey(file, supplementFile, focus), response });
-      setNotice(`AI đã tự điền thông tin và chuẩn bị ${metadata.entries.length} khuyến cáo. Bạn kiểm tra các ô rồi bấm Lưu tài liệu.`);
+      setNotice(`AI đã dịch ${metadata.entries.length} dòng khuyến cáo theo thứ tự tài liệu. Hãy kiểm tra độ phủ các bảng rồi bấm Lưu tài liệu.`);
     } catch (error) { setNotice(errorMessage(error)); }
     finally { setAiReading(false); }
   }
@@ -191,7 +193,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       setSelectedId(created.id);
       setShowDocumentForm(false);
       if (autoExtract && file?.size) {
-        setNotice("Gemini đang đọc PDF và tạo các bản nháp có trang nguồn. File dài có thể mất vài phút...");
+        setNotice("Gemini đang dịch toàn bộ bảng từ What’s new tới cuối PDF và tạo bản nháp có trang nguồn. File dài có thể mất vài phút...");
         const key = extractionKey(file, supplementFile, focus);
         const extracted = preparedExtraction?.key === key ? preparedExtraction.response : await extractGuidelinePdf(file, supplementFile, focus);
         if (typeof extracted.aiCallsRemaining === "number") onAiCallsRemaining?.(extracted.aiCallsRemaining);
@@ -216,7 +218,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
         setPreparedExtraction(null);
         setNotice(saved.length > 0
           ? `AI đã tạo ${saved.length} bản nháp. Hãy mở PDF và đối chiếu từng mục trước khi xác nhận.`
-          : "AI chưa tìm thấy khuyến cáo thuốc đủ căn cứ trong PDF. Tài liệu vẫn đã được lưu.");
+          : "AI chưa tìm thấy bảng hoặc dòng khuyến cáo đủ căn cứ trong PDF. Tài liệu vẫn đã được lưu.");
       } else {
         setNotice("Đã lưu tài liệu. PDF chỉ được lưu trong kho riêng tư.");
       }
@@ -246,6 +248,49 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       }
     } catch (error) { setNotice(errorMessage(error)); }
     finally { setBusy(false); }
+  }
+
+  async function reExtractSelectedDocument() {
+    if (!user || !ownsSelected || !selectedDocument?.file_path || aiReading || busy) return;
+    setAiReading(true);
+    setNotice("Gemini đang đọc lại toàn bộ PDF từ What’s new đến bảng khuyến cáo cuối cùng...");
+    try {
+      if (selectedDocument.visibility === "shared") {
+        await setGuidelineDocumentVisibility(selectedDocument.id, "private");
+        setDocuments((items) => items.map((item) => item.id === selectedDocument.id ? { ...item, visibility: "private" } : item));
+      }
+      const [file, supplementFile] = await Promise.all([
+        downloadGuidelineFile(selectedDocument.file_path, "guideline.pdf"),
+        selectedDocument.supplement_file_path
+          ? downloadGuidelineFile(selectedDocument.supplement_file_path, "supplement.pdf")
+          : Promise.resolve(null),
+      ]);
+      const extracted = await extractGuidelinePdf(file, supplementFile, "");
+      if (typeof extracted.aiCallsRemaining === "number") onAiCallsRemaining?.(extracted.aiCallsRemaining);
+      const replacements = extracted.data.entries.map((entry, index) => ({
+        document_id: selectedDocument.id,
+        topic: entry.topic,
+        drug_name: entry.drugName,
+        clinical_context: entry.clinicalContext,
+        recommendation_summary: entry.recommendationSummary,
+        dose: entry.dose,
+        renal_adjustment: entry.renalAdjustment,
+        hepatic_adjustment: entry.hepaticAdjustment,
+        contraindications: entry.contraindications,
+        monitoring: entry.monitoring,
+        recommendation_class: entry.recommendationClass,
+        evidence_level: entry.evidenceLevel,
+        page_reference: entry.pageReference,
+        source_order: index + 1,
+      }));
+      if (replacements.length === 0) throw new Error("AI chưa tìm thấy bảng khuyến cáo trong PDF; dữ liệu cũ được giữ nguyên.");
+      const previousIds = entries.map((entry) => entry.id);
+      const saved = await createGuidelineEntries(user.id, replacements);
+      await deleteGuidelineEntries(previousIds);
+      setEntries(saved);
+      setNotice(`Đã trích xuất lại ${saved.length} dòng từ toàn bộ các bảng. Guideline đang ở chế độ Riêng tư để bạn kiểm chứng lại.`);
+    } catch (error) { setNotice(errorMessage(error)); }
+    finally { setAiReading(false); }
   }
 
   async function toggleReviewed(entry: GuidelineEntry) {
@@ -320,8 +365,8 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF guideline chính<input name="file" required type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-teal-200 bg-teal-50/55 px-4 py-4 text-sm" /></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF Supplementary Data (không bắt buộc)<input name="supplementFile" type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-violet-200 bg-violet-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tổng hai file tối đa 40 MB khi dùng AI · mỗi PDF tối đa 40 MB</span></label>
           <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 text-sm text-slate-700"><input name="autoExtract" type="checkbox" defaultChecked className="mt-1 h-4 w-4 accent-teal-500" /><span><strong className="block text-teal-800">AI tự trích xuất tất cả khuyến cáo sau khi upload</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Bao gồm Class/LoE, bản dịch tiếng Việt và dữ liệu thuốc trong Supplementary Data. Mỗi lần xử lý dùng 1 lượt Gemini; kết quả luôn là bản nháp.</span></span></label>
-          <label className="text-sm font-bold text-slate-700 sm:col-span-2">Phạm vi muốn AI tập trung (không bắt buộc)<input name="focus" onChange={() => setPreparedExtraction(null)} placeholder="Ví dụ: kháng đông trong AF; thuốc điều trị HFrEF; liều và điều chỉnh theo thận" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
-          <div className="sm:col-span-2 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-teal-50 p-4"><button type="button" disabled={aiReading || busy} onClick={() => void readDocumentWithAi()} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-extrabold text-white shadow-sm disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={18} /> : <BookOpenCheck size={18} />} {aiReading ? "AI đang đọc toàn bộ tài liệu..." : preparedExtraction ? "AI đã điền · Đọc lại" : "AI đọc file & tự điền các ô"}</button><p className="mt-2 text-center text-xs font-medium text-slate-500">Sau khi AI điền, bạn chỉ cần kiểm tra/chỉnh lại trước khi lưu.</p></div>
+          <label className="text-sm font-bold text-slate-700 sm:col-span-2">Ghi chú để AI chú ý thêm (không bắt buộc)<input name="focus" onChange={() => setPreparedExtraction(null)} placeholder="Ví dụ: chú ý liều và điều chỉnh theo thận; AI vẫn phải dịch toàn bộ bảng khuyến cáo" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
+          <div className="sm:col-span-2 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-teal-50 p-4"><button type="button" disabled={aiReading || busy} onClick={() => void readDocumentWithAi()} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-extrabold text-white shadow-sm disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={18} /> : <BookOpenCheck size={18} />} {aiReading ? "AI đang dịch toàn bộ các bảng..." : preparedExtraction ? "AI đã điền · Đọc lại toàn bộ" : "AI đọc & dịch toàn bộ bảng khuyến cáo"}</button><p className="mt-2 text-center text-xs font-medium text-slate-500">Bao gồm What’s new, mọi bảng Recommendation, Class/LoE và đề mục phía trên từng bảng; tất cả luôn là bản nháp chờ bạn kiểm tra.</p></div>
           <div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={() => setShowDocumentForm(false)} className="rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-sm font-bold text-slate-500">Hủy</button><button disabled={busy || aiReading} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy && <Loader2 className="animate-spin" size={17} />} {busy ? "Đang lưu..." : preparedExtraction ? "Lưu tài liệu đã kiểm tra" : "Lưu & để AI đọc"}</button></div>
         </form>}
 
@@ -335,14 +380,14 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <div className="min-w-0">
             {!selectedDocument ? <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-rose-200 text-sm text-slate-400">Chọn hoặc thêm một guideline.</div> : <>
               <div className="rounded-3xl border border-rose-100 bg-white/78 p-5">
-                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> Guideline PDF</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><FileText size={16} /> Supplement</button>}{ownsSelected && <button type="button" onClick={() => void togglePublished()} className={`rounded-xl border px-3 py-2 text-sm font-bold ${selectedDocument.visibility === "shared" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-teal-200 bg-teal-50 text-teal-700"}`}>{selectedDocument.visibility === "shared" ? "Gỡ công khai" : "Đăng công khai"}</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
+                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> Guideline PDF</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><FileText size={16} /> Supplement</button>}{ownsSelected && selectedDocument.file_path && <button type="button" disabled={aiReading || busy} onClick={() => void reExtractSelectedDocument()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={16} /> : <BookOpenCheck size={16} />} Trích xuất lại toàn bộ</button>}{ownsSelected && <button type="button" onClick={() => void togglePublished()} className={`rounded-xl border px-3 py-2 text-sm font-bold ${selectedDocument.visibility === "shared" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-teal-200 bg-teal-50 text-teal-700"}`}>{selectedDocument.visibility === "shared" ? "Gỡ công khai" : "Đăng công khai"}</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
                 <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">Phục vụ học tập. Luôn kiểm tra tài liệu gốc, đặc điểm người bệnh, chức năng gan–thận và hướng dẫn sử dụng thuốc trước quyết định điều trị.</div>
               </div>
 
-              {ownsSelected && <div className="mt-4 flex justify-end"><button type="button" onClick={() => setShowEntryForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white"><Plus size={17} /> Thêm khuyến cáo thuốc</button></div>}
+              {ownsSelected && <div className="mt-4 flex justify-end"><button type="button" onClick={() => setShowEntryForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white"><Plus size={17} /> Thêm khuyến cáo</button></div>}
 
               {showEntryForm && <form onSubmit={submitEntry} className="mt-4 grid gap-3 rounded-3xl border border-rose-100 bg-white/80 p-5 sm:grid-cols-2">
-                <Field label="Thuốc/nhóm thuốc" required value={entryForm.drug_name} onChange={(value) => setEntryForm((form) => ({ ...form, drug_name: value }))} />
+                <Field label="Thuốc/nhóm thuốc (nếu có)" value={entryForm.drug_name} onChange={(value) => setEntryForm((form) => ({ ...form, drug_name: value }))} />
                 <Field label="Chủ đề" value={entryForm.topic} onChange={(value) => setEntryForm((form) => ({ ...form, topic: value }))} placeholder="Kháng đông, kháng kết tập..." />
                 <Field label="Bối cảnh lâm sàng" value={entryForm.clinical_context} onChange={(value) => setEntryForm((form) => ({ ...form, clinical_context: value }))} />
                 <Field label="Liều/cách dùng" value={entryForm.dose} onChange={(value) => setEntryForm((form) => ({ ...form, dose: value }))} />
@@ -369,7 +414,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
                       <td className="px-5 py-4">
                         {entry.clinical_context && <p className="mb-1 text-xs font-bold text-teal-700">{entry.clinical_context}</p>}
                         <p className="whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-800">{entry.recommendation_summary}</p>
-                        {entry.drug_name !== "Không áp dụng" && <p className="mt-2 text-xs font-extrabold text-rose-700">Thuốc/nhóm thuốc: {entry.drug_name}</p>}
+                        {hasSourceValue(entry.drug_name) && <p className="mt-2 text-xs font-extrabold text-rose-700">Thuốc/nhóm thuốc: {entry.drug_name}</p>}
                         <DrugFacts entry={entry} />
                         <p className="mt-3 text-[11px] font-semibold text-slate-400">{selectedDocument.society} {selectedDocument.publication_year} · {entry.page_reference}</p>
                       </td>

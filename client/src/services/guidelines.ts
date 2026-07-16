@@ -144,6 +144,15 @@ export async function getGuidelineFileUrl(filePath: string): Promise<string> {
   return data.signedUrl;
 }
 
+export async function downloadGuidelineFile(filePath: string, fallbackName: string): Promise<File> {
+  const signedUrl = await getGuidelineFileUrl(filePath);
+  const response = await fetch(signedUrl);
+  if (!response.ok) throw new Error("Không thể tải lại PDF guideline đã lưu.");
+  const blob = await response.blob();
+  const sourceName = filePath.split("/").pop() || fallbackName;
+  return new File([blob], sourceName, { type: blob.type || "application/pdf" });
+}
+
 export async function listGuidelineEntries(documentId: string): Promise<GuidelineEntry[]> {
   const client = requireSupabase();
   const { data, error } = await client
@@ -187,5 +196,12 @@ export async function setGuidelineEntryStatus(entryId: string, status: Guideline
 export async function deleteGuidelineEntry(entryId: string): Promise<void> {
   const client = requireSupabase();
   const { error } = await client.from("guideline_entries").delete().eq("id", entryId);
+  if (error) throw error;
+}
+
+export async function deleteGuidelineEntries(entryIds: string[]): Promise<void> {
+  if (entryIds.length === 0) return;
+  const client = requireSupabase();
+  const { error } = await client.from("guideline_entries").delete().in("id", entryIds);
   if (error) throw error;
 }

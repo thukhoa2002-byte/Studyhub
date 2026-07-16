@@ -12,6 +12,10 @@ function getApiKey() {
 }
 
 function extractResponseText(payload) {
+  const finishReason = payload?.candidates?.[0]?.finishReason;
+  if (finishReason === "MAX_TOKENS") {
+    throw new Error("Tài liệu có quá nhiều bảng nên đầu ra AI đã chạm giới hạn. Hãy chia guideline thành các PDF nhỏ hơn theo chương.");
+  }
   const parts = payload?.candidates?.[0]?.content?.parts ?? [];
   const text = parts.map((part) => part?.text ?? "").join("").trim();
   if (text) return text;

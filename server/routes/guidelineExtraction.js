@@ -80,30 +80,38 @@ router.post("/", requireGuidelineAdmin, upload.fields([{ name: "document", maxCo
     const result = await generateStructuredFromFile({
       files: inputFiles,
       schema,
-      maxOutputTokens: 24000,
-      timeoutMs: 300_000,
-      prompt: `Bạn là bác sĩ chuyên đọc guideline và supplementary data. Hãy trích xuất TOÀN BỘ KHUYẾN CÁO CHÍNH THỨC từ các PDF đính kèm, dịch chính xác sang tiếng Việt và cấu trúc thành dữ liệu để ôn thi, tra cứu.
+      maxOutputTokens: 65536,
+      timeoutMs: 600_000,
+      prompt: `Bạn là nhóm bác sĩ và biên dịch viên guideline. Nhiệm vụ là tạo BẢN DỊCH ĐẦY ĐỦ CÓ CẤU TRÚC của tất cả nội dung khuyến cáo trong PDF đính kèm, không phải bản tóm tắt và không chỉ tập trung vào thuốc.
 
-PHẠM VI NGƯỜI DÙNG QUAN TÂM: ${focus || "Toàn bộ khuyến cáo thuốc quan trọng trong tài liệu"}.
+GHI CHÚ ƯU TIÊN CỦA NGƯỜI DÙNG (chỉ để chú ý thêm, TUYỆT ĐỐI không được dùng làm bộ lọc hay bỏ qua phần khác): ${focus || "Không có; phải xử lý toàn bộ tài liệu"}.
 
-NGUYÊN TẮC AN TOÀN BẮT BUỘC:
-- Tự đọc metadata ở trang bìa/đầu tài liệu: documentTitle, society, condition, publicationYear, versionLabel. sourceUrl chỉ lấy URL/DOI chính thức có in trong PDF; nếu không có thì để chuỗi rỗng, không tự đoán URL.
-- Chỉ dùng thông tin có thật trong PDF này. Tuyệt đối không dùng kiến thức bên ngoài, không suy đoán và không tự điền dữ liệu còn thiếu.
-- Mỗi mục phải đại diện cho một khuyến cáo độc lập. Bao gồm cả khuyến cáo dùng thuốc và khuyến cáo không dùng thuốc.
-- Trả entries đúng thứ tự xuất hiện trong tài liệu, từ chương đầu đến chương cuối; không sắp xếp lại theo tên thuốc.
-- topic phải giữ cấu trúc đề mục của nguồn và dịch sang tiếng Việt theo mẫu "Chương/Mục lớn › Mục nhỏ › Bảng khuyến cáo". Nếu là bảng, phải ghi đúng số và tên bảng; không gom các bảng khác nhau vào cùng một topic.
-- Với khuyến cáo liên quan thuốc: drugName ghi đúng thuốc/nhóm thuốc; trích đầy đủ chỉ định, đối tượng, thời điểm, liều/cách dùng, điều chỉnh gan-thận, chống chỉ định/thận trọng và theo dõi nếu tài liệu có nêu.
-- Với khuyến cáo không liên quan thuốc: drugName ghi chính xác "Không áp dụng"; không tự gán thuốc.
-- Giữ nguyên số liệu, đơn vị, liều, khoảng cách dùng, ngưỡng eGFR/CrCl, chống chỉ định, Class và Level of Evidence như tài liệu.
-- recommendationClass và evidenceLevel phải được lấy cho mọi khuyến cáo nếu bảng/câu nguồn có ghi. Không suy ra Class hoặc LoE từ cách diễn đạt.
-- pageReference bắt buộc mở đầu bằng "Guideline chính" hoặc "Supplementary Data", sau đó ghi trang in trên tài liệu và/hoặc số bảng/hình/mục, ví dụ "Supplementary Data — Trang 42, Bảng S8". Nếu không xác định chắc chắn, ghi "Không xác định trong tài liệu"; không bịa số trang.
-- Với dose, renalAdjustment, hepaticAdjustment, contraindications, monitoring, recommendationClass hoặc evidenceLevel: nếu PDF không nêu thì ghi "Không nêu trong tài liệu".
-- recommendationSummary là bản dịch tiếng Việt trung thành, rõ chủ thể, hành động, đối tượng, thời điểm và điều kiện. Giữ nguyên tên thuốc quốc tế, viết tắt chuẩn và số liệu; không diễn giải làm thay đổi mức độ mạnh/yếu của câu nguồn.
-- Không biến nội dung mô tả thành khuyến cáo điều trị. Không trích tài liệu tham khảo nằm cuối PDF như thể đó là khuyến cáo của guideline.
-- Quét các bảng Recommendation, bảng trong phụ lục, chú thích bảng và phần văn bản liên quan thuốc trong Supplementary Data.
-- Không tạo mục trùng lặp giữa guideline chính và supplement. Nếu supplement bổ sung liều, gan-thận, chống chỉ định hoặc theo dõi cho một khuyến cáo chính, hãy hợp nhất và trích cả hai nguồn trong pageReference.
-- Mục tiêu là trích đủ tất cả khuyến cáo có căn cứ, không chỉ chọn ý nổi bật. Tuy nhiên, bỏ nội dung mô tả không phải khuyến cáo và không đủ căn cứ.
-- Tất cả mục được xem là BẢN NHÁP chờ người dùng đối chiếu PDF, không được tự tuyên bố đã kiểm duyệt.
+PHẠM VI BẮT BUỘC — QUÉT TỪ ĐẦU ĐẾN CUỐI TÀI LIỆU:
+1. Bắt đầu từ bảng/phần “What’s new”, “New recommendations”, “Revised recommendations” hoặc tên tương đương. Dịch TỪNG DÒNG trong các bảng này thành một entry, kể cả khi dòng đó không ghi Class/LoE.
+2. Tiếp tục qua TOÀN BỘ các chương, mục, phụ lục và Supplementary Data. Lấy TỪNG DÒNG của mọi bảng có tiêu đề hoặc nội dung là Recommendation/Recommendations/Khuyến cáo.
+3. Bao gồm mọi lĩnh vực: chẩn đoán, phân tầng nguy cơ, xét nghiệm, hình ảnh, theo dõi, dự phòng, thuốc, thủ thuật, can thiệp, phẫu thuật, tổ chức chăm sóc, nhóm bệnh nhân đặc biệt và những khuyến cáo không dùng thuốc.
+4. Không dừng sau bảng đầu tiên, không chọn “ý quan trọng”, không giới hạn số lượng. Phải tiếp tục tới bảng khuyến cáo cuối cùng của guideline chính và supplement.
+5. Trước khi tạo JSON, hãy âm thầm lập danh mục tất cả bảng/phần khuyến cáo theo thứ tự trang để kiểm tra độ phủ; không xuất danh mục đó riêng ra ngoài JSON.
+
+QUY TẮC CHUYỂN MỖI BẢNG THÀNH ENTRIES:
+- Một dòng bảng tương ứng một entry. Nếu một ô chứa nhiều khuyến cáo độc lập thì tách thành nhiều entries nhưng giữ cùng topic và pageReference.
+- topic phải là ĐỀ MỤC TIẾNG VIỆT ĐẦY ĐỦ nằm phía trên bảng, theo mẫu “Chương/Mục lớn › Mục nhỏ › Bảng [số] — [dịch đầy đủ tên bảng]”. Giữ số chương, số mục, số bảng và thứ tự nguồn. Không gom hai bảng khác nhau vào một topic.
+- recommendationSummary phải dịch đầy đủ toàn bộ câu/ô khuyến cáo, không rút gọn, không diễn giải thành ý khác và không bỏ điều kiện, quần thể, thời điểm, ngoại lệ hay chú thích trực tiếp gắn với khuyến cáo.
+- clinicalContext chứa bản dịch đầy đủ của cột/bối cảnh/nhóm bệnh nhân nếu nó tách riêng khỏi câu khuyến cáo; nếu không có thì để chuỗi rỗng.
+- recommendationClass và evidenceLevel sao chép đúng ký hiệu nguồn (I, IIa, IIb, III; A, B, C...). Không suy diễn. Nếu dòng không ghi thì để chuỗi rỗng.
+- pageReference bắt buộc mở đầu bằng “Guideline chính” hoặc “Supplementary Data”, sau đó ghi trang in trên tài liệu, số bảng và mục, ví dụ “Guideline chính — Trang 19, Bảng 3, Mục 3.2”. Không bịa số trang; nếu không đọc được số trang thì vẫn phải ghi số bảng/mục nhận diện được.
+
+THÔNG TIN THUỐC (chỉ áp dụng khi chính dòng/bảng có thuốc):
+- drugName ghi đúng tên thuốc/nhóm thuốc quốc tế. Với khuyến cáo không liên quan thuốc, để chuỗi rỗng.
+- dose, renalAdjustment, hepaticAdjustment, contraindications và monitoring chỉ điền khi PDF thật sự nêu trong dòng, chú thích bảng hoặc Supplementary Data liên quan. Không có thì để chuỗi rỗng để tiết kiệm đầu ra.
+- Nếu supplement bổ sung dữ liệu cho đúng khuyến cáo chính, hợp nhất thông tin và ghi cả hai nguồn trong pageReference; không tạo bản sao trùng lặp.
+
+AN TOÀN VÀ TÍNH TRUNG THÀNH:
+- Tự đọc metadata: documentTitle, society, condition, publicationYear, versionLabel. sourceUrl chỉ lấy URL/DOI chính thức có in trong PDF; không có thì để rỗng.
+- Chỉ dùng dữ liệu trong PDF. Không dùng kiến thức ngoài, không suy đoán, không tự tạo khuyến cáo, Class, LoE, liều hoặc nguồn.
+- Giữ nguyên tên riêng, viết tắt chuyên môn, số liệu, đơn vị, ngưỡng, khoảng thời gian và mức độ mạnh/yếu của câu nguồn.
+- Không lấy đoạn mô tả thuần túy, tài liệu tham khảo cuối bài hoặc lời bàn không mang tính khuyến cáo, ngoại trừ các dòng trong bảng “What’s new” bắt buộc nêu trên.
+- entries phải đúng thứ tự xuất hiện từ trang đầu tới trang cuối. Tất cả là BẢN NHÁP để người dùng đối chiếu, không được tự đánh dấu đã kiểm duyệt.
 
 Trả đúng JSON theo schema, không thêm văn bản ngoài JSON.`,
     });
