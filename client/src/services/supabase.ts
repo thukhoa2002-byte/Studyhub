@@ -77,6 +77,49 @@ export interface DeckActivityNotification {
   created_at: string;
 }
 
+export interface McqProgress {
+  current_index: number;
+  answers: Record<string, string>;
+  checked: Record<string, boolean>;
+  started_at: string;
+}
+
+export async function getMcqProgress(userId: string, deckKey: string): Promise<McqProgress | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("mcq_progress")
+    .select("current_index, answers, checked, started_at")
+    .eq("user_id", userId)
+    .eq("deck_key", deckKey)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    current_index: Number.isInteger(data.current_index) ? data.current_index : 0,
+    answers: data.answers && typeof data.answers === "object" ? data.answers as Record<string, string> : {},
+    checked: data.checked && typeof data.checked === "object" ? data.checked as Record<string, boolean> : {},
+    started_at: data.started_at,
+  };
+}
+
+export async function saveMcqProgress(
+  userId: string,
+  deckKey: string,
+  progress: McqProgress
+) {
+  if (!supabase) return;
+  const { error } = await supabase.from("mcq_progress").upsert({
+    user_id: userId,
+    deck_key: deckKey,
+    current_index: progress.current_index,
+    answers: progress.answers,
+    checked: progress.checked,
+    started_at: progress.started_at,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id,deck_key" });
+  if (error) throw error;
+}
+
 export async function getDeckNotificationsEnabled(userId: string): Promise<boolean> {
   if (!supabase) return true;
   const { data, error } = await supabase.from("deck_notification_preferences").select("enabled").eq("user_id", userId).maybeSingle();

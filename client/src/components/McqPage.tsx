@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Play, RotateCcw, Trophy, XCircle } from "lucide-react";
+import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 
 type Option = { id: string; text: string };
 type QuizQuestion = {
@@ -11,14 +12,20 @@ type QuizQuestion = {
   review_required?: boolean;
 };
 type QuizBank = { title: string; questions: QuizQuestion[] };
+type Props = { userId?: string };
 
-export default function McqPage() {
+const deckKey = "bo-mcq-kho-khe";
+
+export default function McqPage({ userId }: Props) {
   const [bank, setBank] = useState<QuizBank | null>(null);
   const [error, setError] = useState("");
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [opened, setOpened] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [progressReady, setProgressReady] = useState(false);
 
   useEffect(() => {
     void fetch("/mcq/bo-mcq-kho-khe.json")
@@ -26,6 +33,32 @@ export default function McqPage() {
       .then(setBank)
       .catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : "Không thể tải bộ MCQ."));
   }, []);
+
+  useEffect(() => {
+    if (!bank) return;
+    let active = true;
+    setProgressReady(false);
+    setOpened(false);
+    setHasStarted(false);
+    setStartedAt(null);
+    setIndex(0);
+    setAnswers({});
+    setChecked({});
+    if (!userId) { setProgressReady(true); return; }
+    void getMcqProgress(userId, deckKey)
+      .then((saved) => {
+        if (!active || !saved) return;
+        const questionIds = new Set(bank.questions.map((item) => item.id));
+        setIndex(Math.min(Math.max(saved.current_index, 0), bank.questions.length - 1));
+        setAnswers(Object.fromEntries(Object.entries(saved.answers).filter(([id, value]) => questionIds.has(id) && typeof value === "string")));
+        setChecked(Object.fromEntries(Object.entries(saved.checked).filter(([id, value]) => questionIds.has(id) && value === true)));
+        setStartedAt(saved.started_at);
+        setHasStarted(true);
+      })
+      .catch((loadError: unknown) => console.warn("Không thể tải tiến độ MCQ", loadError))
+      .finally(() => { if (active) setProgressReady(true); });
+    return () => { active = false; };
+  }, [bank, userId]);
 
   const question = bank?.questions[index] ?? null;
   const selected = question ? answers[question.id] : undefined;
@@ -36,24 +69,47 @@ export default function McqPage() {
   );
   const completedCount = Object.keys(checked).length;
 
+  function persist(next: Pick<McqProgress, "current_index" | "answers" | "checked" | "started_at">) {
+    if (!userId) return;
+    void saveMcqProgress(userId, deckKey, next).catch((saveError: unknown) => console.warn("Không thể lưu tiến độ MCQ", saveError));
+  }
+
+  function openDeck() {
+    const nextStartedAt = startedAt ?? new Date().toISOString();
+    setStartedAt(nextStartedAt);
+    setHasStarted(true);
+    setOpened(true);
+    persist({ current_index: index, answers, checked, started_at: nextStartedAt });
+  }
+
+  function returnToDeckList() {
+    if (hasStarted && startedAt) persist({ current_index: index, answers, checked, started_at: startedAt });
+    setOpened(false);
+  }
+
   function choose(optionId: string) {
     if (!question || isChecked) return;
-    setAnswers((items) => ({ ...items, [question.id]: optionId }));
+    const nextAnswers = { ...answers, [question.id]: optionId };
+    setAnswers(nextAnswers);
+    if (hasStarted && startedAt) persist({ current_index: index, answers: nextAnswers, checked, started_at: startedAt });
   }
 
   function checkAnswer() {
     if (!question || !selected) return;
-    setChecked((items) => ({ ...items, [question.id]: true }));
+    const nextChecked = { ...checked, [question.id]: true };
+    setChecked(nextChecked);
+    if (hasStarted && startedAt) persist({ current_index: index, answers, checked: nextChecked, started_at: startedAt });
   }
 
   function restart() {
     setIndex(0);
     setAnswers({});
     setChecked({});
+    if (hasStarted && startedAt) persist({ current_index: 0, answers: {}, checked: {}, started_at: startedAt });
   }
 
   if (error) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><p className="rounded-2xl border border-rose-200 bg-white p-5 text-sm font-semibold text-rose-700">{error}</p></section>;
-  if (!bank || !question) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><div className="glass-panel rounded-3xl p-8 text-center text-sm font-semibold text-slate-500">Đang nạp danh sách bộ MCQ…</div></section>;
+  if (!bank || !question || !progressReady) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><div className="glass-panel rounded-3xl p-8 text-center text-sm font-semibold text-slate-500">Đang nạp danh sách bộ MCQ…</div></section>;
 
   const isCorrect = selected === question.correct_answer;
   const isLast = index === bank.questions.length - 1;
@@ -73,14 +129,14 @@ export default function McqPage() {
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <button type="button" onClick={() => setOpened(true)} className="group rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
+            <button type="button" onClick={openDeck} className="group rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><CircleHelp size={24} /></div>
                 <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{bank.questions.length} câu</span>
               </div>
               <h2 className="mt-5 text-xl font-extrabold text-rose-950">Bộ MCQ - Khò khè</h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">Tiếp cận khò khè, viêm tiểu phế quản và hen.</p>
-              <div className="mt-6 flex items-center justify-between text-sm font-bold text-violet-700"><span>{completedCount > 0 ? `Đã kiểm tra ${completedCount} câu` : "Chưa bắt đầu"}</span><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">{completedCount > 0 ? "Làm tiếp" : "Bắt đầu"}<Play size={15} fill="currentColor" /></span></div>
+              <div className="mt-6 flex items-center justify-between text-sm font-bold text-violet-700"><span>{!hasStarted ? "Chưa bắt đầu" : completedCount > 0 ? `Đã kiểm tra ${completedCount} câu` : "Đang làm dở"}</span><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">{hasStarted ? "Làm tiếp" : "Bắt đầu"}<Play size={15} fill="currentColor" /></span></div>
             </button>
           </div>
         </div>
@@ -91,7 +147,7 @@ export default function McqPage() {
   return (
     <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
-        <div className="mb-6"><button type="button" onClick={() => setOpened(false)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50"><ArrowLeft size={17} />Danh sách bộ MCQ</button></div>
+        <div className="mb-6"><button type="button" onClick={returnToDeckList} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50"><ArrowLeft size={17} />Danh sách bộ MCQ</button></div>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-15 w-15 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={30} strokeWidth={2} /></div>
@@ -135,7 +191,7 @@ export default function McqPage() {
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
           <button type="button" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={index === 0} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-45"><ChevronLeft size={18} />Câu trước</button>
           <div className="flex gap-3">
-            {!isChecked ? <button type="button" onClick={checkAnswer} disabled={!selected} className="inline-flex items-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-45"><CheckCircle2 size={18} />Kiểm tra</button> : !isLast ? <button type="button" onClick={() => setIndex((value) => value + 1)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-600">Câu tiếp<ChevronRight size={18} /></button> : <button type="button" onClick={restart} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-600"><RotateCcw size={18} />Làm lại</button>}
+            {!isChecked ? <button type="button" onClick={checkAnswer} disabled={!selected} className="inline-flex items-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-45"><CheckCircle2 size={18} />Kiểm tra</button> : !isLast ? <button type="button" onClick={() => { const nextIndex = index + 1; setIndex(nextIndex); if (hasStarted && startedAt) persist({ current_index: nextIndex, answers, checked, started_at: startedAt }); }} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-600">Câu tiếp<ChevronRight size={18} /></button> : <button type="button" onClick={restart} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-600"><RotateCcw size={18} />Làm lại</button>}
           </div>
         </div>
         {completed && <div className="mt-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-900"><Trophy size={22} className="shrink-0" />Hoàn thành bộ câu hỏi: {correctCount}/{bank.questions.length} câu đúng.</div>}
