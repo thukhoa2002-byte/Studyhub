@@ -16,6 +16,7 @@ import SharedDeckNotification from "./components/SharedDeckNotification";
 import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import DrugsPage from "./components/DrugsPage";
 import GuidelinesPage from "./components/GuidelinesPage";
+import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
 import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
@@ -630,7 +631,9 @@ export default function App() {
 
         <SiteAnalytics userId={user?.id} visible={workspaceTab === "flashcards" && analyticsAdmin && !editing && questions.length === 0} />
 
-        {workspaceTab === "guidelines" ? (
+        {workspaceTab === "mcq" ? (
+          <McqPage />
+        ) : workspaceTab === "guidelines" ? (
           <GuidelinesPage user={user} onAiCallsRemaining={setAiCallsRemaining} />
         ) : workspaceTab === "drugs" ? (
           <DrugsPage />

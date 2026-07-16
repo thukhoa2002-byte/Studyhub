@@ -1,0 +1,3297 @@
+{
+  "schema_version": "1.0",
+  "title": "Tiếp cận khò khè: VTPQ + Hen",
+  "question_type": "single_choice",
+  "grading": {
+    "correct_score": 1,
+    "incorrect_score": 0
+  },
+  "questions": [
+    {
+      "source_number": 1,
+      "question": "Trong các nghiên cứu lâm sàng, viêm tiểu phế quản được định nghĩa gồm các tiêu chuẩn sau đây, TRỪ:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Không có bệnh khác gây khò khè như viêm phổi, hen"
+        },
+        {
+          "id": "B",
+          "text": "Khò khè dưới 3 lần"
+        },
+        {
+          "id": "C",
+          "text": "Tuổi 1-24 tháng"
+        },
+        {
+          "id": "D",
+          "text": "Viêm hô hấp trên: ho, hắt hơi, chảy mũi, sốt nhẹ"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-001"
+    },
+    {
+      "source_number": 2,
+      "question": "Tiêu chuẩn vàng để chẩn đoán bệnh trào ngược dạ dàythực quản là:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Chụp thực quản – dạ dày cản quang"
+        },
+        {
+          "id": "B",
+          "text": "Siêu âm bụng"
+        },
+        {
+          "id": "C",
+          "text": "Đo pH thực quản 24 giờ"
+        },
+        {
+          "id": "D",
+          "text": "Bệnh sử"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-002"
+    },
+    {
+      "source_number": 3,
+      "question": "Điều trị nào sau đây KHÔNG được khuyến cáo thường quy cho trẻ viêm tiểu phế quản (2B)?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thông thoáng mũi bằng nước muối sinh lý"
+        },
+        {
+          "id": "B",
+          "text": "Khí dung thuốc dãn phế quản"
+        },
+        {
+          "id": "C",
+          "text": "Kháng sinh nếu có bội nhiễm phổi"
+        },
+        {
+          "id": "D",
+          "text": "Oxy liệu pháp nếu có chỉ định"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-003"
+    },
+    {
+      "source_number": 4,
+      "question": "Câu nào sau đây là SAI về biến chứng của viêm tiểu phế quản?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Mất nước"
+        },
+        {
+          "id": "B",
+          "text": "Nhiễm khuẩn thứ phát"
+        },
+        {
+          "id": "C",
+          "text": "Suy hô hấp"
+        },
+        {
+          "id": "D",
+          "text": "Xẹp phổi"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-004"
+    },
+    {
+      "source_number": 5,
+      "question": "Trẻ viêm tiểu phế quản được nuôi ăn bằng đường tĩnh mạch trong trường hợp nào?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tăng công hô hấp rõ lúc bú, ăn uống"
+        },
+        {
+          "id": "B",
+          "text": "Nuôi ăn qua sonde dạ dày đạt được <100 ml/kg/ngày"
+        },
+        {
+          "id": "C",
+          "text": "Nôn ói liên tục"
+        },
+        {
+          "id": "D",
+          "text": "Mất nước không bù được bằng đường uống"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-005"
+    },
+    {
+      "source_number": 6,
+      "question": "Điều trị nào sau đây KHÔNG được khuyến cáo thường quy cho trẻ viêm tiểu phế quản (2B)?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thở khí Heliox"
+        },
+        {
+          "id": "B",
+          "text": "Dinh dưỡng và bù nước điện giải"
+        },
+        {
+          "id": "C",
+          "text": "Thông thoáng mũi bằng nước muối sinh lý"
+        },
+        {
+          "id": "D",
+          "text": "Kháng sinh nếu có bội nhiễm phổi"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-006"
+    },
+    {
+      "source_number": 7,
+      "question": "Biến chứng ngưng thở của viêm tiểu phế quản gặp ở trẻ nào sau đây?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Trẻ từng có cơn ngưng thở trước đây"
+        },
+        {
+          "id": "B",
+          "text": "Trẻ sinh đủ tháng và nhỏ hơn 3 tháng tuổi"
+        },
+        {
+          "id": "C",
+          "text": "Trẻ sinh đủ tháng và nhỏ hơn 1 tháng tuổi"
+        },
+        {
+          "id": "D",
+          "text": "Trẻ sinh non tháng và nhỏ hơn 2 tháng tuổi"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-007"
+    },
+    {
+      "source_number": 8,
+      "question": "Câu nào sau đây là SAI về cách phòng ngừa bệnh viêm tiểu phế quản",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tránh tiếp xúc với người bị nhiễm khuẩn hô hấp cấp"
+        },
+        {
+          "id": "B",
+          "text": "Giảm thiểu tiếp xúc khói thuốc lá"
+        },
+        {
+          "id": "C",
+          "text": "Chủng ngừa cúm hàng năm"
+        },
+        {
+          "id": "D",
+          "text": "Giữ vệ sinh chung"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-008"
+    },
+    {
+      "source_number": 9,
+      "question": "Câu nào sau đây là SAI về chỉ định dùng Palivizumab để giảm nguy cơ nhập viện vì viêm tiểu phế quản?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Suy giảm miễn dịch"
+        },
+        {
+          "id": "B",
+          "text": "Loạn sản phế quản phổi"
+        },
+        {
+          "id": "C",
+          "text": "Tim bẩm sinh có rối loạn huyết động nặng"
+        },
+        {
+          "id": "D",
+          "text": "Sinh non"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-009"
+    },
+    {
+      "source_number": 10,
+      "question": "Điều trị nào sau đây là bắt buộc đối với trẻ viêm tiểu phế quản?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Corticosteroides đường toàn thân"
+        },
+        {
+          "id": "B",
+          "text": "Dinh dưỡng và bù nước điện giải"
+        },
+        {
+          "id": "C",
+          "text": "Oxy liệu pháp"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung thuốc dãn phế quản"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-010"
+    },
+    {
+      "source_number": 11,
+      "question": "Khò khè cấp tính gây ra do những nguyên nhân sau đây, TRỪ:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Vòng mạch"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản"
+        },
+        {
+          "id": "C",
+          "text": "Hen"
+        },
+        {
+          "id": "D",
+          "text": "Viêm thanh khí quản"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-011"
+    },
+    {
+      "source_number": 12,
+      "question": "Viêm tiểu phế quản được chẩn đoán bội nhiễm phổi khi thỏa một trong những tiêu chuẩn sau đây, TRỪ:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Bạch cầu đa nhân tăng"
+        },
+        {
+          "id": "B",
+          "text": "CRP >20 mg/L"
+        },
+        {
+          "id": "C",
+          "text": "Thâm nhiễm phổi lan tỏa 2 bên trên X quang ngực thẳng"
+        },
+        {
+          "id": "D",
+          "text": "Sốt cao đột ngột hoặc kéo dài"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-012"
+    },
+    {
+      "source_number": 13,
+      "question": "Khò khè mãn tính hoặc tái phát gây ra do những nguyên nhân sau đây, TRỪ:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Màng chắn khí quản"
+        },
+        {
+          "id": "B",
+          "text": "Viêm khí quản do vi trùng"
+        },
+        {
+          "id": "C",
+          "text": "Trào ngược DD-TQ"
+        },
+        {
+          "id": "D",
+          "text": "U lympho"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-013"
+    },
+    {
+      "source_number": 14,
+      "question": "Vật lý trị liệu hô hấp được khuyến cáo cho trẻ viêm tiểu phế quản nào sau đây?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tim bẩm sinh"
+        },
+        {
+          "id": "B",
+          "text": "Loạn sản phế quản phổi"
+        },
+        {
+          "id": "C",
+          "text": "Sinh non"
+        },
+        {
+          "id": "D",
+          "text": "Bệnh lý thần kinh-cơ"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-014"
+    },
+    {
+      "source_number": 15,
+      "question": "Nguyên nhân nào là bất thường chức năng gây khò khè tái phát",
+      "options": [
+        {
+          "id": "A",
+          "text": "Vòng mạch máu"
+        },
+        {
+          "id": "B",
+          "text": "Mềm sụn khí quản"
+        },
+        {
+          "id": "C",
+          "text": "Bệnh phổi mô kẽ"
+        },
+        {
+          "id": "D",
+          "text": "Phình dãn động mạch phổi"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-015"
+    },
+    {
+      "source_number": 16,
+      "question": "Nguyên nhân nào là bất thường cấu trúc gây khò khè",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hen"
+        },
+        {
+          "id": "B",
+          "text": "Bướu giáp"
+        },
+        {
+          "id": "C",
+          "text": "Mềm sụn phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Dị vật đường thở bỏ quên"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-016"
+    },
+    {
+      "source_number": 17,
+      "question": "Khò khè đơn âm là tiếng thở bất thường phát ra do tắc nghẽn vị trí nào sau đây",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thanh quản"
+        },
+        {
+          "id": "B",
+          "text": "Phế quản gốc"
+        },
+        {
+          "id": "C",
+          "text": "Tiểu phế quản"
+        },
+        {
+          "id": "D",
+          "text": "1/3 trên khí quản"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-017"
+    },
+    {
+      "source_number": 18,
+      "question": "Khò khè 2 thì ít nghĩ do tắc nghẽn vị trí nào sau đây",
+      "options": [
+        {
+          "id": "A",
+          "text": "1/3 trên khí quản"
+        },
+        {
+          "id": "B",
+          "text": "1/3 giữa khí quản"
+        },
+        {
+          "id": "C",
+          "text": "1/3 dưới khí quản"
+        },
+        {
+          "id": "D",
+          "text": "Phế quản gốc"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-018"
+    },
+    {
+      "source_number": 19,
+      "question": "Bệnh nhi nam, 6 tháng tuổi, đến khám vì khò khè lần đầu, bệnh 3 ngày. Cháu tỉnh. thở 46l/p, không sốt, không co lõm ngực, nghe tiếng thở âm sắc cao, êm dịu thì thở ra. Các cơ quan khác bình thường. Thái độ xử trí phù hợp nhất của bác sĩ là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cho NV ngay vì cháu có dấu hiệu nguy hiểm"
+        },
+        {
+          "id": "B",
+          "text": "Cho bé phun khí dung bằng thuốc giãn phế quản rồi đánh giá tiếp"
+        },
+        {
+          "id": "C",
+          "text": "Cho bé về nhà và hướng dẫn cách chăm sóc và theo dõi"
+        },
+        {
+          "id": "D",
+          "text": "Cho bé chụp X quang ngực thẳng để loại trừ các nguyên nhân nguy hiểm"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-019"
+    },
+    {
+      "source_number": 20,
+      "question": "VTPQ thường gặp ở tháng tuổi nào",
+      "options": [
+        {
+          "id": "A",
+          "text": "<2"
+        },
+        {
+          "id": "B",
+          "text": "2-6"
+        },
+        {
+          "id": "C",
+          "text": "6-12"
+        },
+        {
+          "id": "D",
+          "text": "12-24"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-020"
+    },
+    {
+      "source_number": 21,
+      "question": "Đường lây truyền trực tiếp của virus hợp bào hô hấp là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Giọt chất tiết hô hấp"
+        },
+        {
+          "id": "B",
+          "text": "Tay NVYT"
+        },
+        {
+          "id": "C",
+          "text": "Đồ chơi của trẻ"
+        },
+        {
+          "id": "D",
+          "text": "Tay người chăm sóc trẻ"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-021"
+    },
+    {
+      "source_number": 22,
+      "question": "Tại sao nghe được ran rít ở trẻ bị VTPQ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Phù nề hạ thanh môn"
+        },
+        {
+          "id": "B",
+          "text": "Tẩm nhuận tế bào đơn nhân quanh TPQ"
+        },
+        {
+          "id": "C",
+          "text": "Phù nề lớp dưới niêm mạc"
+        },
+        {
+          "id": "D",
+          "text": "Nút tắc trong lòng tiểu phế quản"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-022"
+    },
+    {
+      "source_number": 23,
+      "question": "Bé trai 2,5 tháng tuổi, nặng 6kg, sinh thường đủ tháng, CNLS <3kg, bú mẹ hoàn toàn. Bệnh ngày 3. Ngày 1-2, sốt nhẹ, ho, sổ mũi. Ngày 3, khò khè, thở mệt, nên NV. Khám bé tỉnh, bứt rứt, có tiếng khụt khịt ở mũi, M 140l/p, NĐ 37 độC, nhịp thở 58l/p, thở co lõm ngực trung bình, môi hồng, SpO2 95%, phổi nghe ran rít và ran ẩm nhỏ hạt rải rác. Tiền căn gia đình khỏe mạnh. Chẩn đoán phù hợp nhất là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Hen nhũ nhi"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-023"
+    },
+    {
+      "source_number": 24,
+      "question": "Bé trai 4 tháng tuổi, nặng 7kg, sinh thường đủ tháng, bú mẹ hoàn toàn, đến khám vì khó thở. Ngày 1-2 sốt nhẹ, ho, sổ mũi. Ngày 3 khò khè khó thở. Khám bé tỉnh, có tiếng khụt khịt ở mũi, M 140l/p, NĐ 37 độ C, NT 58l/p, thở co lõm nhẹ, mô hồng, SpO2 95%, phổi nghe ran rít và ran ẩm nhỏ hạt rãi rác. Xử trí tại nhà quan trọng nhất là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thông thoáng mũi bằng NaCl 0,9%"
+        },
+        {
+          "id": "B",
+          "text": "Bù đủ nước và dinh dưỡng"
+        },
+        {
+          "id": "C",
+          "text": "Không dùng thuốc"
+        },
+        {
+          "id": "D",
+          "text": "Theo dõi sát diễn tiến của bệnh"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-024"
+    },
+    {
+      "source_number": 25,
+      "question": "Trong điều trị cắt cơn hen, vì sao corticoid đường toàn thân được sử dụng",
+      "options": [
+        {
+          "id": "A",
+          "text": "Kháng viêm nhanh"
+        },
+        {
+          "id": "B",
+          "text": "Kháng viêm mạnh"
+        },
+        {
+          "id": "C",
+          "text": "Kháng viêm kéo dài"
+        },
+        {
+          "id": "D",
+          "text": "Góp phần dãn phế quản"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": true,
+      "id": "wheeze-asthma-025"
+    },
+    {
+      "source_number": 26,
+      "question": "Tại sao trong VTPQ, tình trạng tắc nghẽn đường dẫn khí đáp ứng không tốt với thuốc dãn phế quản",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tắc nghẽn quá nặng"
+        },
+        {
+          "id": "B",
+          "text": "Tắc nghẽn do nút đạm"
+        },
+        {
+          "id": "C",
+          "text": "Tiểu phế quản co thắt mạnh"
+        },
+        {
+          "id": "D",
+          "text": "Tiểu phế quản phù nề nhiều"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-026"
+    },
+    {
+      "source_number": 27,
+      "question": "Bệnh nhi 6 tháng tuổi NV vì VTPQ nặng có nhịp thở 76l/p, bác sĩ chỉ định nuôi ăn qua sonde dạ dày. Lý do của can thiệp này là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Đảm bảo bù dịch"
+        },
+        {
+          "id": "B",
+          "text": "Trẻ thở nhanh không thể bú"
+        },
+        {
+          "id": "C",
+          "text": "Giảm nguy cơ hít sặc"
+        },
+        {
+          "id": "D",
+          "text": "Giảm nhu cầu năng lượng cho việc bù"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-027"
+    },
+    {
+      "source_number": 28,
+      "question": "Bé trai 4 tháng đến khám vì khó thở. Ngày 1-2 sốt nhẹ, ho, sổ mũi. Ngày 3 khò khè, khó thở. Khám bé bứt rứt, có tiếng khụt khịt ở mũi, M 160l/p, NĐ 38 độC, NT 64l/p, co lõm ngực nặng, môi tái, SpO2 90%. Phổi nghe ran rít và ran ẩm nhỏ hạt rãi rác. Xử trí quan trọng nhất là gi",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhỏ mũi với NaCl 0,9%"
+        },
+        {
+          "id": "B",
+          "text": "Thở oxy ẩm quan canula 1l"
+        },
+        {
+          "id": "C",
+          "text": "Phun khí dung salbutamol qua oxy"
+        },
+        {
+          "id": "D",
+          "text": "Chích KS liều cao"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-028"
+    },
+    {
+      "source_number": 29,
+      "question": "Bé trai 7 tuổi vào viện vì khó thở khi đang ăn cơm. Tiền căn chưa ghi nhận gì lạ. Khám ghi nhận tỉnh, môi hồng vừa, SpO2 93%, chi ấm mạch quay rõ 110l/p, thở co kéo 42l/p, phổi ran rít bên P. Xử trí ngay lựa chọn đầu tiên là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nội soi đường thở cấp cứu gắp dị vật"
+        },
+        {
+          "id": "B",
+          "text": "Phun Salbutamol 3 lần cách 20 phút rồi đánh giá lại"
+        },
+        {
+          "id": "C",
+          "text": "Chụp X quang ngực khẩn kiểm tra tình trạng ứ khí"
+        },
+        {
+          "id": "D",
+          "text": "Phun (Salbutamol + Ipratropium) 3 lần cách 20 phút rồi đánh giá lại"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-029"
+    },
+    {
+      "source_number": 30,
+      "question": "Bé trai 4 tuổi NV vì cơn hen nặng. Mẹ bé khai bé đã khò khè 4-5 lần mỗi khi ho, sổ mũi. Giữa các đợt trẻ khỏe mạnh, trẻ bị chàm da 1 năm nay. Cha bị hen. Thuốc ngừa hen ưu tiên sử dụng cho trẻ này là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "ICS liều thấp"
+        },
+        {
+          "id": "B",
+          "text": "ICS liều trung bình"
+        },
+        {
+          "id": "C",
+          "text": "ICS liều cao"
+        },
+        {
+          "id": "D",
+          "text": "Leukotriene modifier"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-030"
+    },
+    {
+      "source_number": 31,
+      "question": "Vị trí tắc nghẽn nào sau đây thường gây khò khè đa âm",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thanh quản"
+        },
+        {
+          "id": "B",
+          "text": "Khí quản"
+        },
+        {
+          "id": "C",
+          "text": "Phế quản gốc"
+        },
+        {
+          "id": "D",
+          "text": "Tiểu phế quản"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-031"
+    },
+    {
+      "source_number": 32,
+      "question": "BN nam 3 tuổi đến khám vì khò khè ngày 5 không sốt. Mẹ nói cháu ho nhiều đàm ban đêm làm cháu thức giấc. Khám cháu tỉnh, môi hồng, NT 35l/p, không co lõm ngực, phổi nghe ran ngáy, rít 2 bên. Tiền căn chưa khò khè lần nào, không hội chứng xâm nhập, mẹ bị hen. Nguyên nhân khò khè nghĩ nhiều nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hen phế quản"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổi"
+        },
+        {
+          "id": "C",
+          "text": "VTPQ"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phế quản"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-032"
+    },
+    {
+      "source_number": 33,
+      "question": "Tại TP.HCM, VTPQ xảy ra nhiều nhất vào màu nào trong năm",
+      "options": [
+        {
+          "id": "A",
+          "text": "Đông"
+        },
+        {
+          "id": "B",
+          "text": "Xuân"
+        },
+        {
+          "id": "C",
+          "text": "Nắng"
+        },
+        {
+          "id": "D",
+          "text": "Mưa"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-033"
+    },
+    {
+      "source_number": 34,
+      "question": "Tại sao không được dùng thường quy kháng sinh để điều trị VTPQ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tác nhân gây bệnh chủ yếu là virus"
+        },
+        {
+          "id": "B",
+          "text": "Tỷ lệ bội nhiễm vi khuẩn thứ phát thấp"
+        },
+        {
+          "id": "C",
+          "text": "Gây nhiều tác dụng phụ"
+        },
+        {
+          "id": "D",
+          "text": "Tăng chi phí điều trị"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-034"
+    },
+    {
+      "source_number": 35,
+      "question": "Tại sao giữ vệ sinh bàn tay là biện pháp phòng ngừa VTPQ hiệu quả nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "Có chứng cứ và khuyến cáo mạnh"
+        },
+        {
+          "id": "B",
+          "text": "Bàn tay là nơi lây truyền bệnh quan trọng"
+        },
+        {
+          "id": "C",
+          "text": "Đeo mắt kính không làm giảm tỷ lệ lây nhiễm"
+        },
+        {
+          "id": "D",
+          "text": "Mặc áo choàng không làm giảm tỷ lệ lây nhiễm"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-035"
+    },
+    {
+      "source_number": 36,
+      "question": "Bé nữ 5 tháng tuổi, được chẩn đoán và điều trị VTPQ nhẹ tại phòng khám ngoại trú BVNĐ1. Tái khám 2 ngày sau thấy bé quấy khóc liên tục, NĐ 39 độ C, NT 70l/p, co lõm ngực nặng, phập phồng cánh mũi, môi tái SpO2 85%, nghe ít ran nổ ở đáy phổi 2 bên. Bé được nhập vào khoa cấp cứu, xử trí ban đầu không phù hợp là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Oxy ẩm 1l/p qua cannula"
+        },
+        {
+          "id": "B",
+          "text": "Hạ sốt, CRP, CTM, soi cấy NTA, cấy máu"
+        },
+        {
+          "id": "C",
+          "text": "Kháng sinh TM"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung Salbutamol qua oxy 8l/p"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-036"
+    },
+    {
+      "source_number": 37,
+      "question": "Sực tắc nghẽn đường hô hấp trong hen chủ yếu do cơ chế nào",
+      "options": [
+        {
+          "id": "A",
+          "text": "Co thắt cơ trơn phế quản"
+        },
+        {
+          "id": "B",
+          "text": "Viêm bong tróc biểu mô phế quản"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phù nề biểu mô phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Tăng tiết đàm nhớt trong lòng phế quản"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-037"
+    },
+    {
+      "source_number": 38,
+      "question": "Các loại kiểu hình khò khè ở trẻ em là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Khò khè nhẹ, trung bình, nặng"
+        },
+        {
+          "id": "B",
+          "text": "Khò khè ngắt quãng, dai dẳng, liên tục"
+        },
+        {
+          "id": "C",
+          "text": "Khò khè thoáng qua, không dị ứng, dị ứng"
+        },
+        {
+          "id": "D",
+          "text": "Khò khè do siêu vi, do gắng sức, đa dị nguyên"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-038"
+    },
+    {
+      "source_number": 39,
+      "question": "Tắc nghẽn hoàn toàn tiểu phế quản trong VTPQ đưa đến hậu quả gì trên lâm sàng",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ứ khí phế nang"
+        },
+        {
+          "id": "B",
+          "text": "Xẹp phổi"
+        },
+        {
+          "id": "C",
+          "text": "Khí phế thủng"
+        },
+        {
+          "id": "D",
+          "text": "Tràn khí màng phổi"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-039"
+    },
+    {
+      "source_number": 40,
+      "question": "Bé nữ 8 tháng tuổi, được chẩn đoán và điều trị VTPQ nhẹ tại phòng khám ngoại trú BV A. Tái khám 2 ngày sau thấy bé quấy khóc liên tục, NĐ 39 độ C, NT 70l/p, co lõm ngực nặng, phập phồng cánh mũi, môi tái Spo2 85%, nghe ran ngáy + ran ẩm 2 bên. Chẩn đoán phù hợp nhất lúc này",
+      "options": [
+        {
+          "id": "A",
+          "text": "VTPQ nặng"
+        },
+        {
+          "id": "B",
+          "text": "VP nặng"
+        },
+        {
+          "id": "C",
+          "text": "VTPQ nặng bội nhiễm"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phế quản phổi nặng nghi do VK"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-040"
+    },
+    {
+      "source_number": 41,
+      "question": "Bé trai 7 tháng tuổi, nặng 8 kg, nóng ho, sổ mũi 2 ngày, đến khám tại BV, bé không nôn, không co giật nhưng bú kém. Khám tỉnh, NĐ 37,5 độ C, chảy nước mũi trong, tái nhẹ quanh môi, NT 70L/P, rút lõm lồng ngực nặng, nghe thấy tiếng khò khè khi bé thở ra, phổi có ran rít và ran ẩm nhỏ hạt rải rác hai bên phế trường. Tiền căn bản thân và gđ khỏe mạnh và đây là lần đầu tiên bé bị khò khè. Các bước xử trí nào sau đây là phù hợp, ngoại trừ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Rửa mũi bằng NaCl 0,9% và oxy ẩm qua cannula 1l"
+        },
+        {
+          "id": "B",
+          "text": "Khí dung Combivent qua oxy 8l"
+        },
+        {
+          "id": "C",
+          "text": "Ceftriaxone 400mg x 2 TM"
+        },
+        {
+          "id": "D",
+          "text": "Nhỏ giọt sữa qua sonde dạ dày"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-041"
+    },
+    {
+      "source_number": 42,
+      "question": "Bé trai 4 tuổi, đang được theo dõi hen. Mẹ bé khai bé đã khò khè 5-6 lần, lần đầu lúc bé khoảng 15 tháng tuổi với chẩn đoán VTPQ. Trước đây 1 năm bé chỉ khò khè 2-3 lần. 2 năm nay trẻ khò khè nhiều hơn, 3-6 tháng bé lại khò khè sau ho, sổ mũi. Giữa các đợt bé khỏe, không tiền căn dị ứng, gđ không ai hen. Thuốc ngừa cơn ưu tiên lựa chọn",
+      "options": [
+        {
+          "id": "A",
+          "text": "ICS"
+        },
+        {
+          "id": "B",
+          "text": "LABA"
+        },
+        {
+          "id": "C",
+          "text": "Leukotriene modifier"
+        },
+        {
+          "id": "D",
+          "text": "ICS + LABA"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-042"
+    },
+    {
+      "source_number": 43,
+      "question": "Bé gái 4 tuổi vào viện vì khó thở. Tiền căn 3 lần vì VTPQ, không dị ứng, gđ không ai bị hen. Khám trẻ ngồi cúi về trước, than mệt, môi tái, SpO2 90%, chi ấm mạch quay rõ 146l/p, thở co lõm kéo gian sườn 46l/p, phổi nghe ran rít 2 bên. Chẩn đoán phù hợp nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "VTPQ trung bình"
+        },
+        {
+          "id": "B",
+          "text": "VTPQ nặng"
+        },
+        {
+          "id": "C",
+          "text": "Hen cơn trung bình"
+        },
+        {
+          "id": "D",
+          "text": "Hen cơn nặng"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-043"
+    },
+    {
+      "source_number": 44,
+      "question": "Bé trai 5 tuổi bị chàm da lúc 2 tháng tuổi, khò khè tái đi tái lại 3 lần, có đáp ứng thuốc giãn phế quản. Bệnh 3 ngày với ho đàm, khò khè, mẹ cho uống thuốc không giảm, trưa nay ho nhiều, khò khè, thở mệt nên đến khám. Khám: tỉnh, môi hồng, thở co kéo liên sườn ,nhịp thở 42 lần/ph, nhịp tim 100 lần/phút, nói từng cụm từ, SpO2 95%, phổi ran ngáy 2 bên. Chẩn đoán phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản dạng hen"
+        },
+        {
+          "id": "B",
+          "text": "Hen kiểm soát 1 phần"
+        },
+        {
+          "id": "C",
+          "text": "Hen cơn trung bình"
+        },
+        {
+          "id": "D",
+          "text": "Hen cơn nhẹ"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-044"
+    },
+    {
+      "source_number": 45,
+      "question": "Bé gái 6 tuổi, đã được chẩn đoán hen 1 năm nay, có điều trị phòng ngừa bằng corticosteroid dạng hít nhưng không tuân thủ tốt. Bệnh 2 ngày với ho nhiều, khò khè, sáng nay ho tăng, thở mệt nên đến khám. Khám: tỉnh, môi hồng vừa, SpO, 89%, thở co kéo gian sườn, nói từng chữ, ngồi để hở, nhịp thở 38 lần/phút, nhịp tim 120 lần/phút, phổi nhiều ran ngáy, rít 2 bên. Xử trí phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Phun khí dung Salbutamol 2 lần, đánh giá lại"
+        },
+        {
+          "id": "B",
+          "text": "Phun khí dung Salbutamol + Ipratrobium bromide, uống Prednisone"
+        },
+        {
+          "id": "C",
+          "text": "Phun khí dung Salbutamol+ Ipratrobium bromide qua oxy, chích Hydrocortisone"
+        },
+        {
+          "id": "D",
+          "text": "Phun khí dung Salbutamol+Ipratrobium bromide qua oxy, chích Hydrocortisone và chích kháng sinh"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-045"
+    },
+    {
+      "source_number": 46,
+      "question": "Tại miền nam nước ta, VTPQ thường xảy ra vào thời điểm nào trong năm",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tháng 1-3"
+        },
+        {
+          "id": "B",
+          "text": "Tháng 4-6"
+        },
+        {
+          "id": "C",
+          "text": "Tháng 7-9"
+        },
+        {
+          "id": "D",
+          "text": "Tháng 10-12"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-046"
+    },
+    {
+      "source_number": 47,
+      "question": "Một trẻ 5 tháng tuổi, đến khám vì ho, bệnh 2 ngày, nghe phổi có ran liên tục âm sắc trầm, êm dịu, thì thở ra. Chẩn đoán nào là phù hợp nhất ở bệnh nhi này?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi khò khè"
+        },
+        {
+          "id": "D",
+          "text": "Hen phế quản"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-047"
+    },
+    {
+      "source_number": 48,
+      "question": "Một trẻ 3 tháng bị VTPQ, cháu khò khè nhiều, sau phun ventoline vẫn không cải thiện. Nguyên nhân chính là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Giảm phân bố thuốc vào phổi"
+        },
+        {
+          "id": "B",
+          "text": "Tuổi < 6 tháng"
+        },
+        {
+          "id": "C",
+          "text": "Tắc nghẽn cơ học"
+        },
+        {
+          "id": "D",
+          "text": "Kỹ thuật phun không đúng"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-048"
+    },
+    {
+      "source_number": 49,
+      "question": "Một trẻ 5 tuần tuổi, sinh non 30 tuần, được chẩn đoán VTPQ và cho NV. Lý do NV là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Trẻ có thể kèm loạn sản phổi"
+        },
+        {
+          "id": "B",
+          "text": "Trẻ khó thở nên bú rất kém"
+        },
+        {
+          "id": "C",
+          "text": "Nguy cơ ngưng thở cao"
+        },
+        {
+          "id": "D",
+          "text": "Trẻ rất khó theo dõi tại nhà"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-049"
+    },
+    {
+      "source_number": 50,
+      "question": "Bé gái, 7 tháng tuổi, đến khám vì khó thở. Bệnh 2 ngày, N1: sỗ mũi, ho ít. N2: cháu khó thở. Khám: tổng trạng ổn. Thở 45 lần/phút, co lõm, phổi nghe ran liên tục, âm sắc cao ,thì thở ra, 2 bên phối. Các cơ quan khác bình thường. Tiền căn: bình thường. Thái độ xử trí phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cho nhập viện"
+        },
+        {
+          "id": "B",
+          "text": "Phun Ventoline"
+        },
+        {
+          "id": "C",
+          "text": "Điều trị ngoại trú"
+        },
+        {
+          "id": "D",
+          "text": "Chụp XQuang"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-050"
+    },
+    {
+      "source_number": 51,
+      "question": "Trong sinh bênh học của hen trẻ em, thành phần miễn dịch dịch thể nào đóng vai trò nòng cốt",
+      "options": [
+        {
+          "id": "A",
+          "text": "Basophil"
+        },
+        {
+          "id": "B",
+          "text": "Lympho bào Th2"
+        },
+        {
+          "id": "C",
+          "text": "IL4"
+        },
+        {
+          "id": "D",
+          "text": "Prostaglandin"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-051"
+    },
+    {
+      "source_number": 74,
+      "question": "Một trẻ 8 tuổi đến khám vì ho kéo dài 2 tháng, ho nhiều đêm về sáng. Bác sĩ khám ghi nhận trẻ không khó thở, nghe ít ran rít 2 bên phổi. Kết quả hô hấp ký ghi nhận FEV1/FVC = 0,72. Kết quả này phản ánh điều gì? Trẻ có...",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hội chứng tắc nghẽn"
+        },
+        {
+          "id": "B",
+          "text": "Hội chứng hạn chế"
+        },
+        {
+          "id": "C",
+          "text": "Đáp ứng test dãn phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Tăng đáp ứng phế quản"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-052"
+    },
+    {
+      "source_number": 74,
+      "question": "Hình ảnh nào trên Xquang phổi cho thấy tiểu phế quản bị tắc nghẽn không hoàn toàn",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ứ khí phế nang"
+        },
+        {
+          "id": "B",
+          "text": "Xẹp phổi"
+        },
+        {
+          "id": "C",
+          "text": "Bóng khí"
+        },
+        {
+          "id": "D",
+          "text": "Dày thành phế quản"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-053"
+    },
+    {
+      "source_number": 74,
+      "question": "Tại sao phun khí dung thuốc dãn phế quản cho trẻ dưới 6 tháng bị VTPQ không hiệu quả. Chọn câu sai",
+      "options": [
+        {
+          "id": "A",
+          "text": "Trẻ hay khóc"
+        },
+        {
+          "id": "B",
+          "text": "Trẻ thở bằng mũi, không biết nín thở cuối kỳ hít vào"
+        },
+        {
+          "id": "C",
+          "text": "Tidal volume thấp hơn thể tích phun ra của máy/bình oxy"
+        },
+        {
+          "id": "D",
+          "text": "Tắc đàm trong lòng phế quản"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-054"
+    },
+    {
+      "source_number": 74,
+      "question": "Long 8 tháng tuổi, cân nặng 8 kg, bệnh 3 ngày với ho, số mũi và khò khè. Khám: tỉnh, NĐ: 37°C, môi tái nhẹ, nhịp thở 60 lần/phút, co lõm ngực vừa, phối ran rít và ẩm nhỏ hạt, SpO2 90%. Tiền căn bản thân và gia đình khỏe mạnh. Chẩn đoán phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm tiểu phế quản nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Viêm tiểu phế quản nặng"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-055"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 3 tuổi, đang lên cơn suyễn cấp, được PKD ventoline có cải thiện nhưng sau 1-2h cháu khó thở lại, lý do",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cháu thở không đúng cách"
+        },
+        {
+          "id": "B",
+          "text": "Chưa giải quyết được pha 2"
+        },
+        {
+          "id": "C",
+          "text": "Bệnh của bé khá trầm trọng"
+        },
+        {
+          "id": "D",
+          "text": "Chẩn đoán bệnh không đúng"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-056"
+    },
+    {
+      "source_number": 74,
+      "question": "Một bệnh nhi NV vì suyễn cơn nặng, ion đồ Na 135 mmol/L, K 3mmol/l, Cl 100mmol/l, Ca 1,25 mmol/l. Điều này được giải thích ntn",
+      "options": [
+        {
+          "id": "A",
+          "text": "Bé ăn uống quá kém"
+        },
+        {
+          "id": "B",
+          "text": "Hội chứng SIADH"
+        },
+        {
+          "id": "C",
+          "text": "Tác dụng phụ của thuốc"
+        },
+        {
+          "id": "D",
+          "text": "HC phổi thận"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-057"
+    },
+    {
+      "source_number": 74,
+      "question": "BN nam 8 tuổi, tiền căn suyễn đang dự phòng bằng Flixotide 2 nhát x 2/ngày. Cháu vẫn còn ho, khò khè 1-2 lần mỗi tuần, xịt ventoline thì đỡ, cháu phải thức giấc 3 lần trong vòng tháng vừa qua. Thái độ xử trí phù hợp nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tăng liều Flixotide đang dùng"
+        },
+        {
+          "id": "B",
+          "text": "Xem xét lỹ các yếu tố thúc đẩy"
+        },
+        {
+          "id": "C",
+          "text": "Chụp Xquang ngực loại trừ dị vật"
+        },
+        {
+          "id": "D",
+          "text": "Đo lại HHK để chẩn đoán chính xác"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-058"
+    },
+    {
+      "source_number": 74,
+      "question": "Trẻ 5 tháng tuổi, đến khám vì VTPQ. Khám tỉnh, khò khè rõ, NT 58l/p, co lõm ngực nặng, SpO2 93%, phổi ran ẩm, ngáy. Đây là lần đầu bị khò khè, gđ không tiền căn dị ứng, Thái độ xử trí phù hợp",
+      "options": [
+        {
+          "id": "A",
+          "text": "Oxy ẩm qua cannula 1l/p"
+        },
+        {
+          "id": "B",
+          "text": "Mặt nạ có bóng dự trữ oxy 10l/p"
+        },
+        {
+          "id": "C",
+          "text": "NCAP (Air 6l/p + oxy 6l/p)"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung Salbutamol qua oxy 8l/p"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-059"
+    },
+    {
+      "source_number": 74,
+      "question": "Trẻ 3 tháng tuổi, đến khám vì VTPQ nặng. Sau khi thở oxy qua cannula 1l/p NT 70l/p, co lõm ngực nặng, phổi nhiều ran ngáy ẩm 2 bên. Thái độ xử trí phù hợp",
+      "options": [
+        {
+          "id": "A",
+          "text": "Oxy ẩm qua cannula 6l/p"
+        },
+        {
+          "id": "B",
+          "text": "Thở máy"
+        },
+        {
+          "id": "C",
+          "text": "NCAP (Air 6l/p + oxy 6l/p)"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung Salbutamol qua oxy 8l/p"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-060"
+    },
+    {
+      "source_number": 74,
+      "question": "BN nam, 4 tuổi, 18kg, nhập cấp cứ vì cơn hen nặng, tiền căn lúc 1 tuổi được chẩn đoán hen cơn trung bình, không sử dụng thuốc ngừa cơn, Bé dị ứng trứng, mẹ hen suyễn, bố hút thuốc lá. BN có yếu tố tiên lượng nặng/tử vong nào",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tiền sử dị ứng thức ăn"
+        },
+        {
+          "id": "B",
+          "text": "Mẹ bị suyễn"
+        },
+        {
+          "id": "C",
+          "text": "Bố hút thuốc lá"
+        },
+        {
+          "id": "D",
+          "text": "Tiền sử NV vì hen cơn trung bình lúc 1 tuổi"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-061"
+    },
+    {
+      "source_number": 74,
+      "question": "Phát biểu nào sau đây không đúng vè hen trẻ em",
+      "options": [
+        {
+          "id": "A",
+          "text": "Là tình trạng viêm mạn tính đường dẫn khí trong lồng ngực"
+        },
+        {
+          "id": "B",
+          "text": "Gây tắc nghẽn đường thở hằng định"
+        },
+        {
+          "id": "C",
+          "text": "Những đợt tắc nghẽn đường thở này có thể giảm hoặc mất tự nhiên"
+        },
+        {
+          "id": "D",
+          "text": "Là bệnh mạn tính thường gặp nhất"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-062"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 8 tháng, đến khám vì khò khè. Bệnh 3 ngày, N1-2 sốt nhẹ, ho, sổ mũi. N3 ho đàm nhiều, khò khè. Tré vẫn bú được, ọc sữa sau ho. Khám tỉnh, có tiếng khụt khịt ở mũi, M 158l/p, NĐ 37,5 độ C, NT 58Ll/p, thở co lõm ngực, môi hồng, SpO2 95%, phổi ran ngáy, ẩm 2 bên. Tiền căn bé khỏe mạnh, gđ có cha bị hen, mẹ bị viêm mũi dị ứng. Chẩn đoán phù hợp nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "VP nặng"
+        },
+        {
+          "id": "B",
+          "text": "Hen cơn TB"
+        },
+        {
+          "id": "C",
+          "text": "VTPQ TB"
+        },
+        {
+          "id": "D",
+          "text": "VP nặng/GERD"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-063"
+    },
+    {
+      "source_number": 74,
+      "question": "Phương pháp phòng ngừa hen, ngoại trừ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Dinh dưỡng đầy đủ"
+        },
+        {
+          "id": "B",
+          "text": "Tránh yếu tố khởi phát hen"
+        },
+        {
+          "id": "C",
+          "text": "Vệ sinh môi trường sinh hoạt"
+        },
+        {
+          "id": "D",
+          "text": "Chủng ngừa đầy đủ, đặc biệt cúm và phế cầu"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-064"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé nữ 6 tháng tuổi, được chẩn đoán và điều trị VTPQ tại phòng khám ngoại trú BV X. Tái khám 2 ngày sau thấy bé quấy khóc liên tục, NĐ 38 độ C, NT 64l/p, co lõm ngực nặng, phập phồng cánh mũi, môi tái SpO2 88%, nghe ran ngáy + ran ẩm 2 bên. Bé được nhập khoa cấp cứu. Xử trí ban đầu không phù hợp",
+      "options": [
+        {
+          "id": "A",
+          "text": "Oxy ẩm 1l/p qua cannula"
+        },
+        {
+          "id": "B",
+          "text": "Tiêm KS"
+        },
+        {
+          "id": "C",
+          "text": "VLTL hô hấp lấy đàm"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung Salbutamol qua oxy 8l/p"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-065"
+    },
+    {
+      "source_number": 74,
+      "question": "Lý do khiến trẻ VTPQ có thể có dấu mất nước, ngoại trừ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Sốt"
+        },
+        {
+          "id": "B",
+          "text": "Thở nhanh"
+        },
+        {
+          "id": "C",
+          "text": "Bú kém"
+        },
+        {
+          "id": "D",
+          "text": "Tiểu nhiều"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-066"
+    },
+    {
+      "source_number": 74,
+      "question": "Tại sao phải bù dịch cho trẻ VTPQ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thiếu dịch gây tắc đàm"
+        },
+        {
+          "id": "B",
+          "text": "Mất nước do sốt"
+        },
+        {
+          "id": "C",
+          "text": "Mất nước do thở nhanh"
+        },
+        {
+          "id": "D",
+          "text": "Không bú/uống đủ do nguy kịch hô hấp"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-067"
+    },
+    {
+      "source_number": 74,
+      "question": "Nguyên nhân nào không gây khò khè",
+      "options": [
+        {
+          "id": "A",
+          "text": "VTPQ"
+        },
+        {
+          "id": "B",
+          "text": "U nhú thanh quản"
+        },
+        {
+          "id": "C",
+          "text": "TBS"
+        },
+        {
+          "id": "D",
+          "text": "SGMD bẩm sinh"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-068"
+    },
+    {
+      "source_number": 74,
+      "question": "Hen là một trong những nguyên nhân NV chủ yếu ở trẻ thuốc nhóm tuổi",
+      "options": [
+        {
+          "id": "A",
+          "text": "< 1 tuổi"
+        },
+        {
+          "id": "B",
+          "text": "< 5 tuổi"
+        },
+        {
+          "id": "C",
+          "text": "> 6 tuổi"
+        },
+        {
+          "id": "D",
+          "text": "> 10 tuổi"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-069"
+    },
+    {
+      "source_number": 74,
+      "question": "Trẻ nữ 8 tuổi, 30kg, vào cấp cứu vì khó thở, khò khè. Bệnh 3 ngày: sốt nhẹ, ho, khó thở, Khám tỉnh, nói chuyện ngắt quãng, môi hồng vừa, SpO2 89%, chi ấm mạch quay rõ 126l/p, thở co kéo gian sườn 32l/p, phổi ran ngáy, rít. Tiền căn khò khè nhiều lần có đáp ứng giãn phế quản",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hen cơn trung bình"
+        },
+        {
+          "id": "B",
+          "text": "Hen cơn nặng"
+        },
+        {
+          "id": "C",
+          "text": "Hen bội nhiễm"
+        },
+        {
+          "id": "D",
+          "text": "Hen cơn nguy kịch"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-070"
+    },
+    {
+      "source_number": 74,
+      "question": "Virus hợp bào hô hấp sống sót lâu nhất trong môi trường",
+      "options": [
+        {
+          "id": "A",
+          "text": "Da"
+        },
+        {
+          "id": "B",
+          "text": "Đồ vật"
+        },
+        {
+          "id": "C",
+          "text": "Quần áo"
+        },
+        {
+          "id": "D",
+          "text": "Giọt chất tiết hô hấp"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-071"
+    },
+    {
+      "source_number": 74,
+      "question": "KMĐM của trẻ VTPQ rất nặng có thể cho kết quả nào ngoại trừ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Giảm pH"
+        },
+        {
+          "id": "B",
+          "text": "Giảm PaO2"
+        },
+        {
+          "id": "C",
+          "text": "Tăng PaCO2"
+        },
+        {
+          "id": "D",
+          "text": "Giảm HCO3"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-072"
+    },
+    {
+      "source_number": 74,
+      "question": "Tại sao cần phải theo dõi lượng nước xuất nhập trong ngày khi điều trị trẻ VTPQ, chọn câu ít đúng nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "Mất nước do nôn ói"
+        },
+        {
+          "id": "B",
+          "text": "Mất nước do thở nhanh"
+        },
+        {
+          "id": "C",
+          "text": "Bú kém do khó thở"
+        },
+        {
+          "id": "D",
+          "text": "Tránh quá tải dịch do SIADH"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-073"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 7 tháng tuổi, đến khám vì khó thở, bệnh 2 ngày: N1 sổ mũi, ho ít, N2 khò khè, khó thở. Khám tỉnh, không sốt, môi hồng/KT, NT 72l/p, co lõm ngực rõ, phổi ran rít 2 bên. Tiền căn khỏe mạnh, Xử trí phù hợp nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị ngoại trú"
+        },
+        {
+          "id": "B",
+          "text": "Chụp Xquang phổi"
+        },
+        {
+          "id": "C",
+          "text": "PKD Ventoline"
+        },
+        {
+          "id": "D",
+          "text": "Cho NV"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-074"
+    },
+    {
+      "source_number": 74,
+      "question": "Tần suất hen trẻ em khác nhau theo giới tính ntn",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nam > nữ"
+        },
+        {
+          "id": "B",
+          "text": "Nữ > nam"
+        },
+        {
+          "id": "C",
+          "text": "Tương đương"
+        },
+        {
+          "id": "D",
+          "text": "Không rõ"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-075"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 6 tháng tuổi bị VTPQ nặng. Sau khi thở oxy qua cannula 1l/p. SpO2 đo được 97% nhưng bé vẫn còn bứt rứt, quấy khóc liên tục. Nguyên nhân thường gặp nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hạ đường huyết"
+        },
+        {
+          "id": "B",
+          "text": "Mất nước nặng"
+        },
+        {
+          "id": "C",
+          "text": "Toan HH"
+        },
+        {
+          "id": "D",
+          "text": "Hạ Natri máu"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-076"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 8 tháng tuổi, nặng 8 kg, bệnh 3 ngày: ngày 1 và 2 sổ mũi và ho, ngày 3 khò khè, thở mệt và bỏ bú. Khám: tỉnh, quấy, thân nhiệt 37o8C, chảy nước mũi trong, môi tái nhẹ, mạch rõ 140 lần/phút, chi ấm, nhịp thở 65 lần/phút, co lõm ngực nặng, nghe thấy tiếng khò khè và gồng bụng khi thở ra, phổi có ran rít, ran ẩm rải rác, SpO2 88%. Đây là lần đầu tiên bé bị khò khè. Tiền căn bản thân và gia đình khỏe mạnh. Kết quả công thức máu: Hb 10,5 g/dL, bạch cầu 9.550/mm3, đa nhân 40%, lympho 60%, tiểu cầu 350.000/mm3, CRP 8 mg/L. Xử trí KHÔNG phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ceftriaxone 400 mg x 2, tiêm tĩnh mạch"
+        },
+        {
+          "id": "B",
+          "text": "Khí dung Ventolin qua oxy 8 lít/phút"
+        },
+        {
+          "id": "C",
+          "text": "Nằm đầu cao, rửa mũi bằng NaCl 0.9%"
+        },
+        {
+          "id": "D",
+          "text": "Đặt sond dạ dày nuôi ăn"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-077"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé 2 tuổi nhập viện vì ho, khò khè , thở mệt. Bệnh 4 ngày ho khò khè thở mệt mẹ tự cho uống thuốc không giảm, sáng nay thở mệt nhiều nên đến khám tại bệnh viện. Khám: tỉnh, môi hồng vừa, thở đều co lõm ngực, nhịp thở 48 lần/phút, phổi ran ngáy rít 2 bên, tim đều 120 lần/phút, SpO2 90%. Bụng mềm, gan lách không to. Tiền căn đã nhập viện vì viêm tiểu phế quản 2 lần lúc 16 tháng và 18 tháng tuổi, hay lên cơn ho khò khè sau khi sốt, ho, sổ mũi. Gia đình không ai hen. Sau khi phun khí dung Salbutamol 2 lần, trẻ hết thở co lõm ngực, nhịp thở 40 lần/phút. SpO2 98%. Thái độ về vấn đề phòng ngừa đối với trẻ này thế nào?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Dặn dò tránh các yếu tố khởi phát hen + dùng thuốc ngừa ICS"
+        },
+        {
+          "id": "B",
+          "text": "Dặn dò tránh các yếu tố khởi phát hen"
+        },
+        {
+          "id": "C",
+          "text": "Dặn dò tránh các yếu tố khởi phát hen + uống Montelukast"
+        },
+        {
+          "id": "D",
+          "text": "Không cần thuốc phòng ngừa vì trẻ chưa được chẩn đoán hen"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-078"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 4 tháng tuổi, nặng 7 kg, được chẩn đoán viêm tiểu phế quản nhẹ và điều trị ngoại trú với rửa mũi và giảm ho trong 5 ngày. Ngày 6 sốt cao, khò khè nhiều, thở mệt nên nhập viện. Khám: tỉnh, đừ, thân nhiệt 38o5C, môi tái nhẹ, mạch rõ 150 lần/phút, nhịp thở 72 lần/phút, rút lõm lồng ngực nặng, phổi ít ran rít và ran nổ hai bên phế trường. Đây là lần đầu tiên bé bị khò khè. Cha bị hen, mẹ bị viêm mũi dị ứng. Chẩn đoán phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản phổi"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản bội nhiễm phổi"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi kèm hội chứng tắc nghẽn"
+        },
+        {
+          "id": "D",
+          "text": "Hen nhũ nhi bội nhiễm phổi"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-079"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 4 tháng tuổi, nặng 7 kg, được chẩn đoán viêm tiểu phế quản nhẹ và điều trị ngoại trú với rửa mũi và giảm ho trong 5 ngày. Ngày 6 sốt cao, khò khè nhiều, thở mệt nên nhập viện. Khám: tỉnh, đừ, thân nhiệt 38o5C, môi tái nhẹ, mạch rõ 150 lần/phút, nhịp thở 72 lần/phút, rút lõm lồng ngực nặng, phổi ít ran rít và ran nổ hai bên phế trường. Đây là lần đầu tiên bé bị khò khè. Cha bị hen, mẹ bị viêm mũi dị ứng. X quang ngực lúc nhập viện như hình sau. Xử trí đặc hiệu là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ceftriaxone 350mg x 2 tiêm mạch"
+        },
+        {
+          "id": "B",
+          "text": "Khí dung Ventolin qua oxy 8 lít/phút"
+        },
+        {
+          "id": "C",
+          "text": "Đặt sonde dạ dày bơm sữa"
+        },
+        {
+          "id": "D",
+          "text": "Paracetamol 100 mg uống"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-080"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 8 tháng tuổi, nặng 8 kg, bệnh 3 ngày: ngày 1 và 2 sổ mũi và ho, ngày 3 khò khè, thở mệt và bỏ bú. Khám: tỉnh, quấy, thân nhiệt 37,8oC, chảy nước mũi trong, môi tái nhẹ, mạch rõ 140 lần/phút, chi ấm, nhịp thở 65 lần/phút, co lõm ngực nặng, nghe thấy tiếng khò khè và gồng bụng khi thở ra, phổi có ran rít, ran ẩm rải rác, SpO2 88%. Đây là lần đầu tiên bé bị khò khè. Tiền căn bản thân và gia đình khỏe mạnh. Hãy phân loại độ nặng theo Stephen Berman?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Rất nặng"
+        },
+        {
+          "id": "D",
+          "text": "Nặng"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-081"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 2 tuổi đến khám vì khò khè. Bệnh 3 ngày: ho, khò khè, không sốt, ăn uống được. Khám: bé tỉnh, nhiệt độ 37,5 độ C, môi hồng, mạch rõ 120 lần/phút, SpO 95%, thở co lõm ngực 45 lần/phút, phổi nghe ran ngáy, rít 2 bên. Tiền căn: chưa từng khò khè, không hội chứng xâm nhập, mẹ bị suyễn, bố hút thuốc lá. Xử trí tại phòng khám thế nào?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị ngoại trú, kháng sinh Azithromycin uống, khí dung Ventolin mỗi 4 giờ tại nhà, hẹn tái khám mỗi ngày"
+        },
+        {
+          "id": "B",
+          "text": "Điều trị ngoại trú, kháng sinh Amoxicillin uống, hẹn tái khám 2 ngày"
+        },
+        {
+          "id": "C",
+          "text": "Khí dung Ventolin 2,5mg x 3 lần cách 20 phút, đánh giá lại sau mỗi lần phun, chụp X Quang ngực thẳng"
+        },
+        {
+          "id": "D",
+          "text": "Cho nhập viện theo dõi"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-082"
+    },
+    {
+      "source_number": 74,
+      "question": "Bệnh nhân nữ, 22 tháng tuổi đến khám vì khó thở. Cháu bệnh 3 ngày, ngày 1-2: ho, sổ mũi, sốt nhẹ, ngày 3: khò khè, khó thở. Không ghi nhận hội chứng xâm nhập. Trong năm qua cháu bị khò khè 3 lần, được bác sĩ chẩn đoán viêm phế quản. Gia đình không ai dị ứng. Khám: tỉnh, tiếp xúc tốt. Môi hồng, SpO2 93%. Nhiệt độ 38,3 C. Chi ấm, mạch quay đều rõ 130 lần/phút. Thở co lõm ngực 46 lần/phút. Phổi ran ngáy, ran rít 2 bên. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản phổi nặng"
+        },
+        {
+          "id": "B",
+          "text": "Cơn hen trung bình chưa kiểm soát"
+        },
+        {
+          "id": "C",
+          "text": "Cơn hen trung bình bội nhiễm phổi, kiểm soát một phần"
+        },
+        {
+          "id": "D",
+          "text": "Viêm tiểu phế quản nặng bội nhiễm"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-083"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 2 tháng tuổi, nặng 5 kg, bệnh ngày 3: ngày 1-2 ho, sổ mũi, ngày 3 khò khè, thở mệt bệnh viện. Khám: quấy khóc, thân nhiệt 37 độ C, chảy nước mũi trong, tái nhẹ quanh môi, nhịp thở 72 lần/phút, rút lõm lồng ngực nặng, nghe thấy tiếng khò khè khi bé thở ra, phổi có ran rít và ran ẩm nhỏ hạt rải rác hai bên phế trường. Tiền căn bản thân và gia đình khỏe mạnh và đây là lần đầu tiên bé bị khò khè. Xử trí phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thở oxy kèm helium (Heliox) qua cannula"
+        },
+        {
+          "id": "B",
+          "text": "Khí dung Adrenalin 1%o qua oxy 8 lít/phút"
+        },
+        {
+          "id": "C",
+          "text": "Khí dung Salbutamol qua oxy 8 lít/phút"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung NaCl 3% qua oxy 8 lít/phút"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-084"
+    },
+    {
+      "source_number": 3,
+      "question": "-Review-NT-Nhi-2020-Anh-Khán sổ mũi và ho, ngày 3 khò khè. Khám: tỉnh, đang bú mẹ, thân nhiệt 37 C, chảy nước mũi trong, môi hồng, mạch rõ 135 lần/phút, chi ấm, nhịp thở 65 lần/phút, co lõm ngực vừa, kéo dài thì thở ra, phổi có ran rít rải rác, SpO2 95%. Đây là lần đầu tiên bé bị khò khè. Tiền căn bản thân và gia đình khỏe mạnh. Xử trí KHÔNG được khuyến cáo thường quy là gì (chứng cứ 2B)?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Khí dung Salbutamol"
+        },
+        {
+          "id": "B",
+          "text": "Nằm đầu cao 30-40 độ"
+        },
+        {
+          "id": "C",
+          "text": "Đảm bảo đủ nước, điện giải và năng lượng"
+        },
+        {
+          "id": "D",
+          "text": "Thông thoáng mũi bằng NaCl 0,9%"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-085"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 5 tháng tuổi, nặng 7 kg, bệnh 3 ngày: ngày 1 và 2 sổ mũi và ho, ngày 3 khò khè. Khám: tỉnh, đang bú mẹ, thân nhiệt 37 C, chảy nước mũi trong, môi hồng, mạch rõ 135 lần/phút, chi ấm, nhịp thở 65 lần/phút, co lõm ngực vừa, kéo dài thì thở ra, phổi có ran rít rải rác, SpO 95%. Đây là lần đầu tiên bé bị khò khè. Tiền căn bản thân và gia đình khỏe mạnh. Hãy phân loại độ nặng theo Stephen Berman?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nặng"
+        },
+        {
+          "id": "B",
+          "text": "Nhẹ"
+        },
+        {
+          "id": "C",
+          "text": "Rất nặng"
+        },
+        {
+          "id": "D",
+          "text": "Trung bình"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-086"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 2 tuổi đến khám vì khò khè. Bệnh 3 ngày: ho, khò khè, không sốt, ăn uống được. Khám: bé tỉnh, nhiệt độ 37,5 độ C, môi hồng, mạch rõ 120 lần/phút, SpO 95%, thở co lõm ngực 45 lần/phút, phổi nghe ran ngáy, rít 2 bên. Tiền căn: chưa từng khò khè, không hội chứng xâm nhập, mẹ bị suyễn, bố hút thuốc lá. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản trung bình"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổi nặng"
+        },
+        {
+          "id": "C",
+          "text": "Hen cơn trung bình"
+        },
+        {
+          "id": "D",
+          "text": "Viêm tiểu phế quản trung bình"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-087"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 7 tháng tuổi, nặng 8 kg, bú mẹ hoàn toàn, bệnh ngày 3: ngày 1-2 ho, sổ mũi, ngày 3 khò khè, thở mệt, bỏ bú nên mẹ đưa đến bệnh viện. Khám: bé tỉnh, quấy, môi tái nhẹ, SpO 92%, mạch 140 lần/phút, thân nhiệt 37 C, chảy nước mũi trong, nhịp thở 70 lần/phút, rút lõm lồng ngực rõ, nghe thấy tiếng khò khè khi bé thở ra, phổi có ran rít và ran ẩm nhỏ hạt rải rác hai bên phế trường. Gia đình có cha bị hen và mẹ bị viêm mũi dị ứng. Đây là lần thứ hai bé bị khò khè. Y lệnh phun khí dung nào sau đây phù hợp nhất?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Salbutamol 2,5 mg + Ipratropium 125 mcg + NaCl 9%0 đủ 4 ml qua oxy 8 lít/phút"
+        },
+        {
+          "id": "B",
+          "text": "Salbutamol 1,5 mg + NaCl 9%0 đủ 4 ml qua oxy 8 lít/phút"
+        },
+        {
+          "id": "C",
+          "text": "Adrenalin 1%o, 4 ml qua oxy 6 lít/phút"
+        },
+        {
+          "id": "D",
+          "text": "NaCl 3%, 3 ml qua oxy 6 lít/phút"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-088"
+    },
+    {
+      "source_number": 74,
+      "question": "Bệnh nhân nam, 2 tháng tuổi, cân nặng 4kg, đến khám vì khò khè. Bệnh sử 3 ngày nay: sốt nhẹ, ho, sổ mũi, bú bình thường, tự mua siro giảm ho uống nhưng không giảm; hôm nay trẻ ho tăng, khò khè nhiều. Tiền sử: sanh thường đủ tháng, cân nặng lúc sanh 3kg, chưa khò khè lần nào. Khám: tỉnh, bú được, không ọc sữa, môi hồng/ khí trời, SpO2 96%, mạch 140 lần/phút, nhiệt độ 37,5 độ C, nhịp thở 54 lần/phút, co lõm ngực nhẹ, phổi nghe ran ngáy, ẩm 2 bên. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm tiểu phế quản thể trung bình"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản thể nặng"
+        },
+        {
+          "id": "C",
+          "text": "Viêm tiểu phế quản thể nhẹ"
+        },
+        {
+          "id": "D",
+          "text": "Viêm tiểu phế quản thể rất nặng"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-089"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 7 tháng tuổi, nặng 8 kg, bú mẹ hoàn toàn, bệnh ngày 3: ngày 1-2 ho, sổ mũi, ngày 3 khò khè, thở mệt, bỏ bú nên mẹ đưa đến bệnh viện. Khám: bé tỉnh, quấy, môi tái nhẹ, SpO 92%, mạch 140 lần/phút, thân nhiệt 37 C, chảy nước mũi trong, nhịp thở 70 lần/phút, rút lõm lồng ngực rõ, nghe thấy tiếng khò khè khi bé thở ra, phổi có ran rít và ran ẩm nhỏ hạt rải rác hai bên phế trường. Gia đình có cha bị hen và mẹ bị viêm mũi dị ứng. Đây là lần thứ hai bé bị khò khè. Chẩn đoán nghĩ nhiều nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm tiểu phế quản nặng"
+        },
+        {
+          "id": "B",
+          "text": "Hen nhũ nhi"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi nặng"
+        },
+        {
+          "id": "D",
+          "text": "Khò khè sau nhiễm siêu vi"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-090"
+    },
+    {
+      "source_number": 74,
+      "question": "Bệnh nhân nữ, 3 tuổi đến khám vì khó thở. Bệnh 3 ngày, ngày 1-2: ho, sổ mũi, sốt nhẹ, ngày 3: đang chơi ngoài vườn thì trẻ ho nhiều, khò khè, khó thở. Không ghi nhận hội chứng xâm nhập. Trong 2 năm qua trẻ bị khò khè 4-5 lần, được bác sĩ chẩn đoán viêm tiểu phế quản, viêm phế quản, phun thuốc giãn phế quản có giảm khò khè. Gia đình không ai dị ứng. Khám: tỉnh, không trả lời khi bác sĩ hỏi tên. Môi hồng vừa, SpO 90%. Nhiệt độ 38,3 C. Chi ấm, mạch quay đều rõ 130 lần/phút. Thở co lõm ngực, co kéo gian sườn 46 lần/phút. Phổi ran rít lan tỏa 2 bên. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Dị vật đường thở cấp biến chứng suy hô hấp"
+        },
+        {
+          "id": "B",
+          "text": "Cơn hen nặng"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phế quản nặng"
+        },
+        {
+          "id": "D",
+          "text": "Viêm tiểu phế quản nặng"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-091"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 3 tháng vào viện vì khò khè kéo dài từ lúc 5 ngày tuổi. Khám lâm sàng bé tỉnh, không hội chứng nhiễm trùng, nghe khò khè hai thì, thở co lõm ngực, nhịp thở 52 lần/phút, tim đều, phổi phế âm đều 2 bên, bụng mềm gan lách không to. Tiền căn: chàm da lúc 1 tháng, gia đình không ai hen, sinh thường đủ tháng. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hen nhũ nhi"
+        },
+        {
+          "id": "B",
+          "text": "Dị tật hẹp khí quản bẩm sinh"
+        },
+        {
+          "id": "C",
+          "text": "Viêm tiểu phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Dị vật đường thở bỏ quên"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-092"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 36 tháng tuổi được chẩn đoán hen từ lúc 28 tháng, đang điều trị phòng ngừa bằng Corticosteroide dạng hít ( ICS), lúc 30 tháng có một lần lên cơn hen nặng diễn tiến xấu phải đặt nội khí quản thở máy. Ba ngày nay, sau khi sốt nhẹ, ho, sổ mũi, bé khò khè nhiều, khó thở, mẹ cho bé uống Salbutamol nhưng không giảm. Khám: tỉnh, môi hồng, thở đều nhịp thở 42 lần/phút, co lõm ngực, phổi ran ngáy, ẩm 2 bên, tim đều 110 lần/phút. SpO 94%. Lựa chọn phun khí dung nào phù hợp nhất?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Phun khí dung Salbutalol kèm oxy"
+        },
+        {
+          "id": "B",
+          "text": "Phun khí dung Salbutamol + ICS liều cao"
+        },
+        {
+          "id": "C",
+          "text": "Phun khí dung Sabutamol + Ipratrobium bromide"
+        },
+        {
+          "id": "D",
+          "text": "Phun khí dung Sabutamol"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-093"
+    },
+    {
+      "source_number": 74,
+      "question": "Trẻ 12 tháng, NV vì sốt, ho, khò khè, gđ có nhiều người đang cảm ho, khám thấy NT 48 l/p, thở đều co lõm ngực, phổi ran ngáy, ran rít hai bên. Các cơ quan khác bình thường. Tiền căn khò khè nhiều lần từ lúc 6 tháng tuổi, có chàm da, bé hay nôn ói. Cần hỏi thêm gì để góp phần chẩn đoán hen",
+      "options": [
+        {
+          "id": "A",
+          "text": "Các lần khò khè cách nhau bao nhiêu lâu"
+        },
+        {
+          "id": "B",
+          "text": "Có đáp ứng với thuốc giãn phế quản không"
+        },
+        {
+          "id": "C",
+          "text": "Có đáp ứng với điều trị GERD không"
+        },
+        {
+          "id": "D",
+          "text": "Có kèm triệu chứng sổ mũi không"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-094"
+    },
+    {
+      "source_number": 74,
+      "question": "Trẻ 5 tuổi đã được chẩn đoán hen tại BV Nhi đồng, sáng nay bé ho khò khè có đàm, NT 36 l/p, co kéo gian sườn, phổi ran ngáy, rít 2 bên. Mẹ khai bé thường khò khè khi chạy nhảy. Gđ có anh ruột 7 tuổi cũng bị hen. Thái độ nào sau đây là đúng lúc tại phòng khám",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cho NV"
+        },
+        {
+          "id": "B",
+          "text": "Cho về uống Salbutamol"
+        },
+        {
+          "id": "C",
+          "text": "Cho PKD Salbutamol 2 lần cách nhau 30 ph xem lại"
+        },
+        {
+          "id": "D",
+          "text": "Cho thuốc phòng ngừa hen"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-095"
+    },
+    {
+      "source_number": 75,
+      "question": "Bé trai 8 tuổi, đến khám vì khò khè và khó thở. Bệnh 1 ngày: sáng nay sau khi đi hồ bơi về bé than khó thở, không ăn được. Khám: tỉnh, môi hồng vừa, SpO2 89%, ngồi để thở, nói từng từ, nhịp thở 42 lần/phút, co kéo gian sườn, phổi ran ngáy rít 2 bên. Các cơ quan khác bình thường. Cần làm xét nghiệm gì để xác định chẩn đoán?",
+      "options": [
+        {
+          "id": "A",
+          "text": "X quang phổi"
+        },
+        {
+          "id": "B",
+          "text": "Test dãn phế quản"
+        },
+        {
+          "id": "C",
+          "text": "Dao động xung ký"
+        },
+        {
+          "id": "D",
+          "text": "Đo chức năng hô hấp"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-096"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 4 tuổi, đến khám vì khó thở. Bệnh 5 ngày: sốt ho, sổ mũi, khò khè. Tiền căn có chàm da lúc 2 tháng tuổi, đã khò khè 3 lần từ lúc 2 tuổi có đáp ứng thuốc dãn phế quản. Khám: tỉnh, môi tái nhẹ, SpO2 89%, nhịp thở 50 lần/phút, co lõm ngực vừa, phổi ran ngáy, rít 2 bên. Các cơ quan khác bình thường. Chọn xử trí phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thở Oxy, phun khí dung Salbutamol, chích Cefotaxim, uống Prednisone"
+        },
+        {
+          "id": "B",
+          "text": "Thở Oxy, phun khí dung Salbutamol + Ipratrobium Bromide, uống Predisone"
+        },
+        {
+          "id": "C",
+          "text": "Thở Oxy, phun khí dung Salbutamol, chích Cefotaxim, chích Hydrocortisone"
+        },
+        {
+          "id": "D",
+          "text": "Thở Oxy, phun khí dung Salbutamol + Ipratrobium Bromide, chích Hydrocortisone"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-097"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 5 tháng, 6 kg, đến khám vì ho và khò khè. Bệnh 3 ngày, ngày 1-2: sốt nhẹ, ho, sổ mũi; ngày 3: khò khè. Khám: tỉnh, môi hồng/ khí trời, SpO2 96%, mạch 140 lần/phút, nhiệt độ 37,5oC, nhịp thở 54 lần/phút, thở co lõm ngực vừa, tim nghe đều rõ, phổi nghe ran ngáy, ẩm 2 bên. Bé sanh thường, đủ tháng, cân nặng lúc sanh 3 kg, chưa khò khè lần nào. Mẹ bị cảm lạnh cách 1 tuần. Xét nghiệm nào sau đây phù hợp nhất để chẩn đoán xác định bệnh?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Công thức máu"
+        },
+        {
+          "id": "B",
+          "text": "CRP"
+        },
+        {
+          "id": "C",
+          "text": "X quang phổi thẳng"
+        },
+        {
+          "id": "D",
+          "text": "Siêu âm ngực"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-098"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 4 tuổi, 16 kg, đến khám vì khò khè, khó thở ngày 3. Khám: vẻ mệt, ngồi thở, môi hồng vừa/khí trời, SpO2 90%, mạch 150 lần/phút, nhiệt độ 37,5oC, nhịp thở 56 lần/phút, thở co lõm ngực nặng, tim đều rõ, phổi nghe ran ngáy, ran rít 2 bên. Tiền căn: không ghi nhận hội chứng xâm nhập. Lúc 2 tuổi được chẩn đoán hen cơn trung bình, không sử dụng thuốc phòng ngừa, không khò khè lại từ đó đến nay. Mẹ bị suyễn, bố hút thuốc lá. Xử trí cấp cứu nào sau đây KHÔNG phù hợp?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thở Oxy qua mặt nạ"
+        },
+        {
+          "id": "B",
+          "text": "Hydrocortisone tiêm mạch"
+        },
+        {
+          "id": "C",
+          "text": "Khí dung Salbutamol kết hợp Ipratropium và khí dung Corticoids liều cao"
+        },
+        {
+          "id": "D",
+          "text": "Magne sulfat tiêm tĩnh mạch"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-099"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 2 tuổi nhập viện vì thở mệt. 3 ngày nay bé sốt, ho, khò khè, có uống salbutamol nhưng không giảm, đây là lần nhập viện thứ hai trong tháng này. Lần nhập viện trước cách ½ tháng với chẩn đoán hen cơn nặng có thở oxy 2 ngày, khi xuất viện được uống Montelukast 7 ngày, sau đó ngưng. Tiền căn: khò khè 3 lần, khởi phát sau nhiễm siêu vi; sanh non 34 tuần. Khám: bé tỉnh, môi hồng, SpO2 95% , sổ mũi đục, thở đều 48 lần/phút, co lõm ngực, phổi ran ẩm, ngáy, bụng mềm, gan lách không to. Xử trí phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Khí dung salbutamol"
+        },
+        {
+          "id": "B",
+          "text": "Khí dung salbutamol và Ipratropium bromide"
+        },
+        {
+          "id": "C",
+          "text": "Khí dung salbutamol và Budenoside"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung salbutamol và Amoxilline uống"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-100"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 2 tháng, nặng 5 kg, sinh thường, đủ tháng, cân nặng lúc sinh 3,2 kg. Bệnh 3 ngày, ngày 1-2 sốt nhẹ, ho, sổ mũi; ngày khò khè, thở mệt nên nhập viện. Khám: bé tỉnh, bứt rứt, có tiếng khụt khịt ở mũi, mạch 160 lần/phút, nhiệt độ 37oC, nhịp thở 65 lần/phút, thở co lõm ngực vừa, tái nhẹ quanh môi, SpO2 92%, phổi nghe ran rít 2 phế trường, gan 2 cm dưới bờ sườn phải. Cha bị hen. Xử trí phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thở oxy cannula 1 lít/phít"
+        },
+        {
+          "id": "B",
+          "text": "Khí dung Ventolin 1,5 mg qua oxy 6 lít/phút"
+        },
+        {
+          "id": "C",
+          "text": "Khí dung Ventolin 1,5 mg qua oxy 8 lít/phút"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung Ventolin 2,5 mg qua oxy 8 lít/phút"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-101"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 5 tuổi, bệnh 3 ngày. Ngày 1-2 sốt nhẹ, ho, sổ mũi, ngày 3 ho nhiều, khó thở, ngồi để thở nên đến khám. Khám: tỉnh, không sốt, SpO2 91%, thở đều 40 lần/phút, co kéo gian sườn, tim đều 120 lần/phút, phổi ran ngáy, ẩm, rít 2 bên. Bụng mềm, gan lách không to. Tiền căn: khò khè 3 lần, có đáp ứng giãn phế quản, thường xuyên bị sổ mũi, hắt hơi buổi sáng, dị ứng cá biển, gia đình không ai hen. Chẩn đoán lúc này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hen cơn trung bình"
+        },
+        {
+          "id": "B",
+          "text": "Hen cơn nặng"
+        },
+        {
+          "id": "C",
+          "text": "Hen theo dõi bội nhiễm phổi"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi khò khè"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-102"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 2 tháng, nặng 5 kg, sinh thường, đủ tháng, cân nặng lúc sinh 3,2 kg. Bệnh 3 ngày: ngày 1-2 sốt nhẹ, ho, sổ mũi; ngày 3 khò khè, thở mệt nên nhập viện. Khám: bé tỉnh, bứt rứt, có tiếng khụt khịt ở mũi, mạch 160 lần/phút, nhiệt độ 370C, nhịp thở 65 lần/phút, thở co lõm ngực vừa, tái nhẹ quanh môi, SpO2 92%, phổi nghe ran rít 2 phế trường, gan 2 cm dưới bờ sườn phải. Bé được chụp X quang (hình bên dưới). Cha bị hen. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi khò khè nặng"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản nặng"
+        },
+        {
+          "id": "C",
+          "text": "Hen nhũ nhi cơn đầu nặng"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phế quản phổi nặng"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-103"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 8 tháng tuổi, đến khám vì khò khè. Bệnh 3 ngày: ngày 1-2 sốt nhẹ, ho sổ mũi ít. Ngày 3: khò khè. Bé vẫn bú tốt, không ọc, tiêu tiểu bình thường. Khám: tỉnh, môi hồng, chi ấm, mạch quay đều rõ 120 lần/phút, thở co lõm ngực nhẹ 54 lần/phút. Phổi nghe ra ngáy, ran ẩm. Đây là lần đầu bé bị khò khè. Không tiên cưn dị ứng gia đình. Xử trí phù hợp nhất là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Phun khí dung ventolin tại phòng lưu và đánh giá lại"
+        },
+        {
+          "id": "B",
+          "text": "Nhập viện chích kháng sinh"
+        },
+        {
+          "id": "C",
+          "text": "Điều trị ngoại trú với kháng sinh uống và hẹn tái khám 2 ngày sau"
+        },
+        {
+          "id": "D",
+          "text": "Rửa mũi, giảm ho và tái khám ngay khi có dấu hiệu nặng hơn"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-104"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 6 tháng , nặng 8kg, sinh thường, đủ tháng, cân nặng lúc sinh 3kg, bú mẹ hoàn toàn. Bệnh 3 ngày: ngày 1-2 sốt nhẹ, ho sổ mũi; ngày 3 khò khè, bú kém. Khám: bé tỉnh, môi hồng, khò khè rõ thì thở ra, mạch 120 lần/phút, nhiệt độ 37 độ c, nhịp thở 58 lần/phút, thở co lõm ngực vừa, phổi nghe ít ran rít rải rác 2 phế trường. Tiền căn bản thân và gia đình khỏe manh. Phân độ nặng của viêm tiểu phế quản theo Stephen Berman là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Nặng"
+        },
+        {
+          "id": "D",
+          "text": "Rát nặng"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-105"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé nữ 7 tháng tuổi, được chẩn đoán và điều trị viêm tiểu phế quản nhẹ tại phòng khám ngoại trú bệnh viện nhi đồng 2, tái khám 2 ngày sau thấy bé quấy khóc liên tục, nhiệt độ 39 độ C nhip thở 70 lần/p, co lõm ngực nặng, phập phòng cánh mũi, môi tái, SpO2 85% nghe ít ran nổ ở hai đáy phổi 2 bên. Bé được nhập vào khoa cấp cứu. Xử trí ban đầu KHÔNG phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Oxy ẩm 1 lít/phút qua canula"
+        },
+        {
+          "id": "B",
+          "text": "Hạ sốt CTM, CRP, soi cấy NTA"
+        },
+        {
+          "id": "C",
+          "text": "Kháng sinh tĩnh mạch"
+        },
+        {
+          "id": "D",
+          "text": "Khí dung Salbutamol qua oxy 8 lít/phút"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-106"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé nam 3,5 tháng nặng 6,5 kg, sinh thường, đủ tháng, cân nặng lúc sinh 2,8 kg, bú mẹ hoàn toàn. Bệnh 3 ngày: N1-2 sốt nhẹ, ho sổ mũi; N3 khò khè thở mệt, bỏ bú nên nhập viện. Khám: bé tỉnh, bứt rứt, có tiếng khụt khịt ở mũi, mạch 148 lần/phút, nhiệt độ 37 oC, nhịp thở 72 lần/phút, thở co lõm ngực nặng, môi tái nhẹ, SpO2 89%, phổi nghe ran rít và ran ẩm nhỏ hạt 2 phế trường, gan 2 cm dưới bờ sườn phải. Tiền căn bé khỏe mạnh, gia đình có cha bị viêm xoan, mẹ bị viêm mũi dị ứng. Chẩn đoán phù hợp nhất là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổ có hội chứng tắc nghẽn"
+        },
+        {
+          "id": "C",
+          "text": "Viêm tiểu phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Hen nhũ nhi cơn đầu"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-107"
+    },
+    {
+      "source_number": 74,
+      "question": "Một bé trai 10 tuổi nhập viện vì cơn hen nặng. Yếu tố nào sau đây KHÔNG tiên lượng tử vong cho trẻ ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Từng đặt nội khí quản trước đó vì cơn hen"
+        },
+        {
+          "id": "B",
+          "text": "Nhập viện cấp cứu 2 lần trong năm qua vi cơn hen"
+        },
+        {
+          "id": "C",
+          "text": "Mới ngưng corticoid uống trong tuần qua"
+        },
+        {
+          "id": "D",
+          "text": "Đã dùng hết 1 lọ ventolin MDI trong năm qua"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-108"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 3 tuổi đã được chẩn đoán hen. Đang điều trị phòng ngừa bằng Corticoid hít, sáng nay bé thở mệt, khò khè tăng, ngồi thở, co lõm ngực nặng, nhịp thở 42 lần/phút, phổi ran ngáy rít 2 bên SpO2 90%, bụng mềm, gan lách không to. Chẩn đoán phù hợp là gì ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hen bội nhiễm"
+        },
+        {
+          "id": "B",
+          "text": "Hen cơn nhẹ"
+        },
+        {
+          "id": "C",
+          "text": "Hen cơn trung bình"
+        },
+        {
+          "id": "D",
+          "text": "Hen cơn nặng"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-109"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 7 tuổi, được chẩn đoán hen cách đây 1 năm, chưa điều trị thuốc ngừa cơn hen. Hai ngày nay, em ho, sổ mũi. Sáng nay em khó thở, thơ co kéo gian sườn 40 lần/phút, phổi ran ngáy rít 2 bên, SpO2 93%. Xử trí ban đầu phù hợp là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Phun khí dung ventolin, uống prednisone"
+        },
+        {
+          "id": "B",
+          "text": "Phun khí dung ventolin, chích hydrocortisone"
+        },
+        {
+          "id": "C",
+          "text": "Phun khí dung combivent, uống prednisone"
+        },
+        {
+          "id": "D",
+          "text": "Phun khí dung combivent, chích hydrocortisone"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-110"
+    },
+    {
+      "source_number": 74,
+      "question": "Một bé trai 10 tuổi nhập viện vì cơn hen nặng. Yếu tố nào sau đây tiên lượng tử vong cho trẻ, NGOẠI TRỪ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Từng được đặt nội khí quản trước đó vì cơn hen"
+        },
+        {
+          "id": "B",
+          "text": "Nhập viện 2 lần trong năm qua vì cơn hen"
+        },
+        {
+          "id": "C",
+          "text": "Quên dùng ICS một tuần qua"
+        },
+        {
+          "id": "D",
+          "text": "Đã dùng hết 1 lọ ventolin MDI trong 3 tháng qua"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-111"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé trai 6 tháng, nặng 8,5 kg , sinh thường, đủ tháng, cân nặng lúc sinh 3kg, bú mẹ hoàn toàn. Bệnh 3 ngày: ngày 1-2 sốt nhẹ, ho, sổ mũi; ngày 3 khò khè, thở mệt, bỏ bú nên nhập viện. Khám: bé tỉnh, bứt rứt, mạch 168 lần/phút thở co lõm ngực nặng, môi tái nhẹ, SpO2 đo được 90%, phổi nghe ra ngáy và ran ẩm nhỏ hạt 2 phế trường, gan 2 cm dưới bờ sườn phải. Tiền căn viêm tiểu phế quản lúc 4 tháng tuổi, gia đình có cha bị hen, mẹ bị viêm mũi dị ứng. Chẩn đoán phù hợp nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "Khò khè nặng khởi phát do virus"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổi nặng"
+        },
+        {
+          "id": "C",
+          "text": "Viêm tiểu phế quản nặng"
+        },
+        {
+          "id": "D",
+          "text": "Hen nhũ nhi cơn đầu nặng"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-112"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé khò khè, hỏi bệnh sử khai thác tính chất nào phù hợp?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Kiếm tra có phải khò khè không"
+        },
+        {
+          "id": "B",
+          "text": "Tuổi khởi phát khò khè"
+        },
+        {
+          "id": "C",
+          "text": "Cách thức khởi phát khò khè (từ từ hay cấp tính)"
+        },
+        {
+          "id": "D",
+          "text": "B và C"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-113"
+    },
+    {
+      "source_number": 75,
+      "question": "Nguyên nhân khò khè ít gặp ở trẻ nhũ nhi?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Vòng mạch"
+        },
+        {
+          "id": "B",
+          "text": "Hẹp khí quản"
+        },
+        {
+          "id": "C",
+          "text": "Dị vật đường thở"
+        },
+        {
+          "id": "D",
+          "text": "Viêm tiểu phế quản"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-114"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé 8 tuổi, chẩn đoán hen lúc 2 tuổi, không điều trị dự phòng. Hiện tại lên cơn khó thở: SpO2: 94%, co kéo cơ hô hấp phụ vừa, nhịp thở 36 l/ph. Chẩn đoán:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cơn hen cấp mức độ nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Cơn hen cấp mức độ trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Cơn hen cấp mức độ nặng"
+        },
+        {
+          "id": "D",
+          "text": "Dọa ngưng thở"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-115"
+    },
+    {
+      "source_number": 75,
+      "question": "Sau khi phun khí dung 1 lần với Ventolin bé tím nhẹ, phế âm giảm, spO2 89%. Chẩn đoán?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cơn hen cấp mức độ nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Cơn hen cấp mức độ trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Cơn hen cấp mức độ nặng"
+        },
+        {
+          "id": "D",
+          "text": "Dọa ngưng thở"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-116"
+    },
+    {
+      "source_number": 76,
+      "question": "Điều nào không cần làm ngay lúc này?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Oxy duy trì sp 92-96%"
+        },
+        {
+          "id": "B",
+          "text": "Chuyển ICU"
+        },
+        {
+          "id": "C",
+          "text": "Methylprenisolon 1mg/kg/6h tĩnh mạch"
+        },
+        {
+          "id": "D",
+          "text": "Ventolin + ipratropium phun khí dung"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-117"
+    },
+    {
+      "source_number": 74,
+      "question": "Phân độ cơn hen vào thời điểm NV ở BN trên",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Trung bình - Nặng"
+        },
+        {
+          "id": "D",
+          "text": "Nặng"
+        },
+        {
+          "id": "E",
+          "text": "Dọa ngưng thở"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-118"
+    },
+    {
+      "source_number": 74,
+      "question": "Phân độ cơn hen sau PKD 20 phút ở BN trên",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Trung bình - Nặng"
+        },
+        {
+          "id": "D",
+          "text": "Nặng"
+        },
+        {
+          "id": "E",
+          "text": "Nguy kịch"
+        }
+      ],
+      "correct_answer": "E",
+      "review_required": false,
+      "id": "wheeze-asthma-119"
+    },
+    {
+      "source_number": 74,
+      "question": "Xử trí lúc này gồm các biện pháp sau đây ngoại trừ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Chuyển đơn vị hồi sức tích cực"
+        },
+        {
+          "id": "B",
+          "text": "Thở oxy duy trì SpO2 92-96%"
+        },
+        {
+          "id": "C",
+          "text": "Cung cấp đủ nước điện giải"
+        },
+        {
+          "id": "D",
+          "text": "KD ventoline 3 lần liên tiếp mỗi 20p qua oxy"
+        },
+        {
+          "id": "E",
+          "text": "Methylprednisolone 1-2mg/kg/6 giờ TTM"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-120"
+    },
+    {
+      "source_number": 74,
+      "question": "Sau 1 giờ điều trị, bé lơ mơ, môi vẫn còn tím, lồng ngực căng phồng, mất phế âm. Phân độ cơn hen lúc này của bé",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Trung bình - Nặng"
+        },
+        {
+          "id": "D",
+          "text": "Nặng"
+        },
+        {
+          "id": "E",
+          "text": "Nguy kịch"
+        }
+      ],
+      "correct_answer": "E",
+      "review_required": false,
+      "id": "wheeze-asthma-121"
+    },
+    {
+      "source_number": 75,
+      "question": "Xử trí thêm những biện pháp sau đây, ngoại trừ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhập đơn vị HSTC"
+        },
+        {
+          "id": "B",
+          "text": "Đặt NKQ"
+        },
+        {
+          "id": "C",
+          "text": "KD Ventoline qua oxy liên tục, phối hợp Ipratropium bromide"
+        },
+        {
+          "id": "D",
+          "text": "Truyền TM B2 giao cảm"
+        },
+        {
+          "id": "E",
+          "text": "Magie sulfate TM"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-122"
+    },
+    {
+      "source_number": 74,
+      "question": "CĐSB phù hợp nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "VP có hội chứng tắc nghẽn - SHH độ 2"
+        },
+        {
+          "id": "B",
+          "text": "VP - TDMP 2 bên - SHH độ 3"
+        },
+        {
+          "id": "C",
+          "text": "VP - TKMP 2 bên - SHH độ 3"
+        },
+        {
+          "id": "D",
+          "text": "VTPQ - SHH độ 2"
+        },
+        {
+          "id": "E",
+          "text": "Hen nhũ nhi cơn đầu - SHH độ 2"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-123"
+    },
+    {
+      "source_number": 75,
+      "question": "Xquang phổi của BN trên cho thấy phế trường tăng sáng, đếm được 9 cung liên sườn sau trên cơ hoành P, vòm hoành 2 bên phẳng, chỉ số tim ngực 0,48, thâm nhiễm dạng nốt lưới không có tính hợp lưu và hệ thống cả 2 bên phế trường. Hình ảnh phù hợp với chẩn đoán",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản phổi - TKMP"
+        },
+        {
+          "id": "B",
+          "text": "VP kẽ - ứu khí phế nang"
+        },
+        {
+          "id": "C",
+          "text": "VP - ứ khí phế nang"
+        },
+        {
+          "id": "D",
+          "text": "VPQ - TKMP"
+        },
+        {
+          "id": "E",
+          "text": "VPQ phổi - ứ khí phế nang"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-124"
+    },
+    {
+      "source_number": 74,
+      "question": "CTM BC 9600/mm3, Neu 2800/mm3, hgb 9,3 g/dl, MCV 68, MCH 22, Eos 450/mm3, TC 250000/mm3. KQ phù hợp với bệnh lý",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhiễm vi trùng - Thiếu máu HC đẳng sắc đẳng bào"
+        },
+        {
+          "id": "B",
+          "text": "Nhiễm vi trùng - Thiếu máu HC nhỏ nhược sắc"
+        },
+        {
+          "id": "C",
+          "text": "Nhiễm virus - Thiếu máu HC ĐSĐB"
+        },
+        {
+          "id": "D",
+          "text": "Nhiễm virus - Thiếu máu HC nhỏ nhược sắc"
+        },
+        {
+          "id": "E",
+          "text": "Nhiễm KST - thiếu máu HC nhỏ nhược sắc"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-125"
+    },
+    {
+      "source_number": 74,
+      "question": "Xử trí ban đầu nào không phù hợp trên BN",
+      "options": [
+        {
+          "id": "A",
+          "text": "KS"
+        },
+        {
+          "id": "B",
+          "text": "Thông đường thở"
+        },
+        {
+          "id": "C",
+          "text": "Thở oxy"
+        },
+        {
+          "id": "D",
+          "text": "PKD thuốc giãn PQ"
+        },
+        {
+          "id": "E",
+          "text": "Đặt sonde dạ dày bơm sữa"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "wheeze-asthma-126"
+    },
+    {
+      "source_number": 74,
+      "question": "Bé gái 3 tuổi nhập viện vì ho, khò khè, khó thở ngày 2. Đây là lần nhập viện thứ hai trong tháng này, lần nhâp viên trước có thở oxy và phun khí dung. Tiền cǎn khò khè nhiều lần có đáp ứng cới khi dung salbutamol, lúc nhỏ có chàm da. Khám lúc vào: tỉnh, môi hồng, thở co lõm ngực 48 lần/phút, Sp0295%, phổi ran ngáy ẩm 2 bên. Bé chưa được xử trí gì tại nhà. Xử trí phù hop lúc này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Phun khí dung Ventolin"
+        },
+        {
+          "id": "B",
+          "text": "Thở oxy, phun khí dung Combivent (Ventolin +Ipratropium bromide)"
+        },
+        {
+          "id": "C",
+          "text": "Phun khí dung Ventolin+uống cortcoid"
+        },
+        {
+          "id": "D",
+          "text": "Thở oxy,phun khí dung Ventolin"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "wheeze-asthma-127"
+    },
+    {
+      "source_number": 74,
+      "question": "Bệnh nhi nam, 6 tháng, đến khám vì khó thở, bệnh 2 ngày. Ngày 1: sốt nhẹ, ho khan, số mũi. Ngày 2: khó thở. Khám: bé tươi tỉnh, NĐ 38oC, thở 50 l/p, co lõm ngực vừa, phổi ran ẩm, ngáy 2 bên. Các cơ quan khác bình thường. Chẩn đoán sơ bộ phù hợp nhất với bé là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi tắc nghẽn"
+        },
+        {
+          "id": "B",
+          "text": "Viêm thanh quản cấp"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phế quản cấp"
+        },
+        {
+          "id": "D",
+          "text": "Viêm tiểu phế quản"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-128"
+    },
+    {
+      "source_number": 74,
+      "question": "Bênh nhân nam 2 tuổi, cân nǎng 12kg, đến phòng khám vì ho khò khè ngày 5, không sốt. Mẹ nói bé ho nhiều về đêm làm thức giấc ngử, ǎn uống bình thường. Khám: bé tỉnh, môi hồng/KT, Sp02 95%, M 120 l/phút, NĐ 37,6oC, NT 45 l/p, co lōm ngực vừa, phổi nghe ran ngáy, rít 2 bên. Tiền cǎn chưa khò khè lần nào, không hội chứng xâm nhâp, mẹ bị hen, bố hút thuốc lá. Xử trí phù hợp nhất cho bệnh nhân này thể nào?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị ngoại trú, uống Amoxicillin liều cao, khí dung Ventolin tại nhà, tái khám 2 ngày"
+        },
+        {
+          "id": "B",
+          "text": "NV chích Ceftriaxone, khí dung Ventolin, xét nghiêm công thúc máu, X quang phổi thẳng"
+        },
+        {
+          "id": "C",
+          "text": "NV, chích Ceftriaxone, xét nghiêm CTM , X-quang phổi thẳng"
+        },
+        {
+          "id": "D",
+          "text": "Tại phòng khám, Ventolin 2,5mg khí dung 3 lần mỗi 20 phút, đánh giá lại sau mỗi lần phun, chụp X-quang phổi thẳng"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "wheeze-asthma-129"
+    },
+    {
+      "source_number": 74,
+      "question": "BN nam, 2 tuổi đến khám vì khó thở. Bệnh 03 ngày: ngày 1-2 sốt 3838,3 độ C, ho ít, sổ mũi; ngày 3 ho đàm nhiều, khò khè, khó thở. Tiền căn bị viêm da cơ địa lúc 6 tháng tuổi, khò khè nhiều lần từ lúc 6 tháng tuổi, cách mỗi 3-4 tháng, khò khè khới phát sau viêm hô hấp trên, phun khí dung salbutamol tại phòng khám có giảm khò khè. Khám: tỉnh, môi hồng, Sp02 93%, NĐ 38,1 oC, chi ấm, mạch quay rõ 120 l/p, thở co kéo nhẹ 46 l/p, phổi nghe ran rít và ran ngáy 2 phổi. Các cơ quan khác không ghi nhận bất thường. Chẩn đoán nghĩ nhiều nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản"
+        },
+        {
+          "id": "B",
+          "text": "Hen cơn trung bình"
+        },
+        {
+          "id": "C",
+          "text": "Viêm tiểu phế quản nhẹ"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi nặng"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "wheeze-asthma-130"
+    }
+  ]
+}
