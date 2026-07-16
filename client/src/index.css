@@ -162,13 +162,13 @@ html[data-theme="basic"] body { background: #fafafa; }
 html[data-theme="basic"] header,
 html[data-theme="basic"] main { background: #fafafa !important; }
 
-/* Anki: a deliberately quiet, monochrome study surface. Rich-text content keeps
-   its own inline highlight/text colors so learning cues are never destroyed. */
+/* Minimal: a quiet study surface inspired by Anki without turning the whole UI
+   black and white. Rich-text content keeps its own inline learning cues. */
 html[data-theme="anki"] body,
 html[data-theme="anki"] header,
 html[data-theme="anki"] main {
-  background: #f5f5f5 !important;
-  color: #202020;
+  background: #f7f9f8 !important;
+  color: #263332;
 }
 html[data-theme="anki"] body {
   font-family: Arial, Helvetica, sans-serif;
@@ -178,9 +178,9 @@ html[data-theme="anki"] .rich-content {
   font-family: Arial, Helvetica, sans-serif;
 }
 html[data-theme="anki"] .glass-header {
-  border-color: #d4d4d4 !important;
+  border-color: #dce5e2 !important;
   background: rgba(255,255,255,.97) !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08) !important;
+  box-shadow: 0 1px 4px rgba(42,70,67,.08) !important;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -195,17 +195,17 @@ html[data-theme="anki"] .setup-mode-tabs__glider::after {
 html[data-theme="anki"] .glass-panel,
 html[data-theme="anki"] .glass-card,
 html[data-theme="anki"] .glass-dialog {
-  border-color: #d4d4d4 !important;
-  border-radius: .65rem !important;
+  border-color: #dce5e2 !important;
+  border-radius: .85rem !important;
   background: #fff !important;
   background-image: none !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08) !important;
+  box-shadow: 0 2px 8px rgba(42,70,67,.08) !important;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 html[data-theme="anki"] .glass-card:hover {
   transform: none;
-  box-shadow: 0 2px 6px rgba(0,0,0,.11) !important;
+  box-shadow: 0 4px 12px rgba(42,70,67,.11) !important;
 }
 html[data-theme="anki"] [class*="bg-gradient-"],
 html[data-theme="anki"] [class*="bg-[radial-gradient"] {
@@ -220,7 +220,7 @@ html[data-theme="anki"] [class*="bg-emerald-"],
 html[data-theme="anki"] [class*="bg-violet-"],
 html[data-theme="anki"] [class*="bg-fuchsia-"],
 html[data-theme="anki"] [class*="bg-amber-"] {
-  background-color: #f3f3f3 !important;
+  background-color: #eef4f2 !important;
   background-image: none !important;
 }
 html[data-theme="anki"] button[class*="bg-rose-"],
@@ -230,20 +230,18 @@ html[data-theme="anki"] button[class*="bg-cyan-"],
 html[data-theme="anki"] button[class*="bg-emerald-"],
 html[data-theme="anki"] button[class*="bg-violet-"],
 html[data-theme="anki"] button[class*="bg-fuchsia-"] {
-  border-color: #262626 !important;
-  background-color: #262626 !important;
+  border-color: #6f8f8a !important;
+  background-color: #6f8f8a !important;
   color: #fff !important;
 }
 html[data-theme="anki"] [class*="text-rose-"],
-html[data-theme="anki"] [class*="text-pink-"],
+html[data-theme="anki"] [class*="text-pink-"] { color: #a45f72 !important; }
 html[data-theme="anki"] [class*="text-teal-"],
 html[data-theme="anki"] [class*="text-cyan-"],
-html[data-theme="anki"] [class*="text-emerald-"],
+html[data-theme="anki"] [class*="text-emerald-"] { color: #477c76 !important; }
 html[data-theme="anki"] [class*="text-violet-"],
-html[data-theme="anki"] [class*="text-fuchsia-"],
-html[data-theme="anki"] [class*="text-amber-"] {
-  color: #262626 !important;
-}
+html[data-theme="anki"] [class*="text-fuchsia-"] { color: #756b8d !important; }
+html[data-theme="anki"] [class*="text-amber-"] { color: #8b7048 !important; }
 html[data-theme="anki"] [class*="border-rose-"],
 html[data-theme="anki"] [class*="border-pink-"],
 html[data-theme="anki"] [class*="border-teal-"],
@@ -252,29 +250,29 @@ html[data-theme="anki"] [class*="border-emerald-"],
 html[data-theme="anki"] [class*="border-violet-"],
 html[data-theme="anki"] [class*="border-fuchsia-"],
 html[data-theme="anki"] [class*="border-amber-"] {
-  border-color: #d4d4d4 !important;
+  border-color: #dce5e2 !important;
 }
 html[data-theme="anki"] .setup-mode-tabs,
 html[data-theme="anki"] .workspace-tabs {
-  border-color: #d4d4d4 !important;
-  border-radius: .65rem !important;
+  border-color: #dce5e2 !important;
+  border-radius: .85rem !important;
   background: #fff !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08) !important;
+  box-shadow: 0 2px 8px rgba(42,70,67,.07) !important;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 html[data-theme="anki"] .setup-mode-tabs__glider,
 html[data-theme="anki"] .workspace-tabs__glider {
-  border-color: #262626 !important;
-  border-radius: .4rem !important;
-  background: #e5e5e5 !important;
+  border-color: #aebfbb !important;
+  border-radius: .65rem !important;
+  background: #e9f0ee !important;
   background-image: none !important;
   box-shadow: none !important;
 }
 html[data-theme="anki"] .setup-mode-tab--active,
 html[data-theme="anki"] .workspace-tabs__button--active,
 html[data-theme="anki"] .workspace-tabs__button:hover {
-  color: #171717 !important;
+  color: #355f5b !important;
 }
 html[data-theme="anki"] input,
 html[data-theme="anki"] textarea,
@@ -287,35 +285,35 @@ html[data-theme="anki"] input:focus,
 html[data-theme="anki"] textarea:focus,
 html[data-theme="anki"] select:focus,
 html[data-theme="anki"] [contenteditable="true"]:focus {
-  border-color: #555 !important;
-  box-shadow: 0 0 0 2px rgba(0,0,0,.11) !important;
+  border-color: #789b96 !important;
+  box-shadow: 0 0 0 2px rgba(71,124,118,.13) !important;
 }
 html[data-theme="anki"] .welcome-screen {
-  background: #ededed !important;
+  background: #f1f5f3 !important;
 }
 html[data-theme="anki"] .welcome-card,
 html[data-theme="anki"] .welcome-quote {
-  border-color: #d4d4d4 !important;
+  border-color: #dce5e2 !important;
   background: #fff !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,.1) !important;
+  box-shadow: 0 8px 24px rgba(42,70,67,.1) !important;
 }
 html[data-theme="anki"] .welcome-icon,
 html[data-theme="anki"] .welcome-progress {
-  background: #e5e5e5 !important;
+  background: #e8f0ed !important;
 }
 html[data-theme="anki"] .welcome-progress span,
 html[data-theme="anki"] .loading-progress,
 html[data-theme="anki"] .scan-line {
-  background: #262626 !important;
+  background: #6f8f8a !important;
   box-shadow: none !important;
 }
 html[data-theme="anki"] .welcome-dots span {
-  background: #525252 !important;
+  background: #789b96 !important;
 }
 html[data-theme="anki"] .welcome-icon img,
 html[data-theme="anki"] header img,
 html[data-theme="anki"] .panda-bob {
-  filter: grayscale(1);
+  filter: none !important;
 }
 html[data-theme="anki"] button:hover {
   transform: none;
