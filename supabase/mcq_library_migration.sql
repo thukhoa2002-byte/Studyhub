@@ -1,5 +1,14 @@
--- Public MCQ library. Only thukhoa2002@gmail.com can create, edit or publish.
+-- Public MCQ library. The owner manages delegated MCQ administrators by email.
 create extension if not exists pgcrypto;
+
+create table if not exists public.mcq_admins (
+  email text primary key,
+  added_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  constraint mcq_admins_email_normalized_check check (email = lower(trim(email)) and email like '%@%')
+);
+
+alter table public.mcq_admins enable row level security;
 
 create table if not exists public.mcq_banks (
   id uuid primary key default gen_random_uuid(),
@@ -22,7 +31,11 @@ stable
 security definer
 set search_path = public, auth
 as $$
-  select lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com';
+  select lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com'
+    or exists (
+      select 1 from public.mcq_admins admin
+      where admin.email = lower(coalesce(auth.jwt() ->> 'email', ''))
+    );
 $$;
 
 revoke all on function public.is_mcq_admin() from public;
@@ -30,7 +43,7 @@ grant execute on function public.is_mcq_admin() to authenticated;
 
 drop policy if exists "authenticated read published mcq banks" on public.mcq_banks;
 create policy "authenticated read published mcq banks" on public.mcq_banks
-  for select to authenticated using (status = 'published' or (public.is_mcq_admin() and owner_id = auth.uid()));
+  for select to authenticated using (status = 'published' or public.is_mcq_admin());
 
 drop policy if exists "mcq admin creates banks" on public.mcq_banks;
 create policy "mcq admin creates banks" on public.mcq_banks
@@ -38,12 +51,12 @@ create policy "mcq admin creates banks" on public.mcq_banks
 
 drop policy if exists "mcq admin updates banks" on public.mcq_banks;
 create policy "mcq admin updates banks" on public.mcq_banks
-  for update to authenticated using (public.is_mcq_admin() and owner_id = auth.uid())
-  with check (public.is_mcq_admin() and owner_id = auth.uid());
+  for update to authenticated using (public.is_mcq_admin())
+  with check (public.is_mcq_admin());
 
 drop policy if exists "mcq admin deletes banks" on public.mcq_banks;
 create policy "mcq admin deletes banks" on public.mcq_banks
-  for delete to authenticated using (public.is_mcq_admin() and owner_id = auth.uid());
+  for delete to authenticated using (public.is_mcq_admin());
 
 create index if not exists mcq_banks_status_published_idx
   on public.mcq_banks(status, published_at desc, created_at desc);

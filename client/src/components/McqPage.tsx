@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Globe2, LockKeyhole, Pencil, Play, RotateCcw, Trash2, Trophy, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Globe2, LockKeyhole, Pencil, Play, RotateCcw, ShieldCheck, Trash2, Trophy, UserMinus, UserPlus, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
-import { archiveMcqBank, deleteMcqBank, listMcqBanks, listMcqBankStates, mcqLibraryErrorMessage, saveMcqBank, type McqBankState, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
+import { addMcqAdmin, archiveMcqBank, deleteMcqBank, hasMcqAdminAccess, listMcqAdmins, listMcqBanks, listMcqBankStates, mcqLibraryErrorMessage, removeMcqAdmin, saveMcqBank, type McqAdminAccess, type McqBankState, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
 
 type Option = { id: string; text: string };
 type QuizQuestion = {
@@ -39,7 +39,57 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   const [libraryBanks, setLibraryBanks] = useState<McqLibraryBank[]>([]);
   const [bankStates, setBankStates] = useState<McqBankState[]>([]);
   const [requestedEditBank, setRequestedEditBank] = useState<McqLibraryBank | null>(null);
-  const isAdmin = userEmail?.trim().toLowerCase() === "thukhoa2002@gmail.com";
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminAccessReady, setAdminAccessReady] = useState(false);
+  const [mcqAdmins, setMcqAdmins] = useState<McqAdminAccess[]>([]);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [accessNotice, setAccessNotice] = useState("");
+  const [accessBusy, setAccessBusy] = useState(false);
+  const isOwner = userEmail?.trim().toLowerCase() === "thukhoa2002@gmail.com";
+
+  const refreshMcqAdmins = useCallback(async () => {
+    if (!isOwner) { setMcqAdmins([]); return; }
+    try { setMcqAdmins(await listMcqAdmins()); }
+    catch (accessError) { setAccessNotice(mcqLibraryErrorMessage(accessError, "Không thể tải danh sách quyền MCQ.")); }
+  }, [isOwner]);
+
+  useEffect(() => {
+    let active = true;
+    if (!userId) { setIsAdmin(false); setAdminAccessReady(true); return; }
+    if (isOwner) { setIsAdmin(true); setAdminAccessReady(true); void refreshMcqAdmins(); return; }
+    setIsAdmin(false);
+    setAdminAccessReady(false);
+    void hasMcqAdminAccess()
+      .then((allowed) => { if (active) setIsAdmin(allowed); })
+      .catch(() => { if (active) setIsAdmin(false); })
+      .finally(() => { if (active) setAdminAccessReady(true); });
+    return () => { active = false; };
+  }, [isOwner, refreshMcqAdmins, userId]);
+
+  async function grantMcqAccess() {
+    const email = newAdminEmail.trim().toLowerCase();
+    if (!email) return;
+    setAccessBusy(true); setAccessNotice("");
+    try {
+      await addMcqAdmin(email);
+      setNewAdminEmail("");
+      setAccessNotice(`Đã cấp quyền Xưởng MCQ cho ${email}.`);
+      await refreshMcqAdmins();
+    } catch (accessError) {
+      setAccessNotice(mcqLibraryErrorMessage(accessError, "Không thể cấp quyền MCQ."));
+    } finally { setAccessBusy(false); }
+  }
+
+  async function revokeMcqAccess(email: string) {
+    if (!confirm(`Thu hồi quyền Xưởng MCQ của ${email}?`)) return;
+    setAccessBusy(true); setAccessNotice("");
+    try {
+      await removeMcqAdmin(email);
+      await refreshMcqAdmins();
+    } catch (accessError) {
+      setAccessNotice(mcqLibraryErrorMessage(accessError, "Không thể thu hồi quyền MCQ."));
+    } finally { setAccessBusy(false); }
+  }
   const refreshLibrary = useCallback(async () => {
     if (!userId) { setLibraryBanks([]); setBankStates([]); return; }
     try {
@@ -231,7 +281,12 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
 
   if (!opened) return (
     <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
-      {isAdmin && userId && <div id="mcq-admin-studio"><McqAdminStudio userId={userId} drafts={libraryBanks} requestedBank={requestedEditBank} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} /></div>}
+      {isOwner && userId && <div className="mb-5 rounded-[1.75rem] border border-teal-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-100 text-teal-700"><ShieldCheck size={21} /></span><div><p className="text-xs font-black uppercase tracking-wider text-teal-700">Quyền Xưởng MCQ</p><p className="text-sm text-slate-500">Chỉ những email trong danh sách mới thấy và sử dụng khu vực tạo MCQ.</p></div></div><div className="flex min-w-0 gap-2"><input type="email" value={newAdminEmail} onChange={(event) => setNewAdminEmail(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void grantMcqAccess(); } }} placeholder="email@gmail.com" className="min-w-0 flex-1 rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm outline-none focus:border-teal-500" /><button type="button" disabled={accessBusy || !newAdminEmail.trim()} onClick={() => void grantMcqAccess()} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-teal-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-40"><UserPlus size={16} />Thêm</button></div></div>
+        {mcqAdmins.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{mcqAdmins.map((admin) => <span key={admin.email} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">{admin.email}{admin.is_owner ? <em className="not-italic text-teal-600">Chủ sở hữu</em> : <button type="button" disabled={accessBusy} aria-label={`Thu hồi quyền ${admin.email}`} title="Thu hồi quyền" onClick={() => void revokeMcqAccess(admin.email)} className="text-rose-500 hover:text-rose-700"><UserMinus size={15} /></button>}</span>)}</div>}
+        {accessNotice && <p className="mt-3 text-xs font-semibold text-slate-600">{accessNotice}</p>}
+      </div>}
+      {adminAccessReady && isAdmin && userId && <div id="mcq-admin-studio"><McqAdminStudio userId={userId} drafts={libraryBanks} requestedBank={requestedEditBank} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} /></div>}
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={32} strokeWidth={1.9} /></div>

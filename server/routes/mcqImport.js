@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
+import { requireMcqAdmin } from "../middleware/mcqAdmin.js";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
 
@@ -119,7 +119,7 @@ function uploadFiles(req, res, next) {
   });
 }
 
-router.post("/extract", requireGuidelineAdmin, uploadFiles, async (req, res) => {
+router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
   try {
     const files = req.files || [];
     if (!files.length) return res.status(400).json({ success: false, message: "Chưa chọn file câu hỏi." });

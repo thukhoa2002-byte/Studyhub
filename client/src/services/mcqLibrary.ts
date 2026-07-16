@@ -25,6 +25,7 @@ export interface McqLibraryBank {
 }
 
 export type McqBankState = Pick<McqLibraryBank, "id" | "status">;
+export type McqAdminAccess = { email: string; is_owner: boolean; created_at: string | null };
 
 export function mcqLibraryErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) return error.message;
@@ -41,6 +42,31 @@ export function mcqLibraryErrorMessage(error: unknown, fallback: string): string
 function requireSupabase() {
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
   return supabase;
+}
+
+export async function hasMcqAdminAccess(): Promise<boolean> {
+  const { data, error } = await requireSupabase().rpc("is_mcq_admin");
+  if (error) {
+    if (/is_mcq_admin|schema cache/i.test(error.message)) return false;
+    throw error;
+  }
+  return data === true;
+}
+
+export async function listMcqAdmins(): Promise<McqAdminAccess[]> {
+  const { data, error } = await requireSupabase().rpc("list_mcq_admins");
+  if (error) throw error;
+  return (data ?? []) as McqAdminAccess[];
+}
+
+export async function addMcqAdmin(email: string): Promise<void> {
+  const { error } = await requireSupabase().rpc("add_mcq_admin", { p_email: email });
+  if (error) throw error;
+}
+
+export async function removeMcqAdmin(email: string): Promise<void> {
+  const { error } = await requireSupabase().rpc("remove_mcq_admin", { p_email: email });
+  if (error) throw error;
 }
 
 export async function listMcqBanks(): Promise<McqLibraryBank[]> {
