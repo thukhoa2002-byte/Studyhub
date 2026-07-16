@@ -105,7 +105,7 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
     const mediaParts = [];
     for (const [index, inputFile] of inputFiles.entries()) {
       if (inputFiles.length > 1) {
-        mediaParts.push({ text: index === 0 ? "TÀI LIỆU 1 — GUIDELINE CHÍNH" : `TÀI LIỆU ${index + 1} — SUPPLEMENTARY DATA` });
+        mediaParts.push({ text: `TÀI LIỆU NGUỒN ${index + 1} — ${inputFile.originalname || "không có tên"}` });
       }
       if (useFilesApi) {
         const remoteFile = await uploadGeminiFile(inputFile, apiKey, controller.signal);

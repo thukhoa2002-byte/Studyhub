@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Play, RotateCcw, Trophy, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
+import McqAdminStudio from "./McqAdminStudio";
+import { listMcqBanks, type McqLibraryBank } from "../services/mcqLibrary";
 
 type Option = { id: string; text: string };
 type QuizQuestion = {
@@ -8,21 +10,21 @@ type QuizQuestion = {
   source_number: number;
   question: string;
   options: Option[];
-  correct_answer: string;
+  correct_answer?: string;
   review_required?: boolean;
   image_url?: string;
   image_alt?: string;
 };
 type QuizBank = { title: string; questions: QuizQuestion[] };
-type Props = { userId?: string };
-type DeckDefinition = { key: string; title: string; description: string; questionCount: number; dataUrl: string };
+type Props = { userId?: string; userEmail?: string; onAiCallsRemaining?: (remaining: number) => void };
+type DeckDefinition = { key: string; title: string; description: string; questionCount: number; dataUrl?: string; bank?: QuizBank };
 
-const decks: DeckDefinition[] = [
+const staticDecks: DeckDefinition[] = [
   { key: "bo-mcq-kho-khe", title: "Bộ MCQ - Khò khè", description: "Tiếp cận khò khè, viêm tiểu phế quản và hen.", questionCount: 130, dataUrl: "/mcq/bo-mcq-kho-khe.json" },
   { key: "bo-mcq-viem-phoi", title: "Bộ MCQ - Viêm phổi", description: "Chẩn đoán, xử trí và biến chứng viêm phổi ở trẻ em.", questionCount: 91, dataUrl: "/mcq/bo-mcq-viem-phoi.json" },
 ];
 
-export default function McqPage({ userId }: Props) {
+export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props) {
   const [bank, setBank] = useState<QuizBank | null>(null);
   const [error, setError] = useState("");
   const [index, setIndex] = useState(0);
@@ -33,9 +35,29 @@ export default function McqPage({ userId }: Props) {
   const [hasStarted, setHasStarted] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [progressReady, setProgressReady] = useState(false);
+  const [libraryBanks, setLibraryBanks] = useState<McqLibraryBank[]>([]);
+  const isAdmin = userEmail?.trim().toLowerCase() === "thukhoa2002@gmail.com";
+  const refreshLibrary = useCallback(async () => {
+    if (!userId) { setLibraryBanks([]); return; }
+    try { setLibraryBanks(await listMcqBanks()); }
+    catch (loadError) { console.warn("Không thể tải thư viện MCQ", loadError); }
+  }, [userId]);
+  useEffect(() => { void refreshLibrary(); }, [refreshLibrary]);
+  const decks = useMemo<DeckDefinition[]>(() => [
+    ...staticDecks,
+    ...libraryBanks.filter((item) => item.status === "published").map((item) => ({
+      key: `mcq-bank-${item.id}`,
+      title: item.title,
+      description: item.description || "Bộ câu hỏi đã được quản trị viên kiểm tra và công khai.",
+      questionCount: item.questions.length,
+      bank: { title: item.title, questions: item.questions },
+    })),
+  ], [libraryBanks]);
 
   useEffect(() => {
     if (!activeDeck) { setBank(null); setError(""); return; }
+    if (activeDeck.bank) { setBank(activeDeck.bank); return; }
+    if (!activeDeck.dataUrl) { setError("Bộ MCQ chưa có dữ liệu."); return; }
     void fetch(activeDeck.dataUrl)
       .then((response) => response.ok ? response.json() as Promise<QuizBank> : Promise.reject(new Error("Không thể tải bộ MCQ.")))
       .then(setBank)
@@ -70,8 +92,9 @@ export default function McqPage({ userId }: Props) {
   const question = bank?.questions[index] ?? null;
   const selected = question ? answers[question.id] : undefined;
   const isChecked = question ? Boolean(checked[question.id]) : false;
+  const gradedBank = Boolean(bank?.questions.some((item) => item.correct_answer));
   const correctCount = useMemo(
-    () => bank?.questions.filter((item) => checked[item.id] && answers[item.id] === item.correct_answer).length ?? 0,
+    () => bank?.questions.filter((item) => item.correct_answer && checked[item.id] && answers[item.id] === item.correct_answer).length ?? 0,
     [answers, bank, checked]
   );
   const completedCount = Object.keys(checked).length;
@@ -127,6 +150,7 @@ export default function McqPage({ userId }: Props) {
 
   if (!opened) return (
     <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
+      {isAdmin && userId && <McqAdminStudio userId={userId} drafts={libraryBanks} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} />}
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={32} strokeWidth={1.9} /></div>
@@ -159,12 +183,12 @@ export default function McqPage({ userId }: Props) {
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Bộ trắc nghiệm</p>
               <h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">{activeDeck?.title}</h1>
-              <p className="mt-1 text-sm text-slate-500">{bank.questions.length} câu · Chọn đáp án rồi bấm kiểm tra ngay.</p>
+              <p className="mt-1 text-sm text-slate-500">{bank.questions.length} câu · {gradedBank ? "Chọn đáp án rồi bấm kiểm tra ngay." : "Chọn đáp án và xác nhận trước khi sang câu tiếp theo."}</p>
             </div>
           </div>
           <div className="rounded-2xl border border-teal-100 bg-teal-50/75 px-4 py-3 text-center sm:min-w-36">
-            <p className="text-xs font-bold uppercase tracking-wider text-teal-700">Điểm hiện tại</p>
-            <p className="mt-1 text-2xl font-black text-rose-950">{correctCount}<span className="text-sm font-bold text-slate-400">/{completedCount}</span></p>
+            <p className="text-xs font-bold uppercase tracking-wider text-teal-700">{gradedBank ? "Điểm hiện tại" : "Đã trả lời"}</p>
+            <p className="mt-1 text-2xl font-black text-rose-950">{gradedBank ? correctCount : completedCount}<span className="text-sm font-bold text-slate-400">/{gradedBank ? completedCount : bank.questions.length}</span></p>
           </div>
         </div>
 
@@ -180,7 +204,7 @@ export default function McqPage({ userId }: Props) {
           <div className="mt-6 space-y-3">
             {question.options.map((option) => {
               const chosen = selected === option.id;
-              const answer = question.correct_answer === option.id;
+              const answer = Boolean(question.correct_answer) && question.correct_answer === option.id;
               const stateClass = isChecked && answer ? "border-teal-400 bg-teal-50 text-teal-950" : isChecked && chosen ? "border-rose-400 bg-rose-50 text-rose-950" : chosen ? "border-violet-400 bg-violet-50 text-violet-950" : "border-slate-200 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50/40";
               return <button key={option.id} type="button" onClick={() => choose(option.id)} disabled={isChecked} className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-4 text-left text-sm font-semibold transition ${stateClass} disabled:cursor-default`}>
                 <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${isChecked && answer ? "bg-teal-500 text-white" : isChecked && chosen ? "bg-rose-500 text-white" : chosen ? "bg-violet-500 text-white" : "bg-slate-100 text-slate-600"}`}>{option.id}</span>
@@ -188,19 +212,19 @@ export default function McqPage({ userId }: Props) {
               </button>;
             })}
           </div>
-          {isChecked && <div className={`mt-5 flex items-start gap-3 rounded-2xl border p-4 text-sm font-semibold ${isCorrect ? "border-teal-200 bg-teal-50 text-teal-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
-            {isCorrect ? <CheckCircle2 className="mt-0.5 shrink-0" size={20} /> : <XCircle className="mt-0.5 shrink-0" size={20} />}
-            <p>{isCorrect ? "Chính xác!" : `Chưa đúng. Đáp án là ${question.correct_answer}.`}{question.review_required ? " Đáp án này được giữ theo ghi chú nguồn và nên được rà soát lại." : ""}</p>
+          {isChecked && <div className={`mt-5 flex items-start gap-3 rounded-2xl border p-4 text-sm font-semibold ${!gradedBank || isCorrect ? "border-teal-200 bg-teal-50 text-teal-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
+            {!gradedBank || isCorrect ? <CheckCircle2 className="mt-0.5 shrink-0" size={20} /> : <XCircle className="mt-0.5 shrink-0" size={20} />}
+            <p>{!gradedBank ? "Đã ghi nhận lựa chọn. Bộ công khai này không kèm đáp án." : isCorrect ? "Chính xác!" : `Chưa đúng. Đáp án là ${question.correct_answer}.`}{question.review_required ? " Đáp án này được giữ theo ghi chú nguồn và nên được rà soát lại." : ""}</p>
           </div>}
         </article>
 
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
           <button type="button" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={index === 0} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-45"><ChevronLeft size={18} />Câu trước</button>
           <div className="flex gap-3">
-            {!isChecked ? <button type="button" onClick={checkAnswer} disabled={!selected} className="inline-flex items-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-45"><CheckCircle2 size={18} />Kiểm tra</button> : !isLast ? <button type="button" onClick={() => { const nextIndex = index + 1; setIndex(nextIndex); if (hasStarted && startedAt) persist({ current_index: nextIndex, answers, checked, started_at: startedAt }); }} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-600">Câu tiếp<ChevronRight size={18} /></button> : <button type="button" onClick={restart} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-600"><RotateCcw size={18} />Làm lại</button>}
+            {!isChecked ? <button type="button" onClick={checkAnswer} disabled={!selected} className="inline-flex items-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-45"><CheckCircle2 size={18} />{gradedBank ? "Kiểm tra" : "Xác nhận lựa chọn"}</button> : !isLast ? <button type="button" onClick={() => { const nextIndex = index + 1; setIndex(nextIndex); if (hasStarted && startedAt) persist({ current_index: nextIndex, answers, checked, started_at: startedAt }); }} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-600">Câu tiếp<ChevronRight size={18} /></button> : <button type="button" onClick={restart} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-600"><RotateCcw size={18} />Làm lại</button>}
           </div>
         </div>
-        {completed && <div className="mt-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-900"><Trophy size={22} className="shrink-0" />Hoàn thành bộ câu hỏi: {correctCount}/{bank.questions.length} câu đúng.</div>}
+        {completed && <div className="mt-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-900"><Trophy size={22} className="shrink-0" />{gradedBank ? `Hoàn thành bộ câu hỏi: ${correctCount}/${bank.questions.length} câu đúng.` : `Bạn đã hoàn thành ${bank.questions.length} câu trong bộ này.`}</div>}
       </div>
     </section>
   );

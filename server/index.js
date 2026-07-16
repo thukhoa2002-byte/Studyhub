@@ -11,6 +11,7 @@ import ankiRouter from "./routes/anki.js";
 import mcqRouter from "./routes/mcq.js";
 import clinicalCaseRouter from "./routes/clinicalCase.js";
 import guidelineExtractionRouter from "./routes/guidelineExtraction.js";
+import mcqImportRouter from "./routes/mcqImport.js";
 import { getAiCallsRemaining } from "./services/aiUsage.js";
 
 dotenv.config();
@@ -43,6 +44,7 @@ app.use("/api/import-anki", ankiRouter);
 app.use("/api/generate-mcq", mcqRouter);
 app.use("/api/generate-clinical-case", clinicalCaseRouter);
 app.use("/api/extract-guideline", guidelineExtractionRouter);
+app.use("/api/mcq-import", mcqImportRouter);
 
 if (existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));

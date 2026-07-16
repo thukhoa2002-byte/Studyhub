@@ -632,7 +632,7 @@ export default function App() {
         <SiteAnalytics userId={user?.id} visible={workspaceTab === "flashcards" && analyticsAdmin && !editing && questions.length === 0} />
 
         {workspaceTab === "mcq" ? (
-          <McqPage userId={user?.id} />
+          <McqPage userId={user?.id} userEmail={user?.email} onAiCallsRemaining={setAiCallsRemaining} />
         ) : workspaceTab === "guidelines" ? (
           <GuidelinesPage user={user} onAiCallsRemaining={setAiCallsRemaining} />
         ) : workspaceTab === "drugs" ? (

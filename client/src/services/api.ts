@@ -68,6 +68,45 @@ export interface GenerateQuestionsResponse {
   aiCallsRemaining?: number;
 }
 
+export interface ImportedMcqOption {
+  id: "A" | "B" | "C" | "D";
+  text: string;
+}
+
+export interface ImportedMcqQuestion {
+  source_number: number;
+  question: string;
+  options: ImportedMcqOption[];
+  image_source_name: string;
+  image_alt: string;
+  review_note: string;
+}
+
+export interface McqImportResponse {
+  success: boolean;
+  data: { title: string; questions: ImportedMcqQuestion[] };
+  aiCallsRemaining?: number;
+}
+
+export async function extractMcqFiles(files: File[]): Promise<McqImportResponse> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+  const { supabase } = await import("./supabase");
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Bạn cần đăng nhập bằng tài khoản quản trị MCQ.");
+  const response = await fetch(`${API_URL}/api/mcq-import/extract`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: formData,
+  });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(error?.message || "Không thể trích xuất bộ MCQ.");
+  }
+  return (await response.json()) as McqImportResponse;
+}
+
 export interface ExtractedGuidelineEntry {
   topic: string;
   drugName: string;
