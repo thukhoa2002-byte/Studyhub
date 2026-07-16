@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Download, FileSearch, Image as ImageIcon, LoaderCircle, Plus, Send, Trash2, Upload, X } from "lucide-react";
 import { extractMcqFiles } from "../services/api";
 import { deleteMcqBank, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
@@ -8,6 +8,7 @@ type Props = {
   drafts: McqLibraryBank[];
   onChanged: () => Promise<void> | void;
   onAiCallsRemaining?: (remaining: number) => void;
+  requestedBank?: McqLibraryBank | null;
 };
 
 const optionIds = ["A", "B", "C", "D"] as const;
@@ -111,7 +112,7 @@ async function exportWord(title: string, questions: McqLibraryQuestion[]) {
   downloadBlob(await Packer.toBlob(document), `${safeFilename(title)}.docx`);
 }
 
-export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRemaining }: Props) {
+export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRemaining, requestedBank }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [bankId, setBankId] = useState<string | undefined>();
@@ -122,6 +123,17 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [reviewed, setReviewed] = useState(false);
+
+  useEffect(() => {
+    if (!requestedBank) return;
+    setBankId(requestedBank.id);
+    setTitle(requestedBank.title);
+    setDescription(requestedBank.description);
+    setQuestions(requestedBank.questions);
+    setReviewed(false);
+    setError("");
+    setNotice("Đang chỉnh sửa bộ MCQ đã chọn. Chỉ tài khoản của bạn có quyền lưu thay đổi.");
+  }, [requestedBank]);
 
   const invalidCount = useMemo(() => questions.filter((question) => !cleanLine(question.question) || question.options.length !== 4 || question.options.some((option) => !cleanLine(option.text))).length, [questions]);
 
@@ -192,7 +204,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   return <section className="mb-8 overflow-visible rounded-[2rem] border border-violet-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl sm:p-7">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><FileSearch size={23} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.15em] text-rose-500">Xưởng MCQ riêng</p><h2 className="mt-1 text-2xl font-black text-rose-950">Tạo ngân hàng câu hỏi từ tài liệu</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">Tải PDF hoặc ảnh, duyệt lại nội dung rồi xuất Word và/hoặc đăng thành bộ MCQ trên web.</p></div></div>
-      <span className="w-fit rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">Chỉ thukhoa2002@gmail.com</span>
+      <span className="w-fit rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">Chỉ bạn được đổi tên và sửa nội dung</span>
     </div>
 
     <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto]">
@@ -222,8 +234,8 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <p className="mt-4 text-right text-xs font-semibold text-slate-500">Bản Word gồm toàn bộ câu hỏi trong một file, chỉ tải về máy của bạn và không xuất hiện trong thư viện MCQ.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
         <button type="button" disabled={busy || !reviewed || !title.trim() || invalidCount > 0} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
-        <button type="button" disabled={busy} onClick={() => void persist("draft")} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 disabled:opacity-40"><Check size={17} />Lưu bản nháp</button>
-        <button type="button" disabled={busy || !reviewed || invalidCount > 0} onClick={() => void persist("published")} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Send size={17} />Đăng vào thư viện MCQ</button>
+        <button type="button" disabled={busy} onClick={() => void persist("draft")} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 disabled:opacity-40"><Check size={17} />{bankId ? "Lưu thay đổi riêng tư" : "Lưu bản nháp"}</button>
+        <button type="button" disabled={busy || !reviewed || invalidCount > 0} onClick={() => void persist("published")} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Send size={17} />{bankId ? "Cập nhật bộ MCQ công khai" : "Đăng vào thư viện MCQ"}</button>
       </div>
     </div>}
   </section>;

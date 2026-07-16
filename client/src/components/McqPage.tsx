@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Play, RotateCcw, Trophy, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Pencil, Play, RotateCcw, Trophy, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
 import { listMcqBanks, type McqLibraryBank } from "../services/mcqLibrary";
@@ -17,7 +17,7 @@ type QuizQuestion = {
 };
 type QuizBank = { title: string; questions: QuizQuestion[] };
 type Props = { userId?: string; userEmail?: string; onAiCallsRemaining?: (remaining: number) => void };
-type DeckDefinition = { key: string; title: string; description: string; questionCount: number; dataUrl?: string; bank?: QuizBank };
+type DeckDefinition = { key: string; title: string; description: string; questionCount: number; dataUrl?: string; bank?: QuizBank; libraryBank?: McqLibraryBank };
 
 const staticDecks: DeckDefinition[] = [
   { key: "bo-mcq-kho-khe", title: "Bộ MCQ - Khò khè", description: "Tiếp cận khò khè, viêm tiểu phế quản và hen.", questionCount: 130, dataUrl: "/mcq/bo-mcq-kho-khe.json" },
@@ -36,6 +36,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [progressReady, setProgressReady] = useState(false);
   const [libraryBanks, setLibraryBanks] = useState<McqLibraryBank[]>([]);
+  const [requestedEditBank, setRequestedEditBank] = useState<McqLibraryBank | null>(null);
   const isAdmin = userEmail?.trim().toLowerCase() === "thukhoa2002@gmail.com";
   const refreshLibrary = useCallback(async () => {
     if (!userId) { setLibraryBanks([]); return; }
@@ -51,6 +52,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
       description: item.description || "Bộ câu hỏi đã được quản trị viên kiểm tra và công khai.",
       questionCount: item.questions.length,
       bank: { title: item.title, questions: item.questions },
+      libraryBank: item,
     })),
   ], [libraryBanks]);
 
@@ -150,18 +152,21 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
 
   if (!opened) return (
     <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
-      {isAdmin && userId && <McqAdminStudio userId={userId} drafts={libraryBanks} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} />}
+      {isAdmin && userId && <div id="mcq-admin-studio"><McqAdminStudio userId={userId} drafts={libraryBanks} requestedBank={requestedEditBank} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} /></div>}
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={32} strokeWidth={1.9} /></div>
           <div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Khu vực luyện tập</p><h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1><p className="mt-1 text-sm text-slate-500">Chọn một bộ đề để bắt đầu làm trắc nghiệm.</p></div>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {decks.map((deck) => <button key={deck.key} type="button" onClick={() => openDeck(deck)} className="group rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
-            <div className="flex items-start justify-between gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><CircleHelp size={24} /></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span></div>
-            <h2 className="mt-5 text-xl font-extrabold text-rose-950">{deck.title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{deck.description}</p>
-            <div className="mt-6 flex items-center justify-end text-sm font-bold text-violet-700"><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">Bắt đầu<Play size={15} fill="currentColor" /></span></div>
-          </button>)}
+          {decks.map((deck) => <article key={deck.key} className="group relative rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
+            <button type="button" onClick={() => openDeck(deck)} className="block w-full text-left">
+              <div className="flex items-start justify-between gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><CircleHelp size={24} /></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span></div>
+              <h2 className="mt-5 text-xl font-extrabold text-rose-950">{deck.title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{deck.description}</p>
+              <div className="mt-6 flex items-center justify-end text-sm font-bold text-violet-700"><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">Bắt đầu<Play size={15} fill="currentColor" /></span></div>
+            </button>
+            {isAdmin && deck.libraryBank && <button type="button" title="Chỉ bạn được sửa tên và nội dung bộ MCQ" onClick={() => { setRequestedEditBank(deck.libraryBank!); requestAnimationFrame(() => document.getElementById("mcq-admin-studio")?.scrollIntoView({ behavior: "smooth", block: "start" })); }} className="absolute bottom-6 left-6 inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 shadow-sm hover:bg-violet-50"><Pencil size={14} />Sửa riêng</button>}
+          </article>)}
         </div>
       </div>
     </section>
