@@ -9,6 +9,7 @@ import clozeRouter from "./routes/cloze.js";
 import gradingRouter from "./routes/grading.js";
 import ankiRouter from "./routes/anki.js";
 import mcqRouter from "./routes/mcq.js";
+import clinicalCaseRouter from "./routes/clinicalCase.js";
 import { getAiCallsRemaining } from "./services/aiUsage.js";
 
 dotenv.config();
@@ -26,7 +27,7 @@ app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     message: "Backend OK",
-    version: "1.1.0-gemini",
+    version: "1.2.0-gemini",
   });
 });
 
@@ -39,6 +40,7 @@ app.use("/api/generate-cloze", clozeRouter);
 app.use("/api/grading", gradingRouter);
 app.use("/api/import-anki", ankiRouter);
 app.use("/api/generate-mcq", mcqRouter);
+app.use("/api/generate-clinical-case", clinicalCaseRouter);
 
 if (existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));

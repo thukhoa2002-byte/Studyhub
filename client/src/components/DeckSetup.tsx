@@ -45,6 +45,7 @@ interface Props {
   onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerate: () => void;
   onGenerateMcq: () => void;
+  onGenerateClinicalCase: () => void;
   onImportDeck: (file: File) => Promise<void>;
   onCreateDeck: (title: string, questions: GeneratedQuestion[]) => void;
   onSaveDeck: (title: string, questions: GeneratedQuestion[]) => void | Promise<void>;
@@ -158,6 +159,7 @@ export default function DeckSetup({
   onImageChange,
   onGenerate,
   onGenerateMcq,
+  onGenerateClinicalCase,
   onImportDeck,
   onCreateDeck,
   onSaveDeck,
@@ -465,11 +467,10 @@ export default function DeckSetup({
             onChange={onImageChange}
           />
 
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
             <button disabled={!preview || loading} onClick={onGenerate} className="flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-4 font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo Cloze"}{!loading && <ArrowRight size={18} />}</button>
-            <div>
-              <button disabled={!preview || loading} onClick={onGenerateMcq} className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-400 px-5 py-4 font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo trắc nghiệm"}{!loading && <ArrowRight size={18} />}</button>
-            </div>
+            <button disabled={!preview || loading} onClick={onGenerateMcq} className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-400 px-5 py-4 font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo trắc nghiệm"}{!loading && <ArrowRight size={18} />}</button>
+            <button disabled={!preview || loading} onClick={onGenerateClinicalCase} className="flex w-full items-center justify-center gap-2 rounded-lg bg-rose-400 px-5 py-4 font-bold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo case lâm sàng"}{!loading && <ArrowRight size={18} />}</button>
           </div>
           <p className="mt-2 text-right text-[10px] font-medium text-slate-300" title="Số lượt AI ước tính còn lại">{aiCallsRemaining}</p>
         </div>

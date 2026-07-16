@@ -22,6 +22,7 @@ import { deleteDeck, dismissDeckActivityNotification, getDeckNotificationsEnable
 import {
   generateQuestions,
   generateMultipleChoice,
+  generateClinicalCase,
   importAnkiPackage,
   getAiCallsRemaining,
   type GeneratedQuestion,
@@ -225,6 +226,23 @@ export default function App() {
       finishGenerated(response.title || "Trắc nghiệm", response.data);
     } catch (error) { console.error(error); alert("Không thể tạo câu trắc nghiệm."); }
     finally { setLoading(false); }
+  }
+
+  async function onGenerateClinicalCase() {
+    if (!image) return;
+    try {
+      setLoading(true);
+      setLoadingTitle("Đang tạo case lâm sàng...");
+      setLoadingDescription("Mình đang chuyển kiến thức trong ảnh thành tình huống lâm sàng theo phong cách USMLE.");
+      const response = await generateClinicalCase(image);
+      if (typeof response.aiCallsRemaining === "number") setAiCallsRemaining(response.aiCallsRemaining);
+      finishGenerated(response.title || "Case lâm sàng", response.data);
+    } catch (error) {
+      console.error(error);
+      alert("Không thể tạo case lâm sàng.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function finishGenerated(title: string, cards: GeneratedQuestion[]) {
@@ -566,6 +584,7 @@ export default function App() {
             onImageChange={onImageChange}
             onGenerate={onGenerate}
             onGenerateMcq={onGenerateMcq}
+            onGenerateClinicalCase={onGenerateClinicalCase}
             onImportDeck={onImportDeck}
             onCreateDeck={onCreateDeck}
             onSaveDeck={onSaveDeck}

@@ -24,32 +24,18 @@ router.post("/", upload.single("image"), async (req, res) => {
       file: req.file,
       maxOutputTokens: 12000,
       schema,
-      prompt: `Bạn là bác sĩ và chuyên gia biên soạn câu hỏi theo PHONG CÁCH USMLE Step 2 CK/Step 3 để ôn thi bác sĩ nội trú. Đọc kỹ toàn bộ ảnh, xác định các mục tiêu học tập có giá trị lâm sàng cao rồi tạo câu hỏi single-best-answer bằng tiếng Việt.
+      prompt: `Đọc toàn bộ nội dung y khoa trong ảnh và tạo trắc nghiệm kiến thức bằng tiếng Việt.
 
-NGUYÊN TẮC NGUỒN:
-- Chỉ dùng kiến thức có thể xác nhận từ nội dung nhìn thấy trong ảnh. Không tự thêm bệnh sử, xét nghiệm, liều thuốc, dịch tễ hoặc kết cục không có trong tài liệu.
-- Nếu tài liệu không đủ dữ kiện để viết một ca lâm sàng hợp lệ, hãy dùng câu hỏi ứng dụng/diễn giải ngắn; tuyệt đối không bịa dữ kiện để ép thành ca bệnh.
-- Số câu phụ thuộc số mục tiêu học tập quan trọng, không giới hạn cố định. Mỗi mục tiêu chỉ tạo một câu; không hỏi lại cùng kiến thức bằng cách đổi câu chữ.
-
-CHỌN KIẾN THỨC:
-- Ưu tiên chẩn đoán, chẩn đoán phân biệt, cơ chế bệnh sinh, diễn giải dấu hiệu/xét nghiệm, bước xử trí tiếp theo, điều trị, chỉ định/chống chỉ định, tác dụng phụ, dự phòng, tiên lượng và an toàn người bệnh.
-- Ưu tiên kiến thức làm thay đổi quyết định lâm sàng; bỏ qua chi tiết trang trí, mẹo nhớ và trivia ít giá trị.
-
-CẤU TRÚC CÂU HỎI:
-- Khi nguồn đủ dữ kiện, viết tình huống bệnh nhân ngắn gọn gồm tuổi/giới nếu có, triệu chứng và thời gian, dấu hiệu then chốt, xét nghiệm liên quan; chỉ giữ dữ kiện cần để suy luận.
-- Mỗi câu kiểm tra đúng một quyết định hoặc một mục tiêu học tập và yêu cầu chọn MỘT đáp án tốt nhất.
-- Tránh câu hỏi phủ định như “KHÔNG/NGOẠI TRỪ”, tránh “tất cả đều đúng/không đáp án nào”, tránh gợi ý đáp án bằng độ dài hoặc từ ngữ lặp lại.
-- Có đúng 4 lựa chọn đồng dạng, cùng nhóm khái niệm, độ dài tương đương, loại trừ lẫn nhau và đều có vẻ hợp lý với người học chưa nắm vững.
-- Chỉ một lựa chọn đúng. correctOption phải trùng chính xác một phần tử trong options; answer phải bằng đáp án đúng.
-- explanation tối đa một câu: nêu lý do đáp án đúng và dấu hiệu/cơ chế phân biệt quan trọng nhất.
-- importance từ 1 đến 5, trong đó 5 là kiến thức quyết định chẩn đoán hoặc xử trí. category là chủ đề lâm sàng ngắn gọn.
-
-TỰ KIỂM TRA TRƯỚC KHI TRẢ KẾT QUẢ:
-1. Câu hỏi có thể trả lời hoàn toàn từ ảnh.
-2. Chỉ có một đáp án tốt nhất và không có hai lựa chọn cùng đúng.
-3. Không có dữ kiện bịa thêm hoặc mâu thuẫn với ảnh.
-4. Phương án nhiễu hợp lý nhưng sai rõ khi áp dụng kiến thức nguồn.
-5. Không trùng mục tiêu học tập với câu khác.
+- Chỉ sử dụng dữ kiện nhìn thấy trong ảnh, không tự bổ sung kiến thức ngoài tài liệu.
+- Tự điều chỉnh số câu theo số ý quan trọng; mỗi ý chỉ tạo một câu và không lặp.
+- Ưu tiên định nghĩa, tiêu chuẩn chẩn đoán, phân loại, dấu hiệu, xét nghiệm, chỉ định/chống chỉ định, thuốc-liều, cơ chế và điểm dễ nhầm trong thi Nội trú.
+- Hỏi trực tiếp, rõ ràng, ngắn gọn; không bắt buộc dựng tình huống bệnh nhân.
+- Mỗi câu có đúng 4 lựa chọn đồng dạng và chỉ một đáp án đúng. Không dùng “tất cả đều đúng” hoặc “không đáp án nào”.
+- Phương án nhiễu phải hợp lý nhưng sai rõ theo tài liệu; tránh làm lộ đáp án bằng độ dài hay từ khóa.
+- correctOption phải trùng chính xác một phần tử trong options; answer phải bằng đáp án đúng.
+- explanation tối đa một câu, nêu căn cứ quan trọng nhất trong ảnh.
+- importance từ 1 đến 5; category là chủ đề ngắn gọn.
+- Trước khi trả kết quả, kiểm tra không có hai đáp án cùng đúng, không bịa dữ kiện và không trùng câu.
 
 Trả đúng JSON theo schema, không thêm văn bản bên ngoài JSON.`,
     });

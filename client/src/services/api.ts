@@ -37,6 +37,16 @@ export async function generateMultipleChoice(image: File): Promise<GenerateQuest
   return result;
 }
 
+export async function generateClinicalCase(image: File): Promise<GenerateQuestionsResponse> {
+  const formData = new FormData();
+  formData.append("image", image);
+  const response = await fetch(`${API_URL}/api/generate-clinical-case`, { method: "POST", body: formData });
+  if (!response.ok) { const error = (await response.json().catch(() => null)) as { message?: string } | null; throw new Error(error?.message || "Không thể tạo case lâm sàng."); }
+  const result = (await response.json()) as GenerateQuestionsResponse;
+  result.data = result.data.map((question, index) => ({ ...question, id: crypto.randomUUID?.() ?? index.toString(), bookmarked: false }));
+  return result;
+}
+
 export interface Deck {
   id: string;
 
