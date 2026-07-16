@@ -312,8 +312,10 @@ export default function DeckSetup({
                   <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Đến hạn</span><span className="font-bold text-emerald-500">{deck.review_stats?.due ?? 0}</span></div>
                 </div>
                 <div className="absolute right-3 top-3 flex items-center gap-0.5 sm:static sm:justify-end">
-                {(deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit") && <>
+                {(deck.owner_id === currentUserId || deck.member_role === "admin") &&
                   <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
+                }
+                {(deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit") && <>
                   <div className="relative h-9 w-9 shrink-0">
                     <button
                       type="button"

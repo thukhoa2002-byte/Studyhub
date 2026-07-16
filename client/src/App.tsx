@@ -349,6 +349,12 @@ export default function App() {
 
   async function shareSavedDeck(emails: string[]) {
     if (!sharingDeck) return;
+    const canManageMembers = sharingDeck.owner_id === user?.id || sharingDeck.member_role === "admin";
+    if (!canManageMembers) {
+      setSharingDeck(null);
+      alert("Chỉ chủ sở hữu hoặc quản trị viên mới được thêm thành viên vào bộ thẻ.");
+      return;
+    }
     try {
       await shareDeckWithEmails(sharingDeck.id, emails);
       setCurrentSavedDeck((current) => current && current.id === sharingDeck.id ? { ...current, visibility: "shared" } : current);
@@ -594,7 +600,7 @@ export default function App() {
       {!showWelcome && deckActivityNotifications.length > 0 && <SharedDeckNotification notifications={deckActivityNotifications} onDismiss={(notificationId) => void dismissSharedDeckNotification(notificationId)} onDisable={() => void changeSharedDeckNotifications(false)} />}
       <Footer />
       <PandaAssistant />
-        {sharingDeck && <ShareDeckDialog deckId={sharingDeck.id} title={sharingDeck.title} onClose={() => setSharingDeck(null)} onShare={shareSavedDeck} />}
+        {sharingDeck && (sharingDeck.owner_id === user?.id || sharingDeck.member_role === "admin") && <ShareDeckDialog deckId={sharingDeck.id} title={sharingDeck.title} onClose={() => setSharingDeck(null)} onShare={shareSavedDeck} />}
         {pendingImport && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="import-next-title">
           <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/70 to-teal-50/70 p-7 text-center shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Đã nạp bộ thẻ</p>
