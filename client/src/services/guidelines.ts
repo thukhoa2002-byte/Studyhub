@@ -128,6 +128,15 @@ export async function deleteGuidelineDocument(document: GuidelineDocument) {
   if (paths.length) await client.storage.from("guideline-files").remove(paths);
 }
 
+export async function setGuidelineDocumentVisibility(documentId: string, visibility: "private" | "shared"): Promise<void> {
+  const client = requireSupabase();
+  const { error } = await client
+    .from("guideline_documents")
+    .update({ visibility, updated_at: new Date().toISOString() })
+    .eq("id", documentId);
+  if (error) throw error;
+}
+
 export async function getGuidelineFileUrl(filePath: string): Promise<string> {
   const client = requireSupabase();
   const { data, error } = await client.storage.from("guideline-files").createSignedUrl(filePath, 300);

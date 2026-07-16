@@ -3,6 +3,7 @@ import multer from "multer";
 import { createHash } from "node:crypto";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
+import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 
 const router = express.Router();
 const MAX_PDF_BYTES = 40 * 1024 * 1024;
@@ -57,7 +58,7 @@ const schema = {
   additionalProperties: false,
 };
 
-router.post("/", upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), async (req, res) => {
+router.post("/", requireGuidelineAdmin, upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), async (req, res) => {
   try {
     const document = req.files?.document?.[0];
     const supplement = req.files?.supplement?.[0];

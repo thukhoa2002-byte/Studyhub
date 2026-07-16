@@ -102,7 +102,16 @@ export async function extractGuidelinePdf(document: File, supplement?: File | nu
   formData.append("document", document);
   if (supplement?.size) formData.append("supplement", supplement);
   formData.append("focus", focus);
-  const response = await fetch(`${API_URL}/api/extract-guideline`, { method: "POST", body: formData });
+  const { supabase } = await import("./supabase");
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  const { data: { session } } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+  if (!accessToken) throw new Error("Bạn cần đăng nhập bằng tài khoản quản trị Guideline.");
+  const response = await fetch(`${API_URL}/api/extract-guideline`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: formData,
+  });
   if (!response.ok) {
     const error = (await response.json().catch(() => null)) as { message?: string } | null;
     throw new Error(error?.message || "Không thể đọc guideline bằng AI.");

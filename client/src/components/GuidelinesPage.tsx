@@ -22,11 +22,13 @@ import {
   listGuidelineDocuments,
   listGuidelineEntries,
   setGuidelineEntryStatus,
+  setGuidelineDocumentVisibility,
   type GuidelineCondition,
   type GuidelineDocument,
   type GuidelineEntry,
 } from "../services/guidelines";
 import { extractGuidelinePdf, type GuidelineExtractionResponse } from "../services/api";
+import { isGuidelineAdmin } from "../config/access";
 
 interface Props {
   user: User | null;
@@ -84,7 +86,8 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     () => documents.find((document) => document.id === selectedId) ?? null,
     [documents, selectedId]
   );
-  const ownsSelected = selectedDocument?.owner_id === user?.id;
+  const canManage = isGuidelineAdmin(user?.email);
+  const ownsSelected = canManage && selectedDocument?.owner_id === user?.id;
   const entryGroups = useMemo(() => {
     const groups = new Map<string, GuidelineEntry[]>();
     for (const entry of entries) {
@@ -122,7 +125,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
 
   async function readDocumentWithAi() {
     const formElement = documentFormRef.current;
-    if (!formElement || aiReading || busy) return;
+    if (!canManage || !formElement || aiReading || busy) return;
     const form = new FormData(formElement);
     const file = form.get("file") as File | null;
     const supplementFile = form.get("supplementFile") as File | null;
@@ -153,7 +156,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
 
   async function submitDocument(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!user || busy || aiReading) return;
+    if (!user || !canManage || busy || aiReading) return;
     const form = new FormData(event.currentTarget);
     const file = form.get("file") as File | null;
     const supplementFile = form.get("supplementFile") as File | null;
@@ -180,7 +183,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
         publicationYear: Number(form.get("publicationYear")),
         versionLabel: String(form.get("versionLabel") || ""),
         sourceUrl: String(form.get("sourceUrl") || ""),
-        visibility: String(form.get("visibility")) === "shared" ? "shared" : "private",
+        visibility: "private",
         file: file?.size ? file : null,
         supplementFile: supplementFile?.size ? supplementFile : null,
       });
@@ -223,7 +226,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
 
   async function submitEntry(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!user || !selectedDocument || busy) return;
+    if (!user || !ownsSelected || !selectedDocument || busy) return;
     setBusy(true);
     try {
       const created = await createGuidelineEntry(user.id, {
@@ -234,7 +237,13 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       setEntries((items) => [created, ...items]);
       setEntryForm(emptyEntry);
       setShowEntryForm(false);
-      setNotice("Đã lưu bản nháp. Hãy đối chiếu PDF trước khi đánh dấu Đã kiểm duyệt.");
+      if (selectedDocument.visibility === "shared") {
+        await setGuidelineDocumentVisibility(selectedDocument.id, "private");
+        setDocuments((items) => items.map((item) => item.id === selectedDocument.id ? { ...item, visibility: "private" } : item));
+        setNotice("Đã lưu bản nháp mới và tự động gỡ công khai. Hãy kiểm chứng toàn bộ trước khi đăng lại.");
+      } else {
+        setNotice("Đã lưu bản nháp. Hãy đối chiếu PDF trước khi đánh dấu Đã kiểm duyệt.");
+      }
     } catch (error) { setNotice(errorMessage(error)); }
     finally { setBusy(false); }
   }
@@ -245,6 +254,25 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     try {
       await setGuidelineEntryStatus(entry.id, status);
       setEntries((items) => items.map((item) => item.id === entry.id ? { ...item, status } : item));
+      if (status === "draft" && selectedDocument?.visibility === "shared") {
+        await setGuidelineDocumentVisibility(selectedDocument.id, "private");
+        setDocuments((items) => items.map((item) => item.id === selectedDocument.id ? { ...item, visibility: "private" } : item));
+        setNotice("Khuyến cáo đã trở về bản nháp nên guideline được chuyển về Riêng tư.");
+      }
+    } catch (error) { setNotice(errorMessage(error)); }
+  }
+
+  async function togglePublished() {
+    if (!ownsSelected || !selectedDocument) return;
+    const nextVisibility = selectedDocument.visibility === "shared" ? "private" : "shared";
+    if (nextVisibility === "shared" && (entries.length === 0 || entries.some((entry) => entry.status !== "reviewed"))) {
+      setNotice("Chỉ có thể đăng công khai sau khi bạn đã xác nhận tất cả khuyến cáo trong tài liệu.");
+      return;
+    }
+    try {
+      await setGuidelineDocumentVisibility(selectedDocument.id, nextVisibility);
+      setDocuments((items) => items.map((item) => item.id === selectedDocument.id ? { ...item, visibility: nextVisibility } : item));
+      setNotice(nextVisibility === "shared" ? "Đã đăng công khai. Các tài khoản khác hiện có thể xem bản đã kiểm chứng." : "Đã gỡ công khai và chuyển guideline về Riêng tư.");
     } catch (error) { setNotice(errorMessage(error)); }
   }
 
@@ -273,21 +301,21 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Nguồn học đã kiểm chứng</p>
               <h1 id="guidelines-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">Guidelines</h1>
-              <p className="mt-1 text-sm text-slate-500">Lưu PDF riêng tư · tóm tắt có trang nguồn · kiểm duyệt trước khi chia sẻ</p>
+              <p className="mt-1 text-sm text-slate-500">Chỉ quản trị viên kiểm chứng và đăng · thành viên chỉ xem bản đã công khai</p>
             </div>
           </div>
-          <button type="button" onClick={() => setShowDocumentForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500"><UploadCloud size={18} /> Thêm guideline</button>
+          {canManage && <button type="button" onClick={() => setShowDocumentForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500"><UploadCloud size={18} /> Thêm guideline</button>}
         </div>
 
         {notice && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/85 px-4 py-3 text-sm leading-6 text-amber-900">{notice}</div>}
 
-        {showDocumentForm && <form ref={documentFormRef} onSubmit={submitDocument} className="mt-6 grid gap-4 rounded-3xl border border-rose-100 bg-white/75 p-5 sm:grid-cols-2">
+        {canManage && showDocumentForm && <form ref={documentFormRef} onSubmit={submitDocument} className="mt-6 grid gap-4 rounded-3xl border border-rose-100 bg-white/75 p-5 sm:grid-cols-2">
           <label className="text-sm font-bold text-slate-700">Tên guideline<input name="title" required placeholder="2024 ESC Guidelines for AF" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
           <label className="text-sm font-bold text-slate-700">Hiệp hội<input name="society" required defaultValue="ESC" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
           <label className="text-sm font-bold text-slate-700">Bệnh<select name="condition" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3"><option>ACS</option><option>HF</option><option>AF</option><option>Khác</option></select></label>
           <label className="text-sm font-bold text-slate-700">Năm xuất bản<input name="publicationYear" required type="number" min="1900" max="2200" defaultValue={new Date().getFullYear()} className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
           <label className="text-sm font-bold text-slate-700">Phiên bản<input name="versionLabel" placeholder="Full guideline / Focused update" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
-          <label className="text-sm font-bold text-slate-700">Quyền xem<select name="visibility" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3"><option value="private">Chỉ mình tôi</option><option value="shared">Chia sẻ bản đã kiểm duyệt</option></select></label>
+          <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-semibold leading-5 text-amber-800">Tài liệu mới luôn ở chế độ Riêng tư. Sau khi xác nhận toàn bộ khuyến cáo, bạn mới có thể đăng công khai.</div>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">Link nguồn chính thức<input name="sourceUrl" required type="url" placeholder="https://www.escardio.org/..." className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF guideline chính<input name="file" required type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-teal-200 bg-teal-50/55 px-4 py-4 text-sm" /></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF Supplementary Data (không bắt buộc)<input name="supplementFile" type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-violet-200 bg-violet-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tổng hai file tối đa 40 MB khi dùng AI · mỗi PDF tối đa 40 MB</span></label>
@@ -299,7 +327,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
 
         <div className="mt-7 grid gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
           <aside className="space-y-3">
-            {documents.length === 0 ? <div className="rounded-3xl border border-dashed border-teal-200 bg-teal-50/45 p-6 text-center text-sm text-slate-500">Chưa có guideline nào.</div> : documents.map((document) => <button key={document.id} type="button" onClick={() => setSelectedId(document.id)} className={`w-full rounded-2xl border p-4 text-left ${selectedId === document.id ? "border-teal-300 bg-teal-50 shadow-sm" : "border-rose-100 bg-white/75"}`}>
+            {documents.length === 0 ? <div className="rounded-3xl border border-dashed border-teal-200 bg-teal-50/45 p-6 text-center text-sm text-slate-500">{canManage ? "Chưa có guideline nào." : "Chưa có guideline đã kiểm chứng được đăng công khai."}</div> : documents.map((document) => <button key={document.id} type="button" onClick={() => setSelectedId(document.id)} className={`w-full rounded-2xl border p-4 text-left ${selectedId === document.id ? "border-teal-300 bg-teal-50 shadow-sm" : "border-rose-100 bg-white/75"}`}>
               <div className="flex items-start gap-3"><FileText className="mt-0.5 shrink-0 text-rose-500" size={20} /><div className="min-w-0"><p className="line-clamp-2 font-extrabold text-rose-950">{document.title}</p><p className="mt-1 text-xs font-semibold text-slate-500">{document.society} · {document.condition} · {document.publication_year}</p><span className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[11px] font-bold text-teal-700">{document.visibility === "shared" ? "Đã chia sẻ" : "Riêng tư"}</span></div></div>
             </button>)}
           </aside>
@@ -307,7 +335,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <div className="min-w-0">
             {!selectedDocument ? <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-rose-200 text-sm text-slate-400">Chọn hoặc thêm một guideline.</div> : <>
               <div className="rounded-3xl border border-rose-100 bg-white/78 p-5">
-                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> Guideline PDF</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><FileText size={16} /> Supplement</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
+                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> Guideline PDF</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><FileText size={16} /> Supplement</button>}{ownsSelected && <button type="button" onClick={() => void togglePublished()} className={`rounded-xl border px-3 py-2 text-sm font-bold ${selectedDocument.visibility === "shared" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-teal-200 bg-teal-50 text-teal-700"}`}>{selectedDocument.visibility === "shared" ? "Gỡ công khai" : "Đăng công khai"}</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
                 <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">Phục vụ học tập. Luôn kiểm tra tài liệu gốc, đặc điểm người bệnh, chức năng gan–thận và hướng dẫn sử dụng thuốc trước quyết định điều trị.</div>
               </div>
 
