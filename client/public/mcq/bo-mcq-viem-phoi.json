@@ -1,0 +1,2260 @@
+{
+  "schema_version": "1.0",
+  "title": "Bộ MCQ - Viêm phổi",
+  "question_type": "single_choice",
+  "grading": {
+    "correct_score": 1,
+    "incorrect_score": 0
+  },
+  "questions": [
+    {
+      "source_number": 1,
+      "question": "Bé gái 8 tháng, bệnh 5 ngày: ngày 1-4 ho khan, sổ mũi, sốt nhẹ; ngày 5: ho đàm, sốt cao, thở mệt và bỏ bú. Khám: bé tỉnh đừ, môi khô, lưỡi dơ, mạch rõ 158 lần/phút, nhiệt độ 39oC, nhịp thở 66 lần/phút, co lõm ngực rõ, nghe ran nổ hai bên phổi. Các cơ quan khác không ghi nhận bất thường. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm tiểu phế quản bội nhiễm"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phế quản phổi"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi nặng"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-001"
+    },
+    {
+      "source_number": 2,
+      "question": "Bé trai 4 tuổi, cân nặng 15 kg, nhập viện vì đau ngực, khó thở. Bệnh 5 ngày: ho, sốt cao, khó thở. Khám: tỉnh, môi tái, SpO2 88%, mạch 150 lần/phút, nhiệt độ 39oC, nhịp thở 56 lần/phút, co lõm ngực, phổi nghe phế âm giảm bên phải, rung thanh giảm bên phải. Kết quả X quang phổi thẳng (hình dưới). Chẩn đoán phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Suy hô hấp, tràn khí màng phổi phải"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổi nặng biến chứng suy hô hấp, tràn khí màng phổi phải"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi nặng biến chứng suy hô hấp, tràn khí tràn dịch màng phổi phải"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi nặng biến chứng suy hô hấp, xẹp phổi phải"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "image_url": "/mcq/images/pneumonia/q002.jpg",
+      "image_alt": "X-quang ngực kèm theo câu hỏi",
+      "id": "pneumonia-002"
+    },
+    {
+      "source_number": 3,
+      "question": "Bé trai 13 tháng, đến khám vì sốt. Bệnh 5 ngày: sốt, ho đàm, sổ mũi xanh. Khám: tỉnh, môi hồng, chi ấm, mạch rõ, nhiệt độ 38,5oC, niêm mạc mũi đỏ, dịch tiết mũi màu xanh, họng đỏ, amydan phì đại, không mủ, nhịp thở 60 lần/phút, không co lõm ngực, phổi không ran. Các cơ quan khác chưa ghi nhận bất thường. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm xoang cấp"
+        },
+        {
+          "id": "B",
+          "text": "Viêm amydan"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-003"
+    },
+    {
+      "source_number": 4,
+      "question": "Bé gái 14 tuổi, đến khám vì ho. Bệnh 5 ngày, ngày 1-3: sốt nhẹ, ho ít, khám điều trị ngoại trú với chẩn đoán Viêm họng cấp, uống kháng sinh Cefixim. Ngày 4-5: sốt tăng, ho nhiều, giảm ăn uống. Tiền căn khỏe. Khám ghi nhận trẻ thở nhanh, sốt 38,7oC, phổi ran ngáy và ran ẩm 2 bên. Kết quả X-quang ngực như hình bên dưới. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi hoại tử"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phế quản phổi"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi mô kẽ"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi thùy dưới phải"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "image_url": "/mcq/images/pneumonia/q004.jpg",
+      "image_alt": "X-quang ngực kèm theo câu hỏi",
+      "id": "pneumonia-004"
+    },
+    {
+      "source_number": 5,
+      "question": "Bé gái 9 tuổi đến khám vì ho. Bệnh 4 ngày: sốt cao liên tục, ho đàm nhiều, ăn uống được. Tiền căn khỏe. Khám: tỉnh, môi hồng, chi ấm, mạch quay rõ 100 lần/phút, nhiệt độ 38oC, thở co kéo nhẹ gian sườn 50 lần/phút, 2 đáy phổi nghe ran ẩm và ít ran ngáy. Các cơ quan khác không ghi nhận bất thường. Điều trị phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cefotaxim + Amikacin"
+        },
+        {
+          "id": "B",
+          "text": "Ceftriaxone + Vancomycin"
+        },
+        {
+          "id": "C",
+          "text": "Ciprofloxacin + Clarithromycin"
+        },
+        {
+          "id": "D",
+          "text": "Ceftriaxone + Azithromycin"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-005"
+    },
+    {
+      "source_number": 6,
+      "question": "Bé gái 10 tháng, bệnh 3 ngày với sốt, ho, ọc sữa sau ho, bỏ bú. Khám: đừ, To=38,9oC, môi hồng, SpO2=97%, chi ấm, mạch quay rõ 160 lần/phút, CRT < 2 giây, thở co lõm ngực vừa 76 lần/phút, không co kéo cơ hô hấp phụ, phổi ran nổ bên (P). Phân độ nặng viêm phổi cho bé?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi vừa"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổi rất nặng"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi nhẹ"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi nặng"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-006"
+    },
+    {
+      "source_number": 7,
+      "question": "Em nữ, 8 tuổi, đến khám vì ho. Bệnh 3 ngày: sốt nhẹ, mệt, đau đầu, ho nhiều. Tiền căn không ghi nhận bất thường. Khám: tỉnh, To=38oC, môi hồng, SpO2=97%, chi ấm mạch quay rõ 94 lần/phút, thở không co kéo 32 lần/phút, tim đều rõ, phổi ít ran ngáy, ẩm. Các cơ quan khác không ghi nhận bất thường. Chọn kháng sinh phù hợp nhất cho trẻ là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cefixim"
+        },
+        {
+          "id": "B",
+          "text": "Cefuroxime"
+        },
+        {
+          "id": "C",
+          "text": "Amoxicillin"
+        },
+        {
+          "id": "D",
+          "text": "Azithromycin"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-007"
+    },
+    {
+      "source_number": 8,
+      "question": "Bé trai, 12 tháng bị viêm phổi và viêm tai giữa. Bé đã được chủng ngừa đủ theo chương trình tiêm chủng mở rộng. Tác nhân vi sinh nghĩ nhiều nhất gây nhiễm trùng cho trẻ là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Respiratory synctial virus"
+        },
+        {
+          "id": "B",
+          "text": "Adeno virus type 3"
+        },
+        {
+          "id": "C",
+          "text": "Haemophillus influenzae"
+        },
+        {
+          "id": "D",
+          "text": "Streptococcus pneumoniae"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-008"
+    },
+    {
+      "source_number": 9,
+      "question": "Bé 6 tuổi. N1-N3: sổ mũi, sốt nhẹ, ho đàm. N4-N5: đi khám tại bác sĩ tư được điều trị với thuốc uống không rõ, bé vẫn ho nhiều, còn sốt. Khám: tỉnh, To=37,8oC, môi hồng, thở không co kéo 42 lần/phút, phổi ran ẩm 2 bên. Xquang phổi có tổn thương mô kẽ. Hướng xử trí tiếp theo nào sau đây là thích hợp?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị ngoại trú với Macrolide"
+        },
+        {
+          "id": "B",
+          "text": "Điều trị ngoại trú với Cefuroxim"
+        },
+        {
+          "id": "C",
+          "text": "Điều trị ngoại trú với Amoxicillin"
+        },
+        {
+          "id": "D",
+          "text": "Nhập viện"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-009"
+    },
+    {
+      "source_number": 10,
+      "question": "Yếu tố nào là nguy cơ mắc chủng kháng thuốc?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nằm viện trong 2 tuần trước đó"
+        },
+        {
+          "id": "B",
+          "text": "Sanh non"
+        },
+        {
+          "id": "C",
+          "text": "<2 tuổi"
+        },
+        {
+          "id": "D",
+          "text": "Tiếp xúc sớm với khói thuốc lá"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-010"
+    },
+    {
+      "source_number": 11,
+      "question": "Bé 9 tháng tuổi, bệnh 3 ngày với sốt, ho nhiều. Khám: Đừ, To=39,3oC, môi hồng, vẻ mặt nhiễm trùng, chi ấm, mạch rõ 154 lần/phút, thở co lõm ngực 62 lần/phút, phổi ran ẩm, nhọt da đầu. Các cơ quan khác không ghi nhận bất thường. Hướng xử trí tiếp theo nào sau đây là thích hợp?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị ngoại trú, hẹn tái khám 2 ngày"
+        },
+        {
+          "id": "B",
+          "text": "Điều trị ngoại trú, hẹn tái khám 1 ngày"
+        },
+        {
+          "id": "C",
+          "text": "Nhập viện"
+        },
+        {
+          "id": "D",
+          "text": "Điều trị ngoại trú, hẹn tái khám 3 ngày"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-011"
+    },
+    {
+      "source_number": 12,
+      "question": "Tác nhân nào KHÔNG phải tác nhân gây viêm phổi thường gặp ở trẻ 6 – 12 tháng?",
+      "options": [
+        {
+          "id": "A",
+          "text": "S. aureus"
+        },
+        {
+          "id": "B",
+          "text": "S. Pneumoniae"
+        },
+        {
+          "id": "C",
+          "text": "Siêu vi"
+        },
+        {
+          "id": "D",
+          "text": "C. trachomatis"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-012"
+    },
+    {
+      "source_number": 13,
+      "question": "Bé 8 tháng. N1-N3: sổ mũi, sốt, ho đàm. N4-N5: đi khám tại bác sĩ tư được điều trị với Amoxicillin, bé vẫn ho nhiều, còn sốt. Khám: tỉnh, To=38,5oC, môi hồng, chi ấm, mạch rõ 154 lần/phút, thở co lõm ngực 52 lần/phút, tim đều rõ, phổi ran ẩm. Hướng xử trí tiếp theo nào sau đây là thích hợp?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhập viện, kháng sinh uống phối hợp"
+        },
+        {
+          "id": "B",
+          "text": "Điều trị ngoại trú, không kháng sinh, hẹn tái khám 1 ngày"
+        },
+        {
+          "id": "C",
+          "text": "Nhập viện, kháng sinh tĩnh mạch"
+        },
+        {
+          "id": "D",
+          "text": "Điều trị ngoại trú, hẹn tái khám 2 ngày"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-013"
+    },
+    {
+      "source_number": 14,
+      "question": "Hình ảnh Xquang điển hình gặp trong viêm phổi do tụ cầu?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tổn thương phế nang"
+        },
+        {
+          "id": "B",
+          "text": "Tổn thương phế nang + mô kẽ"
+        },
+        {
+          "id": "C",
+          "text": "Nhiều ổ áp xe nhỏ"
+        },
+        {
+          "id": "D",
+          "text": "Tổn thương mô kẽ + ứ khí"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-014"
+    },
+    {
+      "source_number": 15,
+      "question": "Một trẻ trai 10 tháng NV vì VP nặng kèm nhọt da, cấy máu dương tính với S.aureus kháng methicillin. KS lựa chọn là gì",
+      "options": [
+        {
+          "id": "A",
+          "text": "Oxacillin"
+        },
+        {
+          "id": "B",
+          "text": "Cefepim"
+        },
+        {
+          "id": "C",
+          "text": "Ciprofloxacin"
+        },
+        {
+          "id": "D",
+          "text": "Vancomycin"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-015"
+    },
+    {
+      "source_number": 16,
+      "question": "BN VP do VK gram âm tiết Beta-lactamase, KS nào sau đây không phù hợp",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cefepim"
+        },
+        {
+          "id": "B",
+          "text": "Ticarcillin + Acid clavulanic"
+        },
+        {
+          "id": "C",
+          "text": "Ciprofloxacin"
+        },
+        {
+          "id": "D",
+          "text": "Vancomycin"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-016"
+    },
+    {
+      "source_number": 17,
+      "question": "Một bé trai 18 tháng đến khám vì ho, sốt 5 ngày, chỉ định NV khi có dấu hiệu nào sau đây",
+      "options": [
+        {
+          "id": "A",
+          "text": "Sốt 38,3 độC"
+        },
+        {
+          "id": "B",
+          "text": "NT 42l"
+        },
+        {
+          "id": "C",
+          "text": "Tiêu phân lỏng"
+        },
+        {
+          "id": "D",
+          "text": "Phập phồng cánh mũi"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-017"
+    },
+    {
+      "source_number": 18,
+      "question": "Một trẻ 24 tháng đến khám vì ho, khó thở. Khi nào chỉ định chụp Xquang ngực",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ho kèm sổ mũi"
+        },
+        {
+          "id": "B",
+          "text": "Ho kèm khò khè"
+        },
+        {
+          "id": "C",
+          "text": "VP tái phát"
+        },
+        {
+          "id": "D",
+          "text": "VP nhẹ"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-018"
+    },
+    {
+      "source_number": 19,
+      "question": "Tác nhân vi sinh xâm nhập vào phổi qua đường máu như thế nào? Chọn câu sai",
+      "options": [
+        {
+          "id": "A",
+          "text": "Sau dị vật đường thở"
+        },
+        {
+          "id": "B",
+          "text": "Sau nhiễm trùng da, cơ"
+        },
+        {
+          "id": "C",
+          "text": "Sau viêm khớp mủ"
+        },
+        {
+          "id": "D",
+          "text": "Sau viêm nội tâm mạc"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-019"
+    },
+    {
+      "source_number": 20,
+      "question": "Yếu tố nào sau đây không phải là yếu tố nguy cơ đưa đến VP",
+      "options": [
+        {
+          "id": "A",
+          "text": "Dị tật bẩm sinh tại đường hô hấp"
+        },
+        {
+          "id": "B",
+          "text": "Suy giảm miễn dịch"
+        },
+        {
+          "id": "C",
+          "text": "Thoát vị hoành"
+        },
+        {
+          "id": "D",
+          "text": "GERD"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-020"
+    },
+    {
+      "source_number": 21,
+      "question": "Bé trai 4 tuổi, nặng 15 kg, bệnh N7: N1-3 sốt nhẹ, ho, sổ mũi, N4 sốt cao, ho nhiều, thở mệt nên NV. Khám: tỉnh, môi hồng, NĐ 39oC, NT 55l/p, ran nổ đỉnh phổi P. Xquang phổi cho thấy đám mờ khá đồng nhất ở 1/3 trên phổi P, giới hạn là rãnh liên thùy nhỏ, có hình ảnh air-bronchogram trên đám mờ. TC chích ngừa đầy đủ theo chương trình TCMR, chưa chích ngừa dịch vụ. Chẩn đoán phù hợp",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm đỉnh phổi P"
+        },
+        {
+          "id": "B",
+          "text": "Viêm thùy trên phổi P"
+        },
+        {
+          "id": "C",
+          "text": "Xẹp thùy trên phổi P"
+        },
+        {
+          "id": "D",
+          "text": "Tràn dịch rãnh liên thùy nhỏ"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-021"
+    },
+    {
+      "source_number": 22,
+      "question": "Một trẻ nam 8 tháng đến khám vì thở nhanh Bệnh sử 3 ngày: sốt nhẹ, ho ít, ói 5 lần, tiêu lỏng vàng 8-9 lần/ngày Khám: tỉnh, thở 60 lần/phút, không co lõm ngực, To=37,5oC, phổi không ran, có dấu mất nước. Nguyên nhân thở nhanh nghĩ nhiều nhất trên trẻ này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phế quản"
+        },
+        {
+          "id": "C",
+          "text": "Viêm tiểu phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Toan chuyển hoá"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-022"
+    },
+    {
+      "source_number": 23,
+      "question": "Phân loại viêm phổi theo WHO không có loại nào sau đây?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phế quản phổi"
+        },
+        {
+          "id": "B",
+          "text": "Phế quản phế viêm"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi kẽ"
+        },
+        {
+          "id": "D",
+          "text": "Áp xe phổi"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-023"
+    },
+    {
+      "source_number": 24,
+      "question": "Bệnh nhi nam, 5 tháng tuổi, bệnh tại nhà 5 ngày với sốt, ho. Bệnh nhi đế khám trong tình trạng khó thở nặng, SpO2 90%, phổi nghe ran ẩm nổ 2 bên. Cơ chề nào sau đây là cơ chế chính của tình trạng giảm oxy nói trên là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Giảm thông khí"
+        },
+        {
+          "id": "B",
+          "text": "Shunt tại phổi"
+        },
+        {
+          "id": "C",
+          "text": "Bất tương hợp V/Q"
+        },
+        {
+          "id": "D",
+          "text": "Tăng khoảng chết"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-024"
+    },
+    {
+      "source_number": 25,
+      "question": "Yếu tố thuận lợi của viêm phổi ở trẻ em là gì? NGOẠI TRỪ:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Suy giảm miễn dịch"
+        },
+        {
+          "id": "B",
+          "text": "Suy dinh dưỡng"
+        },
+        {
+          "id": "C",
+          "text": "Không chủng ngừa"
+        },
+        {
+          "id": "D",
+          "text": "Chậm phát triển tâm vận"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-025"
+    },
+    {
+      "source_number": 26,
+      "question": "Trên lâm sàng, để chẩn đoán viêm phổi dựa vào điều nào sau đây?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Lâm sàng (ho, thở nhanh, co lõm)"
+        },
+        {
+          "id": "B",
+          "text": "Xquang có tổn thương phổi"
+        },
+        {
+          "id": "C",
+          "text": "Lâm sàng kết hợp xquang"
+        },
+        {
+          "id": "D",
+          "text": "Cấy đàm phân lập được vi khuẩn"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-026"
+    },
+    {
+      "source_number": 27,
+      "question": "Để tăng độ chính xác trong chẩn đoán viêm phổi chúng ta dựa vào điều nào sau đây?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Lâm sàng (ho, thở nhanh, co lõm)"
+        },
+        {
+          "id": "B",
+          "text": "Xquang có tổn thương phổi"
+        },
+        {
+          "id": "C",
+          "text": "Lâm sàng kết hợp xquang"
+        },
+        {
+          "id": "D",
+          "text": "Cấy đàm phân lập được vi khuẩn"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-027"
+    },
+    {
+      "source_number": 28,
+      "question": "Bé gái 6 tháng tuổi, đến khám vì khó thở, bênh 3 ngày, N1 – N2: cháu ho, sổ mũi, sốt nhẹ. N3 cháu thở mệt nên tới khám. Khám thấy tổng trạng ổn. Thở 60 lần/phút, sốt 38oC, rút lõm ngực nhẹ, phổi ít ran ẩm hai bên. Các cơ quan khác chưa ghi nhận bất thường. Dấu hiệu nào quan trọng nhất để gợi ý chẩn đoán ở bệnh nhân này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ho, sổ mũi"
+        },
+        {
+          "id": "B",
+          "text": "Sốt 38 độ C"
+        },
+        {
+          "id": "C",
+          "text": "Thở nhanh"
+        },
+        {
+          "id": "D",
+          "text": "Ran ẩm"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-028"
+    },
+    {
+      "source_number": 29,
+      "question": "WHO dựa vào đặc điểm nào sau đây để phân loại viêm phổi?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Lâm sàng (ho, thở nhanh, co lõm)"
+        },
+        {
+          "id": "B",
+          "text": "Xquang có tổn thương phổi"
+        },
+        {
+          "id": "C",
+          "text": "Lâm sàng kết hợp xquang"
+        },
+        {
+          "id": "D",
+          "text": "Cấy đàm phân lập được vi khuẩn"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-029"
+    },
+    {
+      "source_number": 30,
+      "question": "Bé trai 9 tháng đến khám vì khó thở. Bệnh 5 ngày: ho, sổ mũi, điều trị ngoại trú không giảm, sáng nay ho nhiều, bỏ bú, khó thở. Khám: quấy, môi hồng, sốt 38,3ºC, nhịp thở 54 lần/phút, co lõm ngực, phổi ran ẩm 2 bên. Chẩn đoán phù hợp nhất cho trẻ này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi nhẹ"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản nhẹ"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi nặng"
+        },
+        {
+          "id": "D",
+          "text": "Viêm tiểu phế quản nặng"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-030"
+    },
+    {
+      "source_number": 31,
+      "question": "Những yếu tố nguy cơ của viêm phổi do Klebiella là?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhiễm trùng da"
+        },
+        {
+          "id": "B",
+          "text": "Môi trường đông đúc"
+        },
+        {
+          "id": "C",
+          "text": "Sanh non"
+        },
+        {
+          "id": "D",
+          "text": "Suy giảm miễn dịch"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-031"
+    },
+    {
+      "source_number": 32,
+      "question": "Bệnh nhi nữ, 2 tháng tuổi, sinh thường, bệnh tại nhà 14 ngày với ho, sổ mũi. Bệnh nhi đến khám trong tình trạng khó thở nhẹ, SpO2 95%, phổi nghe ran ẩm kèm khò khè. Đặc điểm gợi ý tác nhân bệnh lý nào?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Siêu vi"
+        },
+        {
+          "id": "B",
+          "text": "Phế cầu"
+        },
+        {
+          "id": "C",
+          "text": "Vi khuẩn không điển hình"
+        },
+        {
+          "id": "D",
+          "text": "Vi khuẩn lao"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-032"
+    },
+    {
+      "source_number": 33,
+      "question": "Trẻ 8 tuổi, đến khám vì ho, sốt cao 10 ngày, vẻ mặt nhiễm trùng X-quang ngực có hình ảnh đông đặc thuỳ dưới phổi phải Tác nhân thường gặp trong trường hợp này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "H. Influenzae"
+        },
+        {
+          "id": "B",
+          "text": "S. pneumoniae"
+        },
+        {
+          "id": "C",
+          "text": "M. pneumoniae"
+        },
+        {
+          "id": "D",
+          "text": "M. tuberculosis"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-033"
+    },
+    {
+      "source_number": 34,
+      "question": "Bé trai, 10 tháng tuổi, đến khám vì khó thở, bệnh 5 ngày. N1 – N4: cháu ho, sổ mũi, sốt nhẹ. N5 cháu sốt cao, thở mệt nên được đưa đến khám. Khám tổng trạng ổn. Thở 60 lần/phút, sốt 38 độ C, rút lõm ngực, phổi ran ẩm hai bên. Các cơ quan khác bình thường. Tác nhân nào sau đây là nguyên nhân thường gặp nhất gây bệnh cho bệnh nhi này?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Streptococcus pneumoniae"
+        },
+        {
+          "id": "B",
+          "text": "Haemophillus influenzae"
+        },
+        {
+          "id": "C",
+          "text": "Moraxella catarrhallis"
+        },
+        {
+          "id": "D",
+          "text": "Staphylococcus aureus"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-034"
+    },
+    {
+      "source_number": 22,
+      "question": "000/mcL, Lympho chiếm 80%. Tác nhân gây bệnh nghĩ nhiều nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Streptococcus pneumoniae"
+        },
+        {
+          "id": "B",
+          "text": "Chlamydia trachomatis"
+        },
+        {
+          "id": "C",
+          "text": "Respiratory synctial virus"
+        },
+        {
+          "id": "D",
+          "text": "Ho gà"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-035"
+    },
+    {
+      "source_number": 36,
+      "question": "Một trẻ 2 tháng, sanh thường, đủ tháng, đến khám vì ho, không sốt, Khám: nhịp thở 60 lần /phút, không co lõm, phổi ít ran ẩm X-quang ngực: viêm phổi kẽ, Bạch cầu tăng, Eosinophile 10 % Nghĩ đến tác nhân gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "H. influenzae"
+        },
+        {
+          "id": "B",
+          "text": "S. pneumoniae"
+        },
+        {
+          "id": "C",
+          "text": "M. pneumoniae"
+        },
+        {
+          "id": "D",
+          "text": "C. trachomatis"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-036"
+    },
+    {
+      "source_number": 37,
+      "question": "Bệnh nhi nam, 12 tháng tuổi, bệnh tại nhà 8 ngày với sốt ho. BN đến khám trong tình trạng khó thở nặng, SpO2 92%, phổi nghe ran ẩm nổ 2 bên. BN được chụp X quang ngực ghi nhận đám mờ đồng nhất, dạng tròn ở đáy phổi phải. Sau điều trị 10 ngày, bệnh nhân cải thiện lâm sàng hoàn toàn. Thái độ xử trí tiếp theo ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Chụp lại X quang vì đây là tình trạng viêm phổi nặng có biến chứng là suy hô hấp"
+        },
+        {
+          "id": "B",
+          "text": "Cho xuất viện, không chụp lại X quang vì X quang mất nhiều tuần mới cải thiện"
+        },
+        {
+          "id": "C",
+          "text": "Cho xuất viện. không chụp lại X quang vì X quang đã cải thiện trước lâm sàng"
+        },
+        {
+          "id": "D",
+          "text": "Chụp lại X quang vì đây là trường hợp viêm phổi tròn, cần phân biệt với U, Lao"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-037"
+    },
+    {
+      "source_number": 38,
+      "question": "Kháng sinh nào được lựa chọn đầu tiên ở bé 7 tháng tuổi bị viêm phổi nặng đã chủng ngừa đủ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ampicillin"
+        },
+        {
+          "id": "B",
+          "text": "Azithromycin"
+        },
+        {
+          "id": "C",
+          "text": "Cefotaxime"
+        },
+        {
+          "id": "D",
+          "text": "Ceftriaxone"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-038"
+    },
+    {
+      "source_number": 39,
+      "question": "Kháng sinh nào được lựa chọn đầu tiên ở bé 7 tháng tuổi bị viêm phổi nặng đã chủng ngừa đủ có hình ảnh thâm nhiễm lưới nốt trên Xquang?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ampicillin"
+        },
+        {
+          "id": "B",
+          "text": "Azithromycin"
+        },
+        {
+          "id": "C",
+          "text": "Cefotaxime"
+        },
+        {
+          "id": "D",
+          "text": "Ceftriaxone"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-039"
+    },
+    {
+      "source_number": 40,
+      "question": "Kháng sinh tĩnh mạch nào ưu tiên điều trị Streptococcus pneumoniae kháng penicillin, với MICs ≥ 4 μg/mL?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Amoxicillin liều cao"
+        },
+        {
+          "id": "B",
+          "text": "Ceftriaxone"
+        },
+        {
+          "id": "C",
+          "text": "Clindamycin"
+        },
+        {
+          "id": "D",
+          "text": "Vancomycin"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-040"
+    },
+    {
+      "source_number": 41,
+      "question": "Trẻ 3 tháng tuổi bị viêm phổi có triệu chứng sốt cao ngày 3 kèm dấu hiệu đầu gật gù khi khám. Chưa chủng ngừa. Kháng sinh nào được lựa chọn đầu tiên?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ampicillin + Gentamycin"
+        },
+        {
+          "id": "B",
+          "text": "Ampicillin"
+        },
+        {
+          "id": "C",
+          "text": "Gentamycin"
+        },
+        {
+          "id": "D",
+          "text": "Cefotaxim"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-041"
+    },
+    {
+      "source_number": 42,
+      "question": "Bé 17 tháng bị ho và sốt 37,5 – 38oC 3 ngày. Lúc khám thấy bé tỉnh, thở co lõm ngực nhẹ, nhịp thở 48 lần/phút, phổi ran ngáy. XQ có hình ảnh thâm nhiễm nốt rải rác không hợp lưu, không hệ thống. Bé chưa chủng ngừa đủ. Kháng sinh nào được lựa chọn ưu tiên?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Penicillin G"
+        },
+        {
+          "id": "B",
+          "text": "Macrolide"
+        },
+        {
+          "id": "C",
+          "text": "Cephalosporin thế hệ 3"
+        },
+        {
+          "id": "D",
+          "text": "Kháng sinh nhóm beta – lactam"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-042"
+    },
+    {
+      "source_number": 43,
+      "question": "Bé 6 tuổi. N1-N3: sổ mũi, sốt nhẹ, ho đàm. N4-N5: đi khám tại bác sĩ tư được điều trị với thuốc uống không rõ, bé vẫn ho nhiều, còn sốt. Khám: tỉnh, To=37,8oC, môi hồng, thở không co kéo 42 lần/phút, phổi ran ẩm 2 bên. Xquang phổi có tổn thương mô kẽ. Hướng xứ trí tiếp theo nào sau đây là thích hợp?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị ngoại trú với Macrolide"
+        },
+        {
+          "id": "B",
+          "text": "Điều trị ngoại trú với Cefuroxim"
+        },
+        {
+          "id": "C",
+          "text": "Điều trị ngoại trú với Amoxicillin"
+        },
+        {
+          "id": "D",
+          "text": "Nhập viện"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-043"
+    },
+    {
+      "source_number": 44,
+      "question": "Bé gái ,1 tháng 12 ngày tuổi, sinh thường, đủ tháng, mẹ bị huyết trắng tuần cuối sau sinh, đến khám vì ho, bệnh được 1 tuần. Bé vẫn bú tốt, không sốt. Khám thấy tổng trạng tốt. Viêm kết mạc 2 bên. Mạch 130 lần/phút. T 37.3, nhịp thở 66 lần/phút. Phổi nghe ran ngáy, ẩm rải rác 2 bên. Tim đều rõ. Thái độ xử trí nào là phù hợp nhất?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cho nhập viện chích Penicillin đủ 7 ngày"
+        },
+        {
+          "id": "B",
+          "text": "Cho về nhà uống Amoxicillin, hẹn tái khám sau 2 ngày"
+        },
+        {
+          "id": "C",
+          "text": "Cho nhập viện chích Cefotaxime đủ 7 ngày"
+        },
+        {
+          "id": "D",
+          "text": "Cho về nhà uống Azithromycin, hẹn tái khám sau 2 ngày"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-044"
+    },
+    {
+      "source_number": 45,
+      "question": "Chỉ định nhập viện do viêm phổi nào KHÔNG đúng?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Có bệnh tim bẩm sinh đi kèm"
+        },
+        {
+          "id": "B",
+          "text": "Có phập phồng cánh mũi"
+        },
+        {
+          "id": "C",
+          "text": "Thất bại với cefixim"
+        },
+        {
+          "id": "D",
+          "text": "Xquang phổi có hình ảnh đường cong lõm hướng lên trên và vào trong phía rốn phổi, cao nhất ở nách và thấp nhất ở đáy phổi vùng phía trước và sau"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-045"
+    },
+    {
+      "source_number": 46,
+      "question": "Một bé trai 10 tháng đến khám vì ho. Bé sốt và ho 3 ngày, sáng nay bé thở mệt, không ăn, không bú được. Khám: bứt rứt, nhịp thở 54 lần/phút, co lõm ngực nặng, To=37,8oC, nhịp tim 164 lần/ phút, phổi ran ẩm nổ. Thái độ xử trí phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cho kháng sinh uống, hẹn tái khám 2 ngày sau"
+        },
+        {
+          "id": "B",
+          "text": "Cho thuốc giảm ho, hẹn tái khám 5 ngày sau"
+        },
+        {
+          "id": "C",
+          "text": "Cho nhập viện để dùng kháng sinh chích"
+        },
+        {
+          "id": "D",
+          "text": "Chuyển cấp cứu, thở oxy và chích kháng sinh"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-046"
+    },
+    {
+      "source_number": 47,
+      "question": "Bệnh nhi nam, 10 tháng tuổi, bệnh tại nhà 7 ngày với sốt, ho. Bệnh nhi đến khám trong tình trạng suy hô hấp, SpO2 86%, phổi nghe ran ẩm nổ 2 bên, Bệnh nhân được thở NCPAP. Xét nghiệm máu: Na+: 126 meq/l; K+: 4,5 meq/l; Cl-: 101 meq/l; Ca++: 2.2 meq/l. Cơ chế nào sau đây là cơ chế chính của tình trạng này?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Đặc tính của phế cầu trong viêm phổi nặng"
+        },
+        {
+          "id": "B",
+          "text": "Mất nước do sốt, thở nhanh"
+        },
+        {
+          "id": "C",
+          "text": "Ăn uống kém trong suốt thời gian bệnh"
+        },
+        {
+          "id": "D",
+          "text": "Tình trạng tăng tiết ADH"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-047"
+    },
+    {
+      "source_number": 48,
+      "question": "Bệnh nhi 8 tháng tuổi, bệnh tại nhà 7 ngày với sốt, ho. Bệnh nhi tới khám trong tình trạng khó thở, SpO2 94%, phổi nghe ran ẩm 2 bên. Bệnh nhân đã được tiêm 3 mũi ngừa phế cầu (Synflorix) lần lượt vào lúc 2, 3, 4 tháng tuổi. Điều nào giải thích cho tình trạng nói trên?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hiệu quả bảo vệ của 3 mũi tiêm chỉ được 80%"
+        },
+        {
+          "id": "B",
+          "text": "Bệnh nhi bị nhiễm tác nhân không điển hình"
+        },
+        {
+          "id": "C",
+          "text": "Kỹ thuật tiêm không đạt chuẩn nên không hiệu quả"
+        },
+        {
+          "id": "D",
+          "text": "Bệnh nhân bị nhiễm các type phế cầu khác ngoài vacxin"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-048"
+    },
+    {
+      "source_number": 49,
+      "question": "Đơn vị hô hấp không bao gồm cấu trúc nào",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tiểu phế quản hô hấp"
+        },
+        {
+          "id": "B",
+          "text": "Phế quản hô hấp"
+        },
+        {
+          "id": "C",
+          "text": "Ống phế nang"
+        },
+        {
+          "id": "D",
+          "text": "Phế nang"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-049"
+    },
+    {
+      "source_number": 54,
+      "question": "Bé gái 1,5 th tuổi đến khám vì ho, sốt nhẹ ngày 3. 2 ngày đầu: ho ít, không sốt, bú tốt, không ọc sữa, mẹ cho uống siro giảm ho. Ngày 3: ho nhiều hơn, bú ít hơn, mẹ sờ người trẻ thấy nóng nên đưa trẻ đến khám. Khám : tỉnh, môi hồng khí trời, SpO2 96%, Mạch 140 lần/phút, nhiệt độ 38,3 độ C, nhịp thở 65 lần/phút, co lõm ngực nhẹ, phổi nghe ran ẩm 2 bên. Tiền căn: sanh mổ đủ tháng, cân nặng lúc sanh 3,2kg, đã chích ngừa BCG, Viêm gan siêu vi B. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi trung bình"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổi rất nặng"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi nặng"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi nhẹ"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-050"
+    },
+    {
+      "source_number": 55,
+      "question": "Bé gái 1,5 th tuổi đến khám vì ho, sốt nhẹ. Bệnh 3 ngày, 2 ngày đầu ho ít, không sốt, bú tốt, không ọc sữa; ngày 3 ho nhiều hơn, bú ít hơn, mẹ sờ người trẻ thấy nóng nên đưa đến khám. Khám: tỉnh, môi hồng khí trời, SpO2 96%, Mạch152 lần/phút, nhiệt độ 38,7 độ C, nhịp thở 65 lần/phút, co lõm ngực nhẹ, phổi nghe ran ẩm 2 bên. Tiền căn: sanh mổ đủ tháng, cân nặng lúc sanh 3,2kg, đã chích ngừa BCG, Viêm gan siêu vi B. Xử trí phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị ngoại trú uống Azithromycin, hẹn tái khám 2 ngày, dặn dò các dấu hiệu nặng khám ngay"
+        },
+        {
+          "id": "B",
+          "text": "Điều trị ngoại trú, uống Amoxicillin, hẹn tái khám 2 ngày, dặn dò các dấu hiệu nặng khám ngay"
+        },
+        {
+          "id": "C",
+          "text": "Nhập viện, uống Azithromycin, theo dõi dấu hiệu nặng"
+        },
+        {
+          "id": "D",
+          "text": "Nhập viện, chích Ampicillin + Gentamycin"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-051"
+    },
+    {
+      "source_number": 56,
+      "question": "Bệnh nhân nam, 6 tuổi, cân nặng 20 Kg, nhà ở quận 10, đến phòng khám BV. Nhi Đồng 1 vì ho, sốt ngày 3. Bệnh 3 ngày: ho, sốt nhẹ, chỉ dùng thuốc hạ sốt tại nhà nhưng không giảm. Khám thấy cháu tỉnh, ăn uống được, môi hồng khí trời, SpO2 95%, Mạch 110 lần/phút, nhiệt độ 38 độ C, nhịp thở 38 lần/phút, không co kéo liên sườn, phổi nghe ran nổ bên phải. Tiền căn chưa chích ngừa phế cầu. Xử trí phù hợp nhất cho bệnh nhân này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhập viện, uống Azithromycin, theo dõi dấu hiệu nặng"
+        },
+        {
+          "id": "B",
+          "text": "Nhập viện, chích Ceftriaxone và uống Azithromycin"
+        },
+        {
+          "id": "C",
+          "text": "Điều trị ngoại trú uống Azithromycin, hẹn tái khám 2 ngày, dặn dò các dấu hiệu nặng khám ngay"
+        },
+        {
+          "id": "D",
+          "text": "Điều trị ngoại trú, uống Amoxicillin, hẹn tái khám 2 ngày, dặn dò các dấu hiệu nặng khám ngay"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-052"
+    },
+    {
+      "source_number": 57,
+      "question": "Bé gái, 3 tuổi, bệnh 7 ngày với sốt cao, ho đàm. Khám: tổng trạng ổn, nhiệt độ: 39oC, thở 60 lần/phút, co lõm ngực, phổi nghe ran ẩm ở ½ trên phổi phải. Các cơ quan khác chưa ghi nhận bất thường. Bệnh nhi này phải nhập viện vì lý do gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thở co lõm"
+        },
+        {
+          "id": "B",
+          "text": "Ran ẩm khu trú"
+        },
+        {
+          "id": "C",
+          "text": "Thở nhanh"
+        },
+        {
+          "id": "D",
+          "text": "Sốt cao"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-053"
+    },
+    {
+      "source_number": 58,
+      "question": "Bệnh nhân nữ 3 tuổi vào viện vì sốt cao liên tục kèm lạnh run. Bệnh 5 ngày, ngày 1-3 trẻ nổi nhọt da đầu nhiều mủ, mẹ cho thoa thuốc pommade có chứa corticoide, uống kháng sinh không rõ tên thuốc; 2 ngày sau sốt cao, ho nhiều thở mệt nên nhập viện. Khám lúc nhập viện, vẻ mặt nhiễm trùng, sốt 39 độ C, nhịp tim đều 120 lần/phút, SpO 95%, thở co lõm ngực, nhịp thở 48 lần/phút, phổi ran ẩm, nổ 2 bên. Bụng mềm, gan 3 cm hạ sườn Phải, còn nhiều nhọt da đầu đang có mủ. Chẩn đoán nào sau đây là phù hợp nhất?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi nặng + nhọt da nghĩ do tụ cầu. Theo dõi tràn mủ màng phổi"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổi nặng + nhọt da nghĩ do phế cầu. Theo dõi tràn mủ màng phổi, nhiễm trùng huyết"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi nặng + nhọt da nghĩ do tụ cầu . Theo dõi nhiễm trùng huyết"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi nặng do tụ cầu. Theo dõi áp xe phổi, nhiễm trùng huyết"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-054"
+    },
+    {
+      "source_number": 59,
+      "question": "Bệnh nhi nam, 4 tuổi, đến khám vì ho, bệnh 5 ngày. Bệnh sử: cháu sốt cao liên tục, ho đàm, đau họng, ăn uống kém. Khám: tổng trạng ổn định. Mạch 150 lần/phút, nhiệt độ 39 C, nhịp thở 60 lần/phút. Phổi không ran, nhịp tim đều rõ. Họng đỏ rực, amyđan sưng to. Hạch cổ không sờ chạm. Chẩn đoán nào là quan trọng nhất đối với bệnh nhi này ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm xoang"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phế quản"
+        },
+        {
+          "id": "C",
+          "text": "Viêm họng"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-055"
+    },
+    {
+      "source_number": 60,
+      "question": "Bệnh nhân nam 18 tháng, nhập viện vì sốt cao và khó thở. Bệnh 5 ngày, ngày 1-2 trẻ sốt, ho, sổ mũi, mẹ cho uống thuốc thì ngày 3 trẻ có gỉảm sốt, nhưng ho tăng; ngày 4-5 trẻ sốt cao lại, ho nhiều, bỏ ăn uống, khó thở nên đến bệnh viện. Khám lúc vào: tỉnh, môi hồng vừa, nhiệt độ 38,8 độ C, tim đều rõ 120 lần/phút, SpO 91%, thở co lõm ngực nặng, nhịp thở 52 lần/phút, phổi ran nổ bên Phải. Bụng mềm, gan lách không to. Tiền căn không gì lạ. Điều trị nào phù hợp nhất?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Amoxicilline liều cao chích tĩnh mạch 3 lần/ngày"
+        },
+        {
+          "id": "B",
+          "text": "Thở Oxy, Cefotaxim chích tĩnh mạch 3 lần/ngày"
+        },
+        {
+          "id": "C",
+          "text": "Cefotaxim chích tĩnh mạch 3 lần/ngày"
+        },
+        {
+          "id": "D",
+          "text": "Thở Oxy, Cefotaxim chích tĩnh mạch 3 lần/ngày kèm nuôi ăn tĩnh mạch"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-056"
+    },
+    {
+      "source_number": 61,
+      "question": "Bé gái, 18 tháng, đến khám vì khó thở, bệnh 5 ngày. Ngày 1-4: trẻ ho, sổ mũi, sốt nhẹ. Ngày 5 trẻ sốt cao, thở mệt nên được đưa đến khám. Khám tổng trạng ổn. Thở 60 lần/phút, sốt 38 C, rút lõm ngực, phổi ran ẩm hai bên. Các cơ quan khác bình thường. Tác nhân nào sau đây là nguyên nhân thường gặp nhất gây bệnh cho trẻ ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Haemophilus influenzae type B"
+        },
+        {
+          "id": "B",
+          "text": "Mycoplasma pneumoniae"
+        },
+        {
+          "id": "C",
+          "text": "Streptococcus pneumoniae"
+        },
+        {
+          "id": "D",
+          "text": "Staphylococcus aureus"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-057"
+    },
+    {
+      "source_number": 62,
+      "question": "Bé 15 tháng đến khám vì ho. Ngày 1-5: ho nhiều, sốt cao 39,5 C, đã điều trị với amoxicillin liều 50 mg/kg/ngày trong 3 ngày thì hết sốt nhưng ho tăng. Khám: bé tỉnh, môi hồng, mạch rõ 140 lần/phút, nhiệt độ 37,2 C, nhịp thở 48 lần/phút, thở co lõm ngực nhẹ, phổi ran ẩm 2 bên. Xquang ngực như hình bên dưới. Điều trị nào phù hợp nhất?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tăng liều amoxicillin lên 90 mg/kg/ngày"
+        },
+        {
+          "id": "B",
+          "text": "Tiếp tục amoxicillin liều 50 mg/kg/ngày cho đủ 7 – 10 ngày"
+        },
+        {
+          "id": "C",
+          "text": "Tiếp tục amoxicillin liều 50 mg/kg/ngày và phối hợp thêm macrolide"
+        },
+        {
+          "id": "D",
+          "text": "Ngưng amoxicillin, đổi sang macrolide"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": true,
+      "image_url": "/mcq/images/pneumonia/q062.jpg",
+      "image_alt": "X-quang ngực kèm theo câu hỏi",
+      "id": "pneumonia-058"
+    },
+    {
+      "source_number": 63,
+      "question": "Bệnh nhân nam, 6 tuổi, cân nặng 20 Kg, nhà ở quận 5, đến khám vì ho và sốt 3 ngày. Trẻ ho, sốt nhẹ, chỉ dùng thuốc hạ sốt tại nhà nhưng không giảm. Khám: tỉnh, ăn uống được, môi hồng SpO 95%, mạch 110 lần/phút, nhiệt độ 38 độ C, nhịp thở 35 lần/phút, không co kéo liên sườn, phổi nghe ran nổ bên phải. Tiền căn chưa chích ngừa phế cầu. Xử trí phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị nội trú, uống Azithromycin, theo dõi dấu hiệu chuyển nặng"
+        },
+        {
+          "id": "B",
+          "text": "Điều trị ngoại trú, uống Azithromycin, hẹn tái khám 2 ngày, dặn dò các dấu hiệu nặng cần tái khám ngay"
+        },
+        {
+          "id": "C",
+          "text": "Điều trị ngoại trú, uống Amoxicillin, hẹn tái khám 2 ngày, dặn dò các dấu hiệu nặng cần tái khám ngay"
+        },
+        {
+          "id": "D",
+          "text": "Điều trị nội trú, chích Ceftriaxone và uống Azithromycin, theo dõi dấu hiệu chuyển nặng"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-059"
+    },
+    {
+      "source_number": 64,
+      "question": "Bé 5 tuổi, đến khám vì ho. Ngày 1-5: ho nhiều, sốt 38,3 C, đã điều trị với azithromycin trong 3 ngày nhưng không giảm. Tiền căn: chưa từng nhập viện, chủng ngừa theo lịch tiêm chủng mở rộng. Khám: bé đừ, môi hồng, SpO 93%, mạch rõ 150 lần/phút, nhiệt độ 39,5 C, nhịp thở 42 lần/phút, thở co kéo nhẹ, phổi ran nổ 2 bên. Xquang ngực như hình bên dưới. Điều trị nào phù hợp nhất?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ngưng azithromycin, đổi sang amoxicillin liều cao"
+        },
+        {
+          "id": "B",
+          "text": "Tiếp tục azithromycin đủ 5 ngày, phối hợp thêm amoxicillin"
+        },
+        {
+          "id": "C",
+          "text": "Đổi sang macrolide đường tĩnh mạch"
+        },
+        {
+          "id": "D",
+          "text": "Ngưng azithromycin, đổi sang cefotaxim"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "image_url": "/mcq/images/pneumonia/q064.jpg",
+      "image_alt": "X-quang ngực kèm theo câu hỏi",
+      "id": "pneumonia-060"
+    },
+    {
+      "source_number": 65,
+      "question": "Bệnh nhân nam, 6 tuổi, cân nặng 20 Kg, nhà ở quận 5, đến khám vì ho và sốt 3 ngày. Trẻ ho, sốt nhẹ, chỉ dùng thuốc hạ sốt tại nhà nhưng không giảm. Khám: tỉnh, ăn uống được, môi hồng SpO 95%, mạch 110 lần/phút, nhiệt độ 38 độ C, nhịp thở 35 lần/phút, không co kéo liên sườn, phổi nghe ran nổ bên phải. Tiền căn chưa chích ngừa phế cầu. Chẩn đoán phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi nặng"
+        },
+        {
+          "id": "B",
+          "text": "Viêm phổi nhẹ"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phổi trung bình"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phổi rất nặng"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-061"
+    },
+    {
+      "source_number": 68,
+      "question": "Khám lâm sàng một trẻ 6 tuổi bị viêm phổi ghi nhận giảm phế âm 1/3 dưới phổi T. Khả năng nào ít xảy ra trên vùng giảm phế âm này?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Đông đặc phổi"
+        },
+        {
+          "id": "B",
+          "text": "TKMP"
+        },
+        {
+          "id": "C",
+          "text": "TDMP"
+        },
+        {
+          "id": "D",
+          "text": "Áp xe phổi"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-062"
+    },
+    {
+      "source_number": 69,
+      "question": "Một trẻ gái 6 tháng tuổi, ho nhiều kèm sốt đến khám tại phòng khám BV A. Là BS khám bé, bạn cần làm gì để định hướng chẩn đoán VP ở trẻ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cặp nhiệt độ xem sốt cao không"
+        },
+        {
+          "id": "B",
+          "text": "Quan sát trẻ thở có đều không"
+        },
+        {
+          "id": "C",
+          "text": "Đếm NT trong 1 phút"
+        },
+        {
+          "id": "D",
+          "text": "Khám phổi tìm ran ẩm, ran nổ"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-063"
+    },
+    {
+      "source_number": 70,
+      "question": "BN 3 tuổi bị VP có kết quả nhuộm gram mẫu dịch hút khí quản qua mũi NTA ra song cầu gram dương. KS sau đây có thể lựa chọn điều trị ngoại trừ",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ceftriaxone"
+        },
+        {
+          "id": "B",
+          "text": "Penicillin"
+        },
+        {
+          "id": "C",
+          "text": "Metronidazole"
+        },
+        {
+          "id": "D",
+          "text": "Vancomycin"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-064"
+    },
+    {
+      "source_number": 71,
+      "question": "Bé gái 9 tháng tuổi, nặng 6,2kg, dài 68cm, đang được điều trị VP nặng tại BV M. Đây là lần thứ 3 bé NV vì VP. Bé thường xuyên bị viêm mũi họng, trớ sữa sau mỗi lần bú no, chưa chủng ngừa 5in1 và sởi. Ba mẹ bị viêm mũi dị ứng. Yếu tố nào sau đây có thể là yếu tố thuận lợi khiến trẻ bị VP tái phát. Chọn câu sai",
+      "options": [
+        {
+          "id": "A",
+          "text": "SDD"
+        },
+        {
+          "id": "B",
+          "text": "Chủng ngừa không đủ"
+        },
+        {
+          "id": "C",
+          "text": "Viêm mũi dị ứng kèm theo"
+        },
+        {
+          "id": "D",
+          "text": "GERD"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-065"
+    },
+    {
+      "source_number": 72,
+      "question": "Triệu chứng nào sau đây có giá trị nhất trong chẩn đoán VP",
+      "options": [
+        {
+          "id": "A",
+          "text": "Sốt cao"
+        },
+        {
+          "id": "B",
+          "text": "Ho đàm đục"
+        },
+        {
+          "id": "C",
+          "text": "Thở co lõm ngực"
+        },
+        {
+          "id": "D",
+          "text": "Phổi ran ẩm, nổ"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-066"
+    },
+    {
+      "source_number": 76,
+      "question": "Tác nhân vi sinh xâm nhập vào phổi qua đường hô hấp theo cơ chế nào. Chọn câu sai",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hít các giọt bắn từ người bệnh"
+        },
+        {
+          "id": "B",
+          "text": "Hít chất tiết từ đường hô hấp trên"
+        },
+        {
+          "id": "C",
+          "text": "Hít VK từ đường tiêu hóa trong GERD"
+        },
+        {
+          "id": "D",
+          "text": "Đưa tay nhiễm khuẩn lên mũi, miệng"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-067"
+    },
+    {
+      "source_number": 77,
+      "question": "Yếu tố nào sau đây không phải là yếu tố nguy cơ đưa đến viêm phổi?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Dị tật bẩm sinh tại đường hô hấp"
+        },
+        {
+          "id": "B",
+          "text": "SGMD"
+        },
+        {
+          "id": "C",
+          "text": "Thoát vị hoành"
+        },
+        {
+          "id": "D",
+          "text": "TNDD - TQ"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-068"
+    },
+    {
+      "source_number": 78,
+      "question": "Một bé gái 18 tháng được chẩn đoán viêm phổi rất nặng, đã được điều trị bằng cefotaxime chích 3 mũi ngày, lâm sàng còn sốt cao, thở co lõm ngực nặng. Xét nghiệm nào có giá trị nhất để tìm vi trùng gây viêm phổi ở trẻ này :",
+      "options": [
+        {
+          "id": "A",
+          "text": "Huyết thanh chẩn đoán"
+        },
+        {
+          "id": "B",
+          "text": "Hút dịch khí quản qua đường mũi (NTA)"
+        },
+        {
+          "id": "C",
+          "text": "Nội soi và rửa phế quản"
+        },
+        {
+          "id": "D",
+          "text": "Cấy máu"
+        },
+        {
+          "id": "E",
+          "text": "Tất cả đều đúng"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-069"
+    },
+    {
+      "source_number": 81,
+      "question": "Viêm phổi 3 tuổi xquang viêm phế quản phổi đáy phổi 2 bên, tác nhân:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hi"
+        },
+        {
+          "id": "B",
+          "text": "Phế cầu"
+        },
+        {
+          "id": "C",
+          "text": "Tụ cầu"
+        },
+        {
+          "id": "D",
+          "text": "Kleb"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-070"
+    },
+    {
+      "source_number": 86,
+      "question": "Trẻ 4 tháng, nhập viện vì viêm phổi lần 3. Tiền căn sinh non 36 tuần, CNLS = 2400g. Hiện tại em chưa chủng ngừa mũi nào, lượng sữa bú 150 – 180ml/cử cách 2 – 3h. Yếu tố nguy cơ phù hợp nhất gây viêm phổi tái phát trên bệnh nhi này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Sinh non"
+        },
+        {
+          "id": "B",
+          "text": "Sinh nhẹ cân"
+        },
+        {
+          "id": "C",
+          "text": "Chưa chủng ngừa"
+        },
+        {
+          "id": "D",
+          "text": "Trào ngược dạ dày thực quản"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-071"
+    },
+    {
+      "source_number": 87,
+      "question": "Bé trai, 2 tuổi, đến khám vì sốt. bệnh 3 ngày: sốt, ho, khám bác sĩ tư uống thuốc không giảm. Tiền căn chưa ghi nhận bất thường. Khám: tỉnh, tươi, to = 38oC , môi hồng, SpO2 = 97%, chi ấm, mạch quay rõ, 120 lần/phút, thở không co lõm 42 lần/phút, tim đều rõ, phổi ít ran ngáy, ẩm. Các cơ quan khác không ghi nhận bất thường. Xử trí phù hợp nhất cho trẻ như thế nào?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Không dùng kháng sinh"
+        },
+        {
+          "id": "B",
+          "text": "Dùng Cefuroxime uống"
+        },
+        {
+          "id": "C",
+          "text": "Dùng Erythromycine uống"
+        },
+        {
+          "id": "D",
+          "text": "Dùng Amoxicillin uống"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-072"
+    },
+    {
+      "source_number": 88,
+      "question": "Trẻ 3 tháng, nhập viện vì viêm phổi lần 3. Tiền căn sanh non 33 tuần, CNLS = 2400g. Tiền căn chỉ mới chủng ngừa 2 mũi ngay sau sanh, đang được theo dõi còn ống động mạch. Yếu tố nguy cơ gây viêm phổi tái phát trên bệnh nhi này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Sinh non"
+        },
+        {
+          "id": "B",
+          "text": "Sinh nhẹ cân"
+        },
+        {
+          "id": "C",
+          "text": "Chưa chủng ngừa"
+        },
+        {
+          "id": "D",
+          "text": "Tim bẩm sinh"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-073"
+    },
+    {
+      "source_number": 89,
+      "question": "Bé gái 12 tháng, bị viêm phổi và viêm tai giữa. Em được chủng ngừa đủ theo chương trình tiêm chủng mở rộng. Tác nhân vi sinh nghĩ nhiều nhất gây nhiễm trùng cho trẻ là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Streptococcus pneumoniae"
+        },
+        {
+          "id": "B",
+          "text": "Respiratory synctial virus"
+        },
+        {
+          "id": "C",
+          "text": "Haemophillus influenzae"
+        },
+        {
+          "id": "D",
+          "text": "Adeno virus type 3"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-074"
+    },
+    {
+      "source_number": 90,
+      "question": "Bé gái 10 tháng, đến khám vì khó thở. Bệnh 5 ngày, ngày thứ 1 đến ngày thứ 4: sốt 38-38,5oC, ho ít, khám và điều trị tại phòng khám tư; ngày thứ 5: giảm bú, khó thở. Tiền căn không ghi nhận bất thường. Khám: đừ, to = 38,7oC, môi hồng, SpO2 = 95%, chi ấm, mạch quay rõ 140 lần/phút, thở co lõm ngực 56 lần/phút, tim đều rõ, phổi ran nổ bên (P), phế âm giảm 1/3 dưới (T), gan mấp mé bờ sườn (P), nhọt da đầu vùng đỉnh (T). Kháng sinh đầu tiên lựa chọn cho trẻ này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cefotaxime + Gentamycin"
+        },
+        {
+          "id": "B",
+          "text": "Oxacillin + Gentamycin"
+        },
+        {
+          "id": "C",
+          "text": "Vancomycin + Cefotaxim"
+        },
+        {
+          "id": "D",
+          "text": "Vancomycin + Oxacillin"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-075"
+    },
+    {
+      "source_number": 91,
+      "question": "Bé gái, 28 tháng tuổi, đến khám vì ho. Bệnh 4 ngày: sốt, ho nhiều, uống thuốc tây tự mua ngoài tiêm không giảm ho. Tiền căn không ghi nhận bất thường. Khám: tỉnh, to = 38,3oC, môi hồng, SpO2 = 97%, chi ấm mạch quay rõ 114 lần/phút, thở không co kéo 42 lần/phút, tim đều rõ, phổi ran nổ. Các cơ quan khác không ghi nhận bất thường. Chọn kháng sinh phù hợp nhất cho trẻ là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Azithromycin"
+        },
+        {
+          "id": "B",
+          "text": "Amoxicillin"
+        },
+        {
+          "id": "C",
+          "text": "Cefuroxime"
+        },
+        {
+          "id": "D",
+          "text": "Cefixime"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-076"
+    },
+    {
+      "source_number": 92,
+      "question": "Nam, 6 tuổi, đến khám vì sốt. Bệnh 8 ngày, sốt cao 38,7 – 39,3oC, ho ít, khám và điều trị tại phòng khám tư không giảm. Tiền căn không ghi nhận bất thường. Khám: tỉnh, 20kg, to = 38,7oC, môi hồng, SpO2 = 96%, chi ấm mạch quay rõ 110 lần/phút, thở không co kéo 42 lần/phút, tim đều rõ, phế âm giảm 1/3 dưới phổi (T), amidan hốc mủ. Chẩn đoán nghĩ nhiều nhất trên trẻ này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi hoại tử"
+        },
+        {
+          "id": "B",
+          "text": "Tràn mủ màng phổi"
+        },
+        {
+          "id": "C",
+          "text": "Áp xe phổi"
+        },
+        {
+          "id": "D",
+          "text": "Viêm xẹp phổi"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-077"
+    },
+    {
+      "source_number": 93,
+      "question": "Bệnh nhân nữ 4 tuổi , được mẹ đưa đến khám vì sốt và ho 2 ngày. Khám lâm sàng ghi nhân bé tỉnh, To: 38,5 oC, nhịp thở 46 lần/phút, nhịp tim 136 lần/phút, SpO2 95%, Thở không co lõm ngực. tim đều phổi ran ẩm 2 bên, bụng mềm, cổ mềm. Không ban xuất huyết da niêm. Tại phòng khám bạn xử trí như nào",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cho thuốc hạ sốt rồi dánh giá lại khi bệnh nhi giảm sốt"
+        },
+        {
+          "id": "B",
+          "text": "Cho chụp X quang ngực và làm công thức máu rồi xem lại"
+        },
+        {
+          "id": "C",
+          "text": "Cho thuốc điều trị ngoại trú và hẹn 2 ngy tái khám"
+        },
+        {
+          "id": "D",
+          "text": "Cho nhập khoa cáp cứu thở oxy và chích kháng sinh"
+        },
+        {
+          "id": "E",
+          "text": "Cho nhập khoa bình thường thở oxy và chích kháng sinh"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-078"
+    },
+    {
+      "source_number": 94,
+      "question": "Bé gái 12 thang tuổi đến khám vì ho 1 tuần. Khám tổng trạng tốt, mạch 130 lần/phút, nhiệt độ 37oC nhịp thở 48 lần/phút, co lõm ngực trung bình, phổi nghe ran ngáy ẩm rải rác 2 bên, tim đều rõ, các cơ quan khác chưa ghi nhân bất thường. X quan phổi cho tháy tổn thương dạng nốt rải rác hai phế trường, xử trí phù hợp nhất là ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Amoxicillin uống, hẹn tái khám sau 2 ngày"
+        },
+        {
+          "id": "B",
+          "text": "Erythromycin uống, hẹn tái khám sau 2 ngày"
+        },
+        {
+          "id": "C",
+          "text": "Bactrim, hẹn tái khám sau 2 ngày"
+        },
+        {
+          "id": "D",
+          "text": "Cefotaxime TM"
+        },
+        {
+          "id": "E",
+          "text": "Chlorampenicol TM"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-079"
+    },
+    {
+      "source_number": 96,
+      "question": "Bệnh nhân nữ, 12 tháng bị viêm phổi và viêm thanh thiệt. Em chưa được chủng ngừa ngoại trừ 2 mũi chủng ngừa ngay sau sinh. Tác nhân vi sinh nghĩ nhiều nhất gây nhiễm trùng cho trẻ là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Haemophillus influenzae"
+        },
+        {
+          "id": "B",
+          "text": "Respiratory synctial virus"
+        },
+        {
+          "id": "C",
+          "text": "Streptococcus pneumoniae"
+        },
+        {
+          "id": "D",
+          "text": "Adeno virus type 3"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-080"
+    },
+    {
+      "source_number": 97,
+      "question": "Bé gái 10 tháng, đến khám vì khó thở. Bệnh 5 ngày, N1-4: sốt 38-38,5oC, ho ít, khám và điều trị tại phòng khám tư; N5: giảm bú, khó thở. Tiền căn không ghi nhận bất thường. Khám: đừ, To=38,7oC, môi hồng, SpO2=95%, chi ấm mạch quay rõ 140 lần/phút, thở co lõm ngực 56 lần/phút, tim đều rõ, phổi ran nổ bên (P), phế âm giảm 1/3 dưới (T), gan mấp mé hạ sườn (P), nhọt da đầu vùng đỉnh (T). Kháng sinh lựa chọn đầu tiên cho trẻ này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Cefotaxim + Gentamycin"
+        },
+        {
+          "id": "B",
+          "text": "Oxacillin + Gentamycin"
+        },
+        {
+          "id": "C",
+          "text": "Vancomycin + Cefotaxim"
+        },
+        {
+          "id": "D",
+          "text": "Vancomycin + Oxacillin"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-081"
+    },
+    {
+      "source_number": 98,
+      "question": "Một trẻ 23 tháng, nhập viện vì viêm phổi lần 5. Tiền căn vàng da nhân, chậm phát triển tâm thần vận động, chủng ngừa đủ theo chương trình tiêm chủng mở rộng, sứt môi chẻ vòm chưa điều trị. Yếu tố nguy cơ gây viêm phổi tái phát trên bệnh nhi này là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Vàng da nhân"
+        },
+        {
+          "id": "B",
+          "text": "Chậm phát triển tâm vận"
+        },
+        {
+          "id": "C",
+          "text": "Chưa chủng ngừa phế cầu"
+        },
+        {
+          "id": "D",
+          "text": "Sứt môi chẻ vòm"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-082"
+    },
+    {
+      "source_number": 99,
+      "question": "Bệnh nhân nữ, 2,5 tháng bị viêm phổi không sốt kèm viêm kết mạc. Tiền căn sanh thường, đủ tháng, chủng ngừa đủ theo lịch tiêm chủng mở rộng. Kết quả công thức máu có Eosinophil chiếm tỷ lệ 6%. Tác nhân vi sinh nghĩ nhiều nhất gây nhiễm trùng cho trẻ là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Chlamydia trachomatis"
+        },
+        {
+          "id": "B",
+          "text": "Respiratory synctial virus"
+        },
+        {
+          "id": "C",
+          "text": "Moraxella catarrhalis"
+        },
+        {
+          "id": "D",
+          "text": "Adeno virus type 3"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-083"
+    },
+    {
+      "source_number": 0,
+      "question": "Bé trai 9 tháng, nặng 8,4 kg nhập viện lần đầu vì viêm tiêu phế quản nặng, đã được thở oxy qua canula 1 lít/ph và bơm sữa qua sond dạ dày. Ngày 3 sau nhập viện bé sốt cao liên tục, thở mệt hơn, phổi ran nổ đáy phải. Công thức máu: BC 16.700/mm3 , đa nhân 88% CRP 46 mg/L. X quang phổi kiểm tra cho thấy hình ảnh ứ khí kèm viêm đáy phổi phải. Kháng sinh phù hợp nhất",
+      "options": [
+        {
+          "id": "A",
+          "text": "Amoxicillin + Clavulanate gói 250 mg, 1 gói x 3 lần/ ngày uống"
+        },
+        {
+          "id": "B",
+          "text": "Cefotaxim 1g, 420 mg x 3 TMC"
+        },
+        {
+          "id": "C",
+          "text": "Cefepim 1g, 420 mg x 3 TMC"
+        },
+        {
+          "id": "D",
+          "text": "Clindamycin 600mg/4ml, 84 mg x 3 TMC"
+        },
+        {
+          "id": "E",
+          "text": "Vancomycin 500mg, 126 mg pha Glucose 5% đủ 50ml TTM/60 phút x 4 củ"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-084"
+    },
+    {
+      "source_number": 1,
+      "question": "Chỉ định xét nghiệm gì để chẩn đoán xác định bệnh?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Công thức máu, CRP"
+        },
+        {
+          "id": "B",
+          "text": "Soi cấy NTA"
+        },
+        {
+          "id": "C",
+          "text": "X quang phổi"
+        },
+        {
+          "id": "D",
+          "text": "Khí máu động mạch"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-085"
+    },
+    {
+      "source_number": 235,
+      "question": "000/mm3. Chẩn đoán xác định là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nhiễm vi trùng, không thiếu máu, hồng cầu đẳng sắc đẳng bào"
+        },
+        {
+          "id": "B",
+          "text": "Nhiễm vi trùng, thiếu máu, hồng cầu nhỏ nhược sắc"
+        },
+        {
+          "id": "C",
+          "text": "Nhiễm ký sinh trùng, thiếu máu hồng cầu nhỏ nhược sắc"
+        },
+        {
+          "id": "D",
+          "text": "Nhiễm ký sinh trùng, không thiếu máu, hồng cầu đẳng sắc đẳng bào"
+        }
+      ],
+      "correct_answer": "B",
+      "review_required": false,
+      "id": "pneumonia-086"
+    },
+    {
+      "source_number": 10,
+      "question": "5g/dL, t: 390C, Fi02: 21%, pH: 7.34, PaC02: 47 mmHg, Pa02: 55 mmHg, HC03-: 26, phù hợp với chẩn đoán nào sau đây? NGOẠI TRỪ:",
+      "options": [
+        {
+          "id": "A",
+          "text": "Giảm thông khí"
+        },
+        {
+          "id": "B",
+          "text": "Giảm oxy hóa máu tương ứng ARDS mức độ nhẹ"
+        },
+        {
+          "id": "C",
+          "text": "Tăng shunt bệnh lý 15%"
+        },
+        {
+          "id": "D",
+          "text": "Toan hô hấp cấp"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-087"
+    },
+    {
+      "source_number": 4,
+      "question": "X quang phổi cho thấy rốn phổi 2 bên đậm và dãn rộng, xung huyết mạch máu ra 1/3 ngoài phế trường kèm thâm nhiễm dạng nốt lan tỏa; 1/3 trên phế trường phải có một đám mờ khá đồng nhất, giới hạn rõ bởi rãnh liên thùy nhỏ cong lõm về phía trên; 1/3 dưới phế trường phải có đám mờ đồng nhất, có hình ảnh air-bronchogram trên đám mờ, xóa cơ hoành phải, không xóa cung dưới bờ tim phải. Chẩn đoán phù hợp là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Viêm phổi - viêm thùy trên phải - xẹp thùy dưới phổi phải"
+        },
+        {
+          "id": "B",
+          "text": "Viêm tiểu phế quản bội nhiễm phổi"
+        },
+        {
+          "id": "C",
+          "text": "Viêm phế quản phổi – viêm thùy trên và dưới phải"
+        },
+        {
+          "id": "D",
+          "text": "Viêm phế quản phổi - xẹp thùy trên phải - viêm thùy dưới phải"
+        }
+      ],
+      "correct_answer": "D",
+      "review_required": false,
+      "id": "pneumonia-088"
+    },
+    {
+      "source_number": 5,
+      "question": "Bé chưa được chủng ngừa Synflorix. Kháng sinh phù hợp nhất cho bé là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ceftriaxone 400 mg x 2 TMC"
+        },
+        {
+          "id": "B",
+          "text": "Ampicillin 400 mg x 4 TMC"
+        },
+        {
+          "id": "C",
+          "text": "Levofloxacin 80 mg x 2 TTM/60 phút"
+        },
+        {
+          "id": "D",
+          "text": "Clindamycin 80 mg x 3 TTM/60 phút"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-089"
+    }
+  ]
+}

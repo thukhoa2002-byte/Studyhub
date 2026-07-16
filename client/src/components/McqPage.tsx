@@ -10,11 +10,17 @@ type QuizQuestion = {
   options: Option[];
   correct_answer: string;
   review_required?: boolean;
+  image_url?: string;
+  image_alt?: string;
 };
 type QuizBank = { title: string; questions: QuizQuestion[] };
 type Props = { userId?: string };
+type DeckDefinition = { key: string; title: string; description: string; questionCount: number; dataUrl: string };
 
-const deckKey = "bo-mcq-kho-khe";
+const decks: DeckDefinition[] = [
+  { key: "bo-mcq-kho-khe", title: "Bộ MCQ - Khò khè", description: "Tiếp cận khò khè, viêm tiểu phế quản và hen.", questionCount: 130, dataUrl: "/mcq/bo-mcq-kho-khe.json" },
+  { key: "bo-mcq-viem-phoi", title: "Bộ MCQ - Viêm phổi", description: "Chẩn đoán, xử trí và biến chứng viêm phổi ở trẻ em.", questionCount: 89, dataUrl: "/mcq/bo-mcq-viem-phoi.json" },
+];
 
 export default function McqPage({ userId }: Props) {
   const [bank, setBank] = useState<QuizBank | null>(null);
@@ -23,29 +29,30 @@ export default function McqPage({ userId }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [opened, setOpened] = useState(false);
+  const [activeDeck, setActiveDeck] = useState<DeckDefinition | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [progressReady, setProgressReady] = useState(false);
 
   useEffect(() => {
-    void fetch("/mcq/bo-mcq-kho-khe.json")
+    if (!activeDeck) { setBank(null); setError(""); return; }
+    void fetch(activeDeck.dataUrl)
       .then((response) => response.ok ? response.json() as Promise<QuizBank> : Promise.reject(new Error("Không thể tải bộ MCQ.")))
       .then(setBank)
       .catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : "Không thể tải bộ MCQ."));
-  }, []);
+  }, [activeDeck]);
 
   useEffect(() => {
-    if (!bank) return;
+    if (!bank || !activeDeck) return;
     let active = true;
     setProgressReady(false);
-    setOpened(false);
     setHasStarted(false);
     setStartedAt(null);
     setIndex(0);
     setAnswers({});
     setChecked({});
     if (!userId) { setProgressReady(true); return; }
-    void getMcqProgress(userId, deckKey)
+    void getMcqProgress(userId, activeDeck.key)
       .then((saved) => {
         if (!active || !saved) return;
         const questionIds = new Set(bank.questions.map((item) => item.id));
@@ -58,7 +65,7 @@ export default function McqPage({ userId }: Props) {
       .catch((loadError: unknown) => console.warn("Không thể tải tiến độ MCQ", loadError))
       .finally(() => { if (active) setProgressReady(true); });
     return () => { active = false; };
-  }, [bank, userId]);
+  }, [activeDeck, bank, userId]);
 
   const question = bank?.questions[index] ?? null;
   const selected = question ? answers[question.id] : undefined;
@@ -70,22 +77,30 @@ export default function McqPage({ userId }: Props) {
   const completedCount = Object.keys(checked).length;
 
   function persist(next: Pick<McqProgress, "current_index" | "answers" | "checked" | "started_at">) {
-    if (!userId) return;
-    void saveMcqProgress(userId, deckKey, next).catch((saveError: unknown) => console.warn("Không thể lưu tiến độ MCQ", saveError));
+    if (!userId || !activeDeck) return;
+    void saveMcqProgress(userId, activeDeck.key, next).catch((saveError: unknown) => console.warn("Không thể lưu tiến độ MCQ", saveError));
   }
 
-  function openDeck() {
-    const nextStartedAt = startedAt ?? new Date().toISOString();
-    setStartedAt(nextStartedAt);
-    setHasStarted(true);
+  function openDeck(deck: DeckDefinition) {
+    setBank(null);
+    setProgressReady(false);
+    setActiveDeck(deck);
     setOpened(true);
-    persist({ current_index: index, answers, checked, started_at: nextStartedAt });
   }
 
   function returnToDeckList() {
     if (hasStarted && startedAt) persist({ current_index: index, answers, checked, started_at: startedAt });
     setOpened(false);
+    setActiveDeck(null);
   }
+
+  useEffect(() => {
+    if (!opened || !bank || !progressReady || hasStarted || !activeDeck) return;
+    const nextStartedAt = new Date().toISOString();
+    setStartedAt(nextStartedAt);
+    setHasStarted(true);
+    persist({ current_index: index, answers, checked, started_at: nextStartedAt });
+  }, [activeDeck, answers, bank, checked, hasStarted, index, opened, progressReady, startedAt]);
 
   function choose(optionId: string) {
     if (!question || isChecked) return;
@@ -109,40 +124,30 @@ export default function McqPage({ userId }: Props) {
   }
 
   if (error) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><p className="rounded-2xl border border-rose-200 bg-white p-5 text-sm font-semibold text-rose-700">{error}</p></section>;
-  if (!bank || !question || !progressReady) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><div className="glass-panel rounded-3xl p-8 text-center text-sm font-semibold text-slate-500">Đang nạp danh sách bộ MCQ…</div></section>;
+
+  if (!opened) return (
+    <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
+      <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={32} strokeWidth={1.9} /></div>
+          <div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Khu vực luyện tập</p><h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1><p className="mt-1 text-sm text-slate-500">Chọn một bộ đề để bắt đầu làm trắc nghiệm.</p></div>
+        </div>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {decks.map((deck) => <button key={deck.key} type="button" onClick={() => openDeck(deck)} className="group rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
+            <div className="flex items-start justify-between gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><CircleHelp size={24} /></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span></div>
+            <h2 className="mt-5 text-xl font-extrabold text-rose-950">{deck.title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{deck.description}</p>
+            <div className="mt-6 flex items-center justify-end text-sm font-bold text-violet-700"><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">Bắt đầu<Play size={15} fill="currentColor" /></span></div>
+          </button>)}
+        </div>
+      </div>
+    </section>
+  );
+
+  if (!bank || !question || !progressReady) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><div className="glass-panel rounded-3xl p-8 text-center text-sm font-semibold text-slate-500">Đang nạp bộ MCQ…</div></section>;
 
   const isCorrect = selected === question.correct_answer;
   const isLast = index === bank.questions.length - 1;
   const completed = completedCount === bank.questions.length;
-
-  if (!opened) {
-    return (
-      <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
-        <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={32} strokeWidth={1.9} /></div>
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Khu vực luyện tập</p>
-              <h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1>
-              <p className="mt-1 text-sm text-slate-500">Chọn một bộ đề để bắt đầu làm trắc nghiệm.</p>
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <button type="button" onClick={openDeck} className="group rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><CircleHelp size={24} /></div>
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{bank.questions.length} câu</span>
-              </div>
-              <h2 className="mt-5 text-xl font-extrabold text-rose-950">Bộ MCQ - Khò khè</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">Tiếp cận khò khè, viêm tiểu phế quản và hen.</p>
-              <div className="mt-6 flex items-center justify-between text-sm font-bold text-violet-700"><span>{!hasStarted ? "Chưa bắt đầu" : completedCount > 0 ? `Đã kiểm tra ${completedCount} câu` : "Đang làm dở"}</span><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">{hasStarted ? "Làm tiếp" : "Bắt đầu"}<Play size={15} fill="currentColor" /></span></div>
-            </button>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
@@ -153,7 +158,7 @@ export default function McqPage({ userId }: Props) {
             <div className="flex h-15 w-15 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={30} strokeWidth={2} /></div>
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Bộ trắc nghiệm</p>
-              <h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">Bộ MCQ - Khò khè</h1>
+              <h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">{activeDeck?.title}</h1>
               <p className="mt-1 text-sm text-slate-500">{bank.questions.length} câu · Chọn đáp án rồi bấm kiểm tra ngay.</p>
             </div>
           </div>
@@ -171,6 +176,7 @@ export default function McqPage({ userId }: Props) {
         <article className="mt-7 rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-violet-50/40 to-teal-50/45 p-5 sm:p-7">
           <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-violet-600">Câu nguồn #{question.source_number}</p>
           <h2 className="mt-3 text-lg font-bold leading-7 text-slate-800 sm:text-xl">{question.question}</h2>
+          {question.image_url && <img src={question.image_url} alt={question.image_alt || "Hình X-quang kèm theo câu hỏi"} className="mx-auto mt-6 max-h-[30rem] max-w-full rounded-2xl border border-slate-200 bg-white object-contain shadow-sm" />}
           <div className="mt-6 space-y-3">
             {question.options.map((option) => {
               const chosen = selected === option.id;
