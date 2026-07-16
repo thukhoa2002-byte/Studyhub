@@ -56,6 +56,8 @@ export default function App() {
   const [pendingGenerated, setPendingGenerated] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [generatedForAppend, setGeneratedForAppend] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
   const [appendingDeckId, setAppendingDeckId] = useState<string | null>(null);
+  const [appendScopeDeck, setAppendScopeDeck] = useState<SavedDeck | null>(null);
+  const [appendScope, setAppendScope] = useState<"shared" | "personal">(() => localStorage.getItem("shared-deck-card-scope") === "shared" ? "shared" : "personal");
   const [showWelcome, setShowWelcome] = useState(true);
   const [welcomeClosing, setWelcomeClosing] = useState(false);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
@@ -251,11 +253,25 @@ export default function App() {
     setGeneratedForAppend({ title, cards });
   }
 
-  async function appendGeneratedToDeck(deck: SavedDeck) {
+  function chooseGeneratedAppendScope(scope: "shared" | "personal") {
+    setAppendScope(scope);
+    localStorage.setItem("shared-deck-card-scope", scope);
+  }
+
+  function requestAppendGeneratedToDeck(deck: SavedDeck) {
+    if (deck.visibility === "shared") {
+      setAppendScopeDeck(deck);
+      return;
+    }
+    void appendGeneratedToDeck(deck, "shared");
+  }
+
+  async function appendGeneratedToDeck(deck: SavedDeck, scope: "shared" | "personal") {
     if (!user || !pendingGenerated || appendingDeckId) return;
     setAppendingDeckId(deck.id);
     try {
-      const appendedCards = await appendCardsToDeck(user.id, deck.id, pendingGenerated.cards);
+      const cardsWithScope = pendingGenerated.cards.map((card) => ({ ...card, scope }));
+      const appendedCards = await appendCardsToDeck(user.id, deck.id, cardsWithScope);
       const appendedById = new Map(appendedCards.map((card) => [card.id, card]));
       const localDeck = { ...deck, cards: [...deck.cards, ...appendedCards] };
       let nextDecks: SavedDeck[];
@@ -270,7 +286,7 @@ export default function App() {
         ? { ...refreshedDeck, cards: refreshedDeck.cards.map((card) => appendedById.has(card.id) ? { ...card, ...appendedById.get(card.id)! } : card) }
         : localDeck;
       nextDecks = nextDecks.map((item) => item.id === deck.id ? freshDeck : item);
-      setQuestions(freshDeck.cards); setDeckTitle(deck.title); setCurrentSavedDeck(freshDeck); setPendingGenerated(null); setGeneratedForAppend(null); setMode("study");
+      setQuestions(freshDeck.cards); setDeckTitle(deck.title); setCurrentSavedDeck(freshDeck); setPendingGenerated(null); setGeneratedForAppend(null); setAppendScopeDeck(null); setMode("study");
       setSavedDecks(nextDecks);
     } catch (error) {
       console.error(error);
@@ -670,11 +686,27 @@ export default function App() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100 text-2xl">📚</div>
             <h2 id="append-title" className="mt-4 text-center text-xl font-bold text-rose-950">Thêm vào bộ thẻ hiện có?</h2>
             <p className="mt-2 text-center text-sm text-slate-500">AI vừa tạo {pendingGenerated.cards.length} câu. Chọn bộ thẻ để lưu chung:</p>
-            <div className="mt-5 max-h-44 space-y-2 overflow-y-auto">
-              {savedDecks.filter((deck) => deck.owner_id === user?.id || deck.member_access === "edit").map((deck) => <button key={deck.id} type="button" disabled={appendingDeckId !== null} onClick={() => void appendGeneratedToDeck(deck)} className="flex w-full items-center justify-between rounded-xl border border-teal-100 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60"><span>{appendingDeckId === deck.id ? "Đang thêm..." : deck.title}</span><span className="text-xs text-slate-400">{deck.cards.length} thẻ</span></button>)}
-              {savedDecks.every((deck) => deck.owner_id !== user?.id && deck.member_access !== "edit") && <p className="rounded-xl bg-white/70 px-4 py-3 text-center text-sm text-slate-500">Bạn chưa có bộ thẻ nào được phép chỉnh sửa.</p>}
-            </div>
-            <button type="button" disabled={appendingDeckId !== null} onClick={() => { setQuestions(pendingGenerated.cards); setDeckTitle(pendingGenerated.title); setGeneratedForAppend(pendingGenerated); setPendingGenerated(null); setMode("study"); }} className="mt-5 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-60">Học riêng bộ mới</button>
+            {!appendScopeDeck ? <>
+              <div className="mt-5 max-h-44 space-y-2 overflow-y-auto">
+                {savedDecks.filter((deck) => deck.owner_id === user?.id || deck.member_access === "edit").map((deck) => <button key={deck.id} type="button" disabled={appendingDeckId !== null} onClick={() => requestAppendGeneratedToDeck(deck)} className="flex w-full items-center justify-between rounded-xl border border-teal-100 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60"><span>{appendingDeckId === deck.id ? "Đang thêm..." : deck.title}</span><span className="flex items-center gap-2 text-xs text-slate-400">{deck.visibility === "shared" && <span className="rounded-full bg-rose-50 px-2 py-1 font-bold text-rose-500">Chia sẻ</span>}{deck.cards.length} thẻ</span></button>)}
+                {savedDecks.every((deck) => deck.owner_id !== user?.id && deck.member_access !== "edit") && <p className="rounded-xl bg-white/70 px-4 py-3 text-center text-sm text-slate-500">Bạn chưa có bộ thẻ nào được phép chỉnh sửa.</p>}
+              </div>
+              <button type="button" disabled={appendingDeckId !== null} onClick={() => { setQuestions(pendingGenerated.cards); setDeckTitle(pendingGenerated.title); setGeneratedForAppend(pendingGenerated); setPendingGenerated(null); setAppendScopeDeck(null); setMode("study"); }} className="mt-5 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-60">Học riêng bộ mới</button>
+            </> : <div className="mt-5">
+              <div className="rounded-2xl border border-teal-100 bg-white/80 p-4">
+                <p className="text-center text-xs font-bold uppercase tracking-[0.14em] text-teal-600">Bộ thẻ đang được chia sẻ</p>
+                <p className="mt-1 text-center text-sm font-bold text-rose-950">Thêm {pendingGenerated.cards.length} câu vào “{appendScopeDeck.title}”</p>
+                <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1.5">
+                  <button type="button" onClick={() => chooseGeneratedAppendScope("personal")} aria-pressed={appendScope === "personal"} className={`rounded-xl px-3 py-3 text-sm font-bold transition ${appendScope === "personal" ? "bg-white text-teal-700 shadow-sm ring-1 ring-teal-100" : "text-slate-500 hover:bg-white/70"}`}>👤 Mình tôi</button>
+                  <button type="button" onClick={() => chooseGeneratedAppendScope("shared")} aria-pressed={appendScope === "shared"} className={`rounded-xl px-3 py-3 text-sm font-bold transition ${appendScope === "shared" ? "bg-white text-rose-600 shadow-sm ring-1 ring-rose-100" : "text-slate-500 hover:bg-white/70"}`}>👥 Chia sẻ</button>
+                </div>
+                <p className="mt-3 text-center text-xs leading-5 text-slate-500">{appendScope === "personal" ? "Chỉ tài khoản của bạn nhìn thấy và học các câu mới." : "Các câu mới sẽ xuất hiện với mọi thành viên trong bộ thẻ."}</p>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button type="button" disabled={appendingDeckId !== null} onClick={() => setAppendScopeDeck(null)} className="flex-1 rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm font-bold text-slate-500 hover:bg-rose-50 disabled:opacity-60">Quay lại</button>
+                <button type="button" disabled={appendingDeckId !== null} onClick={() => void appendGeneratedToDeck(appendScopeDeck, appendScope)} className="flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500 disabled:cursor-wait disabled:opacity-60">{appendingDeckId === appendScopeDeck.id ? "Đang thêm..." : "Xác nhận thêm"}</button>
+              </div>
+            </div>}
           </div>
         </div>}
     </>
