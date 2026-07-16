@@ -9,7 +9,7 @@ import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 const router = express.Router();
 const MAX_PDF_BYTES = 40 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 20;
-const EXTRACTION_VERSION = "full-tables-v3";
+const EXTRACTION_VERSION = "full-tables-v4-vietnamese";
 const cache = new Map();
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -109,6 +109,14 @@ NHIỆM VỤ BẮT BUỘC:
 8. Với bảng bị cắt ở đầu/cuối cụm trang, vẫn trích toàn bộ các dòng nhìn thấy. Giữ đúng topic/tên bảng đọc được từ trang tiếp diễn; nếu tên nằm ở trang trước và không hiện trong cụm, dùng “Bảng tiếp diễn — [mục/chương đọc được]”, không bịa tên.
 9. Chỉ điền drugName, dose, renalAdjustment, hepaticAdjustment, contraindications, monitoring khi chính bảng/ghi chú trong cụm nêu rõ. Không có thì để chuỗi rỗng.
 10. Chỉ dùng PDF. Không bổ sung kiến thức ngoài, không tự tạo khuyến cáo hoặc nguồn. Bỏ văn xuôi mô tả thuần túy, tài liệu tham khảo và đoạn không phải bảng/khuyến cáo.
+
+YÊU CẦU NGÔN NGỮ — BẮT BUỘC KIỂM TRA TRƯỚC KHI TRẢ:
+- Dịch SANG TIẾNG VIỆT TOÀN BỘ tên chương/mục trong topic, tên bảng, hàng tiêu đề phân nhóm trong clinicalContext, recommendationSummary, dose, renalAdjustment, hepaticAdjustment, contraindications và monitoring.
+- Không được chép nguyên một câu, một mệnh đề hoặc một tiêu đề tiếng Anh vào các trường trên. Nếu phát hiện còn câu tiếng Anh, phải dịch lại trước khi trả JSON.
+- Chỉ giữ nguyên: tên thuốc generic, tên riêng, tên thang điểm/công cụ, ký hiệu khoa học, đơn vị đo và các viết tắt y khoa quốc tế như ACS, ECG, STEMI, NSTEMI, CCTA, hs-cTn. Khi một viết tắt xuất hiện lần đầu trong một bảng và nguồn có đủ nghĩa, viết tiếng Việt trước rồi giữ viết tắt trong ngoặc.
+- Dùng cách diễn đạt chuẩn guideline: “is recommended” = “được khuyến cáo”; “should be considered” = “nên được cân nhắc”; “may be considered” = “có thể cân nhắc”; “is not recommended” = “không được khuyến cáo”. Không làm thay đổi mức độ mạnh/yếu của câu nguồn.
+- documentTitle có thể giữ tên chính thức của guideline; society, tên hiệp hội, tên thuốc và pageReference có thể giữ tên riêng/nguồn chính thức. Ngoài các ngoại lệ này, đầu ra phải là tiếng Việt tự nhiên, chính xác và đầy đủ.
+- Tự rà soát từng entry: topic tiếng Việt; clinicalContext tiếng Việt nếu có; recommendationSummary không còn câu tiếng Anh; các trường thông tin thuốc bằng tiếng Việt nếu có. Chỉ sau khi đạt đủ mới trả JSON.
 
 METADATA: documentTitle, society, condition, publicationYear, versionLabel và sourceUrl lấy từ tài liệu nếu nhìn thấy; nếu cụm này không chứa metadata thì dùng chuỗi rỗng và publicationYear = 0. entries có thể rỗng nếu cụm thật sự không có bảng khuyến cáo.
 
