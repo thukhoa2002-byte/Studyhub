@@ -4,8 +4,8 @@ interface Props {
   onHome?: () => void;
   onUserChange?: (user: import("@supabase/supabase-js").User | null) => void;
   specialUser?: boolean;
-  theme: "color" | "basic";
-  onThemeChange: (theme: "color" | "basic") => void;
+  theme: "color" | "basic" | "anki";
+  onThemeChange: (theme: "color" | "basic" | "anki") => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
 }

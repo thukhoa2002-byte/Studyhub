@@ -6,8 +6,8 @@ import type { User } from "@supabase/supabase-js";
 interface Props {
   onUserChange: (user: User | null) => void;
   specialUser?: boolean;
-  theme: "color" | "basic";
-  onThemeChange: (theme: "color" | "basic") => void;
+  theme: "color" | "basic" | "anki";
+  onThemeChange: (theme: "color" | "basic" | "anki") => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
 }
@@ -126,7 +126,14 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
               <span className={`relative h-5 w-9 rounded-full transition ${sharedDeckNotificationsEnabled ? "bg-teal-400" : "bg-slate-200"}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${sharedDeckNotificationsEnabled ? "translate-x-[18px]" : "translate-x-0.5"}`} /></span>
             </button>
           </div>
-          <div className="mt-2 border-t border-slate-100 pt-2"><p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Background</p><div className="flex gap-1 rounded-xl bg-slate-50 p-1"><button type="button" onClick={() => onThemeChange("color")} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "color" ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>Color</button><button type="button" onClick={() => onThemeChange("basic")} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button></div></div>
+          <div className="mt-2 border-t border-slate-100 pt-2">
+            <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Giao diện</p>
+            <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-50 p-1">
+              <button type="button" onClick={() => onThemeChange("color")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "color" ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>Color</button>
+              <button type="button" onClick={() => onThemeChange("basic")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button>
+              <button type="button" onClick={() => onThemeChange("anki")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "anki" ? "bg-neutral-900 text-white shadow-sm" : "text-slate-500"}`}>Anki</button>
+            </div>
+          </div>
         </div>}
       </div>
     );
