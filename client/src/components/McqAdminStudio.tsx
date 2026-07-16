@@ -209,7 +209,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
     <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto]">
       <button type="button" onClick={() => inputRef.current?.click()} className="flex min-h-32 items-center justify-center rounded-3xl border border-dashed border-violet-300 bg-violet-50/50 px-5 text-center transition hover:bg-violet-50">
-        <span><Upload className="mx-auto text-violet-600" /><strong className="mt-2 block text-slate-800">Chọn PDF hoặc ảnh câu hỏi</strong><small className="mt-1 block text-slate-500">Tối đa 20 file, tổng 40 MB. Ảnh X-quang nên tải thành file ảnh riêng.</small></span>
+        <span><Upload className="mx-auto text-violet-600" /><strong className="mt-2 block text-slate-800">Chọn PDF hoặc ảnh câu hỏi</strong><small className="mt-1 block text-slate-500">Tối đa 20 file, mỗi file 100 MB và tổng 120 MB. PDF note/scan sẽ được đọc cả chữ nằm trong ảnh; ảnh X-quang nên tải thành file ảnh riêng.</small></span>
       </button>
       <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Trích bằng Gemini</button>
       <input ref={inputRef} className="hidden" type="file" multiple accept="application/pdf,image/png,image/jpeg" onChange={(event) => setFiles(Array.from(event.target.files ?? []))} />
