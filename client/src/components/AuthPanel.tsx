@@ -12,6 +12,15 @@ interface Props {
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
 }
 
+async function signInWithGoogle() {
+  if (!supabase) return;
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.origin },
+  });
+  if (error) alert(`${error.message}${error.status ? ` (mã ${error.status})` : ""}`);
+}
+
 export default function AuthPanel({ onUserChange, specialUser = false, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
@@ -33,6 +42,12 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
     });
     return () => data.subscription.unsubscribe();
   }, [onUserChange]);
+
+  useEffect(() => {
+    const handleRequestedGoogleLogin = () => void signInWithGoogle();
+    window.addEventListener("hocbai:google-sign-in", handleRequestedGoogleLogin);
+    return () => window.removeEventListener("hocbai:google-sign-in", handleRequestedGoogleLogin);
+  }, []);
 
   if (!supabase) {
     return <span className="text-xs font-medium text-slate-400">Chế độ khách</span>;
@@ -59,15 +74,6 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
     } finally {
       setBusy(false);
     }
-  }
-
-  async function signInWithGoogle() {
-    if (!supabase) return;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) alert(`${error.message}${error.status ? ` (mã ${error.status})` : ""}`);
   }
 
   async function updateAvatar(event: React.ChangeEvent<HTMLInputElement>) {

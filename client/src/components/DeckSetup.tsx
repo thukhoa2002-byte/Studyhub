@@ -58,6 +58,8 @@ interface Props {
   aiCallsRemaining: number;
   onStudyDue: (beforeStudy?: () => void) => void | Promise<void>;
   currentUserId?: string;
+  authenticated: boolean;
+  onRequireLogin: () => void;
 }
 
 type SetupMode = "import" | "create" | "ai";
@@ -172,6 +174,8 @@ export default function DeckSetup({
   aiCallsRemaining,
   onStudyDue,
   currentUserId,
+  authenticated,
+  onRequireLogin,
 }: Props) {
   const [mode, setMode] = useState<SetupMode>("import");
   const [title, setTitle] = useState("");
@@ -223,8 +227,14 @@ export default function DeckSetup({
   }
 
   function createDeck() {
+    if (!authenticated) { onRequireLogin(); return; }
     if (validCards.length === 0) return;
     onCreateDeck(title.trim() || "Bộ thẻ mới", buildQuestions());
+  }
+
+  function selectMode(nextMode: SetupMode) {
+    if (!authenticated) { onRequireLogin(); return; }
+    setMode(nextMode);
   }
 
   function startDueReview() {
@@ -255,21 +265,21 @@ export default function DeckSetup({
       <div className={`setup-mode-tabs setup-mode-tabs--${mode} mb-6 grid gap-2 rounded-lg border border-rose-100 bg-white/70 p-1 shadow-sm sm:grid-cols-3`}>
         <span className="setup-mode-tabs__glider" aria-hidden="true" />
         <button
-          onClick={() => setMode("import")}
+          onClick={() => selectMode("import")}
           className={`setup-mode-tab flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${mode === "import" ? "setup-mode-tab--active" : "text-slate-600 hover:text-rose-700"}`}
         >
           <FileText size={18} />
           Nhập file
         </button>
         <button
-          onClick={() => setMode("create")}
+          onClick={() => selectMode("create")}
           className={`setup-mode-tab flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${mode === "create" ? "setup-mode-tab--active" : "text-slate-600 hover:text-rose-700"}`}
         >
           <Plus size={18} />
           Tạo mới
         </button>
         <button
-          onClick={() => setMode("ai")}
+          onClick={() => selectMode("ai")}
           className={`setup-mode-tab flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${mode === "ai" ? "setup-mode-tab--active" : "text-slate-600 hover:text-rose-700"}`}
         >
           <Sparkles size={18} />
@@ -358,6 +368,7 @@ export default function DeckSetup({
         <div className="glass-panel mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <label
             htmlFor="anki-file"
+            onClick={(event) => { if (!authenticated) { event.preventDefault(); onRequireLogin(); } }}
             className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"
           >
             <UploadCloud size={42} className="text-rose-400" />
@@ -438,6 +449,7 @@ export default function DeckSetup({
         <div className="glass-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
           <label
             htmlFor="upload"
+            onClick={(event) => { if (!authenticated) { event.preventDefault(); onRequireLogin(); } }}
             className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"
           >
             {preview ? (

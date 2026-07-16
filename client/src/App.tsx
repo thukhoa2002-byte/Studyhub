@@ -60,6 +60,7 @@ export default function App() {
   const [appendScopeDeck, setAppendScopeDeck] = useState<SavedDeck | null>(null);
   const [appendScope, setAppendScope] = useState<"shared" | "personal">(() => localStorage.getItem("shared-deck-card-scope") === "shared" ? "shared" : "personal");
   const [showWelcome, setShowWelcome] = useState(true);
+  const [loginRequiredOpen, setLoginRequiredOpen] = useState(false);
   const [welcomeClosing, setWelcomeClosing] = useState(false);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
   const [theme, setTheme] = useState<"color" | "basic">(() => (localStorage.getItem("hocbai-theme") === "basic" ? "basic" : "color"));
@@ -190,9 +191,21 @@ export default function App() {
     }
   }
 
+  function requireLogin() {
+    if (user) return true;
+    setLoginRequiredOpen(true);
+    return false;
+  }
+
+  function continueWithGoogle() {
+    setLoginRequiredOpen(false);
+    window.dispatchEvent(new Event("hocbai:google-sign-in"));
+  }
+
   function onImageChange(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
+    if (!requireLogin()) { event.target.value = ""; return; }
     const file = event.target.files?.[0];
 
     if (!file) return;
@@ -202,6 +215,7 @@ export default function App() {
   }
 
   async function onGenerate() {
+    if (!requireLogin()) return;
     if (!image) return;
 
     try {
@@ -222,6 +236,7 @@ export default function App() {
   }
 
   async function onGenerateMcq() {
+    if (!requireLogin()) return;
     if (!image) return;
     try {
       setLoading(true); setLoadingTitle("Đang tạo trắc nghiệm..."); setLoadingDescription("Mình đang đọc ảnh và chọn từng kiến thức quan trọng để tạo câu hỏi.\n\nĐây là công cụ AI để tạo câu hỏi từ hình ảnh, nhưng do hạn hẹp kinh phí nên chất lượng bị hạn chế. Vui lòng không chửi bậy khi làm trắc nghiệm nhé :)))");
@@ -233,6 +248,7 @@ export default function App() {
   }
 
   async function onGenerateClinicalCase() {
+    if (!requireLogin()) return;
     if (!image) return;
     try {
       setLoading(true);
@@ -298,6 +314,7 @@ export default function App() {
   }
 
   async function onImportDeck(file: File) {
+    if (!requireLogin()) return;
     try {
       setLoading(true);
       setLoadingTitle("Đang nạp bộ thẻ...");
@@ -390,6 +407,7 @@ export default function App() {
   }
 
   function onCreateDeck(title: string, createdQuestions: GeneratedQuestion[]) {
+    if (!requireLogin()) return;
     setQuestions(createdQuestions);
     setDeckTitle(title);
     setMode("study");
@@ -397,6 +415,7 @@ export default function App() {
   }
 
   function onSaveDeck(title: string, cards: GeneratedQuestion[]) {
+    if (!requireLogin()) return;
     void persistSetupDeck(title, cards);
   }
 
@@ -634,6 +653,8 @@ export default function App() {
             aiCallsRemaining={aiCallsRemaining}
             currentUserId={user?.id}
             onStudyDue={studyDueCards}
+            authenticated={Boolean(user)}
+            onRequireLogin={() => setLoginRequiredOpen(true)}
           />
         ) : mode === "study" ? (
           <Study
@@ -656,6 +677,15 @@ export default function App() {
       {!showWelcome && deckActivityNotifications.length > 0 && <SharedDeckNotification notifications={deckActivityNotifications} onDismiss={(notificationId) => void dismissSharedDeckNotification(notificationId)} onDisable={() => void changeSharedDeckNotifications(false)} />}
       <Footer />
       <PandaAssistant />
+        {loginRequiredOpen && <div className="fixed inset-0 z-[160] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-labelledby="login-required-title">
+          <div className="w-full max-w-md rounded-3xl border border-white/80 bg-gradient-to-br from-white via-rose-50/95 to-teal-50/90 p-7 text-center shadow-[0_28px_80px_rgba(136,19,55,.22)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm ring-1 ring-rose-100"><span className="font-black text-blue-600">G</span></div>
+            <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.16em] text-rose-500">Cần đăng nhập</p>
+            <h2 id="login-required-title" className="mt-2 text-2xl font-bold text-rose-950">Đăng nhập để tạo bộ thẻ</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-500">Bạn cần đăng nhập Google trước khi nhập file, tạo thẻ mới hoặc sử dụng AI từ ảnh.</p>
+            <div className="mt-7 flex gap-3"><button type="button" onClick={() => setLoginRequiredOpen(false)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Để sau</button><button type="button" onClick={continueWithGoogle} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500"><span className="font-black">G</span> Đăng nhập Google</button></div>
+          </div>
+        </div>}
         {sharingDeck && (sharingDeck.owner_id === user?.id || sharingDeck.member_role === "admin") && <ShareDeckDialog deckId={sharingDeck.id} title={sharingDeck.title} onClose={() => setSharingDeck(null)} onShare={shareSavedDeck} />}
         {pendingImport && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="import-next-title">
           <div className="w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/70 to-teal-50/70 p-7 text-center shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
