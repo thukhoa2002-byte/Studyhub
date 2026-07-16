@@ -26,6 +26,18 @@ export interface McqLibraryBank {
 
 export type McqBankState = Pick<McqLibraryBank, "id" | "status">;
 
+export function mcqLibraryErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const parts = [candidate.message, candidate.details, candidate.hint]
+      .filter((part): part is string => typeof part === "string" && Boolean(part.trim()));
+    if (parts.length) return parts.join(" — ");
+    if (typeof candidate.code === "string") return `${fallback} (mã ${candidate.code})`;
+  }
+  return fallback;
+}
+
 function requireSupabase() {
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
   return supabase;
@@ -79,7 +91,6 @@ export async function saveMcqBank(
     storedQuestions.push({ ...question, image_url: publicUrl.publicUrl });
   }
   const payload = {
-    owner_id: userId,
     title: input.title.trim(),
     description: input.description.trim(),
     questions: storedQuestions,
@@ -87,10 +98,24 @@ export async function saveMcqBank(
     updated_at: now,
     published_at: input.status === "published" ? now : null,
   };
-  const request = bankId
-    ? client.from("mcq_banks").upsert({ id: targetId, ...payload }, { onConflict: "id" }).select("*").single()
-    : client.from("mcq_banks").insert({ id: targetId, ...payload }).select("*").single();
-  const { data, error } = await request;
+  if (bankId) {
+    // Updating first avoids PostgREST upsert requiring both INSERT and UPDATE
+    // policies for a bank that already exists.
+    const { data: updated, error: updateError } = await client
+      .from("mcq_banks")
+      .update(payload)
+      .eq("id", targetId)
+      .select("*")
+      .maybeSingle();
+    if (updateError) throw updateError;
+    if (updated) return updated as McqLibraryBank;
+  }
+
+  const { data, error } = await client
+    .from("mcq_banks")
+    .insert({ id: targetId, owner_id: userId, ...payload })
+    .select("*")
+    .single();
   if (error) throw error;
   return data as McqLibraryBank;
 }
@@ -109,15 +134,28 @@ export async function deleteMcqBank(bankId: string): Promise<void> {
 
 export async function archiveMcqBank(userId: string, bankId: string, title: string): Promise<void> {
   const now = new Date().toISOString();
-  const { error } = await requireSupabase().from("mcq_banks").upsert({
-    id: bankId,
-    owner_id: userId,
+  const client = requireSupabase();
+  const archived = {
     title: title.trim() || "Bộ MCQ đã xóa",
     description: "",
     questions: [],
     status: "archived",
     updated_at: now,
     published_at: null,
-  }, { onConflict: "id" });
-  if (error) throw error;
+  };
+  const { data: updated, error: updateError } = await client
+    .from("mcq_banks")
+    .update(archived)
+    .eq("id", bankId)
+    .select("id")
+    .maybeSingle();
+  if (updateError) throw updateError;
+  if (updated) return;
+
+  const { error: insertError } = await client.from("mcq_banks").insert({
+    id: bankId,
+    owner_id: userId,
+    ...archived,
+  });
+  if (insertError) throw insertError;
 }

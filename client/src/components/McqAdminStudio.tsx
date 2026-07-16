@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, FileSearch, Globe2, Image as ImageIcon, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload } from "lucide-react";
 import { extractMcqFiles } from "../services/api";
-import { deleteMcqBank, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
+import { deleteMcqBank, mcqLibraryErrorMessage, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
 
 type Props = {
   userId: string;
@@ -196,7 +196,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       setNotice(status === "published" ? "Đã đăng công khai vào thư viện MCQ." : "Đã lưu bản nháp riêng tư.");
       await onChanged();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Không thể lưu bộ MCQ.");
+      setError(mcqLibraryErrorMessage(saveError, "Không thể lưu bộ MCQ."));
     } finally { setBusy(false); }
   }
 

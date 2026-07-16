@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Globe2, LockKeyhole, Pencil, Play, RotateCcw, Trash2, Trophy, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
-import { archiveMcqBank, deleteMcqBank, listMcqBanks, listMcqBankStates, saveMcqBank, type McqBankState, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
+import { archiveMcqBank, deleteMcqBank, listMcqBanks, listMcqBankStates, mcqLibraryErrorMessage, saveMcqBank, type McqBankState, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
 
 type Option = { id: string; text: string };
 type QuizQuestion = {
@@ -174,7 +174,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
       await saveMcqBank(userId, { title: editable.title, description: editable.description, questions: editable.questions, status }, editable.id);
       await refreshLibrary();
     } catch (visibilityError) {
-      setError(visibilityError instanceof Error ? visibilityError.message : "Không thể thay đổi quyền xem bộ MCQ.");
+      setError(mcqLibraryErrorMessage(visibilityError, "Không thể thay đổi quyền xem bộ MCQ."));
     }
   }
 
@@ -188,7 +188,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
       if (requestedEditBank?.id === (deck.libraryBank?.id || deck.managedBankId)) setRequestedEditBank(null);
       await refreshLibrary();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Không thể xóa bộ MCQ.");
+      setError(mcqLibraryErrorMessage(deleteError, "Không thể xóa bộ MCQ."));
     }
   }
 
