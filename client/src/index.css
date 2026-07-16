@@ -135,6 +135,12 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 .setup-mode-tab { position: relative; z-index: 1; min-height: 2.75rem; transition: color 360ms ease, transform 360ms cubic-bezier(.22,1,.36,1); }
 .setup-mode-tab:hover { transform: translateY(-1px) scale(1.01); }
 .setup-mode-tab--active { color: #4c0519; }
+.workspace-tabs { position: relative; isolation: isolate; overflow: hidden; border-radius: 1.35rem !important; }
+.workspace-tabs__glider { position: absolute; z-index: 0; top: .5rem; bottom: .5rem; left: .5rem; width: calc((100% - 1.5rem) / 2); border: 1px solid rgba(251,113,133,.34); border-radius: .95rem; background: linear-gradient(135deg, rgba(255,228,239,.96), rgba(204,251,241,.88)); box-shadow: 0 9px 24px rgba(244,114,182,.13), inset 0 1px 0 rgba(255,255,255,.9); transition: transform 620ms cubic-bezier(.16,1.12,.3,1), box-shadow 320ms ease; }
+.workspace-tabs__glider--drugs { transform: translateX(calc(100% + .5rem)); }
+.workspace-tabs__button { position: relative; z-index: 1; display: inline-flex; min-height: 3.65rem; align-items: center; justify-content: center; gap: .65rem; border-radius: .95rem; color: #64748b; font-size: .95rem; font-weight: 800; letter-spacing: -.01em; }
+.workspace-tabs__button--active { color: #881337; }
+.workspace-tabs__button:hover { color: #be185d; }
 .mode-panel { animation: mode-panel-in 560ms cubic-bezier(.22,1,.36,1) both; transform-origin: 50% 0; will-change: opacity, transform, filter; }
 @keyframes mode-panel-in { from { opacity: 0; filter: blur(4px); transform: translateY(12px) scale(.985); } 70% { filter: blur(0); transform: translateY(-1px) scale(1.002); } to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } }
 @keyframes liquid-glass-sheen { 0%, 38% { transform: translateX(-120%); } 68%, 100% { transform: translateX(120%); } }
@@ -195,6 +201,7 @@ html[data-theme="basic"] main { background: #fafafa !important; }
   .shared-deck-toast { animation: none !important; }
   .setup-mode-tabs::after,
   .setup-mode-tabs__glider,
+  .workspace-tabs__glider,
   .mode-panel { animation: none !important; transition: none !important; }
 }
 
