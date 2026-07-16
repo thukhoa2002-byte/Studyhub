@@ -35,6 +35,9 @@ export interface GuidelineEntry {
   evidence_level: string;
   page_reference: string;
   source_order: number;
+  table_kind: "recommendation" | "data";
+  table_row_role: "header" | "section" | "body";
+  table_cells: Array<{ text: string; colSpan: number; rowSpan: number; backgroundColor: string; textColor: string; textAlign: "left" | "center" | "right"; fontWeight: "normal" | "bold" }>;
   status: GuidelineStatus;
   created_at: string;
 }

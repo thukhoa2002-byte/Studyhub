@@ -52,6 +52,9 @@ const emptyEntry = {
   evidence_level: "",
   page_reference: "",
   source_order: 0,
+  table_kind: "recommendation" as const,
+  table_row_role: "body" as const,
+  table_cells: [],
 };
 
 function errorMessage(error: unknown) {
@@ -213,6 +216,9 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           evidence_level: entry.evidenceLevel,
           page_reference: entry.pageReference,
           source_order: index + 1,
+          table_kind: entry.tableKind,
+          table_row_role: entry.tableRowRole,
+          table_cells: entry.tableCells,
         }));
         const saved = await createGuidelineEntries(user.id, drafts);
         setEntries(saved);
@@ -283,6 +289,9 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
         evidence_level: entry.evidenceLevel,
         page_reference: entry.pageReference,
         source_order: index + 1,
+        table_kind: entry.tableKind,
+        table_row_role: entry.tableRowRole,
+        table_cells: entry.tableCells,
       }));
       if (replacements.length === 0) throw new Error("AI chưa tìm thấy bảng khuyến cáo trong PDF; dữ liệu cũ được giữ nguyên.");
       const previousIds = entries.map((entry) => entry.id);
@@ -430,7 +439,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
                   <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-rose-500">Phần {groupIndex + 1}</p>
                   <h3 className="mt-1 text-base font-extrabold leading-6 text-rose-950">{group.title}</h3>
                 </header>
-                <div className="overflow-x-auto">
+                {group.items.some((entry) => entry.table_kind === "data") ? <StructuredGuidelineTable entries={group.items} society={selectedDocument.society} year={selectedDocument.publication_year} /> : <div className="overflow-x-auto">
                   <table className="w-full min-w-[700px] border-collapse text-left">
                     <thead><tr className="bg-[#d0d0d2] text-xs font-extrabold text-slate-900"><th className="px-5 py-3">Khuyến cáo</th><th className="w-24 border-l border-white px-3 py-3 text-center">Nhóm</th><th className="w-28 border-l border-white px-3 py-3 text-center">Mức độ chứng cứ</th></tr></thead>
                     <tbody>{group.items.map((entry, entryIndex) => <Fragment key={entry.id}>
@@ -450,7 +459,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
                       <td className={`border-l border-white/90 px-3 py-4 text-center text-sm font-black ${evidenceTone(entry.evidence_level)}`}>{formatEvidenceLevel(entry.evidence_level)}</td>
                     </tr></Fragment>)}</tbody>
                   </table>
-                </div>
+                </div>}
               </section>)}</div>
             </>}
           </div>
@@ -462,6 +471,43 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
 
 function Field({ label, value, onChange, required = false, placeholder = "", wide = false }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; placeholder?: string; wide?: boolean }) {
   return <label className={`text-sm font-bold text-slate-700 ${wide ? "sm:col-span-2" : ""}`}>{label}<input required={required} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="mt-1.5 w-full rounded-xl border border-rose-100 bg-white px-3 py-2.5 font-medium" /></label>;
+}
+
+function StructuredGuidelineTable({ entries, society, year }: { entries: GuidelineEntry[]; society: string; year: number }) {
+  const rows = entries.filter((entry) => entry.table_kind === "data" && entry.table_cells.length > 0);
+  const headers = rows.filter((entry) => entry.table_row_role === "header");
+  const body = rows.filter((entry) => entry.table_row_role !== "header");
+  const renderRow = (entry: GuidelineEntry) => (
+    <tr key={entry.id} className={entry.table_row_role === "section" ? "bg-[#d0d0d2]" : "border-t border-white bg-[#f1f1f2] align-top"}>
+      {entry.table_cells.map((cell, index) => {
+        const Tag = entry.table_row_role === "header" || entry.table_row_role === "section" ? "th" : "td";
+        const colSpan = Math.max(1, Math.min(20, Number(cell.colSpan) || 1));
+        const rowSpan = Math.max(1, Math.min(20, Number(cell.rowSpan) || 1));
+        const backgroundColor = safeTableColor(cell.backgroundColor);
+        const color = safeTableColor(cell.textColor);
+        return <Tag key={`${entry.id}-${index}`} colSpan={colSpan} rowSpan={rowSpan} style={{ backgroundColor, color, textAlign: cell.textAlign || "left", fontWeight: cell.fontWeight === "bold" ? 800 : 500 }} className={`border border-white px-4 py-3 text-sm leading-6 ${!backgroundColor && entry.table_row_role === "header" ? "bg-[#d0d0d2]" : !backgroundColor && entry.table_row_role === "section" ? "bg-[#d0d0d2]" : !backgroundColor ? "bg-[#f1f1f2]" : ""} ${!color ? "text-slate-900" : ""}`}>{cell.text}</Tag>;
+      })}
+    </tr>
+  );
+  if (rows.length === 0) return null;
+  const reviewed = rows.filter((entry) => entry.status === "reviewed").length;
+  return <>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[700px] border-collapse">
+        {headers.length > 0 && <thead>{headers.map(renderRow)}</thead>}
+        <tbody>{body.map(renderRow)}</tbody>
+      </table>
+    </div>
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rose-100 bg-white px-5 py-3 text-[11px] font-semibold text-slate-400">
+      <span>{society} {year} · {rows[0]?.page_reference}</span>
+      <span>{reviewed}/{rows.length} hàng đã kiểm duyệt</span>
+    </div>
+  </>;
+}
+
+function safeTableColor(value: string | undefined) {
+  const color = String(value || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : undefined;
 }
 
 function hasSourceValue(value: string) {

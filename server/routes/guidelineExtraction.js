@@ -9,7 +9,7 @@ import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 const router = express.Router();
 const MAX_PDF_BYTES = 40 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 20;
-const EXTRACTION_VERSION = "full-tables-v4-vietnamese";
+const EXTRACTION_VERSION = "full-tables-v5-structure";
 const cache = new Map();
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -21,6 +21,20 @@ const upload = multer({
 });
 
 const textField = { type: "string" };
+const tableCellSchema = {
+  type: "object",
+  properties: {
+    text: textField,
+    colSpan: { type: "integer" },
+    rowSpan: { type: "integer" },
+    backgroundColor: textField,
+    textColor: textField,
+    textAlign: { type: "string", enum: ["left", "center", "right"] },
+    fontWeight: { type: "string", enum: ["normal", "bold"] },
+  },
+  required: ["text", "colSpan", "rowSpan", "backgroundColor", "textColor", "textAlign", "fontWeight"],
+  additionalProperties: false,
+};
 const schema = {
   type: "object",
   properties: {
@@ -47,11 +61,15 @@ const schema = {
           recommendationClass: textField,
           evidenceLevel: textField,
           pageReference: textField,
+          tableKind: { type: "string", enum: ["recommendation", "data"] },
+          tableRowRole: { type: "string", enum: ["header", "section", "body"] },
+          tableCells: { type: "array", items: tableCellSchema },
         },
         required: [
           "topic", "drugName", "clinicalContext", "recommendationSummary", "dose",
           "renalAdjustment", "hepaticAdjustment", "contraindications", "monitoring",
           "recommendationClass", "evidenceLevel", "pageReference",
+          "tableKind", "tableRowRole", "tableCells",
         ],
         additionalProperties: false,
       },
@@ -100,7 +118,7 @@ GHI CHÚ CỦA NGƯỜI DÙNG (chỉ để chú ý thêm, không phải bộ l�
 
 NHIỆM VỤ BẮT BUỘC:
 1. Đọc tuần tự TỪNG TRANG trong cụm. Tìm và dịch TỪNG DÒNG của TẤT CẢ bảng Recommendation/Recommendations, bảng khuyến cáo, What’s new, New/Revised recommendations và mọi bảng có cột Class/Level/LoE hoặc câu mang cấp khuyến cáo.
-2. Không chỉ dịch What’s new. Không dừng sau bảng đầu. Không giới hạn số dòng. Không bỏ bảng chẩn đoán, xét nghiệm, hình ảnh, phân tầng nguy cơ, theo dõi, thuốc, thủ thuật, phẫu thuật, tổ chức chăm sóc hoặc nhóm đặc biệt.
+2. Đồng thời trích TẤT CẢ bảng dữ liệu lâm sàng liên quan trực tiếp đến sử dụng thuốc: bảng liều, đường dùng, tần suất, chỉnh liều, khởi trị/chuyển liều, tương tác, chống chỉ định, theo dõi, dược động học, chức năng gan-thận. Không chỉ dịch What’s new, không dừng sau bảng đầu và không giới hạn số dòng.
 3. Một dòng nguồn = một entry và phải giữ đúng thứ tự xuất hiện. recommendationSummary là bản dịch tiếng Việt ĐẦY ĐỦ của nguyên văn ô Recommendations; không rút gọn, không diễn giải, không bỏ điều kiện, ngoại lệ, ngưỡng, thời điểm, số liệu hay chú thích gắn trực tiếp.
 4. topic phải giống cấu trúc bản gốc: “Chương/Mục › Recommendation Table [số] — [tên bảng đã dịch sang tiếng Việt]”. Mọi dòng trong cùng một bảng dùng topic giống hệt nhau để giao diện dựng lại đúng một bảng.
 5. Nếu trong thân bảng có hàng tiêu đề phân nhóm phủ ngang như “ECG”, “Imaging”, “Antithrombotic therapy”, hãy dịch tiêu đề đó và đặt vào clinicalContext của DÒNG ĐẦU TIÊN ngay dưới tiêu đề. Các dòng kế tiếp trong cùng phân nhóm để clinicalContext rỗng. Không đưa bối cảnh tự suy diễn vào trường này.
@@ -109,6 +127,16 @@ NHIỆM VỤ BẮT BUỘC:
 8. Với bảng bị cắt ở đầu/cuối cụm trang, vẫn trích toàn bộ các dòng nhìn thấy. Giữ đúng topic/tên bảng đọc được từ trang tiếp diễn; nếu tên nằm ở trang trước và không hiện trong cụm, dùng “Bảng tiếp diễn — [mục/chương đọc được]”, không bịa tên.
 9. Chỉ điền drugName, dose, renalAdjustment, hepaticAdjustment, contraindications, monitoring khi chính bảng/ghi chú trong cụm nêu rõ. Không có thì để chuỗi rỗng.
 10. Chỉ dùng PDF. Không bổ sung kiến thức ngoài, không tự tạo khuyến cáo hoặc nguồn. Bỏ văn xuôi mô tả thuần túy, tài liệu tham khảo và đoạn không phải bảng/khuyến cáo.
+
+QUY TẮC GIỮ NGUYÊN CẤU TRÚC BẢNG:
+- Với bảng Recommendation chuẩn có cột Recommendations/Class/Level, đặt tableKind="recommendation", tableRowRole="body", tableCells=[] và điền các trường khuyến cáo như trên.
+- Với mọi bảng dữ liệu khác (đặc biệt bảng liều thuốc), đặt tableKind="data". MỖI HÀNG VẬT LÝ của bảng gốc, kể cả hàng tiêu đề nhiều tầng và hàng phân nhóm phủ ngang, phải là một entry riêng theo đúng thứ tự xuất hiện.
+- topic của tất cả hàng trong cùng bảng phải giống hệt nhau và là tên bảng/tựa đề đã dịch sang tiếng Việt. Không gộp hai bảng khác nhau vào một topic.
+- tableRowRole="header" cho hàng tiêu đề cột, "section" cho hàng phân nhóm phủ ngang, "body" cho hàng dữ liệu.
+- tableCells chứa từng ô từ trái sang phải. text là nội dung ô đã dịch sang tiếng Việt; colSpan và rowSpan giữ đúng số cột/hàng mà ô chiếm trong bảng gốc (không gộp thì đều là 1). Không thêm, bớt, đổi thứ tự cột/hàng hoặc chuyển một ô sang cột khác.
+- Giữ định dạng nhìn thấy của từng ô: backgroundColor và textColor là mã HEX (ví dụ #55C58F; không xác định thì để rỗng), textAlign là left/center/right, fontWeight là normal/bold. Không tự trang trí hoặc đổi màu so với nguồn.
+- Với tableKind="data", recommendationSummary và các trường Class/LoE có thể để rỗng. Tuyệt đối không ép bảng liều thuốc thành bảng Khuyến cáo/Nhóm/Mức độ chứng cứ.
+- Giữ nguyên tuyệt đối tên thuốc generic, số, dấu thập phân, khoảng liều, đơn vị, đường dùng viết tắt, tần suất và ký hiệu toán học; chỉ dịch tựa đề, tiêu đề cột, nhãn hàng và phần chữ mô tả.
 
 YÊU CẦU NGÔN NGỮ — BẮT BUỘC KIỂM TRA TRƯỚC KHI TRẢ:
 - Dịch SANG TIẾNG VIỆT TOÀN BỘ tên chương/mục trong topic, tên bảng, hàng tiêu đề phân nhóm trong clinicalContext, recommendationSummary, dose, renalAdjustment, hepaticAdjustment, contraindications và monitoring.
@@ -129,10 +157,13 @@ function mergeExtractionResults(results) {
   const entries = [];
   for (const result of results) {
     for (const entry of result.entries || []) {
-      const key = [entry.topic, entry.recommendationSummary, entry.recommendationClass, entry.evidenceLevel, entry.pageReference]
+      const cells = Array.isArray(entry.tableCells) ? entry.tableCells : [];
+      const key = [entry.topic, entry.tableKind, entry.tableRowRole, entry.recommendationSummary, JSON.stringify(cells), entry.recommendationClass, entry.evidenceLevel, entry.pageReference]
         .map((value) => String(value || "").trim().toLowerCase())
         .join("|");
-      if (!entry.recommendationSummary?.trim() || seen.has(key)) continue;
+      const hasRecommendation = Boolean(entry.recommendationSummary?.trim());
+      const hasTableRow = entry.tableKind === "data" && cells.some((cell) => cell?.text?.trim());
+      if ((!hasRecommendation && !hasTableRow) || seen.has(key)) continue;
       seen.add(key);
       entries.push(entry);
     }

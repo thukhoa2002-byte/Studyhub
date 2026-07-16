@@ -120,6 +120,9 @@ export interface ExtractedGuidelineEntry {
   recommendationClass: string;
   evidenceLevel: string;
   pageReference: string;
+  tableKind: "recommendation" | "data";
+  tableRowRole: "header" | "section" | "body";
+  tableCells: Array<{ text: string; colSpan: number; rowSpan: number; backgroundColor: string; textColor: string; textAlign: "left" | "center" | "right"; fontWeight: "normal" | "bold" }>;
 }
 
 export interface GuidelineExtractionResponse {

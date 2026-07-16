@@ -36,12 +36,18 @@ create table if not exists public.guideline_entries (
   evidence_level text not null default '',
   page_reference text not null,
   source_order integer not null default 0,
+  table_kind text not null default 'recommendation' check (table_kind in ('recommendation', 'data')),
+  table_row_role text not null default 'body' check (table_row_role in ('header', 'section', 'body')),
+  table_cells jsonb not null default '[]'::jsonb,
   status text not null default 'draft' check (status in ('draft', 'reviewed')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.guideline_entries add column if not exists source_order integer not null default 0;
+alter table public.guideline_entries add column if not exists table_kind text not null default 'recommendation';
+alter table public.guideline_entries add column if not exists table_row_role text not null default 'body';
+alter table public.guideline_entries add column if not exists table_cells jsonb not null default '[]'::jsonb;
 
 alter table public.guideline_documents enable row level security;
 alter table public.guideline_entries enable row level security;
