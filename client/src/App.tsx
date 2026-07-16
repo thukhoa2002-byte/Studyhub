@@ -28,6 +28,7 @@ import {
   importAnkiPackage,
   getAiCallsRemaining,
   type GeneratedQuestion,
+  type GenerateQuestionsResponse,
 } from "./services/api";
 
 export default function App() {
@@ -52,7 +53,7 @@ export default function App() {
   const setupDeckRef = useRef<SavedDeck | null>(null);
   const setupSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [sharingDeck, setSharingDeck] = useState<SavedDeck | null>(null);
-  const [pendingImport, setPendingImport] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ title: string; cards: GeneratedQuestion[]; summary?: GenerateQuestionsResponse["importSummary"] } | null>(null);
   const [noDueNotice, setNoDueNotice] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<SavedDeck | null>(null);
   const [pendingGenerated, setPendingGenerated] = useState<{ title: string; cards: GeneratedQuestion[] } | null>(null);
@@ -331,7 +332,7 @@ export default function App() {
           return;
         }
 
-        setPendingImport({ title: response.title || file.name.replace(/\.[^.]+$/, ""), cards: response.data });
+        setPendingImport({ title: response.title || file.name.replace(/\.[^.]+$/, ""), cards: response.data, summary: response.importSummary });
         return;
       }
 
@@ -700,6 +701,12 @@ export default function App() {
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Đã nạp bộ thẻ</p>
             <h2 id="import-next-title" className="mt-2 text-2xl font-bold text-rose-950">Bạn muốn làm gì tiếp?</h2>
             <p className="mt-2 text-sm text-slate-500">Bộ “{pendingImport.title}” có {pendingImport.cards.length} thẻ.</p>
+            {pendingImport.summary && <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3 text-left text-xs leading-5 text-slate-600">
+              <p className="font-bold text-teal-700">Đã đọc cấu trúc Anki mới</p>
+              <p>{pendingImport.summary.noteTypeCount} loại thẻ · {pendingImport.summary.deckCount} bộ thẻ con · {pendingImport.summary.mediaCount} media</p>
+              {pendingImport.summary.skippedCount > 0 && <p>{pendingImport.summary.skippedCount} note không đủ Front/Back đã được bỏ qua.</p>}
+              {pendingImport.summary.mediaNotice && <p className="mt-1 text-amber-700">{pendingImport.summary.mediaNotice}</p>}
+            </div>}
             <div className="mt-7 flex gap-3"><button onClick={() => void continueImportedDeck(false)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Để đó</button><button onClick={() => void continueImportedDeck(true)} className="flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white hover:bg-teal-500">Học liền</button></div>
           </div>
         </div>}

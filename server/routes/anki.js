@@ -1,14 +1,16 @@
 import express from "express";
 import multer from "multer";
+import { rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
-import { importAnkiPackage } from "../services/anki.js";
+import { importAnkiPackage, MAX_APKG_BYTES } from "../services/anki.js";
 
 const router = express.Router();
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  dest: tmpdir(),
   limits: {
-    fileSize: 120 * 1024 * 1024,
+    fileSize: MAX_APKG_BYTES,
   },
 });
 
@@ -20,6 +22,7 @@ router.post("/", upload.single("deck"), async (req, res) => {
       success: true,
       title: result.title,
       data: result.questions,
+      importSummary: result.summary,
     });
   } catch (error) {
     console.error(error);
@@ -28,6 +31,8 @@ router.post("/", upload.single("deck"), async (req, res) => {
       success: false,
       message: error.message,
     });
+  } finally {
+    if (req.file?.path) await rm(req.file.path, { force: true }).catch(() => undefined);
   }
 });
 

@@ -66,6 +66,16 @@ export interface GenerateQuestionsResponse {
 
   data: GeneratedQuestion[];
   aiCallsRemaining?: number;
+  importSummary?: {
+    format: string;
+    noteCount: number;
+    cardCount: number;
+    deckCount: number;
+    noteTypeCount: number;
+    mediaCount: number;
+    skippedCount: number;
+    mediaNotice?: string;
+  };
 }
 
 export interface ImportedMcqOption {
@@ -205,7 +215,8 @@ export async function importAnkiPackage(
   });
 
   if (!response.ok) {
-    throw new Error("Không thể đọc file Anki.");
+    const error = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(error?.message || "Không thể đọc file Anki.");
   }
 
   const result =
