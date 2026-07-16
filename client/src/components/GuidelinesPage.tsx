@@ -373,8 +373,8 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
                         <DrugFacts entry={entry} />
                         <p className="mt-3 text-[11px] font-semibold text-slate-400">{selectedDocument.society} {selectedDocument.publication_year} · {entry.page_reference}</p>
                       </td>
-                      <td className={`px-3 py-4 text-center text-sm font-black ${classTone(entry.recommendation_class)}`}>{entry.recommendation_class || "—"}</td>
-                      <td className={`px-3 py-4 text-center text-sm font-black ${evidenceTone(entry.evidence_level)}`}>{entry.evidence_level || "—"}</td>
+                      <td className={`border-l border-white/90 px-3 py-4 text-center text-sm font-black ${classTone(entry.recommendation_class)}`}>{formatRecommendationClass(entry.recommendation_class)}</td>
+                      <td className={`border-l border-white/90 px-3 py-4 text-center text-sm font-black ${evidenceTone(entry.evidence_level)}`}>{formatEvidenceLevel(entry.evidence_level)}</td>
                       <td className="px-3 py-4"><div className="flex flex-col items-center gap-2"><span title={entry.status === "reviewed" ? "Đã kiểm duyệt" : "Bản nháp"} className={`grid h-8 w-8 place-items-center rounded-full ${entry.status === "reviewed" ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>{entry.status === "reviewed" ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}</span>{ownsSelected && <><button type="button" title={entry.status === "reviewed" ? "Trả về bản nháp" : "Xác nhận đã đối chiếu"} onClick={() => void toggleReviewed(entry)} className="rounded-lg border border-teal-200 px-2 py-1 text-[10px] font-bold text-teal-700">{entry.status === "reviewed" ? "Bản nháp" : "Xác nhận"}</button><button type="button" title="Xóa khuyến cáo" onClick={() => void deleteGuidelineEntry(entry.id).then(() => setEntries((items) => items.filter((item) => item.id !== entry.id))).catch((error) => setNotice(errorMessage(error)))} className="rounded-lg border border-rose-100 p-1.5 text-rose-500"><Trash2 size={14} /></button></>}</div></td>
                     </tr>)}</tbody>
                   </table>
@@ -409,18 +409,39 @@ function DrugFacts({ entry }: { entry: GuidelineEntry }) {
 }
 
 function classTone(value: string) {
-  const normalized = value.trim().toUpperCase().replaceAll(" ", "");
-  if (normalized === "I") return "bg-emerald-100 text-emerald-800";
-  if (normalized === "IIA") return "bg-sky-100 text-sky-800";
-  if (normalized === "IIB") return "bg-amber-100 text-amber-800";
-  if (normalized === "III") return "bg-rose-100 text-rose-800";
+  const normalized = normalizeRecommendationClass(value);
+  if (normalized === "I") return "bg-[#55c58f] text-slate-950";
+  if (normalized === "IIA") return "bg-[#ffd000] text-slate-950";
+  if (normalized === "IIB") return "bg-[#f2a43a] text-slate-950";
+  if (normalized === "III") return "bg-[#cf3f58] text-white";
   return "bg-slate-50 text-slate-500";
 }
 
 function evidenceTone(value: string) {
-  const normalized = value.trim().toUpperCase();
-  if (normalized === "A") return "bg-violet-100 text-violet-800";
-  if (normalized === "B") return "bg-indigo-100 text-indigo-800";
-  if (normalized === "C") return "bg-slate-200 text-slate-700";
+  const normalized = normalizeEvidenceLevel(value);
+  if (normalized === "A") return "bg-[#2f91a6] text-white";
+  if (normalized === "B") return "bg-[#6eb6c4] text-slate-950";
+  if (normalized === "C") return "bg-[#b9dce3] text-slate-950";
   return "bg-slate-50 text-slate-500";
+}
+
+function normalizeRecommendationClass(value: string) {
+  const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return normalized.match(/(IIA|IIB|III|I)$/)?.[1] || "";
+}
+
+function normalizeEvidenceLevel(value: string) {
+  const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return normalized.match(/([ABC])$/)?.[1] || "";
+}
+
+function formatRecommendationClass(value: string) {
+  const normalized = normalizeRecommendationClass(value);
+  if (!normalized) return value || "—";
+  return `Class ${normalized === "IIA" ? "IIa" : normalized === "IIB" ? "IIb" : normalized}`;
+}
+
+function formatEvidenceLevel(value: string) {
+  const normalized = normalizeEvidenceLevel(value);
+  return normalized ? `Level ${normalized}` : value || "—";
 }
