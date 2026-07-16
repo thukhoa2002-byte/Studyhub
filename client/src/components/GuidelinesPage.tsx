@@ -128,7 +128,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     const supplementFile = form.get("supplementFile") as File | null;
     const focus = String(form.get("focus") || "").trim();
     if (!file?.size) { setNotice("Hãy chọn PDF guideline chính trước."); return; }
-    if ((file.size + (supplementFile?.size || 0)) > 14 * 1024 * 1024) { setNotice("Tổng hai PDF không được vượt quá 14 MB khi dùng AI."); return; }
+    if ((file.size + (supplementFile?.size || 0)) > 40 * 1024 * 1024) { setNotice("Tổng hai PDF không được vượt quá 40 MB khi dùng AI."); return; }
     setAiReading(true);
     setNotice("Gemini đang đọc metadata, đề mục, bảng khuyến cáo và Supplementary Data...");
     try {
@@ -167,8 +167,8 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       setNotice("Supplementary Data phải là file PDF.");
       return;
     }
-    if (autoExtract && ((file?.size || 0) + (supplementFile?.size || 0)) > 14 * 1024 * 1024) {
-      setNotice("Tổng dung lượng guideline và Supplementary Data tối đa 14 MB khi dùng AI. Bạn có thể nén PDF hoặc chỉ lưu tài liệu.");
+    if (autoExtract && ((file?.size || 0) + (supplementFile?.size || 0)) > 40 * 1024 * 1024) {
+      setNotice("Tổng dung lượng guideline và Supplementary Data tối đa 40 MB khi dùng AI. Bạn có thể nén PDF hoặc chỉ lưu tài liệu.");
       return;
     }
     setBusy(true);
@@ -290,7 +290,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <label className="text-sm font-bold text-slate-700">Quyền xem<select name="visibility" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3"><option value="private">Chỉ mình tôi</option><option value="shared">Chia sẻ bản đã kiểm duyệt</option></select></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">Link nguồn chính thức<input name="sourceUrl" required type="url" placeholder="https://www.escardio.org/..." className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF guideline chính<input name="file" required type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-teal-200 bg-teal-50/55 px-4 py-4 text-sm" /></label>
-          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF Supplementary Data (không bắt buộc)<input name="supplementFile" type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-violet-200 bg-violet-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tổng hai file tối đa 14 MB khi dùng AI · mỗi file tối đa 25 MB nếu chỉ lưu</span></label>
+          <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF Supplementary Data (không bắt buộc)<input name="supplementFile" type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-violet-200 bg-violet-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tổng hai file tối đa 40 MB khi dùng AI · mỗi PDF tối đa 40 MB</span></label>
           <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 text-sm text-slate-700"><input name="autoExtract" type="checkbox" defaultChecked className="mt-1 h-4 w-4 accent-teal-500" /><span><strong className="block text-teal-800">AI tự trích xuất tất cả khuyến cáo sau khi upload</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Bao gồm Class/LoE, bản dịch tiếng Việt và dữ liệu thuốc trong Supplementary Data. Mỗi lần xử lý dùng 1 lượt Gemini; kết quả luôn là bản nháp.</span></span></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">Phạm vi muốn AI tập trung (không bắt buộc)<input name="focus" onChange={() => setPreparedExtraction(null)} placeholder="Ví dụ: kháng đông trong AF; thuốc điều trị HFrEF; liều và điều chỉnh theo thận" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
           <div className="sm:col-span-2 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-teal-50 p-4"><button type="button" disabled={aiReading || busy} onClick={() => void readDocumentWithAi()} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-extrabold text-white shadow-sm disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={18} /> : <BookOpenCheck size={18} />} {aiReading ? "AI đang đọc toàn bộ tài liệu..." : preparedExtraction ? "AI đã điền · Đọc lại" : "AI đọc file & tự điền các ô"}</button><p className="mt-2 text-center text-xs font-medium text-slate-500">Sau khi AI điền, bạn chỉ cần kiểm tra/chỉnh lại trước khi lưu.</p></div>

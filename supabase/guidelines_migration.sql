@@ -88,8 +88,8 @@ create policy "owners delete guideline entries" on public.guideline_entries
   for delete to authenticated using (owner_id = auth.uid());
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('guideline-files', 'guideline-files', false, 26214400, array['application/pdf'])
-on conflict (id) do update set public = false, file_size_limit = 26214400, allowed_mime_types = array['application/pdf'];
+values ('guideline-files', 'guideline-files', false, 41943040, array['application/pdf'])
+on conflict (id) do update set public = false, file_size_limit = 41943040, allowed_mime_types = array['application/pdf'];
 
 drop policy if exists "owners upload guideline files" on storage.objects;
 create policy "owners upload guideline files" on storage.objects

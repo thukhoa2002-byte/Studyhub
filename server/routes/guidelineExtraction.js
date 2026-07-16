@@ -5,7 +5,7 @@ import { generateStructuredFromFile } from "../services/gemini.js";
 import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
 
 const router = express.Router();
-const MAX_PDF_BYTES = 14 * 1024 * 1024;
+const MAX_PDF_BYTES = 40 * 1024 * 1024;
 const cache = new Map();
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -64,7 +64,7 @@ router.post("/", upload.fields([{ name: "document", maxCount: 1 }, { name: "supp
     if (!document) return res.status(400).json({ success: false, message: "Chưa có file guideline chính." });
     const inputFiles = [document, supplement].filter(Boolean);
     const totalBytes = inputFiles.reduce((sum, file) => sum + file.size, 0);
-    if (totalBytes > MAX_PDF_BYTES) return res.status(413).json({ success: false, message: "Tổng dung lượng guideline và supplement không được vượt quá 14 MB." });
+    if (totalBytes > MAX_PDF_BYTES) return res.status(413).json({ success: false, message: "Tổng dung lượng guideline và supplement không được vượt quá 40 MB." });
     const focus = String(req.body?.focus || "").trim();
     const hash = createHash("sha256").update(document.buffer);
     if (supplement) hash.update(supplement.buffer);
@@ -80,7 +80,7 @@ router.post("/", upload.fields([{ name: "document", maxCount: 1 }, { name: "supp
       files: inputFiles,
       schema,
       maxOutputTokens: 24000,
-      timeoutMs: 180_000,
+      timeoutMs: 300_000,
       prompt: `Bạn là bác sĩ chuyên đọc guideline và supplementary data. Hãy trích xuất TOÀN BỘ KHUYẾN CÁO CHÍNH THỨC từ các PDF đính kèm, dịch chính xác sang tiếng Việt và cấu trúc thành dữ liệu để ôn thi, tra cứu.
 
 PHẠM VI NGƯỜI DÙNG QUAN TÂM: ${focus || "Toàn bộ khuyến cáo thuốc quan trọng trong tài liệu"}.
@@ -116,7 +116,7 @@ Trả đúng JSON theo schema, không thêm văn bản ngoài JSON.`,
     const isLimit = error?.code === "LIMIT_FILE_SIZE";
     const status = isLimit ? 413 : error?.status === 429 ? 429 : 500;
     const message = isLimit
-      ? "PDF quá lớn để AI đọc trực tiếp. Vui lòng dùng file không quá 14 MB."
+      ? "Tổng dung lượng PDF vượt quá 40 MB. Vui lòng nén file hoặc chia nhỏ tài liệu."
       : status === 429
         ? "Gemini đã hết hạn mức hoặc đang quá tải. Vui lòng thử lại sau."
         : error.message || "Không thể trích xuất guideline.";
@@ -128,7 +128,7 @@ router.use((error, _req, res, _next) => {
   const isLimit = error?.code === "LIMIT_FILE_SIZE";
   return res.status(isLimit ? 413 : 400).json({
     success: false,
-    message: isLimit ? "PDF quá lớn để AI đọc trực tiếp. Vui lòng dùng file không quá 14 MB." : error.message || "File PDF không hợp lệ.",
+    message: isLimit ? "Tổng dung lượng PDF vượt quá 40 MB. Vui lòng nén file hoặc chia nhỏ tài liệu." : error.message || "File PDF không hợp lệ.",
     aiCallsRemaining: getAiCallsRemaining(),
   });
 });
