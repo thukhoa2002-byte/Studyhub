@@ -77,7 +77,7 @@ export async function saveMcqBank(
     published_at: input.status === "published" ? now : null,
   };
   const request = bankId
-    ? client.from("mcq_banks").update(payload).eq("id", bankId).select("*").single()
+    ? client.from("mcq_banks").upsert({ id: targetId, ...payload }, { onConflict: "id" }).select("*").single()
     : client.from("mcq_banks").insert({ id: targetId, ...payload }).select("*").single();
   const { data, error } = await request;
   if (error) throw error;

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Pencil, Play, RotateCcw, Trophy, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
-import { listMcqBanks, type McqLibraryBank } from "../services/mcqLibrary";
+import { listMcqBanks, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
 
 type Option = { id: string; text: string };
 type QuizQuestion = {
@@ -17,12 +17,13 @@ type QuizQuestion = {
 };
 type QuizBank = { title: string; questions: QuizQuestion[] };
 type Props = { userId?: string; userEmail?: string; onAiCallsRemaining?: (remaining: number) => void };
-type DeckDefinition = { key: string; title: string; description: string; questionCount: number; dataUrl?: string; bank?: QuizBank; libraryBank?: McqLibraryBank };
+type DeckDefinition = { key: string; title: string; description: string; questionCount: number; dataUrl?: string; bank?: QuizBank; libraryBank?: McqLibraryBank; managedBankId?: string };
 
 const staticDecks: DeckDefinition[] = [
-  { key: "bo-mcq-kho-khe", title: "Bộ MCQ - Khò khè", description: "Tiếp cận khò khè, viêm tiểu phế quản và hen.", questionCount: 130, dataUrl: "/mcq/bo-mcq-kho-khe.json" },
-  { key: "bo-mcq-viem-phoi", title: "Bộ MCQ - Viêm phổi", description: "Chẩn đoán, xử trí và biến chứng viêm phổi ở trẻ em.", questionCount: 91, dataUrl: "/mcq/bo-mcq-viem-phoi.json" },
+  { key: "bo-mcq-kho-khe", managedBankId: "b0000000-0000-4000-8000-000000000130", title: "Bộ MCQ - Khò khè", description: "Tiếp cận khò khè, viêm tiểu phế quản và hen.", questionCount: 130, dataUrl: "/mcq/bo-mcq-kho-khe.json" },
+  { key: "bo-mcq-viem-phoi", managedBankId: "b0000000-0000-4000-8000-000000000091", title: "Bộ MCQ - Viêm phổi", description: "Chẩn đoán, xử trí và biến chứng viêm phổi ở trẻ em.", questionCount: 91, dataUrl: "/mcq/bo-mcq-viem-phoi.json" },
 ];
+const staticBankIds = new Set(staticDecks.flatMap((deck) => deck.managedBankId ? [deck.managedBankId] : []));
 
 export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props) {
   const [bank, setBank] = useState<QuizBank | null>(null);
@@ -45,8 +46,19 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   }, [userId]);
   useEffect(() => { void refreshLibrary(); }, [refreshLibrary]);
   const decks = useMemo<DeckDefinition[]>(() => [
-    ...staticDecks,
-    ...libraryBanks.filter((item) => item.status === "published").map((item) => ({
+    ...staticDecks.map((deck) => {
+      const managedBank = libraryBanks.find((item) => item.id === deck.managedBankId);
+      if (!managedBank) return deck;
+      return {
+        ...deck,
+        title: managedBank.status === "published" ? managedBank.title : deck.title,
+        description: managedBank.status === "published" ? managedBank.description : deck.description,
+        questionCount: managedBank.status === "published" ? managedBank.questions.length : deck.questionCount,
+        bank: managedBank.status === "published" ? { title: managedBank.title, questions: managedBank.questions } : undefined,
+        libraryBank: managedBank,
+      };
+    }),
+    ...libraryBanks.filter((item) => item.status === "published" && !staticBankIds.has(item.id)).map((item) => ({
       key: `mcq-bank-${item.id}`,
       title: item.title,
       description: item.description || "Bộ câu hỏi đã được quản trị viên kiểm tra và công khai.",
@@ -113,6 +125,45 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     setOpened(true);
   }
 
+  async function requestDeckEdit(deck: DeckDefinition) {
+    if (!isAdmin || !userId) return;
+    try {
+      setError("");
+      if (deck.libraryBank) {
+        setRequestedEditBank(deck.libraryBank);
+      } else {
+        if (!deck.dataUrl || !deck.managedBankId) throw new Error("Bộ MCQ này chưa có nguồn dữ liệu để sửa.");
+        const response = await fetch(deck.dataUrl);
+        if (!response.ok) throw new Error("Không thể tải nội dung bộ MCQ để sửa.");
+        const source = await response.json() as QuizBank;
+        const editableQuestions: McqLibraryQuestion[] = source.questions.map((question, questionIndex) => ({
+          ...question,
+          id: question.id || crypto.randomUUID(),
+          source_number: question.source_number || questionIndex + 1,
+          options: (["A", "B", "C", "D"] as const).map((id): McqOption => ({
+            id,
+            text: question.options.find((option) => option.id === id)?.text || "",
+          })),
+        }));
+        const now = new Date().toISOString();
+        setRequestedEditBank({
+          id: deck.managedBankId,
+          owner_id: userId,
+          title: deck.title,
+          description: deck.description,
+          questions: editableQuestions,
+          status: "published",
+          created_at: now,
+          updated_at: now,
+          published_at: now,
+        });
+      }
+      requestAnimationFrame(() => document.getElementById("mcq-admin-studio")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    } catch (editError) {
+      setError(editError instanceof Error ? editError.message : "Không thể mở bộ MCQ để sửa.");
+    }
+  }
+
   function returnToDeckList() {
     if (hasStarted && startedAt) persist({ current_index: index, answers, checked, started_at: startedAt });
     setOpened(false);
@@ -165,7 +216,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
               <h2 className="mt-5 text-xl font-extrabold text-rose-950">{deck.title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{deck.description}</p>
               <div className="mt-6 flex items-center justify-end text-sm font-bold text-violet-700"><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">Bắt đầu<Play size={15} fill="currentColor" /></span></div>
             </button>
-            {isAdmin && deck.libraryBank && <button type="button" title="Chỉ bạn được sửa tên và nội dung bộ MCQ" onClick={() => { setRequestedEditBank(deck.libraryBank!); requestAnimationFrame(() => document.getElementById("mcq-admin-studio")?.scrollIntoView({ behavior: "smooth", block: "start" })); }} className="absolute bottom-6 left-6 inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 shadow-sm hover:bg-violet-50"><Pencil size={14} />Sửa riêng</button>}
+            {isAdmin && <button type="button" title="Chỉ bạn được sửa tên và nội dung bộ MCQ" onClick={() => void requestDeckEdit(deck)} className="absolute bottom-6 left-6 inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 shadow-sm hover:bg-violet-50"><Pencil size={14} />Sửa riêng</button>}
           </article>)}
         </div>
       </div>
