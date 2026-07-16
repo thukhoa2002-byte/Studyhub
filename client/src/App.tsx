@@ -631,13 +631,15 @@ export default function App() {
 
         <SiteAnalytics userId={user?.id} visible={workspaceTab === "flashcards" && analyticsAdmin && !editing && questions.length === 0} />
 
+        <div className={workspaceTab === "guidelines" ? "block" : "hidden"} aria-hidden={workspaceTab !== "guidelines"}>
+          <GuidelinesPage user={user} onAiCallsRemaining={setAiCallsRemaining} />
+        </div>
+
         {workspaceTab === "mcq" ? (
           <McqPage userId={user?.id} userEmail={user?.email} onAiCallsRemaining={setAiCallsRemaining} />
-        ) : workspaceTab === "guidelines" ? (
-          <GuidelinesPage user={user} onAiCallsRemaining={setAiCallsRemaining} />
         ) : workspaceTab === "drugs" ? (
           <DrugsPage />
-        ) : editing && currentSavedDeck ? (
+        ) : workspaceTab !== "flashcards" ? null : editing && currentSavedDeck ? (
           <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} currentUserLabel={(user?.user_metadata?.full_name as string | undefined) || user?.email || "Thành viên"} />
         ) : questions.length === 0 ? (
           <DeckSetup
