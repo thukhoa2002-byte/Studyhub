@@ -7,7 +7,7 @@ create table if not exists public.mcq_banks (
   title text not null,
   description text not null default '',
   questions jsonb not null default '[]'::jsonb,
-  status text not null default 'draft' check (status in ('draft', 'published')),
+  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   published_at timestamptz
@@ -47,6 +47,21 @@ create policy "mcq admin deletes banks" on public.mcq_banks
 
 create index if not exists mcq_banks_status_published_idx
   on public.mcq_banks(status, published_at desc, created_at desc);
+
+create or replace function public.list_mcq_bank_states()
+returns table(id uuid, status text)
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select bank.id, bank.status
+  from public.mcq_banks bank
+  where bank.status in ('draft', 'published', 'archived');
+$$;
+
+revoke all on function public.list_mcq_bank_states() from public;
+grant execute on function public.list_mcq_bank_states() to authenticated;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('mcq-assets', 'mcq-assets', true, 10485760, array['image/png', 'image/jpeg', 'image/webp'])

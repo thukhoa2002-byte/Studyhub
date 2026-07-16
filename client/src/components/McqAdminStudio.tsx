@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Download, FileSearch, Image as ImageIcon, LoaderCircle, Plus, Send, Trash2, Upload, X } from "lucide-react";
+import { Download, FileSearch, Globe2, Image as ImageIcon, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload } from "lucide-react";
 import { extractMcqFiles } from "../services/api";
 import { deleteMcqBank, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
 
@@ -123,6 +123,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [reviewed, setReviewed] = useState(false);
+  const [visibility, setVisibility] = useState<"draft" | "published">("draft");
 
   useEffect(() => {
     if (!requestedBank) return;
@@ -130,6 +131,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     setTitle(requestedBank.title);
     setDescription(requestedBank.description);
     setQuestions(requestedBank.questions);
+    setVisibility(requestedBank.status === "published" ? "published" : "draft");
     setReviewed(false);
     setError("");
     setNotice("Đang chỉnh sửa bộ MCQ đã chọn. Chỉ tài khoản của bạn có quyền lưu thay đổi.");
@@ -146,6 +148,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       const imageUrls = new Map<string, string>();
       for (const [name, file] of imageFiles) imageUrls.set(name, await fileToDataUrl(file));
       setBankId(undefined);
+      setVisibility("draft");
       setTitle(cleanLine(result.data.title) || "Bộ MCQ mới");
       setQuestions(result.data.questions.map((question, index) => ({
         id: crypto.randomUUID(),
@@ -198,7 +201,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   }
 
   function loadDraft(bank: McqLibraryBank) {
-    setBankId(bank.id); setTitle(bank.title); setDescription(bank.description); setQuestions(bank.questions); setReviewed(false); setError(""); setNotice("");
+    setBankId(bank.id); setTitle(bank.title); setDescription(bank.description); setQuestions(bank.questions); setVisibility(bank.status === "published" ? "published" : "draft"); setReviewed(false); setError(""); setNotice("");
   }
 
   return <section className="mb-8 overflow-visible rounded-[2rem] border border-violet-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl sm:p-7">
@@ -218,12 +221,12 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     {error && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
     {notice && <p className="mt-4 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{notice}</p>}
 
-    {drafts.length > 0 && <div className="mt-6"><p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Bản riêng của bạn</p><div className="mt-2 flex flex-wrap gap-2">{drafts.map((draft) => <span key={draft.id} className="inline-flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white"><button type="button" onClick={() => loadDraft(draft)} className="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">{draft.title} · {draft.status === "draft" ? "Bản nháp" : "Đã đăng"}</button><button type="button" aria-label={`Xóa ${draft.title}`} onClick={async () => { if (!confirm(`Xóa bộ “${draft.title}”?`)) return; await deleteMcqBank(draft.id); if (bankId === draft.id) { setBankId(undefined); setQuestions([]); setTitle(""); } await onChanged(); }} className="border-l border-slate-200 p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={15} /></button></span>)}</div></div>}
+    {drafts.some((draft) => draft.status !== "archived") && <div className="mt-6"><p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Bộ MCQ của bạn</p><div className="mt-2 flex flex-wrap gap-2">{drafts.filter((draft) => draft.status !== "archived").map((draft) => <span key={draft.id} className="inline-flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white"><button type="button" onClick={() => loadDraft(draft)} className="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">{draft.title} · {draft.status === "draft" ? "Riêng tư" : "Công khai"}</button><button type="button" aria-label={`Xóa bộ ${draft.title}`} title="Xóa cả bộ MCQ" onClick={async () => { if (!confirm(`Xóa toàn bộ “${draft.title}”? Hành động này không thể hoàn tác.`)) return; await deleteMcqBank(draft.id); if (bankId === draft.id) { setBankId(undefined); setQuestions([]); setTitle(""); } await onChanged(); }} className="border-l border-slate-200 p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={15} /></button></span>)}</div></div>}
 
     {questions.length > 0 && <div className="mt-7 border-t border-violet-100 pt-6">
-      <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-bold text-slate-700">Tên bộ MCQ<input value={title} onChange={(event) => { setTitle(event.target.value); setReviewed(false); }} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Mô tả ngắn<input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Chủ đề, nguồn hoặc phạm vi câu hỏi" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-violet-400" /></label></div>
+      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"><label className="text-sm font-bold text-slate-700">Tên bộ MCQ<input value={title} onChange={(event) => { setTitle(event.target.value); setReviewed(false); }} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Mô tả ngắn<input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Chủ đề, nguồn hoặc phạm vi câu hỏi" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Quyền xem<select value={visibility} onChange={(event) => setVisibility(event.target.value as "draft" | "published")} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400"><option value="draft">Riêng tư</option><option value="published">Công khai</option></select></label></div>
       <div className="mt-5 space-y-4">{questions.map((question, questionIndex) => <article key={question.id} className="relative rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
-        <button type="button" aria-label={`Xóa câu ${questionIndex + 1}`} onClick={() => { setQuestions((items) => items.filter((_, index) => index !== questionIndex)); setReviewed(false); }} className="absolute right-3 top-3 rounded-lg p-2 text-rose-500 hover:bg-rose-50"><X size={17} /></button>
+        <button type="button" aria-label={`Xóa câu ${questionIndex + 1}`} title={`Xóa câu ${questionIndex + 1}`} onClick={() => { if (!confirm(`Xóa câu ${questionIndex + 1}?`)) return; setQuestions((items) => items.filter((_, index) => index !== questionIndex)); setReviewed(false); }} className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-rose-500 hover:bg-rose-50"><Trash2 size={15} /><span className="hidden sm:inline">Xóa câu</span></button>
         <div className="pr-10"><label className="text-xs font-black uppercase tracking-wider text-violet-600">Câu nguồn<input type="number" min={1} value={question.source_number} onChange={(event) => editQuestion(questionIndex, { source_number: Number(event.target.value) })} className="ml-2 w-20 rounded-lg border border-slate-200 px-2 py-1 text-slate-700" /></label><textarea value={question.question} onChange={(event) => editQuestion(questionIndex, { question: event.target.value })} rows={2} className="mt-3 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 font-bold leading-6 outline-none focus:border-violet-400" /></div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">{question.options.map((option, optionIndex) => <label key={option.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-2"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-black text-violet-700">{option.id}</span><textarea value={option.text} onChange={(event) => editOption(questionIndex, optionIndex, event.target.value)} rows={2} className="min-w-0 flex-1 resize-y bg-transparent text-sm leading-5 outline-none" /></label>)}</div>
         {question.image_url && <figure className="mt-4"><img src={question.image_url} alt={question.image_alt || "Hình X-quang"} className="max-h-72 rounded-2xl border border-slate-200 object-contain" /><input value={question.image_alt || ""} onChange={(event) => editQuestion(questionIndex, { image_alt: event.target.value })} placeholder="Chú thích trung tính cho ảnh" className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></figure>}
@@ -234,8 +237,8 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <p className="mt-4 text-right text-xs font-semibold text-slate-500">Bản Word gồm toàn bộ câu hỏi trong một file, chỉ tải về máy của bạn và không xuất hiện trong thư viện MCQ.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
         <button type="button" disabled={busy || !reviewed || !title.trim() || invalidCount > 0} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
-        <button type="button" disabled={busy} onClick={() => void persist("draft")} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 disabled:opacity-40"><Check size={17} />{bankId ? "Lưu thay đổi riêng tư" : "Lưu bản nháp"}</button>
-        <button type="button" disabled={busy || !reviewed || invalidCount > 0} onClick={() => void persist("published")} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Send size={17} />{bankId ? "Cập nhật bộ MCQ công khai" : "Đăng vào thư viện MCQ"}</button>
+        <span className={`inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold ${visibility === "published" ? "border-teal-200 bg-teal-50 text-teal-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{visibility === "published" ? <Globe2 size={17} /> : <LockKeyhole size={17} />}{visibility === "published" ? "Mọi người sẽ thấy" : "Chỉ mình bạn thấy"}</span>
+        <button type="button" disabled={busy || (visibility === "published" && (!reviewed || invalidCount > 0))} onClick={() => void persist(visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? "Lưu thay đổi" : "Lưu bộ MCQ"}</button>
       </div>
     </div>}
   </section>;

@@ -18,11 +18,13 @@ export interface McqLibraryBank {
   title: string;
   description: string;
   questions: McqLibraryQuestion[];
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   created_at: string;
   updated_at: string;
   published_at: string | null;
 }
+
+export type McqBankState = Pick<McqLibraryBank, "id" | "status">;
 
 function requireSupabase() {
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
@@ -40,6 +42,15 @@ export async function listMcqBanks(): Promise<McqLibraryBank[]> {
     throw error;
   }
   return (data ?? []) as McqLibraryBank[];
+}
+
+export async function listMcqBankStates(): Promise<McqBankState[]> {
+  const { data, error } = await requireSupabase().rpc("list_mcq_bank_states");
+  if (error) {
+    if (/list_mcq_bank_states|schema cache/i.test(error.message)) return [];
+    throw error;
+  }
+  return (data ?? []) as McqBankState[];
 }
 
 export async function saveMcqBank(
@@ -93,5 +104,20 @@ export async function deleteMcqBank(bankId: string): Promise<void> {
     if (files?.length) await client.storage.from("mcq-assets").remove(files.map((file) => `${folder}/${file.name}`));
   }
   const { error } = await client.from("mcq_banks").delete().eq("id", bankId);
+  if (error) throw error;
+}
+
+export async function archiveMcqBank(userId: string, bankId: string, title: string): Promise<void> {
+  const now = new Date().toISOString();
+  const { error } = await requireSupabase().from("mcq_banks").upsert({
+    id: bankId,
+    owner_id: userId,
+    title: title.trim() || "Bộ MCQ đã xóa",
+    description: "",
+    questions: [],
+    status: "archived",
+    updated_at: now,
+    published_at: null,
+  }, { onConflict: "id" });
   if (error) throw error;
 }
