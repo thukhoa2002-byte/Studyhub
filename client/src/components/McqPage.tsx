@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, RotateCcw, Trophy, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Play, RotateCcw, Trophy, XCircle } from "lucide-react";
 
 type Option = { id: string; text: string };
 type QuizQuestion = {
@@ -18,6 +18,7 @@ export default function McqPage() {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [opened, setOpened] = useState(false);
 
   useEffect(() => {
     void fetch("/mcq/bo-mcq-kho-khe.json")
@@ -52,15 +53,45 @@ export default function McqPage() {
   }
 
   if (error) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><p className="rounded-2xl border border-rose-200 bg-white p-5 text-sm font-semibold text-rose-700">{error}</p></section>;
-  if (!bank || !question) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><div className="glass-panel rounded-3xl p-8 text-center text-sm font-semibold text-slate-500">Đang nạp Bộ MCQ - Khò khè…</div></section>;
+  if (!bank || !question) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><div className="glass-panel rounded-3xl p-8 text-center text-sm font-semibold text-slate-500">Đang nạp danh sách bộ MCQ…</div></section>;
 
   const isCorrect = selected === question.correct_answer;
   const isLast = index === bank.questions.length - 1;
   const completed = completedCount === bank.questions.length;
 
+  if (!opened) {
+    return (
+      <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
+        <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={32} strokeWidth={1.9} /></div>
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Khu vực luyện tập</p>
+              <h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1>
+              <p className="mt-1 text-sm text-slate-500">Chọn một bộ đề để bắt đầu làm trắc nghiệm.</p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <button type="button" onClick={() => setOpened(true)} className="group rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><CircleHelp size={24} /></div>
+                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{bank.questions.length} câu</span>
+              </div>
+              <h2 className="mt-5 text-xl font-extrabold text-rose-950">Bộ MCQ - Khò khè</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Tiếp cận khò khè, viêm tiểu phế quản và hen.</p>
+              <div className="mt-6 flex items-center justify-between text-sm font-bold text-violet-700"><span>{completedCount > 0 ? `Đã kiểm tra ${completedCount} câu` : "Chưa bắt đầu"}</span><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">{completedCount > 0 ? "Làm tiếp" : "Bắt đầu"}<Play size={15} fill="currentColor" /></span></div>
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
+        <div className="mb-6"><button type="button" onClick={() => setOpened(false)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50"><ArrowLeft size={17} />Danh sách bộ MCQ</button></div>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-15 w-15 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><CircleHelp size={30} strokeWidth={2} /></div>
