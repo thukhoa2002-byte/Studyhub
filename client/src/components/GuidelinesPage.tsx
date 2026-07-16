@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   BookOpenCheck,
@@ -136,7 +136,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     if (!file?.size) { setNotice("Hãy chọn PDF guideline chính trước."); return; }
     if ((file.size + (supplementFile?.size || 0)) > 40 * 1024 * 1024) { setNotice("Tổng hai PDF không được vượt quá 40 MB khi dùng AI."); return; }
     setAiReading(true);
-    setNotice("Gemini đang lập danh mục và dịch toàn bộ bảng khuyến cáo từ What’s new đến cuối tài liệu. File dài có thể mất vài phút...");
+    setNotice("Gemini đang chia PDF theo từng cụm trang và dịch tuần tự toàn bộ bảng khuyến cáo. File dài có thể mất vài phút; vui lòng giữ trang này mở...");
     try {
       const response = await extractGuidelinePdf(file, supplementFile, focus);
       if (typeof response.aiCallsRemaining === "number") onAiCallsRemaining?.(response.aiCallsRemaining);
@@ -194,7 +194,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       setSelectedId(created.id);
       setShowDocumentForm(false);
       if (autoExtract && file?.size) {
-        setNotice("Gemini đang dịch toàn bộ bảng từ What’s new tới cuối PDF và tạo bản nháp có trang nguồn. File dài có thể mất vài phút...");
+        setNotice("Gemini đang quét lần lượt từng cụm 20 trang, dịch mọi bảng khuyến cáo và tạo bản nháp có trang nguồn. File dài có thể mất vài phút...");
         const key = extractionKey(file, supplementFile, focus);
         const extracted = preparedExtraction?.key === key ? preparedExtraction.response : await extractGuidelinePdf(file, supplementFile, focus);
         if (typeof extracted.aiCallsRemaining === "number") onAiCallsRemaining?.(extracted.aiCallsRemaining);
@@ -254,7 +254,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   async function reExtractSelectedDocument() {
     if (!user || !ownsSelected || !selectedDocument?.file_path || aiReading || busy) return;
     setAiReading(true);
-    setNotice("Gemini đang đọc lại toàn bộ PDF từ What’s new đến bảng khuyến cáo cuối cùng...");
+    setNotice("Gemini đang đọc lại lần lượt toàn bộ các cụm trang đến bảng khuyến cáo cuối cùng...");
     try {
       if (selectedDocument.visibility === "shared") {
         await setGuidelineDocumentVisibility(selectedDocument.id, "private");
@@ -431,20 +431,24 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
                   <h3 className="mt-1 text-base font-extrabold leading-6 text-rose-950">{group.title}</h3>
                 </header>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px] border-collapse text-left">
-                    <thead><tr className="bg-slate-50/90 text-[11px] font-extrabold uppercase tracking-[.12em] text-slate-500"><th className="px-5 py-3">Khuyến cáo tiếng Việt</th><th className="w-24 px-3 py-3 text-center">Class</th><th className="w-24 px-3 py-3 text-center">LoE</th><th className="w-20 px-3 py-3 text-center">Duyệt</th></tr></thead>
-                    <tbody>{group.items.map((entry) => <tr key={entry.id} className="border-t border-slate-100 align-top hover:bg-rose-50/25">
-                      <td className="px-5 py-4">
-                        {entry.clinical_context && <p className="mb-1 text-xs font-bold text-teal-700">{entry.clinical_context}</p>}
+                  <table className="w-full min-w-[700px] border-collapse text-left">
+                    <thead><tr className="bg-[#d0d0d2] text-xs font-extrabold text-slate-900"><th className="px-5 py-3">Khuyến cáo</th><th className="w-24 border-l border-white px-3 py-3 text-center">Nhóm</th><th className="w-28 border-l border-white px-3 py-3 text-center">Mức độ chứng cứ</th></tr></thead>
+                    <tbody>{group.items.map((entry, entryIndex) => <Fragment key={entry.id}>
+                      {entry.clinical_context && entry.clinical_context !== group.items[entryIndex - 1]?.clinical_context && <tr className="border-t border-white bg-[#d0d0d2]"><th colSpan={3} className="px-5 py-2.5 text-left text-sm font-extrabold text-slate-900">{entry.clinical_context}</th></tr>}
+                      <tr className="border-t border-white align-top hover:brightness-[.99]">
+                      <td className="bg-[#f1f1f2] px-5 py-4">
                         <p className="whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-800">{entry.recommendation_summary}</p>
                         {hasSourceValue(entry.drug_name) && <p className="mt-2 text-xs font-extrabold text-rose-700">Thuốc/nhóm thuốc: {entry.drug_name}</p>}
                         <DrugFacts entry={entry} />
                         <p className="mt-3 text-[11px] font-semibold text-slate-400">{selectedDocument.society} {selectedDocument.publication_year} · {entry.page_reference}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <span title={entry.status === "reviewed" ? "Đã kiểm duyệt" : "Bản nháp"} className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold ${entry.status === "reviewed" ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>{entry.status === "reviewed" ? <CheckCircle2 size={13} /> : <Clock3 size={13} />}{entry.status === "reviewed" ? "Đã kiểm duyệt" : "Bản nháp"}</span>
+                          {ownsSelected && <><button type="button" title={entry.status === "reviewed" ? "Trả về bản nháp" : "Xác nhận đã đối chiếu"} onClick={() => void toggleReviewed(entry)} className="rounded-lg border border-teal-200 px-2 py-1 text-[10px] font-bold text-teal-700">{entry.status === "reviewed" ? "Trả về bản nháp" : "Xác nhận"}</button><button type="button" title="Xóa khuyến cáo" onClick={() => void deleteGuidelineEntry(entry.id).then(() => setEntries((items) => items.filter((item) => item.id !== entry.id))).catch((error) => setNotice(errorMessage(error)))} className="rounded-lg border border-rose-100 p-1.5 text-rose-500"><Trash2 size={14} /></button></>}
+                        </div>
                       </td>
                       <td className={`border-l border-white/90 px-3 py-4 text-center text-sm font-black ${classTone(entry.recommendation_class)}`}>{formatRecommendationClass(entry.recommendation_class)}</td>
                       <td className={`border-l border-white/90 px-3 py-4 text-center text-sm font-black ${evidenceTone(entry.evidence_level)}`}>{formatEvidenceLevel(entry.evidence_level)}</td>
-                      <td className="px-3 py-4"><div className="flex flex-col items-center gap-2"><span title={entry.status === "reviewed" ? "Đã kiểm duyệt" : "Bản nháp"} className={`grid h-8 w-8 place-items-center rounded-full ${entry.status === "reviewed" ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>{entry.status === "reviewed" ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}</span>{ownsSelected && <><button type="button" title={entry.status === "reviewed" ? "Trả về bản nháp" : "Xác nhận đã đối chiếu"} onClick={() => void toggleReviewed(entry)} className="rounded-lg border border-teal-200 px-2 py-1 text-[10px] font-bold text-teal-700">{entry.status === "reviewed" ? "Bản nháp" : "Xác nhận"}</button><button type="button" title="Xóa khuyến cáo" onClick={() => void deleteGuidelineEntry(entry.id).then(() => setEntries((items) => items.filter((item) => item.id !== entry.id))).catch((error) => setNotice(errorMessage(error)))} className="rounded-lg border border-rose-100 p-1.5 text-rose-500"><Trash2 size={14} /></button></>}</div></td>
-                    </tr>)}</tbody>
+                    </tr></Fragment>)}</tbody>
                   </table>
                 </div>
               </section>)}</div>

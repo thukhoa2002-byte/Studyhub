@@ -1,12 +1,15 @@
 import express from "express";
 import multer from "multer";
 import { createHash } from "node:crypto";
+import { PDFDocument } from "pdf-lib";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
 import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 
 const router = express.Router();
 const MAX_PDF_BYTES = 40 * 1024 * 1024;
+const PDF_PAGES_PER_PASS = 20;
+const EXTRACTION_VERSION = "full-tables-v3";
 const cache = new Map();
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -58,6 +61,85 @@ const schema = {
   additionalProperties: false,
 };
 
+async function splitPdfIntoPageRanges(file, sourceLabel) {
+  const sourcePdf = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
+  const pageCount = sourcePdf.getPageCount();
+  const chunks = [];
+
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex += PDF_PAGES_PER_PASS) {
+    const endIndex = Math.min(pageIndex + PDF_PAGES_PER_PASS, pageCount);
+    const chunkPdf = await PDFDocument.create();
+    const pageIndexes = Array.from({ length: endIndex - pageIndex }, (_, offset) => pageIndex + offset);
+    const copiedPages = await chunkPdf.copyPages(sourcePdf, pageIndexes);
+    copiedPages.forEach((page) => chunkPdf.addPage(page));
+    const bytes = await chunkPdf.save({ useObjectStreams: true });
+    chunks.push({
+      file: {
+        ...file,
+        buffer: Buffer.from(bytes),
+        size: bytes.length,
+        mimetype: "application/pdf",
+        originalname: `${sourceLabel}-pages-${pageIndex + 1}-${endIndex}.pdf`,
+      },
+      sourceLabel,
+      startPage: pageIndex + 1,
+      endPage: endIndex,
+      totalPages: pageCount,
+    });
+  }
+
+  return chunks;
+}
+
+function extractionPrompt({ sourceLabel, startPage, endPage, totalPages, focus }) {
+  return `Bạn là nhóm bác sĩ và biên dịch viên guideline. Bạn đang xử lý một CỤM TRANG của tài liệu, không được tóm tắt và không được chọn lọc ý quan trọng.
+
+NGUỒN: ${sourceLabel}.
+PHẠM VI CỤM TRANG: trang PDF ${startPage}-${endPage} trên tổng số ${totalPages} trang.
+GHI CHÚ CỦA NGƯỜI DÙNG (chỉ để chú ý thêm, không phải bộ lọc): ${focus || "Không có"}.
+
+NHIỆM VỤ BẮT BUỘC:
+1. Đọc tuần tự TỪNG TRANG trong cụm. Tìm và dịch TỪNG DÒNG của TẤT CẢ bảng Recommendation/Recommendations, bảng khuyến cáo, What’s new, New/Revised recommendations và mọi bảng có cột Class/Level/LoE hoặc câu mang cấp khuyến cáo.
+2. Không chỉ dịch What’s new. Không dừng sau bảng đầu. Không giới hạn số dòng. Không bỏ bảng chẩn đoán, xét nghiệm, hình ảnh, phân tầng nguy cơ, theo dõi, thuốc, thủ thuật, phẫu thuật, tổ chức chăm sóc hoặc nhóm đặc biệt.
+3. Một dòng nguồn = một entry và phải giữ đúng thứ tự xuất hiện. recommendationSummary là bản dịch tiếng Việt ĐẦY ĐỦ của nguyên văn ô Recommendations; không rút gọn, không diễn giải, không bỏ điều kiện, ngoại lệ, ngưỡng, thời điểm, số liệu hay chú thích gắn trực tiếp.
+4. topic phải giống cấu trúc bản gốc: “Chương/Mục › Recommendation Table [số] — [tên bảng đã dịch sang tiếng Việt]”. Mọi dòng trong cùng một bảng dùng topic giống hệt nhau để giao diện dựng lại đúng một bảng.
+5. Nếu trong thân bảng có hàng tiêu đề phân nhóm phủ ngang như “ECG”, “Imaging”, “Antithrombotic therapy”, hãy dịch tiêu đề đó và đặt vào clinicalContext của DÒNG ĐẦU TIÊN ngay dưới tiêu đề. Các dòng kế tiếp trong cùng phân nhóm để clinicalContext rỗng. Không đưa bối cảnh tự suy diễn vào trường này.
+6. recommendationClass và evidenceLevel sao chép chính xác ký hiệu nguồn (I, IIa, IIb, III; A, B, C...). Không có thì để rỗng, tuyệt đối không suy đoán.
+7. pageReference ghi “${sourceLabel} — Trang PDF [số trang thực tế trong toàn file], [số bảng/mục nếu đọc được]”. Số trang phải cộng theo phạm vi ${startPage}-${endPage}, không được bắt đầu lại từ 1.
+8. Với bảng bị cắt ở đầu/cuối cụm trang, vẫn trích toàn bộ các dòng nhìn thấy. Giữ đúng topic/tên bảng đọc được từ trang tiếp diễn; nếu tên nằm ở trang trước và không hiện trong cụm, dùng “Bảng tiếp diễn — [mục/chương đọc được]”, không bịa tên.
+9. Chỉ điền drugName, dose, renalAdjustment, hepaticAdjustment, contraindications, monitoring khi chính bảng/ghi chú trong cụm nêu rõ. Không có thì để chuỗi rỗng.
+10. Chỉ dùng PDF. Không bổ sung kiến thức ngoài, không tự tạo khuyến cáo hoặc nguồn. Bỏ văn xuôi mô tả thuần túy, tài liệu tham khảo và đoạn không phải bảng/khuyến cáo.
+
+METADATA: documentTitle, society, condition, publicationYear, versionLabel và sourceUrl lấy từ tài liệu nếu nhìn thấy; nếu cụm này không chứa metadata thì dùng chuỗi rỗng và publicationYear = 0. entries có thể rỗng nếu cụm thật sự không có bảng khuyến cáo.
+
+Trả đúng JSON theo schema, không thêm văn bản ngoài JSON.`;
+}
+
+function mergeExtractionResults(results) {
+  const metadata = results.find((result) => result.documentTitle || result.society || result.publicationYear > 0) || results[0];
+  const seen = new Set();
+  const entries = [];
+  for (const result of results) {
+    for (const entry of result.entries || []) {
+      const key = [entry.topic, entry.recommendationSummary, entry.recommendationClass, entry.evidenceLevel, entry.pageReference]
+        .map((value) => String(value || "").trim().toLowerCase())
+        .join("|");
+      if (!entry.recommendationSummary?.trim() || seen.has(key)) continue;
+      seen.add(key);
+      entries.push(entry);
+    }
+  }
+  return {
+    documentTitle: metadata?.documentTitle || "",
+    society: metadata?.society || "",
+    condition: metadata?.condition || "",
+    publicationYear: Number(metadata?.publicationYear) || new Date().getFullYear(),
+    versionLabel: metadata?.versionLabel || "",
+    sourceUrl: metadata?.sourceUrl || "",
+    entries,
+  };
+}
+
 router.post("/", requireGuidelineAdmin, upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), async (req, res) => {
   try {
     const document = req.files?.document?.[0];
@@ -69,7 +151,7 @@ router.post("/", requireGuidelineAdmin, upload.fields([{ name: "document", maxCo
     const focus = String(req.body?.focus || "").trim();
     const hash = createHash("sha256").update(document.buffer);
     if (supplement) hash.update(supplement.buffer);
-    const key = hash.update(focus).digest("hex");
+    const key = hash.update(`${EXTRACTION_VERSION}:${focus}`).digest("hex");
     if (cache.has(key)) return res.json({ ...cache.get(key), aiCallsRemaining: getAiCallsRemaining() });
 
     const aiCallsRemaining = consumeAiCall();
@@ -77,44 +159,23 @@ router.post("/", requireGuidelineAdmin, upload.fields([{ name: "document", maxCo
       return res.status(429).json({ success: false, message: "Đã hết lượt AI dùng chung.", aiCallsRemaining: 0 });
     }
 
-    const result = await generateStructuredFromFile({
-      files: inputFiles,
-      schema,
-      maxOutputTokens: 65536,
-      timeoutMs: 600_000,
-      prompt: `Bạn là nhóm bác sĩ và biên dịch viên guideline. Nhiệm vụ là tạo BẢN DỊCH ĐẦY ĐỦ CÓ CẤU TRÚC của tất cả nội dung khuyến cáo trong PDF đính kèm, không phải bản tóm tắt và không chỉ tập trung vào thuốc.
-
-GHI CHÚ ƯU TIÊN CỦA NGƯỜI DÙNG (chỉ để chú ý thêm, TUYỆT ĐỐI không được dùng làm bộ lọc hay bỏ qua phần khác): ${focus || "Không có; phải xử lý toàn bộ tài liệu"}.
-
-PHẠM VI BẮT BUỘC — QUÉT TỪ ĐẦU ĐẾN CUỐI TÀI LIỆU:
-1. Bắt đầu từ bảng/phần “What’s new”, “New recommendations”, “Revised recommendations” hoặc tên tương đương. Dịch TỪNG DÒNG trong các bảng này thành một entry, kể cả khi dòng đó không ghi Class/LoE.
-2. Tiếp tục qua TOÀN BỘ các chương, mục, phụ lục và Supplementary Data. Lấy TỪNG DÒNG của mọi bảng có tiêu đề hoặc nội dung là Recommendation/Recommendations/Khuyến cáo.
-3. Bao gồm mọi lĩnh vực: chẩn đoán, phân tầng nguy cơ, xét nghiệm, hình ảnh, theo dõi, dự phòng, thuốc, thủ thuật, can thiệp, phẫu thuật, tổ chức chăm sóc, nhóm bệnh nhân đặc biệt và những khuyến cáo không dùng thuốc.
-4. Không dừng sau bảng đầu tiên, không chọn “ý quan trọng”, không giới hạn số lượng. Phải tiếp tục tới bảng khuyến cáo cuối cùng của guideline chính và supplement.
-5. Trước khi tạo JSON, hãy âm thầm lập danh mục tất cả bảng/phần khuyến cáo theo thứ tự trang để kiểm tra độ phủ; không xuất danh mục đó riêng ra ngoài JSON.
-
-QUY TẮC CHUYỂN MỖI BẢNG THÀNH ENTRIES:
-- Một dòng bảng tương ứng một entry. Nếu một ô chứa nhiều khuyến cáo độc lập thì tách thành nhiều entries nhưng giữ cùng topic và pageReference.
-- topic phải là ĐỀ MỤC TIẾNG VIỆT ĐẦY ĐỦ nằm phía trên bảng, theo mẫu “Chương/Mục lớn › Mục nhỏ › Bảng [số] — [dịch đầy đủ tên bảng]”. Giữ số chương, số mục, số bảng và thứ tự nguồn. Không gom hai bảng khác nhau vào một topic.
-- recommendationSummary phải dịch đầy đủ toàn bộ câu/ô khuyến cáo, không rút gọn, không diễn giải thành ý khác và không bỏ điều kiện, quần thể, thời điểm, ngoại lệ hay chú thích trực tiếp gắn với khuyến cáo.
-- clinicalContext chứa bản dịch đầy đủ của cột/bối cảnh/nhóm bệnh nhân nếu nó tách riêng khỏi câu khuyến cáo; nếu không có thì để chuỗi rỗng.
-- recommendationClass và evidenceLevel sao chép đúng ký hiệu nguồn (I, IIa, IIb, III; A, B, C...). Không suy diễn. Nếu dòng không ghi thì để chuỗi rỗng.
-- pageReference bắt buộc mở đầu bằng “Guideline chính” hoặc “Supplementary Data”, sau đó ghi trang in trên tài liệu, số bảng và mục, ví dụ “Guideline chính — Trang 19, Bảng 3, Mục 3.2”. Không bịa số trang; nếu không đọc được số trang thì vẫn phải ghi số bảng/mục nhận diện được.
-
-THÔNG TIN THUỐC (chỉ áp dụng khi chính dòng/bảng có thuốc):
-- drugName ghi đúng tên thuốc/nhóm thuốc quốc tế. Với khuyến cáo không liên quan thuốc, để chuỗi rỗng.
-- dose, renalAdjustment, hepaticAdjustment, contraindications và monitoring chỉ điền khi PDF thật sự nêu trong dòng, chú thích bảng hoặc Supplementary Data liên quan. Không có thì để chuỗi rỗng để tiết kiệm đầu ra.
-- Nếu supplement bổ sung dữ liệu cho đúng khuyến cáo chính, hợp nhất thông tin và ghi cả hai nguồn trong pageReference; không tạo bản sao trùng lặp.
-
-AN TOÀN VÀ TÍNH TRUNG THÀNH:
-- Tự đọc metadata: documentTitle, society, condition, publicationYear, versionLabel. sourceUrl chỉ lấy URL/DOI chính thức có in trong PDF; không có thì để rỗng.
-- Chỉ dùng dữ liệu trong PDF. Không dùng kiến thức ngoài, không suy đoán, không tự tạo khuyến cáo, Class, LoE, liều hoặc nguồn.
-- Giữ nguyên tên riêng, viết tắt chuyên môn, số liệu, đơn vị, ngưỡng, khoảng thời gian và mức độ mạnh/yếu của câu nguồn.
-- Không lấy đoạn mô tả thuần túy, tài liệu tham khảo cuối bài hoặc lời bàn không mang tính khuyến cáo, ngoại trừ các dòng trong bảng “What’s new” bắt buộc nêu trên.
-- entries phải đúng thứ tự xuất hiện từ trang đầu tới trang cuối. Tất cả là BẢN NHÁP để người dùng đối chiếu, không được tự đánh dấu đã kiểm duyệt.
-
-Trả đúng JSON theo schema, không thêm văn bản ngoài JSON.`,
-    });
+    const chunkGroups = await Promise.all([
+      splitPdfIntoPageRanges(document, "Guideline chính"),
+      supplement ? splitPdfIntoPageRanges(supplement, "Supplementary Data") : Promise.resolve([]),
+    ]);
+    const chunks = chunkGroups.flat();
+    const partialResults = [];
+    for (const chunk of chunks) {
+      const partial = await generateStructuredFromFile({
+        file: chunk.file,
+        schema,
+        maxOutputTokens: 32768,
+        timeoutMs: 240_000,
+        prompt: extractionPrompt({ ...chunk, focus }),
+      });
+      partialResults.push(partial);
+    }
+    const result = mergeExtractionResults(partialResults);
 
     const payload = { success: true, data: result, aiCallsRemaining };
     cache.set(key, payload);
