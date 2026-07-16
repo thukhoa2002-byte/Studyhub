@@ -358,8 +358,8 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   }
 
   return (
-    <section className="mode-panel mx-auto w-full max-w-6xl px-5 py-8" aria-labelledby="guidelines-title">
-      <div className="glass-panel border border-rose-100/80 bg-white/68 p-6 sm:p-8">
+    <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 xl:px-8" aria-labelledby="guidelines-title">
+      <div className="glass-panel border border-rose-100/80 bg-white/68 p-4 sm:p-6 xl:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-100 to-teal-100 text-rose-600 shadow-sm"><BookOpenCheck size={32} /></div>
@@ -390,8 +390,8 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={() => setShowDocumentForm(false)} className="rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-sm font-bold text-slate-500">Hủy</button><button disabled={busy || aiReading} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy && <Loader2 className="animate-spin" size={17} />} {busy ? "Đang lưu..." : preparedExtraction ? "Lưu tài liệu đã kiểm tra" : "Lưu & để AI đọc"}</button></div>
         </form>}
 
-        <div className="mt-7 grid gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
-          <aside className="space-y-3">
+        <div className="mt-7 grid gap-6 xl:grid-cols-[17rem_minmax(0,1fr)] 2xl:grid-cols-[19rem_minmax(0,1fr)]">
+          <aside className="grid gap-3 sm:grid-cols-2 xl:flex xl:flex-col">
             {documents.length === 0 ? <div className="rounded-3xl border border-dashed border-teal-200 bg-teal-50/45 p-6 text-center text-sm text-slate-500">{canManage ? "Chưa có guideline nào." : "Chưa có guideline đã kiểm chứng được đăng công khai."}</div> : documents.map((document) => <button key={document.id} type="button" onClick={() => setSelectedId(document.id)} className={`w-full rounded-2xl border p-4 text-left ${selectedId === document.id ? "border-teal-300 bg-teal-50 shadow-sm" : "border-rose-100 bg-white/75"}`}>
               <div className="flex items-start gap-3"><FileText className="mt-0.5 shrink-0 text-rose-500" size={20} /><div className="min-w-0"><p className="line-clamp-2 font-extrabold text-rose-950">{document.title}</p><p className="mt-1 text-xs font-semibold text-slate-500">{document.society} · {document.condition} · {document.publication_year}</p><span className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[11px] font-bold text-teal-700">{document.visibility === "shared" ? "Đã chia sẻ" : "Riêng tư"}</span></div></div>
             </button>)}
