@@ -178,7 +178,7 @@ html[data-theme="anki"] .rich-content {
   font-family: Arial, Helvetica, sans-serif;
 }
 html[data-theme="anki"] .glass-header {
-  border-color: #dce5e2 !important;
+  border-color: #353b3a !important;
   background: rgba(255,255,255,.97) !important;
   box-shadow: 0 1px 4px rgba(42,70,67,.08) !important;
   backdrop-filter: none;
@@ -195,7 +195,7 @@ html[data-theme="anki"] .setup-mode-tabs__glider::after {
 html[data-theme="anki"] .glass-panel,
 html[data-theme="anki"] .glass-card,
 html[data-theme="anki"] .glass-dialog {
-  border-color: #dce5e2 !important;
+  border-color: #353b3a !important;
   border-radius: .85rem !important;
   background: #fff !important;
   background-image: none !important;
@@ -220,19 +220,22 @@ html[data-theme="anki"] [class*="bg-emerald-"],
 html[data-theme="anki"] [class*="bg-violet-"],
 html[data-theme="anki"] [class*="bg-fuchsia-"],
 html[data-theme="anki"] [class*="bg-amber-"] {
-  background-color: #eef4f2 !important;
+  background-color: #fff !important;
   background-image: none !important;
 }
-html[data-theme="anki"] button[class*="bg-rose-"],
-html[data-theme="anki"] button[class*="bg-pink-"],
-html[data-theme="anki"] button[class*="bg-teal-"],
-html[data-theme="anki"] button[class*="bg-cyan-"],
-html[data-theme="anki"] button[class*="bg-emerald-"],
-html[data-theme="anki"] button[class*="bg-violet-"],
-html[data-theme="anki"] button[class*="bg-fuchsia-"] {
-  border-color: #6f8f8a !important;
-  background-color: #6f8f8a !important;
-  color: #fff !important;
+html[data-theme="anki"] button[class~="bg-rose-400"],
+html[data-theme="anki"] button[class~="bg-rose-500"],
+html[data-theme="anki"] button[class~="bg-rose-600"],
+html[data-theme="anki"] button[class~="bg-teal-400"],
+html[data-theme="anki"] button[class~="bg-teal-500"],
+html[data-theme="anki"] button[class~="bg-teal-600"],
+html[data-theme="anki"] button[class~="bg-violet-400"],
+html[data-theme="anki"] button[class~="bg-violet-500"],
+html[data-theme="anki"] button[class~="bg-violet-600"],
+html[data-theme="anki"] button[class~="bg-emerald-400"] {
+  border: 1px solid #353b3a !important;
+  background-color: #fff !important;
+  color: #263332 !important;
 }
 html[data-theme="anki"] [class*="text-rose-"],
 html[data-theme="anki"] [class*="text-pink-"] { color: #a45f72 !important; }
@@ -250,11 +253,11 @@ html[data-theme="anki"] [class*="border-emerald-"],
 html[data-theme="anki"] [class*="border-violet-"],
 html[data-theme="anki"] [class*="border-fuchsia-"],
 html[data-theme="anki"] [class*="border-amber-"] {
-  border-color: #dce5e2 !important;
+  border-color: #353b3a !important;
 }
 html[data-theme="anki"] .setup-mode-tabs,
 html[data-theme="anki"] .workspace-tabs {
-  border-color: #dce5e2 !important;
+  border-color: #353b3a !important;
   border-radius: .85rem !important;
   background: #fff !important;
   box-shadow: 0 2px 8px rgba(42,70,67,.07) !important;
@@ -263,9 +266,9 @@ html[data-theme="anki"] .workspace-tabs {
 }
 html[data-theme="anki"] .setup-mode-tabs__glider,
 html[data-theme="anki"] .workspace-tabs__glider {
-  border-color: #aebfbb !important;
+  border-color: #353b3a !important;
   border-radius: .65rem !important;
-  background: #e9f0ee !important;
+  background: #fff !important;
   background-image: none !important;
   box-shadow: none !important;
 }
@@ -278,7 +281,7 @@ html[data-theme="anki"] input,
 html[data-theme="anki"] textarea,
 html[data-theme="anki"] select,
 html[data-theme="anki"] [contenteditable="true"] {
-  border-color: #cfcfcf !important;
+  border-color: #353b3a !important;
   background-color: #fff !important;
 }
 html[data-theme="anki"] input:focus,
@@ -293,7 +296,7 @@ html[data-theme="anki"] .welcome-screen {
 }
 html[data-theme="anki"] .welcome-card,
 html[data-theme="anki"] .welcome-quote {
-  border-color: #dce5e2 !important;
+  border-color: #353b3a !important;
   background: #fff !important;
   box-shadow: 0 8px 24px rgba(42,70,67,.1) !important;
 }
