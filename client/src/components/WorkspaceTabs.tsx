@@ -1,6 +1,6 @@
-import { BookOpen, Pill } from "lucide-react";
+import { BookOpen, BookOpenCheck, Pill } from "lucide-react";
 
-export type WorkspaceTab = "flashcards" | "drugs";
+export type WorkspaceTab = "flashcards" | "guidelines" | "drugs";
 
 interface Props {
   activeTab: WorkspaceTab;
@@ -9,6 +9,7 @@ interface Props {
 
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: typeof BookOpen }> = [
   { id: "flashcards", label: "Flashcard", icon: BookOpen },
+  { id: "guidelines", label: "Guidelines", icon: BookOpenCheck },
   { id: "drugs", label: "Drugs", icon: Pill },
 ];
 
@@ -16,11 +17,11 @@ export default function WorkspaceTabs({ activeTab, onChange }: Props) {
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pt-5">
       <nav
-        className="workspace-tabs glass-panel grid grid-cols-2 gap-2 border border-white/70 bg-white/58 p-2"
+        className="workspace-tabs glass-panel grid grid-cols-3 gap-2 border border-white/70 bg-white/58 p-2"
         aria-label="Khu vực học tập"
       >
         <span
-          className={`workspace-tabs__glider ${activeTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
+          className={`workspace-tabs__glider ${activeTab === "guidelines" ? "workspace-tabs__glider--guidelines" : activeTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
           aria-hidden="true"
         />
         {tabs.map(({ id, label, icon: Icon }) => {
