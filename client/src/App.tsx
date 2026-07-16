@@ -703,7 +703,12 @@ export default function App() {
             <p className="mt-2 text-sm text-slate-500">Bộ “{pendingImport.title}” có {pendingImport.cards.length} thẻ.</p>
             {pendingImport.summary && <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3 text-left text-xs leading-5 text-slate-600">
               <p className="font-bold text-teal-700">Đã đọc cấu trúc Anki mới</p>
-              <p>{pendingImport.summary.noteTypeCount} loại thẻ · {pendingImport.summary.deckCount} bộ thẻ con · {pendingImport.summary.mediaCount} media</p>
+              <p>
+                {pendingImport.summary.noteTypeCount} loại thẻ · {pendingImport.summary.deckCount} bộ thẻ con · {pendingImport.summary.mediaCount} media
+                {typeof pendingImport.summary.mediaUploaded === "number" && pendingImport.summary.mediaReferenced
+                  ? ` · đã lưu ${pendingImport.summary.mediaUploaded}/${pendingImport.summary.mediaReferenced} hình được dùng`
+                  : ""}
+              </p>
               {pendingImport.summary.skippedCount > 0 && <p>{pendingImport.summary.skippedCount} note không đủ Front/Back đã được bỏ qua.</p>}
               {pendingImport.summary.mediaNotice && <p className="mt-1 text-amber-700">{pendingImport.summary.mediaNotice}</p>}
             </div>}

@@ -73,6 +73,9 @@ export interface GenerateQuestionsResponse {
     deckCount: number;
     noteTypeCount: number;
     mediaCount: number;
+    mediaReferenced?: number;
+    mediaUploaded?: number;
+    mediaFailed?: number;
     skippedCount: number;
     mediaNotice?: string;
   };
@@ -209,8 +212,14 @@ export async function importAnkiPackage(
 
   formData.append("deck", deck);
 
+  const { supabase } = await import("./supabase");
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Bạn cần đăng nhập để nhập file Anki và lưu hình ảnh.");
+
   const response = await fetch(`${API_URL}/api/import-anki`, {
     method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}` },
     body: formData,
   });
 

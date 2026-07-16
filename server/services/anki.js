@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { copyFile, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -8,9 +8,11 @@ import { zstdDecompressSync } from "node:zlib";
 
 const FIELD_SEPARATOR = "\u001f";
 const CLOZE_PATTERN = /\{\{c(\d+)::(.*?)(?:::.*?)?\}\}/g;
+const MEDIA_TOKEN_PATTERN = /\[\[ANKI_MEDIA:([A-Za-z0-9_-]+)\]\]/g;
+const ANKI_MEDIA_BUCKET = "anki-media";
 export const MAX_APKG_BYTES = 500 * 1024 * 1024;
 
-export async function importAnkiPackage(file) {
+export async function importAnkiPackage(file, options = {}) {
   if (!file?.path && !file?.buffer) throw new Error("Không có file Anki.");
   if (file.size > MAX_APKG_BYTES) throw new Error("File Anki lớn hơn giới hạn 500 MB.");
 
@@ -29,22 +31,29 @@ export async function importAnkiPackage(file) {
     await writeFile(databasePath, databaseBuffer);
 
     const result = readAnkiDatabase(databasePath);
-    const mediaCount = await readMediaCount(packagePath);
+    const mediaManifest = await readMediaManifest(packagePath);
+    const mediaResult = await uploadReferencedMedia(
+      packagePath,
+      result.questions,
+      mediaManifest,
+      options.authorization
+    );
 
     return {
       title: result.rootDeck || path.basename(file.originalname || "Anki deck", path.extname(file.originalname || "")),
-      questions: result.questions,
+      questions: mediaResult.questions,
       summary: {
         format,
         noteCount: result.noteCount,
         cardCount: result.cardCount,
         deckCount: result.deckCount,
         noteTypeCount: result.noteTypeCount,
-        mediaCount,
+        mediaCount: mediaManifest.length,
+        mediaReferenced: mediaResult.referenced,
+        mediaUploaded: mediaResult.uploaded,
+        mediaFailed: mediaResult.failed,
         skippedCount: result.skippedCount,
-        mediaNotice: mediaCount > 0
-          ? "Đã nhận diện media của Anki. Hình dung lượng lớn chưa được nhúng vào thẻ để tránh vượt giới hạn lưu trữ."
-          : "",
+        mediaNotice: mediaResult.notice,
       },
     };
   } finally {
@@ -67,23 +76,30 @@ async function extractAnkiDatabase(packagePath) {
   throw new Error("Không tìm thấy database Anki trong file .apkg.");
 }
 
-async function readMediaCount(packagePath) {
+async function readMediaManifest(packagePath) {
   try {
     let media = await unzipEntry(packagePath, "media", 20 * 1024 * 1024);
     if (media[0] === 0x28 && media[1] === 0xb5 && media[2] === 0x2f && media[3] === 0xfd) {
       media = zstdDecompressSync(media);
     }
     const text = media.toString("utf8");
-    if (text.trim().startsWith("{")) return Object.keys(JSON.parse(text)).length;
-    return countProtobufMediaEntries(media);
+    if (text.trim().startsWith("{")) {
+      return Object.entries(JSON.parse(text)).map(([archiveEntry, name]) => ({
+        archiveEntry,
+        name: String(name),
+        size: 0,
+        sha1: "",
+      }));
+    }
+    return parseProtobufMediaEntries(media);
   } catch {
-    return 0;
+    return [];
   }
 }
 
-function countProtobufMediaEntries(buffer) {
+function parseProtobufMediaEntries(buffer) {
   let offset = 0;
-  let count = 0;
+  const entries = [];
   while (offset < buffer.length) {
     const key = readVarint(buffer, offset);
     offset = key.offset;
@@ -91,15 +107,46 @@ function countProtobufMediaEntries(buffer) {
     const field = key.value >> 3;
     if (wireType === 2) {
       const length = readVarint(buffer, offset);
-      offset = length.offset + length.value;
-      if (field === 1) count += 1;
+      const start = length.offset;
+      const end = Math.min(buffer.length, start + length.value);
+      if (field === 1) {
+        const parsed = parseProtobufMediaEntry(buffer.subarray(start, end));
+        if (parsed.name) entries.push({ ...parsed, archiveEntry: String(entries.length) });
+      }
+      offset = end;
     } else if (wireType === 0) {
       offset = readVarint(buffer, offset).offset;
     } else {
-      return count;
+      return entries;
     }
   }
-  return count;
+  return entries;
+}
+
+function parseProtobufMediaEntry(buffer) {
+  let offset = 0;
+  const entry = { name: "", size: 0, sha1: "" };
+  while (offset < buffer.length) {
+    const key = readVarint(buffer, offset);
+    offset = key.offset;
+    const field = key.value >> 3;
+    const wireType = key.value & 7;
+    if (wireType === 2) {
+      const length = readVarint(buffer, offset);
+      const start = length.offset;
+      const end = Math.min(buffer.length, start + length.value);
+      if (field === 1) entry.name = buffer.subarray(start, end).toString("utf8");
+      if (field === 3) entry.sha1 = buffer.subarray(start, end).toString("hex");
+      offset = end;
+    } else if (wireType === 0) {
+      const value = readVarint(buffer, offset);
+      if (field === 2) entry.size = value.value;
+      offset = value.offset;
+    } else {
+      break;
+    }
+  }
+  return entry;
 }
 
 function readVarint(buffer, start) {
@@ -122,6 +169,246 @@ function unzipEntry(packagePath, entry, maxBuffer) {
       else resolve(stdout);
     });
   });
+}
+
+async function uploadReferencedMedia(packagePath, questions, manifest, authorization = "") {
+  const referencedNames = collectReferencedMedia(questions);
+  if (referencedNames.length === 0) {
+    return {
+      questions,
+      referenced: 0,
+      uploaded: 0,
+      failed: 0,
+      notice: manifest.length > 0 ? `Gói Anki có ${manifest.length} media nhưng không có hình nào được thẻ tham chiếu.` : "",
+    };
+  }
+
+  const supabaseUrl = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+  const bearer = String(authorization || "").match(/^Bearer\s+(.+)$/i)?.[1] || "";
+  if (!supabaseUrl || !anonKey || !bearer) {
+    return {
+      questions: replaceMediaTokens(questions, new Map()),
+      referenced: referencedNames.length,
+      uploaded: 0,
+      failed: referencedNames.length,
+      notice: "Không thể lưu media vì phiên đăng nhập hoặc cấu hình Supabase chưa sẵn sàng.",
+    };
+  }
+
+  const user = await fetchSupabaseUser(supabaseUrl, anonKey, bearer);
+  const bucketReady = await canAccessAnkiMediaBucket(supabaseUrl, anonKey, bearer, user.id);
+  if (!bucketReady) {
+    return {
+      questions: replaceMediaTokens(questions, new Map()),
+      referenced: referencedNames.length,
+      uploaded: 0,
+      failed: referencedNames.length,
+      notice: `Chưa có bucket ${ANKI_MEDIA_BUCKET}. Hãy chạy file supabase/anki_media_migration.sql một lần rồi nhập lại.`,
+    };
+  }
+  const byName = buildMediaLookup(manifest);
+  const selectedEntries = [...new Set(referencedNames
+    .map((sourceName) => findMediaEntry(byName, sourceName)?.archiveEntry)
+    .filter((entry) => /^\d+$/.test(String(entry || ""))))];
+  const extractedMediaDirectory = path.join(path.dirname(packagePath), "media");
+  await mkdir(extractedMediaDirectory, { recursive: true });
+  if (selectedEntries.length > 0) await unzipEntries(packagePath, selectedEntries, extractedMediaDirectory);
+  const resolved = new Map();
+  let uploaded = 0;
+  let failed = 0;
+
+  await runWithConcurrency(referencedNames, 4, async (sourceName) => {
+    const entry = findMediaEntry(byName, sourceName);
+    if (!entry) {
+      failed += 1;
+      return;
+    }
+    try {
+      let mediaBuffer = await readFile(path.join(extractedMediaDirectory, entry.archiveEntry));
+      if (hasZstdMagic(mediaBuffer)) mediaBuffer = zstdDecompressSync(mediaBuffer);
+      const mime = detectMediaMime(sourceName, mediaBuffer);
+      if (!mime) throw new Error(`Định dạng media không hỗ trợ: ${sourceName}`);
+      const digest = entry.sha1 || createHash("sha1").update(mediaBuffer).digest("hex");
+      const extension = preferredExtension(sourceName, mime);
+      const objectPath = `${user.id}/anki/${digest}${extension}`;
+      await uploadStorageObject(supabaseUrl, anonKey, bearer, objectPath, mime, mediaBuffer);
+      resolved.set(sourceName, `${supabaseUrl}/storage/v1/object/public/${ANKI_MEDIA_BUCKET}/${encodeObjectPath(objectPath)}`);
+      uploaded += 1;
+    } catch (error) {
+      failed += 1;
+      console.warn(`Không thể nhập media Anki ${sourceName}:`, error.message);
+    }
+  });
+
+  const notice = failed > 0
+    ? `Đã lưu ${uploaded}/${referencedNames.length} media được thẻ sử dụng. ${failed} media chưa thể lưu; hãy kiểm tra bucket ${ANKI_MEDIA_BUCKET}.`
+    : `Đã lưu đầy đủ ${uploaded} media được thẻ sử dụng vào Supabase Storage.`;
+
+  return {
+    questions: replaceMediaTokens(questions, resolved),
+    referenced: referencedNames.length,
+    uploaded,
+    failed,
+    notice,
+  };
+}
+
+function unzipEntries(packagePath, entries, destination) {
+  return new Promise((resolve, reject) => {
+    execFile("unzip", ["-q", "-o", packagePath, ...entries, "-d", destination], { maxBuffer: 2 * 1024 * 1024 }, (error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+function collectReferencedMedia(questions) {
+  const names = new Set();
+  questions.forEach((question) => {
+    for (const value of mediaTextFields(question)) {
+      for (const match of String(value || "").matchAll(MEDIA_TOKEN_PATTERN)) {
+        try { names.add(Buffer.from(match[1], "base64url").toString("utf8")); } catch { /* Ignore invalid marker. */ }
+      }
+    }
+  });
+  return [...names];
+}
+
+function mediaTextFields(question) {
+  return [question.question, question.answer, question.explanation, question.correctOption, ...(question.options || [])];
+}
+
+function replaceMediaTokens(questions, resolved) {
+  return questions.map((question) => {
+    const replace = (value) => typeof value === "string"
+      ? value.replace(MEDIA_TOKEN_PATTERN, (_, token) => {
+        let name = "media";
+        try { name = Buffer.from(token, "base64url").toString("utf8"); } catch { /* Keep fallback name. */ }
+        const url = resolved.get(name);
+        return url
+          ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(path.basename(name))}">`
+          : `<em>[Hình Anki: ${escapeHtml(path.basename(name))}]</em>`;
+      })
+      : value;
+    return {
+      ...question,
+      question: replace(question.question),
+      answer: replace(question.answer),
+      explanation: replace(question.explanation),
+      correctOption: replace(question.correctOption),
+      options: question.options?.map(replace),
+    };
+  });
+}
+
+function buildMediaLookup(manifest) {
+  const lookup = new Map();
+  manifest.forEach((entry) => {
+    for (const key of mediaNameVariants(entry.name)) if (!lookup.has(key)) lookup.set(key, entry);
+  });
+  return lookup;
+}
+
+function findMediaEntry(lookup, sourceName) {
+  for (const key of mediaNameVariants(sourceName)) {
+    const entry = lookup.get(key);
+    if (entry) return entry;
+  }
+  return null;
+}
+
+function mediaNameVariants(value) {
+  const original = String(value || "").replace(/^file:\/\//i, "").split(/[?#]/)[0];
+  let decoded = original;
+  try { decoded = decodeURIComponent(original); } catch { /* Keep the source unchanged. */ }
+  return [...new Set([original, decoded, path.basename(original), path.basename(decoded)].filter(Boolean).flatMap((item) => [item, item.normalize("NFC")]))];
+}
+
+async function fetchSupabaseUser(supabaseUrl, anonKey, bearer) {
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { apikey: anonKey, Authorization: `Bearer ${bearer}` },
+  });
+  if (!response.ok) throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  const user = await response.json();
+  if (!user?.id) throw new Error("Không xác định được tài khoản đang nhập Anki.");
+  return user;
+}
+
+async function canAccessAnkiMediaBucket(supabaseUrl, anonKey, bearer, userId) {
+  try {
+    const response = await fetch(`${supabaseUrl}/storage/v1/object/list/${ANKI_MEDIA_BUCKET}`, {
+      method: "POST",
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${bearer}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ prefix: `${userId}/anki`, limit: 1 }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function uploadStorageObject(supabaseUrl, anonKey, bearer, objectPath, mime, body) {
+  const publicUrl = `${supabaseUrl}/storage/v1/object/public/${ANKI_MEDIA_BUCKET}/${encodeObjectPath(objectPath)}`;
+  const existing = await fetch(publicUrl, { method: "HEAD", headers: { apikey: anonKey } });
+  if (existing.ok) return;
+  const response = await fetch(`${supabaseUrl}/storage/v1/object/${ANKI_MEDIA_BUCKET}/${encodeObjectPath(objectPath)}`, {
+    method: "POST",
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${bearer}`,
+      "Content-Type": mime,
+      "x-upsert": "false",
+    },
+    body,
+  });
+  if (response.status === 409) return;
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(detail || `Storage trả về mã ${response.status}`);
+  }
+}
+
+function encodeObjectPath(value) {
+  return value.split("/").map(encodeURIComponent).join("/");
+}
+
+function hasZstdMagic(buffer) {
+  return buffer?.[0] === 0x28 && buffer?.[1] === 0xb5 && buffer?.[2] === 0x2f && buffer?.[3] === 0xfd;
+}
+
+function detectMediaMime(filename, buffer) {
+  const extension = path.extname(filename).toLowerCase();
+  const byExtension = {
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
+    ".webp": "image/webp", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".wav": "audio/wav",
+  };
+  if (byExtension[extension]) return byExtension[extension];
+  if (buffer?.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
+  if (buffer?.[0] === 0xff && buffer?.[1] === 0xd8) return "image/jpeg";
+  if (buffer?.subarray(0, 6).toString("ascii").startsWith("GIF8")) return "image/gif";
+  if (buffer?.subarray(0, 4).toString("ascii") === "RIFF" && buffer?.subarray(8, 12).toString("ascii") === "WEBP") return "image/webp";
+  return "";
+}
+
+function preferredExtension(filename, mime) {
+  const extension = path.extname(filename).toLowerCase().replace(/[^.a-z0-9]/g, "");
+  if (extension && extension.length <= 8) return extension === ".jpeg" ? ".jpg" : extension;
+  return { "image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp", "image/svg+xml": ".svg", "audio/mpeg": ".mp3", "audio/ogg": ".ogg", "audio/wav": ".wav" }[mime] || "";
+}
+
+async function runWithConcurrency(items, limit, worker) {
+  let cursor = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const item = items[cursor++];
+      await worker(item);
+    }
+  }));
 }
 
 function readAnkiDatabase(databasePath) {
@@ -350,10 +637,19 @@ function cleanRichText(value = "") {
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/<img\b[^>]*\bsrc\s*=\s*["']?([^"'\s>]+)[^>]*>/gi, (_, source) => `<em>[Hình Anki: ${path.basename(source)}]</em>`)
-    .replace(/<(?!\/?(?:b|strong|i|em|u|s|br|p|div|ul|ol|li|h1|h2|h3)\b)[^>]*>/gi, "")
+    .replace(/<img\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))[^>]*>/gi, (_, doubleQuoted, singleQuoted, bare) => {
+      const source = doubleQuoted || singleQuoted || bare || "";
+      if (/^https?:\/\//i.test(source)) return `<img src="${escapeHtml(source)}" alt="Hình Anki">`;
+      const token = Buffer.from(source, "utf8").toString("base64url");
+      return `[[ANKI_MEDIA:${token}]]`;
+    })
+    .replace(/<(?!\/?(?:b|strong|i|em|u|s|br|p|div|ul|ol|li|h1|h2|h3|img)\b)[^>]*>/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function decodeEntities(value) {

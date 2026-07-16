@@ -16,7 +16,9 @@ const upload = multer({
 
 router.post("/", upload.single("deck"), async (req, res) => {
   try {
-    const result = await importAnkiPackage(req.file);
+    const result = await importAnkiPackage(req.file, {
+      authorization: req.get("authorization") || "",
+    });
 
     res.json({
       success: true,
