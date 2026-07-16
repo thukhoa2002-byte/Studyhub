@@ -1541,6 +1541,56 @@
       "id": "pneumonia-061"
     },
     {
+      "source_number": 66,
+      "question": "Bệnh nhân nam, 6 tuổi, đến khám vì ho và sốt 3 ngày. Trẻ ho khan, sốt nhẹ, dùng thuốc hạ sốt và si-rô ho nhưng không giảm. Khám: tỉnh, ăn uống được, môi hồng, SpO₂ 94%, mạch 110 lần/phút, nhiệt độ 38,3°C, thở co kéo liên sườn 45 lần/phút, phổi nghe ran nổ 2 bên. Tiền căn chủng ngừa theo chương trình tiêm chủng mở rộng. Xử trí phù hợp nhất là gì?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Điều trị ngoại trú, uống Amoxicillin liều cao, hẹn tái khám 2 ngày, dặn dò các dấu hiệu nặng cần khám ngay"
+        },
+        {
+          "id": "B",
+          "text": "Nhập viện, chích Ceftriaxone và uống Azithromycin"
+        },
+        {
+          "id": "C",
+          "text": "Điều trị ngoại trú uống Azithromycin, hẹn tái khám 2 ngày, dặn dò các dấu hiệu nặng cần khám ngay"
+        },
+        {
+          "id": "D",
+          "text": "Nhập viện, chích Ceftriaxone và truyền Vancomycin"
+        }
+      ],
+      "correct_answer": "C",
+      "review_required": false,
+      "id": "pneumonia-062"
+    },
+    {
+      "source_number": 67,
+      "question": "Bệnh nhân nam 28 tháng, nhập viện vì sốt ho, khó thở. Bệnh 5 ngày, sốt ho sổ mũi, mẹ cho uống thuốc có giảm sốt nhưng ho tăng. Hai ngày nay sốt cao lại, ho nhiều, bỏ bú nên đến bệnh viện khám và được nhập viện. Khám lúc vào: tỉnh, môi hồng vừa, bỏ bú, nhiệt độ 38,8°C, SpO₂ 91%, thở co lõm ngực nặng, tim đều 120 lần/phút, nhịp thở 52 lần/phút, phổi ran nổ bên phải. Bụng mềm, gan lách không to. Tiền căn không ghi nhận gì lạ. Chọn lựa điều trị nào sau đây là phù hợp?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Thở oxy, tiêm Ceftriaxone"
+        },
+        {
+          "id": "B",
+          "text": "Tiêm Cefotaxim"
+        },
+        {
+          "id": "C",
+          "text": "Tiêm Amoxicilline"
+        },
+        {
+          "id": "D",
+          "text": "Thở oxy, tiêm Cefotaxim kèm nuôi ăn tĩnh mạch"
+        }
+      ],
+      "correct_answer": "A",
+      "review_required": false,
+      "id": "pneumonia-063"
+    },
+    {
       "source_number": 68,
       "question": "Khám lâm sàng một trẻ 6 tuổi bị viêm phổi ghi nhận giảm phế âm 1/3 dưới phổi T. Khả năng nào ít xảy ra trên vùng giảm phế âm này?",
       "options": [
@@ -1563,7 +1613,7 @@
       ],
       "correct_answer": "B",
       "review_required": false,
-      "id": "pneumonia-062"
+      "id": "pneumonia-064"
     },
     {
       "source_number": 69,
@@ -1588,7 +1638,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-063"
+      "id": "pneumonia-065"
     },
     {
       "source_number": 70,
@@ -1613,7 +1663,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-064"
+      "id": "pneumonia-066"
     },
     {
       "source_number": 71,
@@ -1638,7 +1688,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-065"
+      "id": "pneumonia-067"
     },
     {
       "source_number": 72,
@@ -1663,7 +1713,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-066"
+      "id": "pneumonia-068"
     },
     {
       "source_number": 76,
@@ -1688,7 +1738,7 @@
       ],
       "correct_answer": "D",
       "review_required": false,
-      "id": "pneumonia-067"
+      "id": "pneumonia-069"
     },
     {
       "source_number": 77,
@@ -1713,7 +1763,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-068"
+      "id": "pneumonia-070"
     },
     {
       "source_number": 78,
@@ -1742,7 +1792,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-069"
+      "id": "pneumonia-071"
     },
     {
       "source_number": 81,
@@ -1767,7 +1817,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-070"
+      "id": "pneumonia-072"
     },
     {
       "source_number": 86,
@@ -1792,7 +1842,7 @@
       ],
       "correct_answer": "D",
       "review_required": false,
-      "id": "pneumonia-071"
+      "id": "pneumonia-073"
     },
     {
       "source_number": 87,
@@ -1817,7 +1867,7 @@
       ],
       "correct_answer": "A",
       "review_required": false,
-      "id": "pneumonia-072"
+      "id": "pneumonia-074"
     },
     {
       "source_number": 88,
@@ -1842,7 +1892,7 @@
       ],
       "correct_answer": "D",
       "review_required": false,
-      "id": "pneumonia-073"
+      "id": "pneumonia-075"
     },
     {
       "source_number": 89,
@@ -1867,7 +1917,7 @@
       ],
       "correct_answer": "A",
       "review_required": false,
-      "id": "pneumonia-074"
+      "id": "pneumonia-076"
     },
     {
       "source_number": 90,
@@ -1892,7 +1942,7 @@
       ],
       "correct_answer": "B",
       "review_required": false,
-      "id": "pneumonia-075"
+      "id": "pneumonia-077"
     },
     {
       "source_number": 91,
@@ -1917,7 +1967,7 @@
       ],
       "correct_answer": "B",
       "review_required": false,
-      "id": "pneumonia-076"
+      "id": "pneumonia-078"
     },
     {
       "source_number": 92,
@@ -1942,7 +1992,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-077"
+      "id": "pneumonia-079"
     },
     {
       "source_number": 93,
@@ -1971,7 +2021,7 @@
       ],
       "correct_answer": "B",
       "review_required": false,
-      "id": "pneumonia-078"
+      "id": "pneumonia-080"
     },
     {
       "source_number": 94,
@@ -2000,7 +2050,7 @@
       ],
       "correct_answer": "B",
       "review_required": false,
-      "id": "pneumonia-079"
+      "id": "pneumonia-081"
     },
     {
       "source_number": 96,
@@ -2025,7 +2075,7 @@
       ],
       "correct_answer": "A",
       "review_required": false,
-      "id": "pneumonia-080"
+      "id": "pneumonia-082"
     },
     {
       "source_number": 97,
@@ -2050,7 +2100,7 @@
       ],
       "correct_answer": "B",
       "review_required": false,
-      "id": "pneumonia-081"
+      "id": "pneumonia-083"
     },
     {
       "source_number": 98,
@@ -2075,7 +2125,7 @@
       ],
       "correct_answer": "D",
       "review_required": false,
-      "id": "pneumonia-082"
+      "id": "pneumonia-084"
     },
     {
       "source_number": 99,
@@ -2100,7 +2150,7 @@
       ],
       "correct_answer": "A",
       "review_required": false,
-      "id": "pneumonia-083"
+      "id": "pneumonia-085"
     },
     {
       "source_number": 0,
@@ -2129,7 +2179,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-084"
+      "id": "pneumonia-086"
     },
     {
       "source_number": 1,
@@ -2154,7 +2204,7 @@
       ],
       "correct_answer": "C",
       "review_required": false,
-      "id": "pneumonia-085"
+      "id": "pneumonia-087"
     },
     {
       "source_number": 235,
@@ -2179,7 +2229,7 @@
       ],
       "correct_answer": "B",
       "review_required": false,
-      "id": "pneumonia-086"
+      "id": "pneumonia-088"
     },
     {
       "source_number": 10,
@@ -2204,7 +2254,7 @@
       ],
       "correct_answer": "A",
       "review_required": false,
-      "id": "pneumonia-087"
+      "id": "pneumonia-089"
     },
     {
       "source_number": 4,
@@ -2229,7 +2279,7 @@
       ],
       "correct_answer": "D",
       "review_required": false,
-      "id": "pneumonia-088"
+      "id": "pneumonia-090"
     },
     {
       "source_number": 5,
@@ -2254,7 +2304,7 @@
       ],
       "correct_answer": "A",
       "review_required": false,
-      "id": "pneumonia-089"
+      "id": "pneumonia-091"
     }
   ]
 }

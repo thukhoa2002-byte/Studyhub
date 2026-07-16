@@ -19,7 +19,7 @@ type DeckDefinition = { key: string; title: string; description: string; questio
 
 const decks: DeckDefinition[] = [
   { key: "bo-mcq-kho-khe", title: "Bộ MCQ - Khò khè", description: "Tiếp cận khò khè, viêm tiểu phế quản và hen.", questionCount: 130, dataUrl: "/mcq/bo-mcq-kho-khe.json" },
-  { key: "bo-mcq-viem-phoi", title: "Bộ MCQ - Viêm phổi", description: "Chẩn đoán, xử trí và biến chứng viêm phổi ở trẻ em.", questionCount: 89, dataUrl: "/mcq/bo-mcq-viem-phoi.json" },
+  { key: "bo-mcq-viem-phoi", title: "Bộ MCQ - Viêm phổi", description: "Chẩn đoán, xử trí và biến chứng viêm phổi ở trẻ em.", questionCount: 91, dataUrl: "/mcq/bo-mcq-viem-phoi.json" },
 ];
 
 export default function McqPage({ userId }: Props) {
