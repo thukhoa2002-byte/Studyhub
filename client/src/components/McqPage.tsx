@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Globe2, LockKeyhole, Pencil, Play, RotateCcw, ShieldCheck, Trash2, Trophy, UserMinus, UserPlus, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Eye, Globe2, LockKeyhole, Pencil, Play, RotateCcw, ShieldCheck, Trash2, Trophy, UserMinus, UserPlus, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
 import McqIcon from "./McqIcon";
@@ -34,6 +34,9 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [opened, setOpened] = useState(false);
   const [activeDeck, setActiveDeck] = useState<DeckDefinition | null>(null);
+  const [previewDeck, setPreviewDeck] = useState<DeckDefinition | null>(null);
+  const [previewBank, setPreviewBank] = useState<QuizBank | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [progressReady, setProgressReady] = useState(false);
@@ -186,6 +189,33 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     setOpened(true);
   }
 
+  async function openPreview(deck: DeckDefinition) {
+    setError("");
+    setPreviewDeck(deck);
+    setPreviewBank(null);
+    setPreviewLoading(true);
+    try {
+      let source: QuizBank;
+      if (deck.bank) source = deck.bank;
+      else {
+        if (!deck.dataUrl) throw new Error("Bộ MCQ chưa có dữ liệu để xem trước.");
+        const response = await fetch(deck.dataUrl);
+        if (!response.ok) throw new Error("Không thể tải nội dung xem trước.");
+        source = await response.json() as QuizBank;
+      }
+      // Preview deliberately strips grading metadata: it is a read-only question catalogue.
+      setPreviewBank({
+        title: source.title,
+        questions: source.questions.map(({ correct_answer: _answer, review_required: _review, ...question }) => question),
+      });
+    } catch (previewError) {
+      setPreviewDeck(null);
+      setError(previewError instanceof Error ? previewError.message : "Không thể mở chế độ xem trước.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
   async function editableBankFor(deck: DeckDefinition): Promise<McqLibraryBank> {
     if (!userId) throw new Error("Bạn cần đăng nhập để sửa bộ MCQ.");
     if (deck.libraryBank) return deck.libraryBank;
@@ -280,6 +310,26 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
 
   if (error) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><p className="rounded-2xl border border-rose-200 bg-white p-5 text-sm font-semibold text-rose-700">{error}</p></section>;
 
+  if (previewDeck) return (
+    <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-preview-title">
+      <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/75 p-5 sm:p-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700"><Eye size={27} /></div>
+            <div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Chế độ xem trước</p><h1 id="mcq-preview-title" className="mt-1 text-2xl font-black text-rose-950 sm:text-3xl">{previewDeck.title}</h1><p className="mt-1 text-sm text-slate-500">Chỉ xem câu hỏi · Không thể chọn hoặc xem đáp án.</p></div>
+          </div>
+          <button type="button" onClick={() => { setPreviewDeck(null); setPreviewBank(null); }} className="inline-flex w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50"><ArrowLeft size={17} />Danh sách bộ MCQ</button>
+        </div>
+        {previewLoading || !previewBank ? <div className="mt-8 rounded-2xl bg-slate-50 px-5 py-10 text-center text-sm font-semibold text-slate-500">Đang nạp toàn bộ câu hỏi…</div> : <div className="mt-8 space-y-4">
+          {previewBank.questions.map((previewQuestion, questionIndex) => <article key={previewQuestion.id || questionIndex} className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-start gap-3"><span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-violet-100 px-2 text-xs font-black text-violet-700">{questionIndex + 1}</span><div className="min-w-0 flex-1"><h2 className="text-base font-bold leading-7 text-slate-800 sm:text-lg">{previewQuestion.question}</h2>{previewQuestion.image_url && <img src={previewQuestion.image_url} alt={previewQuestion.image_alt || "Hình ảnh kèm câu hỏi"} className="mt-4 max-h-[28rem] max-w-full rounded-2xl border border-slate-200 object-contain" />}</div></div>
+            <div className="mt-5 grid gap-2.5 sm:grid-cols-2">{previewQuestion.options.map((option) => <div key={option.id} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3.5 text-sm font-semibold text-slate-700"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-600">{option.id}</span><span className="pt-0.5 leading-6">{option.text}</span></div>)}</div>
+          </article>)}
+        </div>}
+      </div>
+    </section>
+  );
+
   if (!opened) return (
     <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
       {isOwner && userId && <div className="mb-5 rounded-[1.75rem] border border-teal-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl">
@@ -295,12 +345,12 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {decks.map((deck) => <article key={deck.key} className="group relative rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
-            <button type="button" onClick={() => openDeck(deck)} className="block w-full text-left">
+            <div>
               <div className="flex items-start justify-between gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><McqIcon size={26} /></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span></div>
               <h2 className="mt-5 text-xl font-extrabold text-rose-950">{deck.title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{deck.description}</p>
-              <div className="mt-6 flex items-center justify-end text-sm font-bold text-violet-700"><span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">Bắt đầu<Play size={15} fill="currentColor" /></span></div>
-            </button>
-            {isAdmin && <div className="absolute bottom-5 left-5 flex items-center gap-1.5 rounded-2xl border border-violet-100 bg-white/95 p-1.5 shadow-sm backdrop-blur">
+              <div className="mt-6 flex items-center justify-end gap-2 text-sm font-bold"><button type="button" onClick={() => void openPreview(deck)} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3 py-2 text-violet-700 hover:bg-violet-50"><Eye size={15} />Xem trước</button><button type="button" onClick={() => openDeck(deck)} className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">Bắt đầu<Play size={15} fill="currentColor" /></button></div>
+            </div>
+            {isAdmin && <div className="mt-3 flex w-fit items-center gap-1.5 rounded-2xl border border-violet-100 bg-white/95 p-1.5 shadow-sm backdrop-blur">
               <button type="button" title="Sửa tên và nội dung bộ MCQ" onClick={() => void requestDeckEdit(deck)} className="inline-flex items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-bold text-violet-700 hover:bg-violet-50"><Pencil size={14} />Sửa</button>
               <label title="Quyền xem của bộ MCQ" className="inline-flex items-center gap-1 rounded-xl border border-slate-100 px-2 py-1.5 text-xs font-bold text-slate-600">{deck.visibility === "published" ? <Globe2 size={14} className="text-teal-600" /> : <LockKeyhole size={14} />}<select aria-label={`Quyền xem ${deck.title}`} value={deck.visibility} onChange={(event) => void changeDeckVisibility(deck, event.target.value as "draft" | "published")} className="max-w-24 bg-transparent outline-none"><option value="published">Công khai</option><option value="draft">Riêng tư</option></select></label>
               <button type="button" aria-label={`Xóa bộ ${deck.title}`} title="Xóa cả bộ MCQ" onClick={() => void removeDeck(deck)} className="rounded-xl p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={15} /></button>
