@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { PDFDocument } from "pdf-lib";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
@@ -11,6 +11,7 @@ const MAX_PDF_BYTES = 40 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 6;
 const EXTRACTION_VERSION = "full-pages-v7-adaptive-chunking";
 const cache = new Map();
+const extractionJobs = new Map();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_PDF_BYTES },
@@ -334,8 +335,58 @@ async function extractGuidelineStream(req, res) {
   }
 }
 
+function startGuidelineJob(document, supplement, focus, ownerId) {
+  const id = randomUUID();
+  const job = { id, ownerId, status: "running", sequence: 0, progress: null, result: null, error: null };
+  extractionJobs.set(id, job);
+  void (async () => {
+    try {
+      job.result = await runGuidelineExtraction(document, supplement, focus, async (progress) => {
+        job.sequence += 1;
+        job.progress = progress;
+      });
+      job.status = "complete";
+    } catch (error) {
+      console.error("Guideline background extraction failed:", error);
+      job.error = extractionErrorPayload(error);
+      job.status = "error";
+    }
+  })();
+  setTimeout(() => extractionJobs.delete(id), 60 * 60 * 1000).unref();
+  return job;
+}
+
+function findGuidelineJob(req, res) {
+  const job = extractionJobs.get(req.params.jobId);
+  if (!job || job.ownerId !== req.guidelineAdmin?.id) {
+    res.status(404).json({ success: false, message: "Phiên dịch không còn trên máy chủ. Hãy bắt đầu lại tài liệu." });
+    return null;
+  }
+  return job;
+}
+
+async function createGuidelineJob(req, res) {
+  const document = req.files?.document?.[0];
+  const supplement = req.files?.supplement?.[0];
+  if (!document) return res.status(400).json({ success: false, message: "Chưa có file guideline chính." });
+  const totalBytes = [document, supplement].filter(Boolean).reduce((sum, file) => sum + file.size, 0);
+  if (totalBytes > MAX_PDF_BYTES) return res.status(413).json({ success: false, message: "Tổng dung lượng guideline và supplement không được vượt quá 40 MB." });
+  const job = startGuidelineJob(document, supplement, String(req.body?.focus || "").trim(), req.guidelineAdmin.id);
+  return res.status(202).json({ success: true, jobId: job.id });
+}
+
+function getGuidelineJob(req, res) {
+  const job = findGuidelineJob(req, res);
+  if (!job) return;
+  if (job.status === "complete") return res.json({ success: true, status: "complete", data: job.result });
+  if (job.status === "error") return res.json({ success: false, status: "error", message: job.error?.message || "Không thể đọc guideline bằng AI.", aiCallsRemaining: job.error?.aiCallsRemaining });
+  return res.json({ success: true, status: "running", sequence: job.sequence, progress: job.progress });
+}
+
 router.post("/", requireGuidelineAdmin, upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), extractGuidelineJson);
 router.post("/stream", requireGuidelineAdmin, upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), extractGuidelineStream);
+router.post("/jobs", requireGuidelineAdmin, upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), createGuidelineJob);
+router.get("/jobs/:jobId", requireGuidelineAdmin, getGuidelineJob);
 
 router.use((error, _req, res, _next) => {
   const isLimit = error?.code === "LIMIT_FILE_SIZE";
