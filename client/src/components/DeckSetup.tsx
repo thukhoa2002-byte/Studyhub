@@ -127,6 +127,8 @@ type RenameTarget =
   | { kind: "deck"; deck: SavedDeck; value: string }
   | { kind: "subdeck"; deck: SavedDeck; path: string; value: string };
 
+type DraggedSubdeck = { deckId: string; path: string; canEdit: boolean };
+
 function buildSubdeckTree(cards: GeneratedQuestion[]): SubdeckNode[] {
   const roots: SubdeckNode[] = [];
   const nodesByPath = new Map<string, SubdeckNode>();
@@ -249,7 +251,7 @@ export default function DeckSetup({
   const [showAddedCards, setShowAddedCards] = useState(false);
   const [openDeckMenuId, setOpenDeckMenuId] = useState<string | null>(null);
   const [collapsedDeckIds, setCollapsedDeckIds] = useState<Set<string>>(new Set());
-  const [draggedSubdeck, setDraggedSubdeck] = useState<{ deckId: string; path: string; canEdit: boolean } | null>(null);
+  const [draggedSubdeck, setDraggedSubdeck] = useState<DraggedSubdeck | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [mergingSubdeckKey, setMergingSubdeckKey] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
@@ -331,15 +333,26 @@ export default function DeckSetup({
     else void onRenameSubdeck(target.deck, target.path, value);
   }
 
-  function dropSubdeck(targetDeck: SavedDeck, targetPath: string, targetKey: string) {
-    if (!draggedSubdeck || !draggedSubdeck.canEdit) return;
-    const sourceDeck = savedDecks.find((deck) => deck.id === draggedSubdeck.deckId);
-    if (!sourceDeck || sourceDeck.id === targetDeck.id && !targetPath) return;
+  function readDraggedSubdeck(event: React.DragEvent<HTMLElement>): DraggedSubdeck | null {
+    const raw = event.dataTransfer.getData("application/x-hocbai-subdeck") || event.dataTransfer.getData("text/plain");
+    try {
+      const parsed = JSON.parse(raw) as Partial<DraggedSubdeck>;
+      if (typeof parsed.deckId !== "string" || typeof parsed.path !== "string" || parsed.canEdit !== true) return null;
+      return { deckId: parsed.deckId, path: parsed.path, canEdit: true };
+    } catch {
+      return null;
+    }
+  }
+
+  function dropSubdeck(targetDeck: SavedDeck, targetPath: string, targetKey: string, dragged = draggedSubdeck) {
+    if (!dragged || !dragged.canEdit) return;
+    const sourceDeck = savedDecks.find((deck) => deck.id === dragged.deckId);
+    if (!sourceDeck || sourceDeck.id === targetDeck.id && (!targetPath || targetPath === dragged.path || targetPath.startsWith(`${dragged.path}::`))) return;
     setDropTargetKey(null);
     setMergingSubdeckKey(targetKey);
     const operation = sourceDeck.id === targetDeck.id
-      ? onMergeSubdecks(targetDeck, draggedSubdeck.path, targetPath)
-      : onMoveSubdeck(sourceDeck, draggedSubdeck.path, targetDeck, targetPath);
+      ? onMergeSubdecks(targetDeck, dragged.path, targetPath)
+      : onMoveSubdeck(sourceDeck, dragged.path, targetDeck, targetPath);
     void Promise.resolve(operation).finally(() => {
       setDraggedSubdeck(null);
       setMergingSubdeckKey(null);
@@ -372,11 +385,15 @@ export default function DeckSetup({
             onDragStart={(event) => {
               if (!canEdit) return;
               event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", node.path);
+              const payload = JSON.stringify({ deckId: deck.id, path: node.path, canEdit });
+              event.dataTransfer.setData("application/x-hocbai-subdeck", payload);
+              event.dataTransfer.setData("text/plain", payload);
               setDraggedSubdeck({ deckId: deck.id, path: node.path, canEdit });
             }}
             onDragOver={(event) => {
-              if (!canDrop) return;
+              const dragged = readDraggedSubdeck(event);
+              const canDropNow = Boolean(canEdit && dragged && (dragged.deckId !== deck.id || (dragged.path !== node.path && !node.path.startsWith(`${dragged.path}::`))));
+              if (!canDropNow) return;
               event.preventDefault();
               event.dataTransfer.dropEffect = "move";
               setDropTargetKey(rowKey);
@@ -384,8 +401,10 @@ export default function DeckSetup({
             onDragLeave={() => setDropTargetKey((current) => current === rowKey ? null : current)}
             onDrop={(event) => {
               event.preventDefault();
-              if (!canDrop || !draggedSubdeck) return;
-              dropSubdeck(deck, node.path, rowKey);
+              if (!canEdit) return;
+              const dragged = readDraggedSubdeck(event);
+              if (!dragged) return;
+              dropSubdeck(deck, node.path, rowKey, dragged);
             }}
             onDragEnd={() => { setDraggedSubdeck(null); setDropTargetKey(null); }}
             title={canEdit ? "Kéo mục này lên mục khác để gộp" : "Mở mục con để học"}
@@ -511,7 +530,8 @@ export default function DeckSetup({
               return <React.Fragment key={deck.id}>
               <div
                 onDragOver={(event) => {
-                  if (!canDropParent) return;
+                  const dragged = readDraggedSubdeck(event);
+                  if (!canEdit || !dragged || dragged.deckId === deck.id) return;
                   event.preventDefault();
                   event.stopPropagation();
                   event.dataTransfer.dropEffect = "move";
@@ -519,10 +539,11 @@ export default function DeckSetup({
                 }}
                 onDragLeave={() => setDropTargetKey((current) => current === parentRowKey ? null : current)}
                 onDrop={(event) => {
-                  if (!canDropParent) return;
+                  if (!canEdit) return;
                   event.preventDefault();
                   event.stopPropagation();
-                  dropSubdeck(deck, "", parentRowKey);
+                  const dragged = readDraggedSubdeck(event);
+                  if (dragged) dropSubdeck(deck, "", parentRowKey, dragged);
                 }}
                 className={`glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition sm:grid-cols-[minmax(0,1fr)_4rem_4rem_4rem_5.5rem] ${isParentDropTarget ? "bg-teal-50 ring-2 ring-teal-300" : "hover:bg-teal-50"}`}
               >

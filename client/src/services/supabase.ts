@@ -11,7 +11,7 @@ export const supabase =
 
 const CARD_METADATA_PREFIX = "__hocbai_card_v1__:";
 
-function encodeCardCategory(question: GeneratedQuestion): string {
+export function encodeCardCategory(question: GeneratedQuestion): string {
   if (!question.options?.length && !question.correctOption && !question.explanation) {
     return question.category || "Anki";
   }

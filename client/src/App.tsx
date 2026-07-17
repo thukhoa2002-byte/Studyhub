@@ -19,7 +19,7 @@ import GuidelinesPage from "./components/GuidelinesPage";
 import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
-import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
+import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, encodeCardCategory, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
 import { normalizeSubdeck, replaceSubdeckPrefix } from "./utils/subdeck";
 
 import {
@@ -466,12 +466,19 @@ export default function App() {
         .from("cards")
         .update({
           deck_id: targetDeck.id,
-          category: replaceSubdeckPrefix(card.category, sourcePath, destinationPath),
+          category: encodeCardCategory({
+            ...card,
+            category: replaceSubdeckPrefix(card.category, sourcePath, destinationPath),
+          }),
           position: targetDeck.cards.length + index,
         })
         .eq("id", card.id)
         .eq("deck_id", sourceDeck.id)
-        .then(({ error }) => { if (error) throw error; })));
+        .select("id")
+        .then(({ data, error }) => {
+          if (error) throw error;
+          if (!data?.length) throw new Error("Không có thẻ nào được chuyển. Hãy kiểm tra quyền sửa hai bộ thẻ.");
+        })));
       const nextDecks = await listDecks(user.id);
       setSavedDecks(nextDecks);
       const freshDeck = nextDecks.find((item) => item.id === targetDeck.id);
