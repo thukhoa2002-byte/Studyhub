@@ -34,6 +34,45 @@ function createApiError(response, payload, fallback) {
   return error;
 }
 
+function shouldRetryWithoutSchema(response, payload) {
+  if (response.status !== 400) return false;
+  const message = String(payload?.error?.message || "");
+  return /invalid argument|schema|response.*json/i.test(message);
+}
+
+async function requestGeneration({ model, apiKey, signal, prompt, mediaParts, schema, maxOutputTokens, useSchema }) {
+  const generationConfig = {
+    responseMimeType: "application/json",
+    maxOutputTokens,
+    temperature: 0.2,
+  };
+  if (useSchema) generationConfig.responseJsonSchema = schema;
+
+  const response = await fetch(
+    `${GEMINI_API_ROOT}/models/${encodeURIComponent(model)}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      signal,
+      body: JSON.stringify({
+        contents: [{
+          role: "user",
+          parts: [
+            { text: prompt },
+            ...mediaParts,
+          ],
+        }],
+        generationConfig,
+      }),
+    },
+  );
+  const payload = await response.json().catch(() => null);
+  return { response, payload };
+}
+
 async function uploadGeminiFile(inputFile, apiKey, signal) {
   const inputSize = inputFile.size ?? inputFile.buffer?.length ?? 0;
   const startResponse = await fetch(`${GEMINI_UPLOAD_ROOT}/files`, {
@@ -107,7 +146,8 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
 
   try {
     const totalBytes = inputFiles.reduce((sum, inputFile) => sum + (inputFile.size ?? inputFile.buffer?.length ?? 0), 0);
-    const useFilesApi = totalBytes > FILE_API_THRESHOLD_BYTES;
+    // PDFs are more reliable through Gemini Files API and avoid a base64 copy in Render memory.
+    const useFilesApi = totalBytes > FILE_API_THRESHOLD_BYTES || inputFiles.some((inputFile) => inputFile.mimetype === "application/pdf");
     const mediaParts = [];
     for (const [index, inputFile] of inputFiles.entries()) {
       if (inputFiles.length > 1) {
@@ -133,34 +173,29 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
       }
     }
 
-    const response = await fetch(
-      `${GEMINI_API_ROOT}/models/${encodeURIComponent(model)}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
+    let { response, payload } = await requestGeneration({
+      model,
+      apiKey,
+      signal: controller.signal,
+      prompt,
+      mediaParts,
+      schema,
+      maxOutputTokens,
+      useSchema: true,
+    });
+    if (!response.ok && shouldRetryWithoutSchema(response, payload)) {
+      console.warn("Gemini rejected responseJsonSchema; retrying in JSON mode without a server schema.");
+      ({ response, payload } = await requestGeneration({
+        model,
+        apiKey,
         signal: controller.signal,
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [
-              { text: prompt },
-              ...mediaParts,
-            ],
-          }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseJsonSchema: schema,
-            maxOutputTokens,
-            temperature: 0.2,
-          },
-        }),
-      },
-    );
-
-    const payload = await response.json().catch(() => null);
+        prompt,
+        mediaParts,
+        schema,
+        maxOutputTokens,
+        useSchema: false,
+      }));
+    }
     if (!response.ok) {
       throw createApiError(response, payload);
     }
