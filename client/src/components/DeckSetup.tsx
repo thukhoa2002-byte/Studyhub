@@ -55,6 +55,8 @@ interface Props {
   savedDecks: SavedDeck[];
   onOpenDeck: (deck: SavedDeck) => void;
   onMergeSubdecks: (deck: SavedDeck, sourcePath: string, targetPath: string) => void | Promise<void>;
+  onRenameDeck: (deck: SavedDeck, nextTitle: string) => void | Promise<void>;
+  onRenameSubdeck: (deck: SavedDeck, sourcePath: string, nextName: string) => void | Promise<void>;
   onEditDeck: (deck: SavedDeck) => void;
   onDeleteDeck: (deck: SavedDeck) => void;
   onShareDeck: (deck: SavedDeck) => void;
@@ -121,6 +123,10 @@ interface SubdeckNode {
 }
 
 type ReviewStats = SavedDeck["review_stats"];
+
+type RenameTarget =
+  | { kind: "deck"; deck: SavedDeck; value: string }
+  | { kind: "subdeck"; deck: SavedDeck; path: string; value: string };
 
 function buildSubdeckTree(cards: GeneratedQuestion[]): SubdeckNode[] {
   const roots: SubdeckNode[] = [];
@@ -224,6 +230,8 @@ export default function DeckSetup({
   savedDecks,
   onOpenDeck,
   onMergeSubdecks,
+  onRenameDeck,
+  onRenameSubdeck,
   onEditDeck,
   onDeleteDeck,
   onShareDeck,
@@ -245,6 +253,7 @@ export default function DeckSetup({
   const [draggedSubdeck, setDraggedSubdeck] = useState<{ deckId: string; path: string } | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [mergingSubdeckKey, setMergingSubdeckKey] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
   const [deckIcons, setDeckIcons] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem("hocbai-deck-icons") || "{}"); } catch { return {}; }
   });
@@ -313,6 +322,16 @@ export default function DeckSetup({
     });
   }
 
+  function submitRename() {
+    if (!renameTarget) return;
+    const target = renameTarget;
+    const value = target.value.trim();
+    if (!value) return;
+    setRenameTarget(null);
+    if (target.kind === "deck") void onRenameDeck(target.deck, value);
+    else void onRenameSubdeck(target.deck, target.path, value);
+  }
+
   function renderSubdeckRows(nodes: SubdeckNode[], deck: SavedDeck, canEdit: boolean, depth = 0): React.ReactNode {
     return nodes.map((node) => {
       const childDeck: SavedDeck = {
@@ -332,49 +351,60 @@ export default function DeckSetup({
       const isDropTarget = dropTargetKey === rowKey && canDrop;
       const isMerging = mergingSubdeckKey === rowKey;
       return <React.Fragment key={node.path}>
-        <button
-          type="button"
-          draggable={canEdit}
-          onClick={() => onOpenDeck(childDeck)}
-          onDragStart={(event) => {
-            if (!canEdit) return;
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", node.path);
-            setDraggedSubdeck({ deckId: deck.id, path: node.path });
-          }}
-          onDragOver={(event) => {
-            if (!canDrop) return;
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
-            setDropTargetKey(rowKey);
-          }}
-          onDragLeave={() => setDropTargetKey((current) => current === rowKey ? null : current)}
-          onDrop={(event) => {
-            event.preventDefault();
-            if (!canDrop || !draggedSubdeck) return;
-            setDropTargetKey(null);
-            setMergingSubdeckKey(rowKey);
-            void Promise.resolve(onMergeSubdecks(deck, draggedSubdeck.path, node.path)).finally(() => {
-              setDraggedSubdeck(null);
-              setMergingSubdeckKey(null);
-            });
-          }}
-          onDragEnd={() => { setDraggedSubdeck(null); setDropTargetKey(null); }}
-          title={canEdit ? "Kéo mục này lên mục khác để gộp" : "Mở mục con để học"}
-          aria-label={`${node.name}, ${node.cards.length} thẻ`}
-          className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg bg-white/75 px-3 py-2 text-left text-sm font-semibold text-slate-700 transition sm:grid-cols-[minmax(0,1fr)_4rem_4rem_4rem_5.5rem] ${isDropTarget ? "bg-teal-50 ring-2 ring-teal-300" : "hover:bg-teal-50"} ${isMerging ? "cursor-wait opacity-60" : ""}`}
-        >
-          <span className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${depth * 1.1}rem` }}>
-            {canEdit ? <GripVertical size={15} className="shrink-0 cursor-grab text-slate-400 active:cursor-grabbing" aria-hidden="true" /> : <span className="w-[15px] shrink-0" />}
-            {node.children.length > 0 ? <ChevronRight size={15} className="shrink-0 text-slate-400" aria-hidden="true" /> : <span className="w-[15px] shrink-0" />}
-            <span className="min-w-0 truncate">{node.name}</span>
-            <span className="shrink-0 text-[11px] font-medium text-slate-400">{node.cards.length} thẻ</span>
-          </span>
-          <span className="text-center font-bold text-sky-500">{stats.new}</span>
-          <span className="text-center font-bold text-rose-500">{stats.learning}</span>
-          <span className="text-center font-bold text-emerald-500">{stats.due}</span>
-          <span className="hidden sm:block" aria-hidden="true" />
-        </button>
+        <div className={`deck-library-subdeck relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg bg-white/75 px-3 py-2 text-sm font-semibold text-slate-700 transition sm:grid-cols-[minmax(0,1fr)_4rem_4rem_4rem_5.5rem] ${isDropTarget ? "bg-teal-50 ring-2 ring-teal-300" : "hover:bg-teal-50"} ${isMerging ? "cursor-wait opacity-60" : ""}`}>
+          <button
+            type="button"
+            draggable={canEdit}
+            onClick={() => onOpenDeck(childDeck)}
+            onDragStart={(event) => {
+              if (!canEdit) return;
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", node.path);
+              setDraggedSubdeck({ deckId: deck.id, path: node.path });
+            }}
+            onDragOver={(event) => {
+              if (!canDrop) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              setDropTargetKey(rowKey);
+            }}
+            onDragLeave={() => setDropTargetKey((current) => current === rowKey ? null : current)}
+            onDrop={(event) => {
+              event.preventDefault();
+              if (!canDrop || !draggedSubdeck) return;
+              setDropTargetKey(null);
+              setMergingSubdeckKey(rowKey);
+              void Promise.resolve(onMergeSubdecks(deck, draggedSubdeck.path, node.path)).finally(() => {
+                setDraggedSubdeck(null);
+                setMergingSubdeckKey(null);
+              });
+            }}
+            onDragEnd={() => { setDraggedSubdeck(null); setDropTargetKey(null); }}
+            title={canEdit ? "Kéo mục này lên mục khác để gộp" : "Mở mục con để học"}
+            aria-label={`${node.name}, ${node.cards.length} thẻ`}
+            className="col-span-2 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 pr-20 text-left sm:col-span-4 sm:grid-cols-[minmax(0,1fr)_4rem_4rem_4rem] sm:pr-0"
+          >
+            <span className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${depth * 1.1}rem` }}>
+              {canEdit ? <GripVertical size={15} className="shrink-0 cursor-grab text-slate-400 active:cursor-grabbing" aria-hidden="true" /> : <span className="w-[15px] shrink-0" />}
+              {node.children.length > 0 ? <ChevronRight size={15} className="shrink-0 text-slate-400" aria-hidden="true" /> : <span className="w-[15px] shrink-0" />}
+              <span className="min-w-0 truncate">{node.name}</span>
+              <span className="shrink-0 text-[11px] font-medium text-slate-400">{node.cards.length} thẻ</span>
+            </span>
+            <span className="text-center font-bold text-sky-500">{stats.new}</span>
+            <span className="text-center font-bold text-rose-500">{stats.learning}</span>
+            <span className="text-center font-bold text-emerald-500">{stats.due}</span>
+          </button>
+          <div className="absolute right-2 top-1 flex items-center gap-0.5 sm:static sm:col-start-5 sm:row-start-1 sm:justify-end">
+            {(deck.owner_id === currentUserId || deck.member_role === "admin") && <button type="button" onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ cha" aria-label={`Chia sẻ bộ thẻ cha của ${node.name}`} className="flex h-8 w-8 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={15} /></button>}
+            {canEdit && <div className="relative h-8 w-8 shrink-0">
+              <button type="button" onClick={() => setOpenDeckMenuId((current) => current === rowKey ? null : rowKey)} title="Tùy chọn mục con" aria-label={`Tùy chọn mục con ${node.name}`} aria-expanded={openDeckMenuId === rowKey} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Settings2 size={16} /></button>
+              {openDeckMenuId === rowKey && <div role="menu" className="absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
+                <button type="button" onClick={() => { setOpenDeckMenuId(null); onCreateMcqFromDeck(childDeck); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-violet-700 hover:bg-violet-50"><ListChecks size={16} /><span>Tạo trắc nghiệm</span></button>
+                <button type="button" onClick={() => { setOpenDeckMenuId(null); setRenameTarget({ kind: "subdeck", deck, path: node.path, value: node.name }); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-teal-700 hover:bg-teal-50"><Pencil size={16} /><span>Đổi tên mục con</span></button>
+              </div>}
+            </div>}
+          </div>
+        </div>
         {node.children.length > 0 && renderSubdeckRows(node.children, deck, canEdit, depth + 1)}
       </React.Fragment>;
     });
@@ -501,6 +531,10 @@ export default function DeckSetup({
                           <ListChecks size={16} />
                           <span>Tạo trắc nghiệm</span>
                         </button>
+                        <button type="button" onClick={() => { setOpenDeckMenuId(null); setRenameTarget({ kind: "deck", deck, value: deck.title }); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sky-700 hover:bg-sky-50">
+                          <Pencil size={16} />
+                          <span>Đổi tên bộ thẻ</span>
+                        </button>
                         <button type="button" onClick={() => { setOpenDeckMenuId(null); onEditDeck(deck); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-teal-700 hover:bg-teal-50">
                           <Pencil size={16} />
                           <span>Sửa bộ thẻ</span>
@@ -521,6 +555,24 @@ export default function DeckSetup({
           </div>
         </div>
       )}
+
+      {renameTarget && <div className="fixed inset-0 z-[140] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-labelledby="rename-target-title">
+        <div className="glass-dialog w-full max-w-md rounded-3xl border border-rose-100 bg-gradient-to-br from-white via-rose-50/80 to-teal-50/80 p-7 shadow-[0_24px_70px_rgba(190,24,93,0.2)]">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-teal-600">Đổi tên</p>
+          <h2 id="rename-target-title" className="mt-2 text-xl font-bold text-rose-950">{renameTarget.kind === "deck" ? "Đổi tên bộ thẻ" : "Đổi tên mục con"}</h2>
+          <input
+            autoFocus
+            value={renameTarget.value}
+            onChange={(event) => setRenameTarget((current) => current ? { ...current, value: event.target.value } : current)}
+            onKeyDown={(event) => { if (event.key === "Enter") submitRename(); if (event.key === "Escape") setRenameTarget(null); }}
+            className="mt-5 w-full rounded-xl border border-teal-100 bg-white px-4 py-3 font-semibold text-rose-950 outline-none focus:border-teal-300"
+          />
+          <div className="mt-6 flex gap-3">
+            <button type="button" onClick={() => setRenameTarget(null)} className="flex-1 rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm font-bold text-slate-500 hover:bg-rose-50">Hủy</button>
+            <button type="button" onClick={submitRename} disabled={!renameTarget.value.trim()} className="flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50">Lưu tên</button>
+          </div>
+        </div>
+      </div>}
 
       {mode === "import" && (
         <div className="glass-panel mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">

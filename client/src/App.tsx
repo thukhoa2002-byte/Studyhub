@@ -20,7 +20,7 @@ import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
 import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
-import { replaceSubdeckPrefix } from "./utils/subdeck";
+import { normalizeSubdeck, replaceSubdeckPrefix } from "./utils/subdeck";
 
 import {
   generateQuestions,
@@ -450,6 +450,60 @@ export default function App() {
     }
   }
 
+  async function renameSavedDeck(deck: SavedDeck, nextTitle: string) {
+    if (!user || !supabase) return;
+    const title = nextTitle.trim();
+    if (!title || title === deck.title) return;
+    if (deck.owner_id !== user.id && deck.member_role !== "admin" && deck.member_access !== "edit") {
+      alert("Bạn không có quyền đổi tên bộ thẻ này.");
+      return;
+    }
+    try {
+      await updateDeck(user.id, deck.id, title, deck.cards, deck.visibility);
+      const nextDecks = await listDecks(user.id);
+      setSavedDecks(nextDecks);
+      const freshDeck = nextDecks.find((item) => item.id === deck.id);
+      if (freshDeck && currentSavedDeck?.id === deck.id) {
+        setCurrentSavedDeck(freshDeck);
+        setDeckTitle(freshDeck.title);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`Không thể đổi tên bộ thẻ: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+    }
+  }
+
+  async function renameSavedSubdeck(deck: SavedDeck, sourcePath: string, nextName: string) {
+    if (!user || !supabase) return;
+    const name = normalizeSubdeck(nextName);
+    if (!name) return;
+    if (deck.owner_id !== user.id && deck.member_role !== "admin" && deck.member_access !== "edit") {
+      alert("Bạn không có quyền đổi tên mục con này.");
+      return;
+    }
+    const separatorIndex = sourcePath.lastIndexOf("::");
+    const parentPath = separatorIndex >= 0 ? sourcePath.slice(0, separatorIndex) : "";
+    const targetPath = parentPath ? `${parentPath}::${name}` : name;
+    if (targetPath === sourcePath) return;
+    try {
+      const nextCards = deck.cards.map((card) => ({
+        ...card,
+        category: replaceSubdeckPrefix(card.category, sourcePath, targetPath),
+      }));
+      await updateDeck(user.id, deck.id, deck.title, nextCards, deck.visibility);
+      const nextDecks = await listDecks(user.id);
+      setSavedDecks(nextDecks);
+      const freshDeck = nextDecks.find((item) => item.id === deck.id);
+      if (freshDeck && currentSavedDeck?.id === deck.id) {
+        setCurrentSavedDeck(freshDeck);
+        setQuestions(freshDeck.cards);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`Không thể đổi tên mục con: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+    }
+  }
+
   async function shareSavedDeck(emails: string[]) {
     if (!sharingDeck) return;
     const canManageMembers = sharingDeck.owner_id === user?.id || sharingDeck.member_role === "admin";
@@ -682,6 +736,8 @@ export default function App() {
             savedDecks={savedDecks}
             onOpenDeck={openSavedDeck}
             onMergeSubdecks={mergeSavedSubdecks}
+            onRenameDeck={renameSavedDeck}
+            onRenameSubdeck={renameSavedSubdeck}
             onEditDeck={editSavedDeck}
             onDeleteDeck={removeSavedDeck}
             onShareDeck={setSharingDeck}
