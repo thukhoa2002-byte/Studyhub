@@ -284,6 +284,7 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
       review_stats: reviewStats,
       cards: deckCards.map((card) => {
         const metadata = decodeCardCategory(card.category);
+        const review = reviewByCard.get(card.id);
         return {
           id: card.id,
           scope: (card as { scope?: string }).scope === "personal" ? "personal" : "shared",
@@ -291,6 +292,7 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
           question: card.front,
           answer: card.back,
           importance: 1,
+          reviewState: !review ? "new" : new Date(review.due_at).getTime() <= now ? "due" : "learning",
           bookmarked: false,
           ...metadata,
         };

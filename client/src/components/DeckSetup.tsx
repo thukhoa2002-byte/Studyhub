@@ -8,6 +8,7 @@ import {
   Bone,
   Brain,
   ChevronDown,
+  ChevronRight,
   Dna,
   Droplets,
   Ear,
@@ -110,6 +111,56 @@ interface DraftCard {
   category: string;
 }
 
+interface SubdeckNode {
+  name: string;
+  path: string;
+  cards: GeneratedQuestion[];
+  children: SubdeckNode[];
+}
+
+type ReviewStats = SavedDeck["review_stats"];
+
+function buildSubdeckTree(cards: GeneratedQuestion[]): SubdeckNode[] {
+  const roots: SubdeckNode[] = [];
+  const nodesByPath = new Map<string, SubdeckNode>();
+
+  cards.forEach((card) => {
+    const parts = normalizeSubdeck(card.category, "Chưa phân loại").split("::");
+    let parent: SubdeckNode | undefined;
+
+    parts.forEach((part, index) => {
+      const path = parts.slice(0, index + 1).join("::");
+      let node = nodesByPath.get(path);
+      if (!node) {
+        node = { name: part, path, cards: [], children: [] };
+        nodesByPath.set(path, node);
+        if (parent) parent.children.push(node);
+        else roots.push(node);
+      }
+      node.cards.push(card);
+      parent = node;
+    });
+  });
+
+  return roots;
+}
+
+function statsForCards(cards: GeneratedQuestion[]): ReviewStats {
+  return cards.reduce<ReviewStats>((stats, card) => {
+    const state = card.reviewState || "new";
+    stats[state] += 1;
+    return stats;
+  }, { new: 0, learning: 0, due: 0 });
+}
+
+function ReviewColumns({ stats }: { stats: ReviewStats }) {
+  return <div className="col-span-2 grid grid-cols-3 rounded-lg bg-slate-50/80 px-2 py-2 sm:col-span-1 sm:contents">
+    <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Mới</span><span className="font-bold text-sky-500">{stats.new}</span></div>
+    <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Đang học</span><span className="font-bold text-rose-500">{stats.learning}</span></div>
+    <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Đến hạn</span><span className="font-bold text-emerald-500">{stats.due}</span></div>
+  </div>;
+}
+
 function newDraftCard(category = ""): DraftCard {
   return {
     id:
@@ -187,6 +238,7 @@ export default function DeckSetup({
   const [startingReview, setStartingReview] = useState(false);
   const [showAddedCards, setShowAddedCards] = useState(false);
   const [openDeckMenuId, setOpenDeckMenuId] = useState<string | null>(null);
+  const [collapsedDeckIds, setCollapsedDeckIds] = useState<Set<string>>(new Set());
   const [deckIcons, setDeckIcons] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem("hocbai-deck-icons") || "{}"); } catch { return {}; }
   });
@@ -243,6 +295,40 @@ export default function DeckSetup({
       const next = { ...current, [deckId]: icon };
       localStorage.setItem("hocbai-deck-icons", JSON.stringify(next));
       return next;
+    });
+  }
+
+  function toggleDeckChildren(deckId: string) {
+    setCollapsedDeckIds((current) => {
+      const next = new Set(current);
+      if (next.has(deckId)) next.delete(deckId);
+      else next.add(deckId);
+      return next;
+    });
+  }
+
+  function renderSubdeckRows(nodes: SubdeckNode[], deck: SavedDeck, depth = 0): React.ReactNode {
+    return nodes.map((node) => {
+      const childDeck: SavedDeck = {
+        ...deck,
+        title: `${deck.title} · ${node.path.replace(/::/g, " · ")}`,
+        cards: node.cards,
+        review_stats: statsForCards(node.cards),
+      };
+      const stats = statsForCards(node.cards);
+      return <React.Fragment key={node.path}>
+        <button type="button" onClick={() => onOpenDeck(childDeck)} className="grid w-full grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem] items-center gap-x-2 rounded-lg bg-white/75 px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-teal-50">
+          <span className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${depth * 1.1}rem` }}>
+            {node.children.length > 0 ? <ChevronRight size={15} className="shrink-0 text-slate-400" aria-hidden="true" /> : <span className="w-[15px] shrink-0" />}
+            <span className="min-w-0 truncate">{node.name}</span>
+            <span className="shrink-0 text-[11px] font-medium text-slate-400">{node.cards.length} thẻ</span>
+          </span>
+          <span className="text-center font-bold text-sky-500">{stats.new}</span>
+          <span className="text-center font-bold text-rose-500">{stats.learning}</span>
+          <span className="text-center font-bold text-emerald-500">{stats.due}</span>
+        </button>
+        {node.children.length > 0 && renderSubdeckRows(node.children, deck, depth + 1)}
+      </React.Fragment>;
     });
   }
 
@@ -331,20 +417,19 @@ export default function DeckSetup({
             </div>
           </div>
           <div className="space-y-2">
-            {savedDecks.map((deck) => (
-              <div key={deck.id} className="glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-teal-50 sm:grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem_5.5rem]">
+            {savedDecks.map((deck) => {
+              const subdeckTree = buildSubdeckTree(deck.cards);
+              return <React.Fragment key={deck.id}>
+              <div className="glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-teal-50 sm:grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem_5.5rem]">
                 <div className="flex min-w-0 items-center gap-2">
+                  {subdeckTree.length > 0 ? <button type="button" onClick={() => toggleDeckChildren(deck.id)} title={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-label={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-expanded={!collapsedDeckIds.has(deck.id)} className="flex h-9 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-teal-50 hover:text-teal-700"><ChevronDown size={17} className={`transition-transform duration-200 ${collapsedDeckIds.has(deck.id) ? "-rotate-90" : ""}`} /></button> : <span className="w-7 shrink-0" />}
                   <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
                   <button onClick={() => onOpenDeck(deck)} className="min-w-0 flex-1 text-left">
                     <span className="block truncate">{deck.title}</span>
                     <span className="mt-0.5 block text-[11px] font-medium text-slate-400">{deck.cards.length} thẻ</span>
                   </button>
                 </div>
-                <div className="col-span-2 grid grid-cols-3 rounded-lg bg-slate-50/80 px-2 py-2 sm:col-span-1 sm:contents">
-                  <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Mới</span><span className="font-bold text-sky-500">{deck.review_stats?.new ?? deck.cards.length}</span></div>
-                  <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Đang học</span><span className="font-bold text-rose-500">{deck.review_stats?.learning ?? 0}</span></div>
-                  <div className="text-center"><span className="mb-0.5 block text-[10px] text-slate-400 sm:hidden">Đến hạn</span><span className="font-bold text-emerald-500">{deck.review_stats?.due ?? 0}</span></div>
-                </div>
+                <ReviewColumns stats={deck.review_stats ?? statsForCards(deck.cards)} />
                 <div className="absolute right-3 top-3 flex items-center gap-0.5 sm:static sm:justify-end">
                 {(deck.owner_id === currentUserId || deck.member_role === "admin") &&
                   <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
@@ -381,7 +466,9 @@ export default function DeckSetup({
                 </>}
                 </div>
               </div>
-            ))}
+              {!collapsedDeckIds.has(deck.id) && subdeckTree.length > 0 && <div className="ml-4 space-y-1 border-l-2 border-teal-100 pl-3 sm:ml-8">{renderSubdeckRows(subdeckTree, deck)}</div>}
+              </React.Fragment>
+            })}
           </div>
         </div>
       )}

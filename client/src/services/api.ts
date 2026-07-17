@@ -21,6 +21,8 @@ export interface GeneratedQuestion {
   category: string;
   importance: number;
 
+  reviewState?: "new" | "learning" | "due";
+
   bookmarked: boolean;
   options?: string[];
   correctOption?: string;
