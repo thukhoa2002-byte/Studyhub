@@ -5,6 +5,7 @@ const DEFAULT_MODEL = "gemini-3.1-flash-lite";
 const GEMINI_API_ROOT = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_UPLOAD_ROOT = "https://generativelanguage.googleapis.com/upload/v1beta";
 const FILE_API_THRESHOLD_BYTES = 14 * 1024 * 1024;
+const GENERATION_RETRY_DELAYS_MS = [2_000, 4_000, 8_000];
 
 function getApiKey() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -29,7 +30,11 @@ function extractResponseText(payload) {
 }
 
 function createApiError(response, payload, fallback) {
-  const error = new Error(payload?.error?.message || fallback || `Gemini API lỗi ${response.status}.`);
+  const apiMessage = String(payload?.error?.message || fallback || `Gemini API lỗi ${response.status}.`);
+  const message = /high demand|temporarily unavailable|overloaded|resource exhausted/i.test(apiMessage)
+    ? "Gemini đang quá tải tạm thời sau khi đã tự thử lại. Vui lòng thử lại sau ít phút."
+    : apiMessage;
+  const error = new Error(message);
   error.status = response.status;
   return error;
 }
@@ -38,6 +43,11 @@ function shouldRetryWithoutSchema(response, payload) {
   if (response.status !== 400) return false;
   const message = String(payload?.error?.message || "");
   return /invalid argument|schema|response.*json/i.test(message);
+}
+
+function shouldRetryWithCompatibleOutputLimit(response, payload) {
+  if (response.status !== 400) return false;
+  return /invalid argument/i.test(String(payload?.error?.message || ""));
 }
 
 async function requestGeneration({ model, apiKey, signal, prompt, mediaParts, schema, maxOutputTokens, useSchema }) {
@@ -71,6 +81,24 @@ async function requestGeneration({ model, apiKey, signal, prompt, mediaParts, sc
   );
   const payload = await response.json().catch(() => null);
   return { response, payload };
+}
+
+function shouldRetryGeneration(response, payload) {
+  if (![429, 500, 502, 503].includes(response.status)) return false;
+  const message = String(payload?.error?.message || "");
+  return /high demand|temporarily unavailable|overloaded|resource exhausted|internal error|unavailable/i.test(message) || response.status !== 429;
+}
+
+async function requestGenerationWithRetries(input) {
+  let result;
+  for (let attempt = 0; attempt <= GENERATION_RETRY_DELAYS_MS.length; attempt += 1) {
+    result = await requestGeneration(input);
+    if (result.response.ok || !shouldRetryGeneration(result.response, result.payload) || attempt === GENERATION_RETRY_DELAYS_MS.length) return result;
+    const delay = GENERATION_RETRY_DELAYS_MS[attempt];
+    console.warn(`Gemini is temporarily busy; retrying generation in ${delay}ms (attempt ${attempt + 1}).`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  return result;
 }
 
 async function uploadGeminiFile(inputFile, apiKey, signal) {
@@ -173,7 +201,7 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
       }
     }
 
-    let { response, payload } = await requestGeneration({
+    let { response, payload } = await requestGenerationWithRetries({
       model,
       apiKey,
       signal: controller.signal,
@@ -185,7 +213,7 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
     });
     if (!response.ok && shouldRetryWithoutSchema(response, payload)) {
       console.warn("Gemini rejected responseJsonSchema; retrying in JSON mode without a server schema.");
-      ({ response, payload } = await requestGeneration({
+      ({ response, payload } = await requestGenerationWithRetries({
         model,
         apiKey,
         signal: controller.signal,
@@ -193,6 +221,19 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
         mediaParts,
         schema,
         maxOutputTokens,
+        useSchema: false,
+      }));
+    }
+    if (!response.ok && shouldRetryWithCompatibleOutputLimit(response, payload)) {
+      console.warn("Gemini rejected the requested output limit; retrying with a compatible 8192-token JSON response.");
+      ({ response, payload } = await requestGenerationWithRetries({
+        model,
+        apiKey,
+        signal: controller.signal,
+        prompt,
+        mediaParts,
+        schema,
+        maxOutputTokens: Math.min(maxOutputTokens, 8192),
         useSchema: false,
       }));
     }
