@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, Home, Plus, Save, Trash2, UserRound, Users, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ChevronRight, Home, Plus, Save, Trash2, UserRound, Users, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
@@ -52,6 +52,14 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const activeQuestion = questions.find((item) => item.id === activeQuestionId) || questions[0];
   const activeQuestionIndex = activeQuestion ? questions.findIndex((item) => item.id === activeQuestion.id) : -1;
 
+  function childCategory(category: string, parentTitle = title) {
+    const normalizedCategory = normalizeSubdeck(category, DEFAULT_SUBDECK);
+    const parent = normalizeSubdeck(parentTitle);
+    if (parent && normalizedCategory.startsWith(`${parent}::`)) return normalizedCategory.slice(parent.length + 2);
+    if (parent && normalizedCategory === parent) return "";
+    return normalizedCategory;
+  }
+
   function queueAutoSave(nextQuestions: GeneratedQuestion[]) {
     if (!title.trim() || nextQuestions.some((item) => !item.question.trim() || !item.answer.trim())) return;
     pendingAutoSaveRef.current = pendingAutoSaveRef.current.catch(() => undefined).then(async () => {
@@ -72,7 +80,14 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   }
 
   function updateCategory(id: string, value: string) {
-    setQuestions((current) => current.map((item) => item.id === id ? { ...item, category: value } : item));
+    setQuestions((current) => current.map((item) => {
+      if (item.id !== id) return item;
+      const parent = normalizeSubdeck(title);
+      const category = normalizeSubdeck(item.category, DEFAULT_SUBDECK);
+      const belongsToParent = Boolean(parent && (category === parent || category.startsWith(`${parent}::`)));
+      const child = normalizeSubdeck(value);
+      return { ...item, category: belongsToParent ? (child ? `${parent}::${child}` : parent) : value };
+    }));
   }
 
   function commitCategory(id: string) {
@@ -141,8 +156,8 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   }
 
   const categorySuggestions = listSubdeckSuggestions([
-    ...questions.map((item) => item.category),
-    ...decks.flatMap((deck) => deck.cards.map((item) => item.category)),
+    ...questions.map((item) => childCategory(item.category)),
+    ...decks.flatMap((deck) => deck.cards.map((item) => childCategory(item.category, deck.title))),
   ]);
 
   function switchDeck(deck: SavedDeck) {
@@ -177,7 +192,10 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
       </div>
       <div className="mb-5">
         <div className="relative flex-1">
-          <input list="deck-title-suggestions" value={title} onFocus={() => setShowDeckList(true)} onChange={(event) => setTitle(event.target.value)} className="w-full rounded-lg border border-rose-100 bg-white px-4 py-3 pr-11 font-semibold text-rose-950 outline-none focus:border-rose-300" />
+          <label className="block text-[10px] font-bold uppercase tracking-[0.14em] text-rose-500">
+            Mục cha
+            <input list="deck-title-suggestions" value={title} onFocus={() => setShowDeckList(true)} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-lg border border-rose-100 bg-white px-4 py-3 pr-11 font-semibold normal-case text-rose-950 outline-none focus:border-rose-300" />
+          </label>
           <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setShowDeckList((open) => !open)} aria-label="Mở danh sách bộ thẻ cùng cấp" title="Bộ thẻ cùng cấp" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><ChevronDown size={17} className={showDeckList ? "rotate-180 transition-transform" : "transition-transform"} /></button>
           {showDeckList && <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-xl border border-rose-100 bg-white p-1 shadow-lg">
             {decks.filter((deck) => deck.id !== currentDeckId).map((deck) => <button key={deck.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => void switchDeck(deck)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50"><span>{deck.title}</span><span className="ml-auto text-xs text-slate-400">{deck.cards.length} thẻ</span></button>)}
@@ -202,7 +220,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             </div>
             {questions.map((item, index) => <button key={item.id} type="button" onClick={() => setActiveQuestionId(item.id)} className={`grid w-full grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${item.id === activeQuestion?.id ? "border-teal-200 bg-teal-100/70 text-teal-900" : "border-white/80 bg-white/85 text-slate-700 hover:border-teal-100 hover:bg-white"}`}>
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-teal-700 shadow-sm">{index + 1}</span>
-              <span className="min-w-0 pr-2"><span className="block truncate" dangerouslySetInnerHTML={{ __html: item.question || "<em>Thẻ trống</em>" }} /><span className="mt-0.5 block truncate text-[10px] font-bold text-teal-600">{normalizeSubdeck(item.category, DEFAULT_SUBDECK)}</span></span>
+              <span className="min-w-0 pr-2"><span className="block truncate" dangerouslySetInnerHTML={{ __html: item.question || "<em>Thẻ trống</em>" }} /><span className="mt-0.5 flex min-w-0 items-center gap-0.5 truncate pl-2 text-[10px] font-bold text-teal-600"><ChevronRight size={12} className="shrink-0" />{childCategory(item.category) || "Chưa phân loại"}</span></span>
               <span className="min-w-0 truncate border-l border-teal-100 pl-3" dangerouslySetInnerHTML={{ __html: item.answer || "<em>Thẻ trống</em>" }} />
             </button>)}
           </div>}
@@ -213,15 +231,19 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ {activeQuestionIndex + 1}</p>
               {visibility === "shared" && <p className="mt-1 text-[11px] font-medium text-slate-400">Đã thêm bởi: <span className="font-semibold text-slate-500">{activeQuestion.creatorLabel || "Chủ bộ thẻ"}</span></p>}
+              <div className="mt-2 flex max-w-md items-center gap-2 rounded-lg border border-rose-100 bg-white/70 px-3 py-2 text-xs">
+                <span className="font-bold uppercase tracking-[0.12em] text-rose-400">Mục cha</span>
+                <span className="min-w-0 truncate font-semibold text-rose-950">{title || "Bộ thẻ mới"}</span>
+              </div>
               <label className="mt-2 block max-w-md text-[10px] font-bold uppercase tracking-[0.14em] text-teal-600">
                 Mục con
                 <input
                   list="editor-subdeck-suggestions"
-                  value={activeQuestion.category || ""}
+                  value={childCategory(activeQuestion.category)}
                   onChange={(event) => updateCategory(activeQuestion.id, event.target.value)}
                   onBlur={() => commitCategory(activeQuestion.id)}
                   className="mt-1 w-full rounded-lg border border-teal-100 bg-white/90 px-3 py-2 text-xs font-semibold normal-case text-teal-800 outline-none focus:border-teal-300"
-                  placeholder="Ví dụ: Nhi::Viêm phổi"
+                  placeholder="Ví dụ: Viêm phổi"
                 />
                 <datalist id="editor-subdeck-suggestions">
                   {categorySuggestions.map((name) => <option key={name} value={name} />)}
