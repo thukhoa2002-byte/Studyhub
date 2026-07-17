@@ -8,6 +8,7 @@ import {
   FileText,
   Loader2,
   Plus,
+  Printer,
   ShieldCheck,
   Trash2,
   UploadCloud,
@@ -356,6 +357,16 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     catch (error) { setNotice(errorMessage(error)); }
   }
 
+  function printSelectedGuideline(mode: GuidelinePdfMode) {
+    if (!selectedDocument || entries.length === 0) {
+      setNotice("Chưa có nội dung đã dịch để xuất PDF.");
+      return;
+    }
+    if (!printGuidelinePdf(selectedDocument, entries, mode)) {
+      setNotice("Trình duyệt đã chặn cửa sổ xuất PDF. Hãy cho phép mở cửa sổ bật lên rồi thử lại.");
+    }
+  }
+
   if (!user) {
     return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8">
       <div className="glass-panel border border-rose-100/80 bg-white/70 p-10 text-center">
@@ -409,7 +420,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <div className="min-w-0">
             {!selectedDocument ? <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-rose-200 text-sm text-slate-400">Chọn hoặc thêm một guideline.</div> : <>
               <div className="rounded-3xl border border-rose-100 bg-white/78 p-5">
-                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> Guideline PDF</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><FileText size={16} /> Supplement</button>}{ownsSelected && selectedDocument.file_path && <button type="button" disabled={aiReading || busy} onClick={() => void reExtractSelectedDocument()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={16} /> : <BookOpenCheck size={16} />} Trích xuất lại toàn bộ</button>}{ownsSelected && <button type="button" onClick={() => void togglePublished()} className={`rounded-xl border px-3 py-2 text-sm font-bold ${selectedDocument.visibility === "shared" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-teal-200 bg-teal-50 text-teal-700"}`}>{selectedDocument.visibility === "shared" ? "Gỡ công khai" : "Đăng công khai"}</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
+                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><button type="button" disabled={entries.length === 0} onClick={() => printSelectedGuideline("practice")} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 disabled:opacity-45"><Printer size={16} /> PDF thực hành</button><button type="button" disabled={entries.length === 0} onClick={() => printSelectedGuideline("full")} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700 disabled:opacity-45"><Printer size={16} /> PDF đầy đủ</button><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> Guideline PDF</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><FileText size={16} /> Supplement</button>}{ownsSelected && selectedDocument.file_path && <button type="button" disabled={aiReading || busy} onClick={() => void reExtractSelectedDocument()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={16} /> : <BookOpenCheck size={16} />} Trích xuất lại toàn bộ</button>}{ownsSelected && <button type="button" onClick={() => void togglePublished()} className={`rounded-xl border px-3 py-2 text-sm font-bold ${selectedDocument.visibility === "shared" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-teal-200 bg-teal-50 text-teal-700"}`}>{selectedDocument.visibility === "shared" ? "Gỡ công khai" : "Đăng công khai"}</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
                 <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">Phục vụ học tập. Luôn kiểm tra tài liệu gốc, đặc điểm người bệnh, chức năng gan–thận và hướng dẫn sử dụng thuốc trước quyết định điều trị.</div>
               </div>
 
@@ -562,4 +573,127 @@ function formatRecommendationClass(value: string) {
 function formatEvidenceLevel(value: string) {
   const normalized = normalizeEvidenceLevel(value);
   return normalized ? `Level ${normalized}` : value || "—";
+}
+
+type GuidelinePdfMode = "practice" | "full";
+
+type GuidelinePdfGroup = {
+  title: string;
+  entries: GuidelineEntry[];
+};
+
+function printGuidelinePdf(document: GuidelineDocument, sourceEntries: GuidelineEntry[], mode: GuidelinePdfMode) {
+  const groups = groupEntriesForPdf(document, sourceEntries);
+  const selectedGroups = mode === "full" ? groups : groups.filter(isPracticePdfGroup);
+  if (selectedGroups.length === 0) return false;
+
+  // Open synchronously from the button click so browsers do not classify it as a popup.
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return false;
+
+  const edition = mode === "full" ? "Bản tiếng Việt đầy đủ" : "Bản thực hành: khuyến cáo, liều và sơ đồ";
+  const fileName = `${document.title} - ${edition}`.replace(/[\\/:*?"<>|]/g, "-");
+  printWindow.document.title = fileName;
+  printWindow.document.write(`<!doctype html>
+<html lang="vi"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapePdfHtml(fileName)}</title><style>${guidelinePdfCss()}</style></head>
+<body><main>
+  <header class="document-header">
+    <p class="eyebrow">${escapePdfHtml(edition)}</p>
+    <h1>${escapePdfHtml(document.title)}</h1>
+    <p class="metadata">${escapePdfHtml(`${document.society} · ${document.condition} · ${document.publication_year}${document.version_label ? ` · ${document.version_label}` : ""}`)}</p>
+    <p class="source">Bản dịch được sắp theo thứ tự tài liệu gốc. Đối chiếu PDF nguồn trước khi áp dụng lâm sàng.</p>
+  </header>
+  ${selectedGroups.map((group, index) => renderPdfGroup(group, index)).join("")}
+</main><script>window.onload = function () { window.setTimeout(function () { window.print(); }, 250); };</script></body></html>`);
+  printWindow.document.close();
+  return true;
+}
+
+function groupEntriesForPdf(document: GuidelineDocument, entries: GuidelineEntry[]): GuidelinePdfGroup[] {
+  const groups = new Map<string, GuidelineEntry[]>();
+  for (const entry of [...entries].sort((left, right) => left.source_order - right.source_order)) {
+    const title = entry.topic.trim() || document.condition || "Nội dung guideline";
+    const group = groups.get(title) ?? [];
+    group.push(entry);
+    groups.set(title, group);
+  }
+  return Array.from(groups, ([title, groupEntries]) => ({ title, entries: groupEntries }));
+}
+
+function isPracticePdfGroup(group: GuidelinePdfGroup) {
+  if (group.entries.some((entry) => entry.table_kind === "recommendation")) return true;
+  const searchable = [group.title, ...group.entries.flatMap((entry) => [entry.clinical_context, entry.recommendation_summary, entry.dose, ...entry.table_cells.map((cell) => cell.text)])].join(" ");
+  return /\b(dose|dosing|titration|drug|drugs|algorithm|flowchart|pathway|recommendation|recommendations)\b|liều|thuốc|khuyến cáo|sơ đồ|lưu đồ|quy trình|phác đồ/i.test(searchable);
+}
+
+function renderPdfGroup(group: GuidelinePdfGroup, index: number) {
+  const hasStructuredTable = group.entries.some((entry) => entry.table_kind === "data" && entry.table_cells.length > 0);
+  const pageReferences = [...new Set(group.entries.map((entry) => entry.page_reference.trim()).filter(Boolean))];
+  return `<section class="chapter">
+    <header class="chapter-header"><span>Phần ${index + 1}</span><h2>${escapePdfHtml(group.title)}</h2></header>
+    ${hasStructuredTable ? renderStructuredPdfTable(group.entries) : renderRecommendationPdfTable(group.entries)}
+    ${pageReferences.length ? `<p class="page-reference">Nguồn: ${escapePdfHtml(pageReferences.join(" · "))}</p>` : ""}
+  </section>`;
+}
+
+function renderStructuredPdfTable(entries: GuidelineEntry[]) {
+  const rows = entries.filter((entry) => entry.table_kind === "data" && entry.table_cells.length > 0);
+  if (rows.length === 0) return renderRecommendationPdfTable(entries);
+  return `<table class="structured-table"><tbody>${rows.map((entry) => {
+    const header = entry.table_row_role === "header" || entry.table_row_role === "section";
+    const cells = entry.table_cells.map((cell) => {
+      const tag = header ? "th" : "td";
+      const colSpan = Math.max(1, Math.min(20, Number(cell.colSpan) || 1));
+      const rowSpan = Math.max(1, Math.min(20, Number(cell.rowSpan) || 1));
+      const styles = [
+        safeTableColor(cell.backgroundColor) ? `background:${safeTableColor(cell.backgroundColor)}` : "",
+        safeTableColor(cell.textColor) ? `color:${safeTableColor(cell.textColor)}` : "",
+        `text-align:${cell.textAlign || "left"}`,
+        `font-weight:${cell.fontWeight === "bold" || header ? "700" : "500"}`,
+      ].filter(Boolean).join(";");
+      return `<${tag} colspan="${colSpan}" rowspan="${rowSpan}" style="${styles}">${formatPdfText(cell.text)}</${tag}>`;
+    }).join("");
+    return `<tr class="${header ? "table-header" : ""}">${cells}</tr>`;
+  }).join("")}</tbody></table>`;
+}
+
+function renderRecommendationPdfTable(entries: GuidelineEntry[]) {
+  const recommendations = entries.filter((entry) => entry.table_kind === "recommendation");
+  if (recommendations.length === 0) return "";
+  let previousContext = "";
+  const rows = recommendations.map((entry) => {
+    const context = entry.clinical_context.trim();
+    const contextRow = context && context !== previousContext
+      ? `<tr class="table-header"><th colspan="3">${formatPdfText(context)}</th></tr>`
+      : "";
+    previousContext = context;
+    const details = [
+      entry.drug_name && `Thuốc/nhóm thuốc: ${entry.drug_name}`,
+      entry.dose && `Liều/cách dùng: ${entry.dose}`,
+      entry.renal_adjustment && `Thận: ${entry.renal_adjustment}`,
+      entry.hepatic_adjustment && `Gan: ${entry.hepatic_adjustment}`,
+      entry.contraindications && `Chống chỉ định/thận trọng: ${entry.contraindications}`,
+      entry.monitoring && `Theo dõi: ${entry.monitoring}`,
+    ].filter((value): value is string => Boolean(value) && hasSourceValue(value.replace(/^[^:]+:\s*/, "")));
+    return `${contextRow}<tr><td><div class="recommendation">${formatPdfText(entry.recommendation_summary)}</div>${details.length ? `<ul class="details">${details.map((detail) => `<li>${formatPdfText(detail)}</li>`).join("")}</ul>` : ""}</td><td class="grade">${escapePdfHtml(formatRecommendationClass(entry.recommendation_class))}</td><td class="grade">${escapePdfHtml(formatEvidenceLevel(entry.evidence_level))}</td></tr>`;
+  }).join("");
+  return `<table class="recommendation-table"><thead><tr class="table-header"><th>Khuyến cáo</th><th>Nhóm</th><th>Mức độ chứng cứ</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function formatPdfText(value: string) {
+  return escapePdfHtml(value).replace(/\n/g, "<br />");
+}
+
+function escapePdfHtml(value: string) {
+  return String(value || "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character] || character);
+}
+
+function guidelinePdfCss() {
+  return `@page { size: A4; margin: 14mm; }
+* { box-sizing: border-box; } body { margin: 0; color: #172033; font: 11pt/1.5 Arial, Helvetica, sans-serif; } main { max-width: 182mm; margin: 0 auto; }
+.document-header { border-bottom: 2px solid #0f9d95; margin-bottom: 10mm; padding-bottom: 5mm; } .eyebrow { color: #008c85; font-size: 9pt; font-weight: 700; letter-spacing: .08em; margin: 0 0 2mm; text-transform: uppercase; } h1 { color: #4a1020; font-size: 21pt; line-height: 1.2; margin: 0; } .metadata { color: #546176; font-weight: 700; margin: 2mm 0 0; } .source { color: #6b7280; font-size: 9pt; margin: 3mm 0 0; }
+.chapter { break-inside: avoid; margin: 0 0 8mm; } .chapter-header { background: #fff0f3; border-left: 4px solid #eb5975; padding: 3mm 4mm; } .chapter-header span { color: #c73855; font-size: 8pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; } h2 { color: #451323; font-size: 14pt; line-height: 1.3; margin: 1mm 0 0; }
+table { border-collapse: collapse; margin-top: 3mm; table-layout: fixed; width: 100%; } th, td { border: 1px solid #ffffff; padding: 3mm; vertical-align: top; overflow-wrap: anywhere; } .structured-table td { background: #f1f1f2; } .structured-table .table-header th, .recommendation-table .table-header th { background: #d0d0d2; color: #111827; font-weight: 700; text-align: left; } .recommendation-table th:nth-child(2), .recommendation-table th:nth-child(3), .recommendation-table td:nth-child(2), .recommendation-table td:nth-child(3) { text-align: center; width: 19mm; } .recommendation-table td { background: #f1f1f2; } .recommendation { font-weight: 600; } .details { color: #374151; font-size: 9.5pt; margin: 2mm 0 0; padding-left: 4mm; } .details li { margin: 1mm 0; } .grade { font-size: 9pt; font-weight: 700; } .page-reference { color: #6b7280; font-size: 8.5pt; margin: 2mm 0 0; }
+@media print { .chapter { break-inside: avoid-page; } tr, td, th { break-inside: avoid-page; } }`;
 }
