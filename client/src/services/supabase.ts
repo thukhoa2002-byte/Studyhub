@@ -77,6 +77,18 @@ export interface DeckActivityNotification {
   created_at: string;
 }
 
+type DeckCardRow = {
+  id: string;
+  deck_id: string;
+  front: string;
+  back: string;
+  category: string | null;
+  position: number;
+  scope?: string | null;
+  personal_owner_id?: string | null;
+  creator_label?: string | null;
+};
+
 export interface McqProgress {
   current_index: number;
   answers: Record<string, string>;
@@ -207,46 +219,69 @@ export async function saveDeck(
 
 export async function listDecks(_userId: string): Promise<SavedDeck[]> {
   if (!supabase) return [];
+  const client = supabase;
 
   // Nhận các lời mời đã được gửi trước khi tài khoản này đăng nhập.
   const { error: claimError } = await supabase.rpc("claim_pending_deck_shares");
   if (claimError) console.warn("Pending deck shares are not available yet", claimError.message);
 
-  let { data, error } = await supabase
+  const { data: deckRows, error: deckError } = await supabase
     .from("decks")
-    .select("id, title, visibility, owner_id, cards(id, front, back, category, position, scope, personal_owner_id, creator_label)")
+    .select("id, title, visibility, owner_id")
     .order("created_at", { ascending: false });
+  if (deckError) throw deckError;
+
+  const deckIds = (deckRows ?? []).map((deck) => deck.id);
+  const CARD_PAGE_SIZE = 1000;
+  async function fetchAllCards(select: string) {
+    const cards: DeckCardRow[] = [];
+    if (deckIds.length === 0) return { data: cards, error: null };
+    for (let from = 0; ; from += CARD_PAGE_SIZE) {
+      const result = await client
+        .from("cards")
+        .select(select)
+        .in("deck_id", deckIds)
+        .order("deck_id", { ascending: true })
+        .order("position", { ascending: true })
+        .range(from, from + CARD_PAGE_SIZE - 1);
+      if (result.error) return { data: null, error: result.error };
+      cards.push(...((result.data ?? []) as unknown as DeckCardRow[]));
+      if ((result.data?.length ?? 0) < CARD_PAGE_SIZE) break;
+    }
+    return { data: cards, error: null };
+  }
+
+  let cardResult = await fetchAllCards("id, deck_id, front, back, category, position, scope, personal_owner_id, creator_label");
 
   // The creator label was added after personal cards. Keep existing projects
   // usable while either migration is still being applied.
-  if (error && /creator_label/i.test(error.message)) {
-    const fallback = await supabase
-      .from("decks")
-      .select("id, title, visibility, owner_id, cards(id, front, back, category, position, scope, personal_owner_id)")
-      .order("created_at", { ascending: false });
-    data = fallback.data?.map((deck) => ({
-      ...deck,
-      cards: (deck.cards ?? []).map((card) => ({ ...card, creator_label: null })),
-    })) ?? null;
-    error = fallback.error;
+  if (cardResult.error && /creator_label/i.test(cardResult.error.message)) {
+    cardResult = await fetchAllCards("id, deck_id, front, back, category, position, scope, personal_owner_id");
+    if (cardResult.data) cardResult.data = cardResult.data.map((card) => ({ ...card, creator_label: null }));
   }
-  if (error && /scope|personal_owner_id/i.test(error.message)) {
-    const fallback = await supabase
-      .from("decks")
-      .select("id, title, visibility, owner_id, cards(id, front, back, category, position)")
-      .order("created_at", { ascending: false });
-    data = fallback.data?.map((deck) => ({
-      ...deck,
-      cards: (deck.cards ?? []).map((card) => ({
+  if (cardResult.error && /scope|personal_owner_id/i.test(cardResult.error.message)) {
+    cardResult = await fetchAllCards("id, deck_id, front, back, category, position");
+    if (cardResult.data) {
+      cardResult.data = cardResult.data.map((card) => ({
         ...card,
         scope: "shared",
         personal_owner_id: null,
         creator_label: null,
-      })),
-    })) ?? null;
-    error = fallback.error;
+      }));
+    }
   }
-  if (error) throw error;
+  if (cardResult.error) throw cardResult.error;
+  const cardsByDeck = new Map<string, DeckCardRow[]>();
+  (cardResult.data ?? []).forEach((card) => {
+    const deckId = String(card.deck_id || "");
+    const current = cardsByDeck.get(deckId) ?? [];
+    current.push(card);
+    cardsByDeck.set(deckId, current);
+  });
+  const data = (deckRows ?? []).map((deck) => ({
+    ...deck,
+    cards: cardsByDeck.get(deck.id) ?? [],
+  }));
 
   // Members can read their own membership row through RLS. Owners receive
   // edit access implicitly, while shared members use the stored access mode.
