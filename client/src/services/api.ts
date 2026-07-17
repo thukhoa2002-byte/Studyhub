@@ -118,8 +118,10 @@ export async function extractMcqFiles(files: File[]): Promise<McqImportResponse>
     body: formData,
   });
   if (!response.ok) {
-    const error = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(error?.message || "Không thể trích xuất bộ MCQ.");
+    const body = await response.text().catch(() => "");
+    let error: { message?: string; error?: string } | null = null;
+    try { error = JSON.parse(body) as { message?: string; error?: string }; } catch { /* proxy may return plain text */ }
+    throw new Error(error?.message || error?.error || body.trim() || `Không thể trích xuất bộ MCQ (HTTP ${response.status}).`);
   }
   return (await response.json()) as McqImportResponse;
 }

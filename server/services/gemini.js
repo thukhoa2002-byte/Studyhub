@@ -1,3 +1,6 @@
+import { createReadStream } from "node:fs";
+import { readFile } from "node:fs/promises";
+
 const DEFAULT_MODEL = "gemini-3.1-flash-lite";
 const GEMINI_API_ROOT = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_UPLOAD_ROOT = "https://generativelanguage.googleapis.com/upload/v1beta";
@@ -14,7 +17,7 @@ function getApiKey() {
 function extractResponseText(payload) {
   const finishReason = payload?.candidates?.[0]?.finishReason;
   if (finishReason === "MAX_TOKENS") {
-    throw new Error("Tài liệu có quá nhiều bảng nên đầu ra AI đã chạm giới hạn. Hãy chia guideline thành các PDF nhỏ hơn theo chương.");
+    throw new Error("Tài liệu quá dài nên đầu ra AI đã chạm giới hạn. Hãy chia PDF thành các phần nhỏ hơn theo chương.");
   }
   const parts = payload?.candidates?.[0]?.content?.parts ?? [];
   const text = parts.map((part) => part?.text ?? "").join("").trim();
@@ -32,6 +35,7 @@ function createApiError(response, payload, fallback) {
 }
 
 async function uploadGeminiFile(inputFile, apiKey, signal) {
+  const inputSize = inputFile.size ?? inputFile.buffer?.length ?? 0;
   const startResponse = await fetch(`${GEMINI_UPLOAD_ROOT}/files`, {
     method: "POST",
     headers: {
@@ -39,7 +43,7 @@ async function uploadGeminiFile(inputFile, apiKey, signal) {
       "x-goog-api-key": apiKey,
       "X-Goog-Upload-Protocol": "resumable",
       "X-Goog-Upload-Command": "start",
-      "X-Goog-Upload-Header-Content-Length": String(inputFile.buffer.length),
+      "X-Goog-Upload-Header-Content-Length": String(inputSize),
       "X-Goog-Upload-Header-Content-Type": inputFile.mimetype,
     },
     signal,
@@ -51,17 +55,19 @@ async function uploadGeminiFile(inputFile, apiKey, signal) {
   const uploadUrl = startResponse.headers.get("x-goog-upload-url");
   if (!uploadUrl) throw new Error("Gemini không trả về địa chỉ tải file tạm.");
 
-  const uploadResponse = await fetch(uploadUrl, {
+  const uploadOptions = {
     method: "POST",
     headers: {
       "Content-Type": inputFile.mimetype,
-      "Content-Length": String(inputFile.buffer.length),
+      "Content-Length": String(inputSize),
       "X-Goog-Upload-Offset": "0",
       "X-Goog-Upload-Command": "upload, finalize",
     },
     signal,
-    body: inputFile.buffer,
-  });
+    body: inputFile.path ? createReadStream(inputFile.path) : inputFile.buffer,
+  };
+  if (inputFile.path) uploadOptions.duplex = "half";
+  const uploadResponse = await fetch(uploadUrl, uploadOptions);
   const uploadPayload = await uploadResponse.json().catch(() => null);
   if (!uploadResponse.ok) throw createApiError(uploadResponse, uploadPayload, "Không thể tải PDF lên Gemini.");
   let remoteFile = uploadPayload?.file || uploadPayload;
@@ -100,7 +106,7 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
   const uploadedFileNames = [];
 
   try {
-    const totalBytes = inputFiles.reduce((sum, inputFile) => sum + inputFile.buffer.length, 0);
+    const totalBytes = inputFiles.reduce((sum, inputFile) => sum + (inputFile.size ?? inputFile.buffer?.length ?? 0), 0);
     const useFilesApi = totalBytes > FILE_API_THRESHOLD_BYTES;
     const mediaParts = [];
     for (const [index, inputFile] of inputFiles.entries()) {
@@ -117,10 +123,11 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
           },
         });
       } else {
+        const inputBuffer = inputFile.buffer || await readFile(inputFile.path);
         mediaParts.push({
           inlineData: {
             mimeType: inputFile.mimetype,
-            data: inputFile.buffer.toString("base64"),
+            data: inputBuffer.toString("base64"),
           },
         });
       }

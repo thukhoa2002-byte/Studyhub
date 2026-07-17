@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, FileSearch, Globe2, Image as ImageIcon, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload } from "lucide-react";
+import { Download, FileSearch, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { extractMcqFiles } from "../services/api";
 import { deleteMcqBank, mcqLibraryErrorMessage, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
 
@@ -181,6 +181,18 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     setReviewed(false);
   }
 
+  async function attachQuestionImage(questionIndex: number, file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("Ảnh câu hỏi phải là PNG, JPEG hoặc WebP."); return; }
+    if (file.size > 10 * 1024 * 1024) { setError("Ảnh câu hỏi không được vượt quá 10 MB."); return; }
+    try {
+      editQuestion(questionIndex, { image_url: await fileToDataUrl(file), image_alt: file.name });
+      setError("");
+    } catch (imageError) {
+      setError(imageError instanceof Error ? imageError.message : "Không thể đọc ảnh câu hỏi.");
+    }
+  }
+
   async function persist(status: "draft" | "published") {
     if (!title.trim() || !questions.length || invalidCount) {
       setError("Hãy điền đủ tên bộ, câu hỏi và bốn lựa chọn A/B/C/D.");
@@ -230,12 +242,19 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <div className="mt-5 space-y-4">{questions.map((question, questionIndex) => <article key={question.id} className="relative rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
         <button type="button" aria-label={`Xóa câu ${questionIndex + 1}`} title={`Xóa câu ${questionIndex + 1}`} onClick={() => { if (!confirm(`Xóa câu ${questionIndex + 1}?`)) return; setQuestions((items) => items.filter((_, index) => index !== questionIndex)); setReviewed(false); }} className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-rose-500 hover:bg-rose-50"><Trash2 size={15} /><span className="hidden sm:inline">Xóa câu</span></button>
         <div className="pr-10"><label className="text-xs font-black uppercase tracking-wider text-violet-600">Câu nguồn<input type="number" min={1} value={question.source_number} onChange={(event) => editQuestion(questionIndex, { source_number: Number(event.target.value) })} className="ml-2 w-20 rounded-lg border border-slate-200 px-2 py-1 text-slate-700" /></label><textarea value={question.question} onChange={(event) => editQuestion(questionIndex, { question: event.target.value })} rows={2} className="mt-3 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 font-bold leading-6 outline-none focus:border-violet-400" /></div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">{question.options.map((option, optionIndex) => <label key={option.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-2"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-black text-violet-700">{option.id}</span><textarea value={option.text} onChange={(event) => editOption(questionIndex, optionIndex, event.target.value)} rows={2} className="min-w-0 flex-1 resize-y bg-transparent text-sm leading-5 outline-none" /></label>)}</div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">{question.options.map((option, optionIndex) => {
+          const isCorrect = question.correct_answer === option.id;
+          return <label key={option.id} className={`flex items-center gap-2 rounded-xl border p-2 ${isCorrect ? "border-teal-300 bg-teal-50/70" : "border-slate-200 bg-slate-50/60"}`}><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${isCorrect ? "bg-teal-500 text-white" : "bg-violet-100 text-violet-700"}`}>{option.id}</span><textarea value={option.text} onChange={(event) => editOption(questionIndex, optionIndex, event.target.value)} rows={2} className="min-w-0 flex-1 resize-y bg-transparent text-sm leading-5 outline-none" />{isCorrect && <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-teal-700">Đúng</span>}</label>;
+        })}</div>
         <div className="mt-3 grid gap-3 sm:grid-cols-[12rem_1fr]">
           <label className="text-xs font-black uppercase tracking-wider text-teal-700">Đáp án đúng<select value={question.correct_answer || ""} onChange={(event) => editQuestion(questionIndex, { correct_answer: event.target.value })} className="mt-1.5 w-full rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-slate-700 outline-none focus:border-teal-400"><option value="">Chưa xác định</option>{optionIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
           <label className="text-xs font-black uppercase tracking-wider text-teal-700">Giải thích / ghi chú sau khi hiện đáp án<textarea value={question.explanation || ""} onChange={(event) => editQuestion(questionIndex, { explanation: event.target.value })} rows={3} placeholder="Giữ nguyên lời giải, ghi chú, căn cứ hoặc ngoại lệ trong tài liệu nguồn." className="mt-1.5 w-full resize-y rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-sm font-normal normal-case tracking-normal leading-6 text-slate-700 outline-none focus:border-teal-400" /></label>
         </div>
-        {question.image_url && <figure className="mt-4"><img src={question.image_url} alt={question.image_alt || "Hình X-quang"} className="max-h-72 rounded-2xl border border-slate-200 object-contain" /><input value={question.image_alt || ""} onChange={(event) => editQuestion(questionIndex, { image_alt: event.target.value })} placeholder="Chú thích trung tính cho ảnh" className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></figure>}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <label htmlFor={`mcq-image-${question.id}`} className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-50"><ImagePlus size={16} />{question.image_url ? "Đổi hình câu hỏi" : "Thêm hình câu hỏi"}<input id={`mcq-image-${question.id}`} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => { void attachQuestionImage(questionIndex, event.target.files?.[0]); event.target.value = ""; }} /></label>
+          {question.image_url && <button type="button" onClick={() => editQuestion(questionIndex, { image_url: undefined, image_alt: "" })} className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50"><X size={15} />Bỏ hình</button>}
+        </div>
+        {question.image_url && <figure className="mt-3"><img src={question.image_url} alt={question.image_alt || "Hình kèm câu hỏi"} className="max-h-72 rounded-2xl border border-slate-200 object-contain" /><input value={question.image_alt || ""} onChange={(event) => editQuestion(questionIndex, { image_alt: event.target.value })} placeholder="Chú thích trung tính cho ảnh" className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></figure>}
         {question.review_note && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Cần kiểm tra: {question.review_note}</p>}
       </article>)}</div>
       <button type="button" onClick={() => { setQuestions((items) => [...items, { id: crypto.randomUUID(), source_number: items.length + 1, question: "", options: optionIds.map((id) => ({ id, text: "" })) }]); setReviewed(false); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700"><Plus size={17} />Thêm câu thủ công</button>

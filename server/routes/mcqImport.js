@@ -1,5 +1,8 @@
 import express from "express";
 import multer from "multer";
+import { randomUUID } from "node:crypto";
+import { unlink } from "node:fs/promises";
+import os from "node:os";
 import { requireMcqAdmin } from "../middleware/mcqAdmin.js";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
@@ -8,7 +11,11 @@ const router = express.Router();
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 120 * 1024 * 1024;
 const upload = multer({
-  storage: multer.memoryStorage(),
+  // Large PDFs must not occupy the Render process heap while Gemini is reading them.
+  storage: multer.diskStorage({
+    destination: (_req, _file, callback) => callback(null, os.tmpdir()),
+    filename: (_req, _file, callback) => callback(null, `mcq-${randomUUID()}.upload`),
+  }),
   limits: { fileSize: MAX_FILE_BYTES, files: 20 },
 });
 
@@ -118,6 +125,7 @@ function normalizeQuestions(rawQuestions) {
 function uploadFiles(req, res, next) {
   upload.array("files", 20)(req, res, (error) => {
     if (!error) return next();
+    void cleanupUploadedFiles(req.files);
     if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
       return res.status(413).json({ success: false, message: "Mỗi file không được vượt quá 100 MB." });
     }
@@ -128,9 +136,13 @@ function uploadFiles(req, res, next) {
   });
 }
 
+async function cleanupUploadedFiles(files) {
+  await Promise.allSettled((files || []).filter((file) => file.path).map((file) => unlink(file.path)));
+}
+
 router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
+  const files = req.files || [];
   try {
-    const files = req.files || [];
     if (!files.length) return res.status(400).json({ success: false, message: "Chưa chọn file câu hỏi." });
     const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
     if (totalBytes > MAX_TOTAL_BYTES) {
@@ -171,6 +183,8 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
     console.error("MCQ import failed", error);
     const status = error?.status === 429 ? 429 : 500;
     return res.status(status).json({ success: false, message: error?.message || "Không thể trích xuất bộ MCQ." });
+  } finally {
+    await cleanupUploadedFiles(files);
   }
 });
 
