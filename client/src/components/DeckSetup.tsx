@@ -450,8 +450,8 @@ export default function DeckSetup({
             <span className="text-center font-bold text-emerald-500">{stats.due}</span>
           </button>
           <div className="absolute right-3 top-1 flex items-center gap-0.5">
-            <button type="button" onClick={() => openDeckPreview(childDeck)} title="Xem trước mục con" aria-label={`Xem trước ${node.name}`} className="flex h-9 w-9 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50"><Eye size={17} /></button>
-            {(deck.owner_id === currentUserId || deck.member_role === "admin") && <button type="button" onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ cha" aria-label={`Chia sẻ bộ thẻ cha của ${node.name}`} className="flex h-9 w-9 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>}
+            <button type="button" onClick={() => openDeckPreview(childDeck)} title="Xem trước mục con" aria-label={`Xem trước ${node.name}`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50"><Eye size={17} /></button>
+            {(deck.owner_id === currentUserId || deck.member_role === "admin") && <button type="button" onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ cha" aria-label={`Chia sẻ bộ thẻ cha của ${node.name}`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>}
             {canEdit && <div className="relative h-9 w-9 shrink-0">
               <button type="button" onClick={() => setOpenDeckMenuId((current) => current === rowKey ? null : rowKey)} title="Tùy chọn mục con" aria-label={`Tùy chọn mục con ${node.name}`} aria-expanded={openDeckMenuId === rowKey} className="flex h-9 w-9 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Settings2 size={17} /></button>
               {openDeckMenuId === rowKey && <div role="menu" className="absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
