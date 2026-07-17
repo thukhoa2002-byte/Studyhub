@@ -2,13 +2,20 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import type { User } from "@supabase/supabase-js";
 import {
   BookOpenCheck,
+  BookOpenText,
   CheckCircle2,
   Clock3,
+  Eye,
+  EyeOff,
   ExternalLink,
+  FileDown,
   FileText,
+  Files,
+  Globe2,
+  Lock,
   Loader2,
   Plus,
-  Printer,
+  RefreshCw,
   ShieldCheck,
   Trash2,
   UploadCloud,
@@ -90,6 +97,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   const [streamProgress, setStreamProgress] = useState<GuidelineExtractionProgress | null>(null);
   const [streamedEntryCount, setStreamedEntryCount] = useState(0);
   const [streamPreviewEntries, setStreamPreviewEntries] = useState<ExtractedGuidelineEntry[]>([]);
+  const [showGuidelineContent, setShowGuidelineContent] = useState(false);
   const documentFormRef = useRef<HTMLFormElement>(null);
 
   const selectedDocument = useMemo(
@@ -422,18 +430,19 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
 
         <div className="mt-7 grid gap-6 xl:grid-cols-[17rem_minmax(0,1fr)] 2xl:grid-cols-[19rem_minmax(0,1fr)]">
           <aside className="grid gap-3 sm:grid-cols-2 xl:flex xl:flex-col">
-            {documents.length === 0 ? <div className="rounded-3xl border border-dashed border-teal-200 bg-teal-50/45 p-6 text-center text-sm text-slate-500">{canManage ? "Chưa có guideline nào." : "Chưa có guideline đã kiểm chứng được đăng công khai."}</div> : documents.map((document) => <button key={document.id} type="button" onClick={() => setSelectedId(document.id)} className={`w-full rounded-2xl border p-4 text-left ${selectedId === document.id ? "border-teal-300 bg-teal-50 shadow-sm" : "border-rose-100 bg-white/75"}`}>
+            {documents.length === 0 ? <div className="rounded-3xl border border-dashed border-teal-200 bg-teal-50/45 p-6 text-center text-sm text-slate-500">{canManage ? "Chưa có guideline nào." : "Chưa có guideline đã kiểm chứng được đăng công khai."}</div> : documents.map((document) => <button key={document.id} type="button" onClick={() => { setSelectedId(document.id); setShowGuidelineContent(false); setShowEntryForm(false); }} className={`w-full rounded-2xl border p-4 text-left ${selectedId === document.id ? "border-teal-300 bg-teal-50 shadow-sm" : "border-rose-100 bg-white/75"}`}>
               <div className="flex items-start gap-3"><FileText className="mt-0.5 shrink-0 text-rose-500" size={20} /><div className="min-w-0"><p className="line-clamp-2 font-extrabold text-rose-950">{document.title}</p><p className="mt-1 text-xs font-semibold text-slate-500">{document.society} · {document.condition} · {document.publication_year}</p><span className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[11px] font-bold text-teal-700">{document.visibility === "shared" ? "Đã chia sẻ" : "Riêng tư"}</span></div></div>
             </button>)}
           </aside>
 
           <div className="min-w-0">
             {!selectedDocument ? <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-rose-200 text-sm text-slate-400">Chọn hoặc thêm một guideline.</div> : <>
-              <div className="rounded-3xl border border-rose-100 bg-white/78 p-5">
-                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className="mt-1 text-xl font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p></div><div className="flex flex-wrap items-start gap-2"><button type="button" disabled={entries.length === 0} onClick={() => printSelectedGuideline("practice")} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 disabled:opacity-45"><Printer size={16} /> PDF thực hành</button><button type="button" disabled={entries.length === 0} onClick={() => printSelectedGuideline("full")} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700 disabled:opacity-45"><Printer size={16} /> PDF đầy đủ</button><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn chính thức</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> Guideline PDF</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><FileText size={16} /> Supplement</button>}{ownsSelected && selectedDocument.file_path && <button type="button" disabled={aiReading || busy} onClick={() => void reExtractSelectedDocument()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={16} /> : <BookOpenCheck size={16} />} Trích xuất lại toàn bộ</button>}{ownsSelected && <button type="button" onClick={() => void togglePublished()} className={`rounded-xl border px-3 py-2 text-sm font-bold ${selectedDocument.visibility === "shared" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-teal-200 bg-teal-50 text-teal-700"}`}>{selectedDocument.visibility === "shared" ? "Gỡ công khai" : "Đăng công khai"}</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
-                <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">Phục vụ học tập. Luôn kiểm tra tài liệu gốc, đặc điểm người bệnh, chức năng gan–thận và hướng dẫn sử dụng thuốc trước quyết định điều trị.</div>
+              <div className={`rounded-3xl border border-rose-100 bg-white/78 ${showGuidelineContent ? "p-4" : "p-5"}`}>
+                <div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">{selectedDocument.condition} · {selectedDocument.publication_year}</p><h2 className={`mt-1 font-extrabold text-rose-950 ${showGuidelineContent ? "text-base sm:text-lg" : "text-xl"}`}>{selectedDocument.title}</h2>{!showGuidelineContent && <p className="mt-1 text-sm text-slate-500">{selectedDocument.version_label || "Bản chính thức"}</p>}</div><div className="flex flex-wrap items-start gap-2"><button type="button" disabled={entries.length === 0} onClick={() => setShowGuidelineContent((current) => !current)} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-45">{showGuidelineContent ? <EyeOff size={16} /> : <Eye size={16} />}{showGuidelineContent ? "Ẩn" : "Xem"}</button><button type="button" disabled={entries.length === 0} onClick={() => printSelectedGuideline("practice")} title="Xuất PDF thực hành" className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 disabled:opacity-45"><FileDown size={16} /> Thực hành</button><button type="button" disabled={entries.length === 0} onClick={() => printSelectedGuideline("full")} title="Xuất PDF tiếng Việt đầy đủ" className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700 disabled:opacity-45"><BookOpenText size={16} /> Đầy đủ</button><a href={selectedDocument.source_url} target="_blank" rel="noreferrer" title="Nguồn chính thức" className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-bold text-rose-600"><ExternalLink size={16} /> Nguồn</a>{selectedDocument.file_path && <button type="button" onClick={() => void openPdf()} title="Mở PDF guideline gốc" className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><FileText size={16} /> PDF gốc</button>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} title="Mở Supplementary Data" className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><Files size={16} /> Bổ sung</button>}{ownsSelected && selectedDocument.file_path && <button type="button" disabled={aiReading || busy} onClick={() => void reExtractSelectedDocument()} title="Trích xuất lại toàn bộ" className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />} Trích xuất</button>}{ownsSelected && <button type="button" onClick={() => void togglePublished()} title={selectedDocument.visibility === "shared" ? "Gỡ công khai" : "Đăng công khai"} className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold ${selectedDocument.visibility === "shared" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-teal-200 bg-teal-50 text-teal-700"}`}>{selectedDocument.visibility === "shared" ? <Lock size={16} /> : <Globe2 size={16} />}{selectedDocument.visibility === "shared" ? "Gỡ" : "Công khai"}</button>}{ownsSelected && <button type="button" title="Xóa guideline" onClick={() => void deleteGuidelineDocument(selectedDocument).then(refreshDocuments).catch((error) => setNotice(errorMessage(error)))} className="rounded-xl border border-rose-100 bg-white p-2 text-rose-500"><Trash2 size={17} /></button>}</div></div>
+                {!showGuidelineContent && <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">Phục vụ học tập. Luôn kiểm tra tài liệu gốc, đặc điểm người bệnh, chức năng gan–thận và hướng dẫn sử dụng thuốc trước quyết định điều trị.</div>}
               </div>
 
+              {showGuidelineContent && <>
               {ownsSelected && <div className="mt-4 flex flex-wrap justify-end gap-2">
                 <button type="button" disabled={busy || entries.length === 0 || entries.every((entry) => entry.status === "reviewed")} onClick={() => void confirmAllEntries()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm font-bold text-teal-700 disabled:cursor-not-allowed disabled:opacity-45"><CheckCircle2 size={17} /> {busy ? "Đang xác nhận..." : "Xác nhận toàn bộ"}</button>
                 <button type="button" onClick={() => setShowEntryForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white"><Plus size={17} /> Thêm khuyến cáo</button>
@@ -482,6 +491,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
                   </table>
                 </div>}
               </section>)}</div>
+              </>}
             </>}
           </div>
         </div>
