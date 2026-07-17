@@ -17,3 +17,11 @@ export function listSubdeckSuggestions(values: Array<string | null | undefined>)
       .filter((value): value is string => Boolean(value))
   )).sort((a, b) => a.localeCompare(b, "vi"));
 }
+
+export function replaceSubdeckPrefix(value: string, source: string, target: string) {
+  const category = normalizeSubdeck(value, DEFAULT_SUBDECK);
+  const sourcePath = normalizeSubdeck(source);
+  const targetPath = normalizeSubdeck(target);
+  if (!sourcePath || !targetPath || category !== sourcePath && !category.startsWith(`${sourcePath}::`)) return category;
+  return `${targetPath}${category.slice(sourcePath.length)}`;
+}

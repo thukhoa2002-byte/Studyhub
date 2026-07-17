@@ -15,6 +15,7 @@ import {
   Eye,
   FileText,
   FlaskConical,
+  GripVertical,
   HeartPulse,
   Hospital,
   ListChecks,
@@ -53,6 +54,7 @@ interface Props {
   onSaveDeck: (title: string, questions: GeneratedQuestion[]) => void | Promise<void>;
   savedDecks: SavedDeck[];
   onOpenDeck: (deck: SavedDeck) => void;
+  onMergeSubdecks: (deck: SavedDeck, sourcePath: string, targetPath: string) => void | Promise<void>;
   onEditDeck: (deck: SavedDeck) => void;
   onDeleteDeck: (deck: SavedDeck) => void;
   onShareDeck: (deck: SavedDeck) => void;
@@ -221,6 +223,7 @@ export default function DeckSetup({
   onSaveDeck,
   savedDecks,
   onOpenDeck,
+  onMergeSubdecks,
   onEditDeck,
   onDeleteDeck,
   onShareDeck,
@@ -239,6 +242,9 @@ export default function DeckSetup({
   const [showAddedCards, setShowAddedCards] = useState(false);
   const [openDeckMenuId, setOpenDeckMenuId] = useState<string | null>(null);
   const [collapsedDeckIds, setCollapsedDeckIds] = useState<Set<string>>(new Set());
+  const [draggedSubdeck, setDraggedSubdeck] = useState<{ deckId: string; path: string } | null>(null);
+  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
+  const [mergingSubdeckKey, setMergingSubdeckKey] = useState<string | null>(null);
   const [deckIcons, setDeckIcons] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem("hocbai-deck-icons") || "{}"); } catch { return {}; }
   });
@@ -307,7 +313,7 @@ export default function DeckSetup({
     });
   }
 
-  function renderSubdeckRows(nodes: SubdeckNode[], deck: SavedDeck, depth = 0): React.ReactNode {
+  function renderSubdeckRows(nodes: SubdeckNode[], deck: SavedDeck, canEdit: boolean, depth = 0): React.ReactNode {
     return nodes.map((node) => {
       const childDeck: SavedDeck = {
         ...deck,
@@ -316,9 +322,50 @@ export default function DeckSetup({
         review_stats: statsForCards(node.cards),
       };
       const stats = statsForCards(node.cards);
+      const rowKey = `${deck.id}:${node.path}`;
+      const canDrop = Boolean(
+        canEdit &&
+        draggedSubdeck?.deckId === deck.id &&
+        draggedSubdeck.path !== node.path &&
+        !node.path.startsWith(`${draggedSubdeck.path}::`)
+      );
+      const isDropTarget = dropTargetKey === rowKey && canDrop;
+      const isMerging = mergingSubdeckKey === rowKey;
       return <React.Fragment key={node.path}>
-        <button type="button" onClick={() => onOpenDeck(childDeck)} className="grid w-full grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem] items-center gap-x-2 rounded-lg bg-white/75 px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-teal-50">
+        <button
+          type="button"
+          draggable={canEdit}
+          onClick={() => onOpenDeck(childDeck)}
+          onDragStart={(event) => {
+            if (!canEdit) return;
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", node.path);
+            setDraggedSubdeck({ deckId: deck.id, path: node.path });
+          }}
+          onDragOver={(event) => {
+            if (!canDrop) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            setDropTargetKey(rowKey);
+          }}
+          onDragLeave={() => setDropTargetKey((current) => current === rowKey ? null : current)}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (!canDrop || !draggedSubdeck) return;
+            setDropTargetKey(null);
+            setMergingSubdeckKey(rowKey);
+            void Promise.resolve(onMergeSubdecks(deck, draggedSubdeck.path, node.path)).finally(() => {
+              setDraggedSubdeck(null);
+              setMergingSubdeckKey(null);
+            });
+          }}
+          onDragEnd={() => { setDraggedSubdeck(null); setDropTargetKey(null); }}
+          title={canEdit ? "Kéo mục này lên mục khác để gộp" : "Mở mục con để học"}
+          aria-label={`${node.name}, ${node.cards.length} thẻ`}
+          className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg bg-white/75 px-3 py-2 text-left text-sm font-semibold text-slate-700 transition sm:grid-cols-[minmax(0,1fr)_4rem_4rem_4rem_5.5rem] ${isDropTarget ? "bg-teal-50 ring-2 ring-teal-300" : "hover:bg-teal-50"} ${isMerging ? "cursor-wait opacity-60" : ""}`}
+        >
           <span className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${depth * 1.1}rem` }}>
+            {canEdit ? <GripVertical size={15} className="shrink-0 cursor-grab text-slate-400 active:cursor-grabbing" aria-hidden="true" /> : <span className="w-[15px] shrink-0" />}
             {node.children.length > 0 ? <ChevronRight size={15} className="shrink-0 text-slate-400" aria-hidden="true" /> : <span className="w-[15px] shrink-0" />}
             <span className="min-w-0 truncate">{node.name}</span>
             <span className="shrink-0 text-[11px] font-medium text-slate-400">{node.cards.length} thẻ</span>
@@ -326,8 +373,9 @@ export default function DeckSetup({
           <span className="text-center font-bold text-sky-500">{stats.new}</span>
           <span className="text-center font-bold text-rose-500">{stats.learning}</span>
           <span className="text-center font-bold text-emerald-500">{stats.due}</span>
+          <span className="hidden sm:block" aria-hidden="true" />
         </button>
-        {node.children.length > 0 && renderSubdeckRows(node.children, deck, depth + 1)}
+        {node.children.length > 0 && renderSubdeckRows(node.children, deck, canEdit, depth + 1)}
       </React.Fragment>;
     });
   }
@@ -419,8 +467,9 @@ export default function DeckSetup({
           <div className="space-y-2">
             {savedDecks.map((deck) => {
               const subdeckTree = buildSubdeckTree(deck.cards);
+              const canEdit = deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit";
               return <React.Fragment key={deck.id}>
-              <div className="glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-teal-50 sm:grid-cols-[minmax(0,1fr)_3.5rem_4.5rem_4rem_5.5rem]">
+              <div className="glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-teal-50 sm:grid-cols-[minmax(0,1fr)_4rem_4rem_4rem_5.5rem]">
                 <div className="flex min-w-0 items-center gap-2">
                   {subdeckTree.length > 0 ? <button type="button" onClick={() => toggleDeckChildren(deck.id)} title={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-label={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-expanded={!collapsedDeckIds.has(deck.id)} className="flex h-9 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-teal-50 hover:text-teal-700"><ChevronDown size={17} className={`transition-transform duration-200 ${collapsedDeckIds.has(deck.id) ? "-rotate-90" : ""}`} /></button> : <span className="w-7 shrink-0" />}
                   <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
@@ -466,7 +515,7 @@ export default function DeckSetup({
                 </>}
                 </div>
               </div>
-              {!collapsedDeckIds.has(deck.id) && subdeckTree.length > 0 && <div className="ml-4 space-y-1 border-l-2 border-teal-100 pl-3 sm:ml-8">{renderSubdeckRows(subdeckTree, deck)}</div>}
+              {!collapsedDeckIds.has(deck.id) && subdeckTree.length > 0 && <div className="ml-4 space-y-1 border-l-2 border-teal-100 pl-3 sm:ml-8">{renderSubdeckRows(subdeckTree, deck, canEdit)}</div>}
               </React.Fragment>
             })}
           </div>

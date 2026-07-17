@@ -20,6 +20,7 @@ import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
 import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
+import { replaceSubdeckPrefix } from "./utils/subdeck";
 
 import {
   generateQuestions,
@@ -424,6 +425,31 @@ export default function App() {
     void persistSetupDeck(title, cards);
   }
 
+  async function mergeSavedSubdecks(deck: SavedDeck, sourcePath: string, targetPath: string) {
+    if (!user || !supabase) return;
+    if (deck.owner_id !== user.id && deck.member_role !== "admin" && deck.member_access !== "edit") {
+      alert("Bạn không có quyền sắp xếp bộ thẻ này.");
+      return;
+    }
+    try {
+      const nextCards = deck.cards.map((card) => ({
+        ...card,
+        category: replaceSubdeckPrefix(card.category, sourcePath, targetPath),
+      }));
+      await updateDeck(user.id, deck.id, deck.title, nextCards, deck.visibility);
+      const nextDecks = await listDecks(user.id);
+      setSavedDecks(nextDecks);
+      const freshDeck = nextDecks.find((item) => item.id === deck.id);
+      if (freshDeck && currentSavedDeck?.id === deck.id) {
+        setCurrentSavedDeck(freshDeck);
+        setQuestions(freshDeck.cards);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`Không thể gộp mục con: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+    }
+  }
+
   async function shareSavedDeck(emails: string[]) {
     if (!sharingDeck) return;
     const canManageMembers = sharingDeck.owner_id === user?.id || sharingDeck.member_role === "admin";
@@ -655,6 +681,7 @@ export default function App() {
             onSaveDeck={onSaveDeck}
             savedDecks={savedDecks}
             onOpenDeck={openSavedDeck}
+            onMergeSubdecks={mergeSavedSubdecks}
             onEditDeck={editSavedDeck}
             onDeleteDeck={removeSavedDeck}
             onShareDeck={setSharingDeck}
