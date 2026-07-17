@@ -49,6 +49,7 @@ function decodeCardCategory(value: string | null | undefined): Partial<Generated
 export interface SavedDeck {
   id: string;
   title: string;
+  created_at?: string;
   visibility: "private" | "shared";
   owner_id: string;
   cards: GeneratedQuestion[];
@@ -190,7 +191,7 @@ export async function saveDeck(
   const { data: deck, error: deckError } = await supabase
     .from("decks")
     .insert({ title, owner_id: userId, visibility: shareEmails.length > 0 ? "shared" : "private", source: "web" })
-    .select("id, title, visibility, owner_id")
+    .select("id, title, visibility, owner_id, created_at")
     .single();
 
   if (deckError) throw deckError;
@@ -227,7 +228,7 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
 
   const { data: deckRows, error: deckError } = await supabase
     .from("decks")
-    .select("id, title, visibility, owner_id")
+    .select("id, title, visibility, owner_id, created_at")
     .order("created_at", { ascending: false });
   if (deckError) throw deckError;
 
@@ -312,6 +313,7 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
     return {
       id: deck.id,
       title: deck.title,
+      created_at: deck.created_at,
       visibility: deck.visibility,
       owner_id: deck.owner_id,
       member_role: membershipByDeck.get(deck.id)?.role === "admin" ? "admin" : "member",

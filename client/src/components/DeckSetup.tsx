@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Activity,
   Ambulance,
@@ -8,6 +8,7 @@ import {
   Bone,
   Brain,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Dna,
   Droplets,
@@ -33,12 +34,14 @@ import {
   Trash2,
   UploadCloud,
   Wind,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
 import { DEFAULT_SUBDECK, listSubdeckSuggestions, normalizeSubdeck } from "../utils/subdeck";
+import { sanitizeHtml, toEditorHtml } from "../utils/richText";
 import RichTextEditor from "./RichTextEditor";
 
 interface Props {
@@ -68,6 +71,7 @@ interface Props {
 }
 
 type SetupMode = "import" | "create" | "ai";
+type DeckSort = "recent" | "oldest" | "title-asc" | "title-desc";
 
 interface DeckIconOption {
   id: string;
@@ -218,6 +222,13 @@ function DeckIconPicker({ title, value, onChange }: { title: string; value: stri
   </div>;
 }
 
+function DeckIconBadge({ title, value, size = 18 }: { title: string; value: string; size?: number }) {
+  const selectedId = legacyDeckIconIds[value] || value || deckIcon(title);
+  const selected = deckIconOptions.find((option) => option.id === selectedId) || deckIconOptions.find((option) => option.id === deckIcon(title)) || deckIconOptions[0];
+  const Icon = selected.Icon;
+  return <span title={selected.label} className={`flex shrink-0 items-center justify-center rounded-lg ${selected.tileClass} ${size >= 20 ? "h-9 w-9" : "h-7 w-7"}`}><Icon size={size} strokeWidth={2} className={selected.iconClass} /></span>;
+}
+
 export default function DeckSetup({
   preview,
   loading,
@@ -255,6 +266,9 @@ export default function DeckSetup({
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [mergingSubdeckKey, setMergingSubdeckKey] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
+  const [deckSort, setDeckSort] = useState<DeckSort>("recent");
+  const [previewDeck, setPreviewDeck] = useState<SavedDeck | null>(null);
+  const [previewPage, setPreviewPage] = useState(0);
   const [deckIcons, setDeckIcons] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem("hocbai-deck-icons") || "{}"); } catch { return {}; }
   });
@@ -262,6 +276,15 @@ export default function DeckSetup({
   const validCards = cards.filter(
     (card) => card.question.trim() && card.answer.trim()
   );
+  const sortedDecks = useMemo(() => [...savedDecks].sort((left, right) => {
+    if (deckSort === "title-asc") return left.title.localeCompare(right.title, "vi");
+    if (deckSort === "title-desc") return right.title.localeCompare(left.title, "vi");
+    const leftDate = Date.parse(left.created_at || "") || 0;
+    const rightDate = Date.parse(right.created_at || "") || 0;
+    return deckSort === "oldest" ? leftDate - rightDate : rightDate - leftDate;
+  }), [deckSort, savedDecks]);
+  const previewCards = previewDeck ? previewDeck.cards.slice(previewPage * 8, previewPage * 8 + 8) : [];
+  const previewPageCount = previewDeck ? Math.max(1, Math.ceil(previewDeck.cards.length / 8)) : 1;
 
   function updateCard(
     id: string,
@@ -321,6 +344,11 @@ export default function DeckSetup({
       else next.add(deckId);
       return next;
     });
+  }
+
+  function openDeckPreview(deck: SavedDeck) {
+    setPreviewDeck(deck);
+    setPreviewPage(0);
   }
 
   function submitRename() {
@@ -422,6 +450,7 @@ export default function DeckSetup({
             <span className="text-center font-bold text-emerald-500">{stats.due}</span>
           </button>
           <div className="absolute right-2 top-1 flex items-center gap-0.5 sm:static sm:col-start-5 sm:row-start-1 sm:justify-end">
+            <button type="button" onClick={() => openDeckPreview(childDeck)} title="Xem trước mục con" aria-label={`Xem trước ${node.name}`} className="flex h-8 w-8 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50"><Eye size={15} /></button>
             {(deck.owner_id === currentUserId || deck.member_role === "admin") && <button type="button" onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ cha" aria-label={`Chia sẻ bộ thẻ cha của ${node.name}`} className="flex h-8 w-8 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={15} /></button>}
             {canEdit && <div className="relative h-8 w-8 shrink-0">
               <button type="button" onClick={() => setOpenDeckMenuId((current) => current === rowKey ? null : rowKey)} title="Tùy chọn mục con" aria-label={`Tùy chọn mục con ${node.name}`} aria-expanded={openDeckMenuId === rowKey} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Settings2 size={16} /></button>
@@ -514,14 +543,15 @@ export default function DeckSetup({
         <div className="glass-panel deck-library-panel mb-6 rounded-2xl border border-teal-100 bg-teal-50/60 p-3 sm:p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
             <p className="text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500" aria-label="Trạng thái thẻ">
+            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[11px] font-semibold text-slate-500" aria-label="Trạng thái thẻ">
+              <label className="flex items-center gap-1.5 text-slate-600"><span className="sr-only">Sắp xếp bộ thẻ</span><select value={deckSort} onChange={(event) => setDeckSort(event.target.value as DeckSort)} className="rounded-lg border border-teal-100 bg-white px-2 py-1 text-[11px] font-bold text-slate-600 outline-none focus:border-teal-400"><option value="recent">Gần nhất</option><option value="oldest">Xa nhất</option><option value="title-asc">A-Z</option><option value="title-desc">Z-A</option></select></label>
               <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-sky-400" />Mới</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-400" />Đang học</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />Đến hạn</span>
             </div>
           </div>
           <div className="space-y-2">
-            {savedDecks.map((deck) => {
+            {sortedDecks.map((deck) => {
               const subdeckTree = buildSubdeckTree(deck.cards);
               const canEdit = deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit";
               const parentRowKey = `${deck.id}:`;
@@ -549,14 +579,15 @@ export default function DeckSetup({
               >
                 <div className="flex min-w-0 items-center gap-2">
                   {subdeckTree.length > 0 ? <button type="button" onClick={() => toggleDeckChildren(deck.id)} title={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-label={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-expanded={!collapsedDeckIds.has(deck.id)} className="flex h-9 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-teal-50 hover:text-teal-700"><ChevronDown size={17} className={`transition-transform duration-200 ${collapsedDeckIds.has(deck.id) ? "-rotate-90" : ""}`} /></button> : <span className="w-7 shrink-0" />}
-                  <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
                   <button onClick={() => onOpenDeck(deck)} className="min-w-0 flex-1 text-left">
                     <span className="block truncate">{deck.title}</span>
                     <span className="mt-0.5 block text-[11px] font-medium text-slate-400">{deck.cards.length} thẻ</span>
                   </button>
+                  <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
                 </div>
                 <ReviewColumns stats={deck.review_stats ?? statsForCards(deck.cards)} />
                 <div className="absolute right-3 top-3 flex items-center gap-0.5 sm:static sm:justify-end">
+                <button type="button" onClick={() => openDeckPreview(deck)} title="Xem trước bộ thẻ" aria-label={`Xem trước ${deck.title}`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50"><Eye size={17} /></button>
                 {(deck.owner_id === currentUserId || deck.member_role === "admin") &&
                   <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
                 }
@@ -614,6 +645,19 @@ export default function DeckSetup({
             <button type="button" onClick={() => setRenameTarget(null)} className="flex-1 rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm font-bold text-slate-500 hover:bg-rose-50">Hủy</button>
             <button type="button" onClick={submitRename} disabled={!renameTarget.value.trim()} className="flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50">Lưu tên</button>
           </div>
+        </div>
+      </div>}
+
+      {previewDeck && <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="deck-preview-title">
+        <div className="glass-dialog flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-violet-100 bg-white/95 shadow-[0_24px_70px_rgba(15,23,42,.22)]">
+          <header className="flex items-start justify-between gap-4 border-b border-violet-100 px-5 py-4 sm:px-7">
+            <div className="flex min-w-0 items-center gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><Eye size={22} /></span><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-[.15em] text-teal-600">Xem trước bộ thẻ</p><div className="mt-1 flex min-w-0 items-center gap-2"><h2 id="deck-preview-title" className="truncate text-xl font-bold text-rose-950 sm:text-2xl">{previewDeck.title}</h2><DeckIconBadge title={previewDeck.title} value={deckIcons[previewDeck.id] || deckIcon(previewDeck.title)} /></div><p className="mt-1 text-sm text-slate-500">{previewDeck.cards.length} thẻ · chỉ xem, không thay đổi dữ liệu</p></div></div>
+            <button type="button" onClick={() => setPreviewDeck(null)} title="Đóng xem trước" aria-label="Đóng xem trước" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"><X size={20} /></button>
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+            {previewCards.map((card, index) => <article key={card.id} className="mb-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-start gap-3"><span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-violet-100 text-xs font-black text-violet-700">{previewPage * 8 + index + 1}</span><div className="grid min-w-0 flex-1 gap-4 lg:grid-cols-2"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-400">Front</p><div className="rich-content mt-1 text-sm font-semibold leading-6 text-slate-800" dangerouslySetInnerHTML={{ __html: sanitizeHtml(toEditorHtml(card.question)) }} /></div><div className="border-t border-slate-100 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-teal-600">Back</p><div className="rich-content mt-1 text-sm leading-6 text-slate-700" dangerouslySetInnerHTML={{ __html: sanitizeHtml(toEditorHtml(card.answer)) }} /></div></div></div></article>)}
+          </div>
+          <footer className="flex items-center justify-between border-t border-violet-100 bg-slate-50/80 px-5 py-3 sm:px-7"><button type="button" disabled={previewPage === 0} onClick={() => setPreviewPage((page) => Math.max(0, page - 1))} title="Trang trước" aria-label="Trang trước" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40"><ChevronLeft size={18} /></button><span className="text-xs font-bold text-slate-500">{previewPage + 1} / {previewPageCount}</span><button type="button" disabled={previewPage >= previewPageCount - 1} onClick={() => setPreviewPage((page) => Math.min(previewPageCount - 1, page + 1))} title="Trang sau" aria-label="Trang sau" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40"><ChevronRight size={18} /></button></footer>
         </div>
       </div>}
 

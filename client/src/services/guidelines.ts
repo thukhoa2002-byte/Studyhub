@@ -158,14 +158,21 @@ export async function downloadGuidelineFile(filePath: string, fallbackName: stri
 
 export async function listGuidelineEntries(documentId: string): Promise<GuidelineEntry[]> {
   const client = requireSupabase();
-  const { data, error } = await client
-    .from("guideline_entries")
-    .select("*")
-    .eq("document_id", documentId)
-    .order("source_order", { ascending: true })
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as GuidelineEntry[];
+  const pageSize = 1000;
+  const entries: GuidelineEntry[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await client
+      .from("guideline_entries")
+      .select("*")
+      .eq("document_id", documentId)
+      .order("source_order", { ascending: true })
+      .order("created_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    entries.push(...((data ?? []) as GuidelineEntry[]));
+    if ((data?.length ?? 0) < pageSize) break;
+  }
+  return entries;
 }
 
 export async function createGuidelineEntry(userId: string, input: NewGuidelineEntry): Promise<GuidelineEntry> {
@@ -182,12 +189,17 @@ export async function createGuidelineEntry(userId: string, input: NewGuidelineEn
 export async function createGuidelineEntries(userId: string, inputs: NewGuidelineEntry[]): Promise<GuidelineEntry[]> {
   if (inputs.length === 0) return [];
   const client = requireSupabase();
-  const { data, error } = await client
-    .from("guideline_entries")
-    .insert(inputs.map((input) => ({ ...input, owner_id: userId, status: "draft" })))
-    .select("*");
-  if (error) throw error;
-  return (data ?? []) as GuidelineEntry[];
+  const saved: GuidelineEntry[] = [];
+  for (let from = 0; from < inputs.length; from += 500) {
+    const chunk = inputs.slice(from, from + 500);
+    const { data, error } = await client
+      .from("guideline_entries")
+      .insert(chunk.map((input) => ({ ...input, owner_id: userId, status: "draft" })))
+      .select("*");
+    if (error) throw error;
+    saved.push(...((data ?? []) as GuidelineEntry[]));
+  }
+  return saved;
 }
 
 export async function setGuidelineEntryStatus(entryId: string, status: GuidelineStatus): Promise<void> {

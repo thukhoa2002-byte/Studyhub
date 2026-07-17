@@ -9,7 +9,7 @@ import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 const router = express.Router();
 const MAX_PDF_BYTES = 40 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 20;
-const EXTRACTION_VERSION = "full-tables-v5-structure";
+const EXTRACTION_VERSION = "full-pages-v6-vietnamese-translation";
 const cache = new Map();
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -117,25 +117,27 @@ PHẠM VI CỤM TRANG: trang PDF ${startPage}-${endPage} trên tổng số ${tot
 GHI CHÚ CỦA NGƯỜI DÙNG (chỉ để chú ý thêm, không phải bộ lọc): ${focus || "Không có"}.
 
 NHIỆM VỤ BẮT BUỘC:
-1. Đọc tuần tự TỪNG TRANG trong cụm. Tìm và dịch TỪNG DÒNG của TẤT CẢ bảng Recommendation/Recommendations, bảng khuyến cáo, What’s new, New/Revised recommendations và mọi bảng có cột Class/Level/LoE hoặc câu mang cấp khuyến cáo.
-2. Đồng thời trích TẤT CẢ bảng dữ liệu lâm sàng liên quan trực tiếp đến sử dụng thuốc: bảng liều, đường dùng, tần suất, chỉnh liều, khởi trị/chuyển liều, tương tác, chống chỉ định, theo dõi, dược động học, chức năng gan-thận. Không chỉ dịch What’s new, không dừng sau bảng đầu và không giới hạn số dòng.
-3. Một dòng nguồn = một entry và phải giữ đúng thứ tự xuất hiện. recommendationSummary là bản dịch tiếng Việt ĐẦY ĐỦ của nguyên văn ô Recommendations; không rút gọn, không diễn giải, không bỏ điều kiện, ngoại lệ, ngưỡng, thời điểm, số liệu hay chú thích gắn trực tiếp.
-4. topic phải giống cấu trúc bản gốc: “Chương/Mục › Recommendation Table [số] — [tên bảng đã dịch sang tiếng Việt]”. Mọi dòng trong cùng một bảng dùng topic giống hệt nhau để giao diện dựng lại đúng một bảng.
-5. Nếu trong thân bảng có hàng tiêu đề phân nhóm phủ ngang như “ECG”, “Imaging”, “Antithrombotic therapy”, hãy dịch tiêu đề đó và đặt vào clinicalContext của DÒNG ĐẦU TIÊN ngay dưới tiêu đề. Các dòng kế tiếp trong cùng phân nhóm để clinicalContext rỗng. Không đưa bối cảnh tự suy diễn vào trường này.
-6. recommendationClass và evidenceLevel sao chép chính xác ký hiệu nguồn (I, IIa, IIb, III; A, B, C...). Không có thì để rỗng, tuyệt đối không suy đoán.
-7. pageReference ghi “${sourceLabel} — Trang PDF [số trang thực tế trong toàn file], [số bảng/mục nếu đọc được]”. Số trang phải cộng theo phạm vi ${startPage}-${endPage}, không được bắt đầu lại từ 1.
-8. Với bảng bị cắt ở đầu/cuối cụm trang, vẫn trích toàn bộ các dòng nhìn thấy. Giữ đúng topic/tên bảng đọc được từ trang tiếp diễn; nếu tên nằm ở trang trước và không hiện trong cụm, dùng “Bảng tiếp diễn — [mục/chương đọc được]”, không bịa tên.
-9. Chỉ điền drugName, dose, renalAdjustment, hepaticAdjustment, contraindications, monitoring khi chính bảng/ghi chú trong cụm nêu rõ. Không có thì để chuỗi rỗng.
-10. Chỉ dùng PDF. Không bổ sung kiến thức ngoài, không tự tạo khuyến cáo hoặc nguồn. Bỏ văn xuôi mô tả thuần túy, tài liệu tham khảo và đoạn không phải bảng/khuyến cáo.
+1. Đọc tuần tự TỪNG TRANG trong cụm và tạo đầu ra cho TỪNG TRANG, không được chỉ lấy các bảng. Dịch đầy đủ tiêu đề, đề mục, đoạn văn, gạch đầu dòng, chú thích hình, chú thích cuối trang, chú thích bảng, phần What’s new, New/Revised recommendations, bảng Recommendation/Recommendations và mọi bảng dữ liệu.
+2. Không bỏ phần văn xuôi vì không có cột Class/Level/LoE. Với một đoạn hoặc bullet ngoài bảng, tạo một entry tableKind="data" với một tableCell duy nhất chứa nguyên khối đã dịch, giữ các xuống dòng/bullet bằng ký tự xuống dòng. Với tiêu đề trang hoặc tiêu đề mục, tạo một entry tableRowRole="section".
+3. Một khối nguồn theo đúng thứ tự đọc = một entry và phải giữ đúng thứ tự xuất hiện trong trang rồi mới sang trang tiếp theo. Không tóm tắt, không chọn lọc “ý quan trọng”, không gộp các đoạn xa nhau và không bỏ phần giải thích.
+4. recommendationSummary là bản dịch tiếng Việt ĐẦY ĐỦ của nguyên văn ô Recommendations hoặc đoạn khuyến cáo; không rút gọn, không diễn giải, không bỏ điều kiện, ngoại lệ, ngưỡng, thời điểm, số liệu hay chú thích gắn trực tiếp.
+5. topic phải nhận diện được trang hoặc bảng: với bảng dùng “Chương/Mục › Supplementary Table [số] — [tên bảng đã dịch]”; với văn bản ngoài bảng dùng “Trang PDF [số] — [tiêu đề mục đã dịch]”. Mọi dòng trong cùng một bảng dùng topic giống hệt nhau để giao diện dựng lại đúng một bảng.
+6. Nếu trong thân bảng có hàng tiêu đề phân nhóm phủ ngang như “WHY?”, “IN WHOM AND WHEN?”, “ECG”, “Imaging”, “Antithrombotic therapy”, hãy dịch tiêu đề đó, đặt tableRowRole="section", giữ colSpan/rowSpan và màu nền của ô. Các dòng kế tiếp trong cùng phân nhóm giữ đúng thứ tự.
+7. recommendationClass và evidenceLevel sao chép chính xác ký hiệu nguồn (I, IIa, IIb, III; A, B, C...). Không có thì để rỗng, tuyệt đối không suy đoán.
+8. pageReference bắt buộc ghi “${sourceLabel} — Trang PDF [số trang thực tế trong toàn file], [số bảng/mục nếu đọc được]” cho MỌI entry, kể cả đoạn văn và chú thích. Số trang phải cộng theo phạm vi ${startPage}-${endPage}, không được bắt đầu lại từ 1.
+9. Với bảng bị cắt ở đầu/cuối cụm trang, vẫn trích toàn bộ các dòng nhìn thấy. Giữ đúng topic/tên bảng đọc được từ trang tiếp diễn; nếu tên nằm ở trang trước và không hiện trong cụm, dùng “Bảng tiếp diễn — [mục/chương đọc được]”, không bịa tên.
+10. Chỉ điền drugName, dose, renalAdjustment, hepaticAdjustment, contraindications, monitoring khi chính bảng/ghi chú trong cụm nêu rõ. Không có thì để chuỗi rỗng.
+11. Chỉ dùng PDF. Không bổ sung kiến thức ngoài, không tự tạo khuyến cáo hoặc nguồn. Tài liệu tham khảo vẫn phải giữ nếu chúng xuất hiện trên trang; chỉ không biến chúng thành khuyến cáo.
 
 QUY TẮC GIỮ NGUYÊN CẤU TRÚC BẢNG:
 - Với bảng Recommendation chuẩn có cột Recommendations/Class/Level, đặt tableKind="recommendation", tableRowRole="body", tableCells=[] và điền các trường khuyến cáo như trên.
-- Với mọi bảng dữ liệu khác (đặc biệt bảng liều thuốc), đặt tableKind="data". MỖI HÀNG VẬT LÝ của bảng gốc, kể cả hàng tiêu đề nhiều tầng và hàng phân nhóm phủ ngang, phải là một entry riêng theo đúng thứ tự xuất hiện.
+- Với mọi bảng dữ liệu khác (đặc biệt Supplementary Table, bảng liều thuốc, cách dùng thuốc, theo dõi và tương tác), đặt tableKind="data". MỖI HÀNG VẬT LÝ của bảng gốc, kể cả hàng tiêu đề nhiều tầng và hàng phân nhóm phủ ngang, phải là một entry riêng theo đúng thứ tự xuất hiện.
 - topic của tất cả hàng trong cùng bảng phải giống hệt nhau và là tên bảng/tựa đề đã dịch sang tiếng Việt. Không gộp hai bảng khác nhau vào một topic.
 - tableRowRole="header" cho hàng tiêu đề cột, "section" cho hàng phân nhóm phủ ngang, "body" cho hàng dữ liệu.
 - tableCells chứa từng ô từ trái sang phải. text là nội dung ô đã dịch sang tiếng Việt; colSpan và rowSpan giữ đúng số cột/hàng mà ô chiếm trong bảng gốc (không gộp thì đều là 1). Không thêm, bớt, đổi thứ tự cột/hàng hoặc chuyển một ô sang cột khác.
 - Giữ định dạng nhìn thấy của từng ô: backgroundColor và textColor là mã HEX (ví dụ #55C58F; không xác định thì để rỗng), textAlign là left/center/right, fontWeight là normal/bold. Không tự trang trí hoặc đổi màu so với nguồn.
 - Với tableKind="data", recommendationSummary và các trường Class/LoE có thể để rỗng. Tuyệt đối không ép bảng liều thuốc thành bảng Khuyến cáo/Nhóm/Mức độ chứng cứ.
+- Với đoạn văn/bullet ngoài bảng, tableKind="data", tableRowRole="body", tableCells chỉ có một ô; không đưa nguyên đoạn đó vào recommendationSummary nếu nó không phải khuyến cáo.
 - Giữ nguyên tuyệt đối tên thuốc generic, số, dấu thập phân, khoảng liều, đơn vị, đường dùng viết tắt, tần suất và ký hiệu toán học; chỉ dịch tựa đề, tiêu đề cột, nhãn hàng và phần chữ mô tả.
 
 YÊU CẦU NGÔN NGỮ — BẮT BUỘC KIỂM TRA TRƯỚC KHI TRẢ:
@@ -145,8 +147,9 @@ YÊU CẦU NGÔN NGỮ — BẮT BUỘC KIỂM TRA TRƯỚC KHI TRẢ:
 - Dùng cách diễn đạt chuẩn guideline: “is recommended” = “được khuyến cáo”; “should be considered” = “nên được cân nhắc”; “may be considered” = “có thể cân nhắc”; “is not recommended” = “không được khuyến cáo”. Không làm thay đổi mức độ mạnh/yếu của câu nguồn.
 - documentTitle có thể giữ tên chính thức của guideline; society, tên hiệp hội, tên thuốc và pageReference có thể giữ tên riêng/nguồn chính thức. Ngoài các ngoại lệ này, đầu ra phải là tiếng Việt tự nhiên, chính xác và đầy đủ.
 - Tự rà soát từng entry: topic tiếng Việt; clinicalContext tiếng Việt nếu có; recommendationSummary không còn câu tiếng Anh; các trường thông tin thuốc bằng tiếng Việt nếu có. Chỉ sau khi đạt đủ mới trả JSON.
+- Tự rà soát độ phủ: mỗi trang trong phạm vi ${startPage}-${endPage} phải có ít nhất một entry nếu trang có chữ/hình/chú thích; không được kết thúc cụm chỉ vì đã gặp một bảng.
 
-METADATA: documentTitle, society, condition, publicationYear, versionLabel và sourceUrl lấy từ tài liệu nếu nhìn thấy; nếu cụm này không chứa metadata thì dùng chuỗi rỗng và publicationYear = 0. entries có thể rỗng nếu cụm thật sự không có bảng khuyến cáo.
+METADATA: documentTitle, society, condition, publicationYear, versionLabel và sourceUrl lấy từ tài liệu nếu nhìn thấy; nếu cụm này không chứa metadata thì dùng chuỗi rỗng và publicationYear = 0. entries chỉ được rỗng nếu toàn bộ cụm không có chữ, hình hay chú thích đọc được.
 
 Trả đúng JSON theo schema, không thêm văn bản ngoài JSON.`;
 }
