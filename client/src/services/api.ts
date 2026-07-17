@@ -92,6 +92,8 @@ export interface ImportedMcqQuestion {
   source_number: number;
   question: string;
   options: ImportedMcqOption[];
+  correct_answer: "A" | "B" | "C" | "D" | "";
+  explanation: string;
   image_source_name: string;
   image_alt: string;
   review_note: string;

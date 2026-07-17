@@ -7,6 +7,7 @@ export type McqLibraryQuestion = {
   question: string;
   options: McqOption[];
   correct_answer?: string;
+  explanation?: string;
   image_url?: string;
   image_alt?: string;
   review_note?: string;

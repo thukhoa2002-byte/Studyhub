@@ -12,6 +12,7 @@ type QuizQuestion = {
   question: string;
   options: Option[];
   correct_answer?: string;
+  explanation?: string;
   review_required?: boolean;
   image_url?: string;
   image_alt?: string;
@@ -206,7 +207,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
       // Preview deliberately strips grading metadata: it is a read-only question catalogue.
       setPreviewBank({
         title: source.title,
-        questions: source.questions.map(({ correct_answer: _answer, review_required: _review, ...question }) => question),
+        questions: source.questions.map(({ correct_answer: _answer, explanation: _explanation, review_required: _review, ...question }) => question),
       });
     } catch (previewError) {
       setPreviewDeck(null);
@@ -409,10 +410,11 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
               </button>;
             })}
           </div>
-          {isChecked && <div className={`mt-5 flex items-start gap-3 rounded-2xl border p-4 text-sm font-semibold ${!gradedBank || isCorrect ? "border-teal-200 bg-teal-50 text-teal-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
-            {!gradedBank || isCorrect ? <CheckCircle2 className="mt-0.5 shrink-0" size={20} /> : <XCircle className="mt-0.5 shrink-0" size={20} />}
-            <p>{!gradedBank ? "Đã ghi nhận lựa chọn. Bộ công khai này không kèm đáp án." : isCorrect ? "Chính xác!" : `Chưa đúng. Đáp án là ${question.correct_answer}.`}{question.review_required ? " Đáp án này được giữ theo ghi chú nguồn và nên được rà soát lại." : ""}</p>
+          {isChecked && <div className={`mt-5 flex items-start gap-3 rounded-2xl border p-4 text-sm font-semibold ${!question.correct_answer || isCorrect ? "border-teal-200 bg-teal-50 text-teal-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
+            {!question.correct_answer || isCorrect ? <CheckCircle2 className="mt-0.5 shrink-0" size={20} /> : <XCircle className="mt-0.5 shrink-0" size={20} />}
+            <p>{!question.correct_answer ? "Đã ghi nhận lựa chọn. Tài liệu chưa có đáp án chắc chắn cho câu này." : isCorrect ? "Chính xác!" : `Chưa đúng. Đáp án là ${question.correct_answer}.`}{question.review_required ? " Đáp án này được giữ theo ghi chú nguồn và nên được rà soát lại." : ""}</p>
           </div>}
+          {isChecked && question.explanation && <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-4 text-sm leading-7 text-slate-700 whitespace-pre-wrap"><p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-violet-600">Giải thích</p>{question.explanation}</div>}
         </article>
 
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
