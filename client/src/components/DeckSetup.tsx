@@ -450,10 +450,10 @@ export default function DeckSetup({
             <span className="text-center font-bold text-emerald-500">{stats.due}</span>
           </button>
           <div className="absolute right-2 top-1 flex items-center gap-0.5 sm:static sm:col-start-5 sm:row-start-1 sm:justify-end">
-            <button type="button" onClick={() => openDeckPreview(childDeck)} title="Xem trước mục con" aria-label={`Xem trước ${node.name}`} className="flex h-8 w-8 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50"><Eye size={15} /></button>
-            {(deck.owner_id === currentUserId || deck.member_role === "admin") && <button type="button" onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ cha" aria-label={`Chia sẻ bộ thẻ cha của ${node.name}`} className="flex h-8 w-8 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={15} /></button>}
-            {canEdit && <div className="relative h-8 w-8 shrink-0">
-              <button type="button" onClick={() => setOpenDeckMenuId((current) => current === rowKey ? null : rowKey)} title="Tùy chọn mục con" aria-label={`Tùy chọn mục con ${node.name}`} aria-expanded={openDeckMenuId === rowKey} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Settings2 size={16} /></button>
+            <button type="button" onClick={() => openDeckPreview(childDeck)} title="Xem trước mục con" aria-label={`Xem trước ${node.name}`} className="flex h-9 w-9 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50"><Eye size={17} /></button>
+            {(deck.owner_id === currentUserId || deck.member_role === "admin") && <button type="button" onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ cha" aria-label={`Chia sẻ bộ thẻ cha của ${node.name}`} className="flex h-9 w-9 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>}
+            {canEdit && <div className="relative h-9 w-9 shrink-0">
+              <button type="button" onClick={() => setOpenDeckMenuId((current) => current === rowKey ? null : rowKey)} title="Tùy chọn mục con" aria-label={`Tùy chọn mục con ${node.name}`} aria-expanded={openDeckMenuId === rowKey} className="flex h-9 w-9 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Settings2 size={17} /></button>
               {openDeckMenuId === rowKey && <div role="menu" className="absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
                 <button type="button" onClick={() => { setOpenDeckMenuId(null); setRenameTarget({ kind: "subdeck", deck, path: node.path, value: node.name }); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-teal-700 hover:bg-teal-50"><Pencil size={16} /><span>Đổi tên mục con</span></button>
               </div>}
@@ -579,11 +579,11 @@ export default function DeckSetup({
               >
                 <div className="flex min-w-0 items-center gap-2">
                   {subdeckTree.length > 0 ? <button type="button" onClick={() => toggleDeckChildren(deck.id)} title={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-label={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-expanded={!collapsedDeckIds.has(deck.id)} className="flex h-9 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-teal-50 hover:text-teal-700"><ChevronDown size={17} className={`transition-transform duration-200 ${collapsedDeckIds.has(deck.id) ? "-rotate-90" : ""}`} /></button> : <span className="w-7 shrink-0" />}
+                  <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
                   <button onClick={() => onOpenDeck(deck)} className="min-w-0 flex-1 text-left">
                     <span className="block truncate">{deck.title}</span>
                     <span className="mt-0.5 block text-[11px] font-medium text-slate-400">{deck.cards.length} thẻ</span>
                   </button>
-                  <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />
                 </div>
                 <ReviewColumns stats={deck.review_stats ?? statsForCards(deck.cards)} />
                 <div className="absolute right-3 top-3 flex items-center gap-0.5 sm:static sm:justify-end">
