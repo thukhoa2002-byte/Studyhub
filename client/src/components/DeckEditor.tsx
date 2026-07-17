@@ -202,7 +202,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             {["Nội", "Ngoại", "Sản", "Nhi", "Cấp cứu", "Hồi sức", ...titleSuggestions].filter((name, index, all) => all.indexOf(name) === index).map((name) => <option key={name} value={name} />)}
           </datalist>
         </div>
-        {activeQuestion && <div className="mt-3">
+        {activeQuestion && <div className="mt-3 ml-5 border-l-2 border-teal-100 pl-3 sm:ml-9">
           <input
             list="editor-subdeck-suggestions"
             value={childCategory(activeQuestion.category)}
