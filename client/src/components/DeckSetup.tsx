@@ -449,7 +449,7 @@ export default function DeckSetup({
             <span className="text-center font-bold text-rose-500">{stats.learning}</span>
             <span className="text-center font-bold text-emerald-500">{stats.due}</span>
           </button>
-          <div className="absolute right-2 top-1 flex items-center gap-0.5 sm:static sm:col-start-5 sm:row-start-1 sm:justify-end">
+          <div className="absolute right-3 top-1 flex items-center gap-0.5">
             <button type="button" onClick={() => openDeckPreview(childDeck)} title="Xem trước mục con" aria-label={`Xem trước ${node.name}`} className="flex h-9 w-9 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50"><Eye size={17} /></button>
             {(deck.owner_id === currentUserId || deck.member_role === "admin") && <button type="button" onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ cha" aria-label={`Chia sẻ bộ thẻ cha của ${node.name}`} className="flex h-9 w-9 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>}
             {canEdit && <div className="relative h-9 w-9 shrink-0">
@@ -586,7 +586,7 @@ export default function DeckSetup({
                   </button>
                 </div>
                 <ReviewColumns stats={deck.review_stats ?? statsForCards(deck.cards)} />
-                <div className="absolute right-3 top-3 flex items-center gap-0.5 sm:static sm:justify-end">
+                <div className="absolute right-3 top-3 flex items-center gap-0.5">
                 <button type="button" onClick={() => openDeckPreview(deck)} title="Xem trước bộ thẻ" aria-label={`Xem trước ${deck.title}`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50"><Eye size={17} /></button>
                 {(deck.owner_id === currentUserId || deck.member_role === "admin") &&
                   <button onClick={() => onShareDeck(deck)} title="Chia sẻ bộ thẻ" aria-label="Chia sẻ bộ thẻ" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sky-600 hover:bg-sky-50"><Share2 size={16} /></button>
