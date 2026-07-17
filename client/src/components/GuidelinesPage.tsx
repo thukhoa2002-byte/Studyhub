@@ -31,7 +31,7 @@ import {
   type GuidelineDocument,
   type GuidelineEntry,
 } from "../services/guidelines";
-import { extractGuidelinePdf, type GuidelineExtractionResponse } from "../services/api";
+import { extractGuidelinePdf, extractGuidelinePdfStream, type ExtractedGuidelineEntry, type GuidelineExtractionProgress, type GuidelineExtractionResponse } from "../services/api";
 import { isGuidelineAdmin } from "../config/access";
 
 interface Props {
@@ -87,6 +87,9 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   const [entryForm, setEntryForm] = useState(emptyEntry);
   const [aiReading, setAiReading] = useState(false);
   const [preparedExtraction, setPreparedExtraction] = useState<{ key: string; response: GuidelineExtractionResponse } | null>(null);
+  const [streamProgress, setStreamProgress] = useState<GuidelineExtractionProgress | null>(null);
+  const [streamedEntryCount, setStreamedEntryCount] = useState(0);
+  const [streamPreviewEntries, setStreamPreviewEntries] = useState<ExtractedGuidelineEntry[]>([]);
   const documentFormRef = useRef<HTMLFormElement>(null);
 
   const selectedDocument = useMemo(
@@ -140,9 +143,16 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
     if (!file?.size) { setNotice("Hãy chọn PDF guideline chính trước."); return; }
     if ((file.size + (supplementFile?.size || 0)) > 40 * 1024 * 1024) { setNotice("Tổng hai PDF không được vượt quá 40 MB khi dùng AI."); return; }
     setAiReading(true);
-    setNotice("Gemini đang chia PDF theo từng cụm trang và dịch tuần tự toàn bộ nội dung, bảng và chú thích. File dài có thể mất vài phút; vui lòng giữ trang này mở...");
+    setStreamProgress(null);
+    setStreamedEntryCount(0);
+    setStreamPreviewEntries([]);
+    setNotice("Gemini đang chia PDF theo từng cụm trang và dịch tuần tự toàn bộ nội dung, bảng và chú thích. Các phần đã xong sẽ hiện ngay bên dưới...");
     try {
-      const response = await extractGuidelinePdf(file, supplementFile, focus);
+      const response = await extractGuidelinePdfStream(file, supplementFile, focus, (progress) => {
+        setStreamProgress(progress);
+        setStreamedEntryCount((count) => count + progress.entries.length);
+        setStreamPreviewEntries((items) => [...items, ...progress.entries].slice(-12));
+      });
       if (typeof response.aiCallsRemaining === "number") onAiCallsRemaining?.(response.aiCallsRemaining);
       const metadata = response.data;
       const setValue = (name: string, value: string) => {
@@ -198,7 +208,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       setSelectedId(created.id);
       setShowDocumentForm(false);
       if (autoExtract && file?.size) {
-        setNotice("Gemini đang quét lần lượt từng cụm 20 trang, dịch toàn bộ nội dung và tạo bản nháp có trang nguồn. File dài có thể mất vài phút...");
+        setNotice("Gemini đang quét tuần tự các cụm trang nhỏ, tự chẻ tiếp khi đầu ra quá dài, rồi tạo bản nháp có trang nguồn. File dài có thể mất vài phút...");
         const key = extractionKey(file, supplementFile, focus);
         const extracted = preparedExtraction?.key === key ? preparedExtraction.response : await extractGuidelinePdf(file, supplementFile, focus);
         if (typeof extracted.aiCallsRemaining === "number") onAiCallsRemaining?.(extracted.aiCallsRemaining);
@@ -406,7 +416,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">PDF Supplementary Data (không bắt buộc)<input name="supplementFile" type="file" accept="application/pdf,.pdf" onChange={() => setPreparedExtraction(null)} className="mt-2 block w-full rounded-xl border border-dashed border-violet-200 bg-violet-50/55 px-4 py-4 text-sm" /><span className="mt-1.5 block text-xs font-medium text-slate-400">Tổng hai file tối đa 40 MB khi dùng AI · mỗi PDF tối đa 40 MB</span></label>
           <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 text-sm text-slate-700"><input name="autoExtract" type="checkbox" defaultChecked className="mt-1 h-4 w-4 accent-teal-500" /><span><strong className="block text-teal-800">AI tự dịch toàn bộ nội dung sau khi upload</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Bao gồm từng trang, đoạn văn, chú thích, toàn bộ bảng, Class/LoE và dữ liệu thuốc trong Supplementary Data. Tài liệu dài sẽ được chia thành nhiều cụm trang; kết quả luôn là bản nháp.</span></span></label>
           <label className="text-sm font-bold text-slate-700 sm:col-span-2">Ghi chú để AI chú ý thêm (không bắt buộc)<input name="focus" onChange={() => setPreparedExtraction(null)} placeholder="Ví dụ: chú ý liều và điều chỉnh theo thận; AI vẫn phải dịch toàn bộ bảng khuyến cáo" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
-          <div className="sm:col-span-2 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-teal-50 p-4"><button type="button" disabled={aiReading || busy} onClick={() => void readDocumentWithAi()} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-extrabold text-white shadow-sm disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={18} /> : <BookOpenCheck size={18} />} {aiReading ? "AI đang dịch toàn bộ tài liệu..." : preparedExtraction ? "AI đã điền · Đọc lại toàn bộ" : "AI đọc & dịch toàn bộ tài liệu"}</button><p className="mt-2 text-center text-xs font-medium text-slate-500">Bao gồm từng trang, đoạn văn, chú thích, Supplementary Data, mọi bảng Recommendation, Class/LoE và dữ liệu thuốc; tất cả luôn là bản nháp chờ bạn kiểm tra.</p></div>
+          <div className="sm:col-span-2 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-teal-50 p-4"><button type="button" disabled={aiReading || busy} onClick={() => void readDocumentWithAi()} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-5 py-3 text-sm font-extrabold text-white shadow-sm disabled:opacity-50">{aiReading ? <Loader2 className="animate-spin" size={18} /> : <BookOpenCheck size={18} />} {aiReading ? "AI đang dịch toàn bộ tài liệu..." : preparedExtraction ? "AI đã điền · Đọc lại toàn bộ" : "AI đọc & dịch toàn bộ tài liệu"}</button><p className="mt-2 text-center text-xs font-medium text-slate-500">Bao gồm từng trang, đoạn văn, chú thích, Supplementary Data, mọi bảng Recommendation, Class/LoE và dữ liệu thuốc; tất cả luôn là bản nháp chờ bạn kiểm tra.</p>{aiReading && streamProgress && <div className="mt-4 rounded-xl border border-violet-200 bg-white/80 p-3"><div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-violet-700"><span>Đã xong cụm {streamProgress.completedChunks}/{streamProgress.totalChunks} · {streamProgress.sourceLabel}, trang {streamProgress.startPage}-{streamProgress.endPage}</span><span>{streamedEntryCount} khối đã hiện</span></div>{streamPreviewEntries.length > 0 && <div className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1">{streamPreviewEntries.map((entry, index) => <div key={`${entry.topic}-${entry.pageReference}-${index}`} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"><p className="text-xs font-extrabold text-slate-700">{entry.topic}</p><p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-500">{streamPreviewText(entry)}</p></div>)}</div>}</div>}</div>
           <div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={() => setShowDocumentForm(false)} className="rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-sm font-bold text-slate-500">Hủy</button><button disabled={busy || aiReading} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy && <Loader2 className="animate-spin" size={17} />} {busy ? "Đang lưu..." : preparedExtraction ? "Lưu tài liệu đã kiểm tra" : "Lưu & để AI đọc"}</button></div>
         </form>}
 
@@ -573,6 +583,10 @@ function formatRecommendationClass(value: string) {
 function formatEvidenceLevel(value: string) {
   const normalized = normalizeEvidenceLevel(value);
   return normalized ? `Level ${normalized}` : value || "—";
+}
+
+function streamPreviewText(entry: ExtractedGuidelineEntry) {
+  return entry.recommendationSummary || entry.tableCells.map((cell) => cell.text).filter(Boolean).join(" | ") || "Đã dịch một khối nội dung.";
 }
 
 type GuidelinePdfMode = "practice" | "full";

@@ -8,8 +8,8 @@ import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 
 const router = express.Router();
 const MAX_PDF_BYTES = 40 * 1024 * 1024;
-const PDF_PAGES_PER_PASS = 20;
-const EXTRACTION_VERSION = "full-pages-v6-vietnamese-translation";
+const PDF_PAGES_PER_PASS = 6;
+const EXTRACTION_VERSION = "full-pages-v7-adaptive-chunking";
 const cache = new Map();
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -109,6 +109,61 @@ async function splitPdfIntoPageRanges(file, sourceLabel) {
   return chunks;
 }
 
+async function splitChunkInHalf(chunk) {
+  const sourcePdf = await PDFDocument.load(chunk.file.buffer, { ignoreEncryption: true });
+  const pageCount = sourcePdf.getPageCount();
+  if (pageCount < 2) return [];
+  const firstCount = Math.ceil(pageCount / 2);
+  const ranges = [[0, firstCount], [firstCount, pageCount]];
+  const halves = [];
+
+  for (const [startIndex, endIndex] of ranges) {
+    const halfPdf = await PDFDocument.create();
+    const pageIndexes = Array.from({ length: endIndex - startIndex }, (_, offset) => startIndex + offset);
+    const copiedPages = await halfPdf.copyPages(sourcePdf, pageIndexes);
+    copiedPages.forEach((page) => halfPdf.addPage(page));
+    const bytes = await halfPdf.save({ useObjectStreams: true });
+    const startPage = chunk.startPage + startIndex;
+    const endPage = chunk.startPage + endIndex - 1;
+    halves.push({
+      ...chunk,
+      file: {
+        ...chunk.file,
+        buffer: Buffer.from(bytes),
+        size: bytes.length,
+        originalname: `${chunk.sourceLabel}-pages-${startPage}-${endPage}.pdf`,
+      },
+      startPage,
+      endPage,
+    });
+  }
+  return halves;
+}
+
+function reachedOutputLimit(error) {
+  return /MAX_TOKENS|đầu ra AI đã chạm giới hạn/i.test(String(error?.message || ""));
+}
+
+async function extractChunkAdaptively(chunk, focus) {
+  try {
+    const partial = await generateStructuredFromFile({
+      file: chunk.file,
+      schema,
+      maxOutputTokens: 32768,
+      timeoutMs: 240_000,
+      prompt: extractionPrompt({ ...chunk, focus }),
+    });
+    return [partial];
+  } catch (error) {
+    const halves = reachedOutputLimit(error) ? await splitChunkInHalf(chunk) : [];
+    if (halves.length === 0) throw error;
+    console.warn(`Guideline chunk ${chunk.startPage}-${chunk.endPage} reached the output limit; splitting it again.`);
+    const partials = [];
+    for (const half of halves) partials.push(...await extractChunkAdaptively(half, focus));
+    return partials;
+  }
+}
+
 function extractionPrompt({ sourceLabel, startPage, endPage, totalPages, focus }) {
   return `Bạn là nhóm bác sĩ và biên dịch viên guideline. Bạn đang xử lý một CỤM TRANG của tài liệu, không được tóm tắt và không được chọn lọc ý quan trọng.
 
@@ -182,59 +237,105 @@ function mergeExtractionResults(results) {
   };
 }
 
-router.post("/", requireGuidelineAdmin, upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), async (req, res) => {
+async function runGuidelineExtraction(document, supplement, focus, onChunk) {
+  const inputFiles = [document, supplement].filter(Boolean);
+  const totalBytes = inputFiles.reduce((sum, file) => sum + file.size, 0);
+  if (totalBytes > MAX_PDF_BYTES) {
+    const error = new Error("Tổng dung lượng guideline và supplement không được vượt quá 40 MB.");
+    error.code = "LIMIT_FILE_SIZE";
+    throw error;
+  }
+  const hash = createHash("sha256").update(document.buffer);
+  if (supplement) hash.update(supplement.buffer);
+  const key = hash.update(`${EXTRACTION_VERSION}:${focus}`).digest("hex");
+  if (cache.has(key)) {
+    const cached = { ...cache.get(key), aiCallsRemaining: getAiCallsRemaining() };
+    await onChunk?.({ completedChunks: 1, totalChunks: 1, sourceLabel: "Kết quả đã lưu tạm", startPage: 1, endPage: 1, entries: cached.data.entries });
+    return cached;
+  }
+
+  const aiCallsRemaining = consumeAiCall();
+  if (aiCallsRemaining === null) {
+    const error = new Error("Đã hết lượt AI dùng chung.");
+    error.status = 429;
+    throw error;
+  }
+
+  const chunkGroups = await Promise.all([
+    splitPdfIntoPageRanges(document, "Guideline chính"),
+    supplement ? splitPdfIntoPageRanges(supplement, "Supplementary Data") : Promise.resolve([]),
+  ]);
+  const chunks = chunkGroups.flat();
+  const partialResults = [];
+  for (const [index, chunk] of chunks.entries()) {
+    const extractedParts = await extractChunkAdaptively(chunk, focus);
+    partialResults.push(...extractedParts);
+    await onChunk?.({
+      completedChunks: index + 1,
+      totalChunks: chunks.length,
+      sourceLabel: chunk.sourceLabel,
+      startPage: chunk.startPage,
+      endPage: chunk.endPage,
+      entries: extractedParts.flatMap((part) => part.entries || []),
+    });
+  }
+  const result = mergeExtractionResults(partialResults);
+  const payload = { success: true, data: result, aiCallsRemaining };
+  cache.set(key, payload);
+  if (cache.size > 20) cache.delete(cache.keys().next().value);
+  return payload;
+}
+
+function extractionErrorPayload(error) {
+  const isLimit = error?.code === "LIMIT_FILE_SIZE";
+  const status = isLimit ? 413 : error?.status === 429 ? 429 : 500;
+  const message = isLimit
+    ? "Tổng dung lượng PDF vượt quá 40 MB. Vui lòng nén file hoặc chia nhỏ tài liệu."
+    : status === 429
+      ? "Gemini đã hết hạn mức hoặc đang quá tải. Vui lòng thử lại sau."
+      : error?.message || "Không thể trích xuất guideline.";
+  return { status, message, aiCallsRemaining: getAiCallsRemaining() };
+}
+
+function writeStreamEvent(res, event, data) {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+async function extractGuidelineJson(req, res) {
   try {
     const document = req.files?.document?.[0];
     const supplement = req.files?.supplement?.[0];
     if (!document) return res.status(400).json({ success: false, message: "Chưa có file guideline chính." });
-    const inputFiles = [document, supplement].filter(Boolean);
-    const totalBytes = inputFiles.reduce((sum, file) => sum + file.size, 0);
-    if (totalBytes > MAX_PDF_BYTES) return res.status(413).json({ success: false, message: "Tổng dung lượng guideline và supplement không được vượt quá 40 MB." });
     const focus = String(req.body?.focus || "").trim();
-    const hash = createHash("sha256").update(document.buffer);
-    if (supplement) hash.update(supplement.buffer);
-    const key = hash.update(`${EXTRACTION_VERSION}:${focus}`).digest("hex");
-    if (cache.has(key)) return res.json({ ...cache.get(key), aiCallsRemaining: getAiCallsRemaining() });
-
-    const aiCallsRemaining = consumeAiCall();
-    if (aiCallsRemaining === null) {
-      return res.status(429).json({ success: false, message: "Đã hết lượt AI dùng chung.", aiCallsRemaining: 0 });
-    }
-
-    const chunkGroups = await Promise.all([
-      splitPdfIntoPageRanges(document, "Guideline chính"),
-      supplement ? splitPdfIntoPageRanges(supplement, "Supplementary Data") : Promise.resolve([]),
-    ]);
-    const chunks = chunkGroups.flat();
-    const partialResults = [];
-    for (const chunk of chunks) {
-      const partial = await generateStructuredFromFile({
-        file: chunk.file,
-        schema,
-        maxOutputTokens: 32768,
-        timeoutMs: 240_000,
-        prompt: extractionPrompt({ ...chunk, focus }),
-      });
-      partialResults.push(partial);
-    }
-    const result = mergeExtractionResults(partialResults);
-
-    const payload = { success: true, data: result, aiCallsRemaining };
-    cache.set(key, payload);
-    if (cache.size > 20) cache.delete(cache.keys().next().value);
-    return res.json(payload);
+    return res.json(await runGuidelineExtraction(document, supplement, focus));
   } catch (error) {
     console.error("Guideline extraction failed:", error);
-    const isLimit = error?.code === "LIMIT_FILE_SIZE";
-    const status = isLimit ? 413 : error?.status === 429 ? 429 : 500;
-    const message = isLimit
-      ? "Tổng dung lượng PDF vượt quá 40 MB. Vui lòng nén file hoặc chia nhỏ tài liệu."
-      : status === 429
-        ? "Gemini đã hết hạn mức hoặc đang quá tải. Vui lòng thử lại sau."
-        : error.message || "Không thể trích xuất guideline.";
-    return res.status(status).json({ success: false, message, aiCallsRemaining: getAiCallsRemaining() });
+    const payload = extractionErrorPayload(error);
+    return res.status(payload.status).json({ success: false, message: payload.message, aiCallsRemaining: payload.aiCallsRemaining });
   }
-});
+}
+
+async function extractGuidelineStream(req, res) {
+  res.status(200);
+  res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive", "X-Accel-Buffering": "no" });
+  res.flushHeaders();
+  try {
+    const document = req.files?.document?.[0];
+    const supplement = req.files?.supplement?.[0];
+    if (!document) throw new Error("Chưa có file guideline chính.");
+    const focus = String(req.body?.focus || "").trim();
+    const payload = await runGuidelineExtraction(document, supplement, focus, async (progress) => writeStreamEvent(res, "progress", progress));
+    writeStreamEvent(res, "complete", payload);
+  } catch (error) {
+    console.error("Guideline stream extraction failed:", error);
+    writeStreamEvent(res, "error", extractionErrorPayload(error));
+  } finally {
+    res.end();
+  }
+}
+
+router.post("/", requireGuidelineAdmin, upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), extractGuidelineJson);
+router.post("/stream", requireGuidelineAdmin, upload.fields([{ name: "document", maxCount: 1 }, { name: "supplement", maxCount: 1 }]), extractGuidelineStream);
 
 router.use((error, _req, res, _next) => {
   const isLimit = error?.code === "LIMIT_FILE_SIZE";

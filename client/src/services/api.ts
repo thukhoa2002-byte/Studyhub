@@ -158,6 +158,15 @@ export interface GuidelineExtractionResponse {
   aiCallsRemaining?: number;
 }
 
+export interface GuidelineExtractionProgress {
+  completedChunks: number;
+  totalChunks: number;
+  sourceLabel: string;
+  startPage: number;
+  endPage: number;
+  entries: ExtractedGuidelineEntry[];
+}
+
 export async function extractGuidelinePdf(document: File, supplement?: File | null, focus = ""): Promise<GuidelineExtractionResponse> {
   const formData = new FormData();
   formData.append("document", document);
@@ -178,6 +187,60 @@ export async function extractGuidelinePdf(document: File, supplement?: File | nu
     throw new Error(error?.message || "Không thể đọc guideline bằng AI.");
   }
   return (await response.json()) as GuidelineExtractionResponse;
+}
+
+export async function extractGuidelinePdfStream(
+  document: File,
+  supplement: File | null | undefined,
+  focus: string,
+  onProgress: (progress: GuidelineExtractionProgress) => void,
+): Promise<GuidelineExtractionResponse> {
+  const formData = new FormData();
+  formData.append("document", document);
+  if (supplement?.size) formData.append("supplement", supplement);
+  formData.append("focus", focus);
+  const { supabase } = await import("./supabase");
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  const { data: { session } } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+  if (!accessToken) throw new Error("Bạn cần đăng nhập bằng tài khoản quản trị Guideline.");
+  const response = await fetch(`${API_URL}/api/extract-guideline/stream`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: "text/event-stream" },
+    body: formData,
+  });
+  if (!response.ok || !response.body) {
+    const error = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(error?.message || "Không thể bắt đầu đọc guideline bằng AI.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let complete: GuidelineExtractionResponse | null = null;
+  const readEvent = (block: string) => {
+    const event = block.match(/^event:\s*(.+)$/m)?.[1]?.trim();
+    const data = block.match(/^data:\s*(.+)$/m)?.[1];
+    if (!event || !data) return;
+    const payload = JSON.parse(data) as GuidelineExtractionProgress | GuidelineExtractionResponse | { message?: string };
+    if (event === "progress") onProgress(payload as GuidelineExtractionProgress);
+    if (event === "complete") complete = payload as GuidelineExtractionResponse;
+    if (event === "error") throw new Error((payload as { message?: string }).message || "Không thể đọc guideline bằng AI.");
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    let separator = buffer.indexOf("\n\n");
+    while (separator >= 0) {
+      readEvent(buffer.slice(0, separator));
+      buffer = buffer.slice(separator + 2);
+      separator = buffer.indexOf("\n\n");
+    }
+    if (done) break;
+  }
+  if (!complete) throw new Error("Kết nối đã kết thúc trước khi Gemini hoàn tất tài liệu.");
+  return complete;
 }
 
 export async function generateQuestions(
