@@ -192,10 +192,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
       </div>
       <div className="mb-5">
         <div className="relative flex-1">
-          <label className="block text-[10px] font-bold uppercase tracking-[0.14em] text-rose-500">
-            Mục cha
-            <input list="deck-title-suggestions" value={title} onFocus={() => setShowDeckList(true)} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-lg border border-rose-100 bg-white px-4 py-3 pr-11 font-semibold normal-case text-rose-950 outline-none focus:border-rose-300" />
-          </label>
+          <input list="deck-title-suggestions" value={title} onFocus={() => setShowDeckList(true)} onChange={(event) => setTitle(event.target.value)} className="w-full rounded-lg border border-rose-100 bg-white px-4 py-3 pr-11 font-semibold text-rose-950 outline-none focus:border-rose-300" />
           <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setShowDeckList((open) => !open)} aria-label="Mở danh sách bộ thẻ cùng cấp" title="Bộ thẻ cùng cấp" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><ChevronDown size={17} className={showDeckList ? "rotate-180 transition-transform" : "transition-transform"} /></button>
           {showDeckList && <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-xl border border-rose-100 bg-white p-1 shadow-lg">
             {decks.filter((deck) => deck.id !== currentDeckId).map((deck) => <button key={deck.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => void switchDeck(deck)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50"><span>{deck.title}</span><span className="ml-auto text-xs text-slate-400">{deck.cards.length} thẻ</span></button>)}
@@ -205,6 +202,20 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             {["Nội", "Ngoại", "Sản", "Nhi", "Cấp cứu", "Hồi sức", ...titleSuggestions].filter((name, index, all) => all.indexOf(name) === index).map((name) => <option key={name} value={name} />)}
           </datalist>
         </div>
+        {activeQuestion && <div className="mt-3">
+          <input
+            list="editor-subdeck-suggestions"
+            value={childCategory(activeQuestion.category)}
+            onChange={(event) => updateCategory(activeQuestion.id, event.target.value)}
+            onBlur={() => commitCategory(activeQuestion.id)}
+            className="w-full rounded-lg border border-teal-100 bg-white/90 px-4 py-3 text-sm font-semibold text-teal-800 outline-none focus:border-teal-300"
+            placeholder="Viêm phổi"
+            aria-label="Mục con"
+          />
+          <datalist id="editor-subdeck-suggestions">
+            {categorySuggestions.map((name) => <option key={name} value={name} />)}
+          </datalist>
+        </div>}
       </div>
       <div className="glass-panel mode-panel rounded-2xl border border-rose-100 bg-white/85 p-4 shadow-sm sm:p-6">
         <div className="overflow-hidden rounded-2xl border border-teal-100 bg-teal-50/50">
@@ -215,7 +226,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           {showCardList && <div className="max-h-72 space-y-2 overflow-y-auto border-t border-teal-100 p-3">
             <div className="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] gap-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400" aria-hidden="true">
               <span />
-              <span>Front · Mục con</span>
+              <span>Front</span>
               <span className="border-l border-teal-100 pl-3">Back</span>
             </div>
             {questions.map((item, index) => <button key={item.id} type="button" onClick={() => setActiveQuestionId(item.id)} className={`grid w-full grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${item.id === activeQuestion?.id ? "border-teal-200 bg-teal-100/70 text-teal-900" : "border-white/80 bg-white/85 text-slate-700 hover:border-teal-100 hover:bg-white"}`}>
@@ -231,24 +242,6 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ {activeQuestionIndex + 1}</p>
               {visibility === "shared" && <p className="mt-1 text-[11px] font-medium text-slate-400">Đã thêm bởi: <span className="font-semibold text-slate-500">{activeQuestion.creatorLabel || "Chủ bộ thẻ"}</span></p>}
-              <div className="mt-2 flex max-w-md items-center gap-2 rounded-lg border border-rose-100 bg-white/70 px-3 py-2 text-xs">
-                <span className="font-bold uppercase tracking-[0.12em] text-rose-400">Mục cha</span>
-                <span className="min-w-0 truncate font-semibold text-rose-950">{title || "Bộ thẻ mới"}</span>
-              </div>
-              <label className="mt-2 block max-w-md text-[10px] font-bold uppercase tracking-[0.14em] text-teal-600">
-                Mục con
-                <input
-                  list="editor-subdeck-suggestions"
-                  value={childCategory(activeQuestion.category)}
-                  onChange={(event) => updateCategory(activeQuestion.id, event.target.value)}
-                  onBlur={() => commitCategory(activeQuestion.id)}
-                  className="mt-1 w-full rounded-lg border border-teal-100 bg-white/90 px-3 py-2 text-xs font-semibold normal-case text-teal-800 outline-none focus:border-teal-300"
-                  placeholder="Ví dụ: Viêm phổi"
-                />
-                <datalist id="editor-subdeck-suggestions">
-                  {categorySuggestions.map((name) => <option key={name} value={name} />)}
-                </datalist>
-              </label>
             </div>
             <button disabled={questions.length <= 1} onClick={() => removeCard(activeQuestion.id)} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
           </div>

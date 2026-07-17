@@ -538,17 +538,6 @@ export default function App() {
     setCurrentSavedDeck(deck);
   }
 
-  function createMcqFromDeck(deck: SavedDeck) {
-    const answers = deck.cards.map((card) => card.answer.replace(/<[^>]+>/g, "").trim()).filter(Boolean);
-    const cards = deck.cards.map((card, index) => {
-      const answer = card.answer.replace(/<[^>]+>/g, "").trim();
-      const distractors = answers.filter((item, answerIndex) => answerIndex !== index && item !== answer).slice(0, 3);
-      const options = [answer, ...distractors].sort(() => Math.random() - 0.5);
-      return { ...card, options, correctOption: answer, explanation: `Đáp án: ${answer}` };
-    }).filter((card) => card.options && card.options.length >= 2);
-    setQuestions(cards); setDeckTitle(`${deck.title} · Trắc nghiệm`); setCurrentSavedDeck(null); setMode("study");
-  }
-
   function editSavedDeck(deck: SavedDeck) {
     openSavedDeck(deck);
     setEditing(true);
@@ -741,7 +730,6 @@ export default function App() {
             onEditDeck={editSavedDeck}
             onDeleteDeck={removeSavedDeck}
             onShareDeck={setSharingDeck}
-            onCreateMcqFromDeck={createMcqFromDeck}
             aiCallsRemaining={aiCallsRemaining}
             currentUserId={user?.id}
             onStudyDue={studyDueCards}

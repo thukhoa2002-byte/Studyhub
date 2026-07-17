@@ -18,7 +18,6 @@ import {
   GripVertical,
   HeartPulse,
   Hospital,
-  ListChecks,
   Plus,
   Pencil,
   Ribbon,
@@ -60,7 +59,6 @@ interface Props {
   onEditDeck: (deck: SavedDeck) => void;
   onDeleteDeck: (deck: SavedDeck) => void;
   onShareDeck: (deck: SavedDeck) => void;
-  onCreateMcqFromDeck: (deck: SavedDeck) => void;
   aiCallsRemaining: number;
   onStudyDue: (beforeStudy?: () => void) => void | Promise<void>;
   currentUserId?: string;
@@ -235,7 +233,6 @@ export default function DeckSetup({
   onEditDeck,
   onDeleteDeck,
   onShareDeck,
-  onCreateMcqFromDeck,
   aiCallsRemaining,
   onStudyDue,
   currentUserId,
@@ -399,7 +396,6 @@ export default function DeckSetup({
             {canEdit && <div className="relative h-8 w-8 shrink-0">
               <button type="button" onClick={() => setOpenDeckMenuId((current) => current === rowKey ? null : rowKey)} title="Tùy chọn mục con" aria-label={`Tùy chọn mục con ${node.name}`} aria-expanded={openDeckMenuId === rowKey} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Settings2 size={16} /></button>
               {openDeckMenuId === rowKey && <div role="menu" className="absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
-                <button type="button" onClick={() => { setOpenDeckMenuId(null); onCreateMcqFromDeck(childDeck); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-violet-700 hover:bg-violet-50"><ListChecks size={16} /><span>Tạo trắc nghiệm</span></button>
                 <button type="button" onClick={() => { setOpenDeckMenuId(null); setRenameTarget({ kind: "subdeck", deck, path: node.path, value: node.name }); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-teal-700 hover:bg-teal-50"><Pencil size={16} /><span>Đổi tên mục con</span></button>
               </div>}
             </div>}
@@ -527,10 +523,6 @@ export default function DeckSetup({
                     </button>
                     {openDeckMenuId === deck.id && (
                       <div role="menu" className="absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
-                        <button type="button" onClick={() => { setOpenDeckMenuId(null); onCreateMcqFromDeck(deck); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-violet-700 hover:bg-violet-50">
-                          <ListChecks size={16} />
-                          <span>Tạo trắc nghiệm</span>
-                        </button>
                         <button type="button" onClick={() => { setOpenDeckMenuId(null); setRenameTarget({ kind: "deck", deck, value: deck.title }); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sky-700 hover:bg-sky-50">
                           <Pencil size={16} />
                           <span>Đổi tên bộ thẻ</span>
