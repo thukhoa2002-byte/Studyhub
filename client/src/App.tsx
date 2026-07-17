@@ -546,6 +546,44 @@ export default function App() {
     }
   }
 
+  function editSavedSubdeck(deck: SavedDeck, path: string) {
+    const firstCard = deck.cards.find((card) => {
+      const category = normalizeSubdeck(card.category, "Tự tạo");
+      return category === path || category.startsWith(`${path}::`);
+    });
+    if (!firstCard) return;
+    setQuestions(deck.cards);
+    setDeckTitle(deck.title);
+    setCurrentSavedDeck(deck);
+    setStudyCurrentId(firstCard.id);
+    setEditing(true);
+  }
+
+  async function deleteSavedSubdeck(deck: SavedDeck, path: string) {
+    if (!user || !supabase) return;
+    if (deck.owner_id !== user.id && deck.member_role !== "admin" && deck.member_access !== "edit") {
+      alert("Bạn không có quyền xóa mục con này.");
+      return;
+    }
+    try {
+      const nextCards = deck.cards.filter((card) => {
+        const category = normalizeSubdeck(card.category, "Tự tạo");
+        return category !== path && !category.startsWith(`${path}::`);
+      });
+      await updateDeck(user.id, deck.id, deck.title, nextCards, deck.visibility);
+      const nextDecks = await listDecks(user.id);
+      setSavedDecks(nextDecks);
+      const freshDeck = nextDecks.find((item) => item.id === deck.id);
+      if (freshDeck && currentSavedDeck?.id === deck.id) {
+        setCurrentSavedDeck(freshDeck);
+        setQuestions(freshDeck.cards);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`Không thể xóa mục con: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+    }
+  }
+
   async function shareSavedDeck(emails: string[]) {
     if (!sharingDeck) return;
     const canManageMembers = sharingDeck.owner_id === user?.id || sharingDeck.member_role === "admin";
@@ -771,7 +809,9 @@ export default function App() {
             onRenameDeck={renameSavedDeck}
             onRenameSubdeck={renameSavedSubdeck}
             onEditDeck={editSavedDeck}
+            onEditSubdeck={editSavedSubdeck}
             onDeleteDeck={removeSavedDeck}
+            onDeleteSubdeck={deleteSavedSubdeck}
             onShareDeck={setSharingDeck}
             aiCallsRemaining={aiCallsRemaining}
             currentUserId={user?.id}

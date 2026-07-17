@@ -31,6 +31,7 @@ import {
   Sparkles,
   Stethoscope,
   Syringe,
+  TextCursorInput,
   Trash2,
   UploadCloud,
   Wind,
@@ -61,7 +62,9 @@ interface Props {
   onRenameDeck: (deck: SavedDeck, nextTitle: string) => void | Promise<void>;
   onRenameSubdeck: (deck: SavedDeck, sourcePath: string, nextName: string) => void | Promise<void>;
   onEditDeck: (deck: SavedDeck) => void;
+  onEditSubdeck: (deck: SavedDeck, path: string) => void;
   onDeleteDeck: (deck: SavedDeck) => void;
+  onDeleteSubdeck: (deck: SavedDeck, path: string) => void | Promise<void>;
   onShareDeck: (deck: SavedDeck) => void;
   aiCallsRemaining: number;
   onStudyDue: (beforeStudy?: () => void) => void | Promise<void>;
@@ -246,7 +249,9 @@ export default function DeckSetup({
   onRenameDeck,
   onRenameSubdeck,
   onEditDeck,
+  onEditSubdeck,
   onDeleteDeck,
+  onDeleteSubdeck,
   onShareDeck,
   aiCallsRemaining,
   onStudyDue,
@@ -455,7 +460,9 @@ export default function DeckSetup({
             {canEdit && <div className="relative h-9 w-9 shrink-0">
               <button type="button" onClick={() => setOpenDeckMenuId((current) => current === rowKey ? null : rowKey)} title="Tùy chọn mục con" aria-label={`Tùy chọn mục con ${node.name}`} aria-expanded={openDeckMenuId === rowKey} className="flex h-9 w-9 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"><Settings2 size={17} /></button>
               {openDeckMenuId === rowKey && <div role="menu" className="absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
-                <button type="button" onClick={() => { setOpenDeckMenuId(null); setRenameTarget({ kind: "subdeck", deck, path: node.path, value: node.name }); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-teal-700 hover:bg-teal-50"><Pencil size={16} /><span>Đổi tên mục con</span></button>
+                <button type="button" onClick={() => { setOpenDeckMenuId(null); setRenameTarget({ kind: "subdeck", deck, path: node.path, value: node.name }); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-teal-700 hover:bg-teal-50"><TextCursorInput size={16} /><span>Đổi tên mục con</span></button>
+                <button type="button" onClick={() => { setOpenDeckMenuId(null); onEditSubdeck(deck, node.path); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-teal-700 hover:bg-teal-50"><Pencil size={16} /><span>Sửa mục con</span></button>
+                <button type="button" onClick={() => { setOpenDeckMenuId(null); if (confirm(`Xóa mục con “${node.name}” và ${node.cards.length} thẻ bên trong? Hành động này không thể hoàn tác.`)) void onDeleteSubdeck(deck, node.path); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-rose-600 hover:bg-rose-50"><Trash2 size={16} /><span>Xóa mục con</span></button>
               </div>}
             </div>}
           </div>
@@ -606,7 +613,7 @@ export default function DeckSetup({
                     {openDeckMenuId === deck.id && (
                       <div role="menu" className="absolute right-0 top-full z-[120] mt-2 w-56 overflow-hidden rounded-xl border border-white/70 bg-white/95 p-1.5 text-sm shadow-xl backdrop-blur-xl">
                         <button type="button" onClick={() => { setOpenDeckMenuId(null); setRenameTarget({ kind: "deck", deck, value: deck.title }); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sky-700 hover:bg-sky-50">
-                          <Pencil size={16} />
+                          <TextCursorInput size={16} />
                           <span>Đổi tên bộ thẻ</span>
                         </button>
                         <button type="button" onClick={() => { setOpenDeckMenuId(null); onEditDeck(deck); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-teal-700 hover:bg-teal-50">
