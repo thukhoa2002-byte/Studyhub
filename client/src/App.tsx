@@ -785,9 +785,11 @@ export default function App() {
           <GuidelinesPage user={user} onAiCallsRemaining={setAiCallsRemaining} />
         </div>
 
-        {workspaceTab === "mcq" ? (
+        <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
           <McqPage userId={user?.id} userEmail={user?.email} onAiCallsRemaining={setAiCallsRemaining} />
-        ) : workspaceTab === "drugs" ? (
+        </div>
+
+        {workspaceTab === "drugs" ? (
           <DrugsPage />
         ) : workspaceTab !== "flashcards" ? null : editing && currentSavedDeck ? (
           <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} currentUserLabel={(user?.user_metadata?.full_name as string | undefined) || user?.email || "Thành viên"} />
