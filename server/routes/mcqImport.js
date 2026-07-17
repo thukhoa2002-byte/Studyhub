@@ -40,8 +40,8 @@ const schema = {
         properties: {
           source_number: { type: "integer" },
           question: { type: "string" },
-          options: { type: "array", minItems: 4, maxItems: 4, items: optionSchema },
-          correct_answer: { type: "string", enum: ["A", "B", "C", "D", ""] },
+          options: { type: "array", items: optionSchema },
+          correct_answer: { type: "string" },
           explanation: { type: "string" },
           image_source_name: { type: "string" },
           image_alt: { type: "string" },
@@ -79,7 +79,7 @@ QUY TẮC TRÍCH XUẤT
 7. Chuẩn hóa khoảng trắng, bỏ đầu trang/chân trang/số trang lặp lại và khoảng trống thừa. Không để dòng trống bất thường.
 8. Không chép hình trang trí, logo, biểu đồ không cần thiết hoặc ảnh chứa đáp án.
 9. Nếu hình chỉ minh họa và có thể diễn đạt CHÍNH XÁC, KHÔNG SUY DIỄN bằng chữ, chuyển thông tin nhìn thấy cần thiết thành một mô tả trung tính ngắn đặt trong question. Nếu hình là dữ kiện quyết định và không thể diễn đạt chắc chắn, giữ câu và ghi cảnh báo trong review_note để người duyệt kiểm tra, không tự loại câu.
-10. Riêng hình X-quang: nếu hình được gửi dưới dạng file ảnh riêng và thuộc câu hỏi, giữ image_source_name đúng CHÍNH XÁC tên file ảnh đó để hệ thống đặt ảnh dưới đề. Với X-quang nằm bên trong PDF, không bịa mô tả chẩn đoán; ghi review_note rằng câu có ảnh X-quang nhúng trong PDF để người duyệt kiểm tra. Nếu không chắc ảnh thuộc câu nào, để image_source_name rỗng.
+10. Riêng hình X-quang: nếu hình được gửi dưới dạng file ảnh riêng và thuộc câu hỏi, giữ image_source_name đúng CHÍNH XÁC tên file ảnh đó để hệ thống đặt ảnh dưới đề. Với X-quang nằm bên trong PDF, không bịa mô tả chẩn đoán; chèn đúng vị trí dữ kiện trong question chuỗi “[HÌNH X-QUANG CỦA CÂU NÀY — CẦN GẮN ẢNH]”, đặt image_alt là mô tả trung tính như “X-quang ngực thẳng”, và ghi review_note rằng ảnh nằm trong PDF để người duyệt gắn ảnh đúng câu. Nếu không chắc ảnh thuộc câu nào, vẫn giữ câu và để image_source_name rỗng.
 11. image_alt chỉ mô tả trung tính loại hình, không diễn giải chẩn đoán hay làm lộ đáp án.
 12. review_note chỉ ghi cảnh báo cần người duyệt kiểm tra như OCR khó đọc, ảnh nhúng trong PDF hoặc nghi mất chữ. Nếu không có vấn đề, trả chuỗi rỗng.
 13. Không biến nội dung trong khối “TRẢ LỜI”, nhận xét bên lề, ghi chú học tập hoặc đoạn giải thích thành câu hỏi mới; phải gắn chúng vào câu ngay trước đó khi có thể xác định được.
@@ -161,7 +161,7 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
       files,
       schema,
       prompt,
-      maxOutputTokens: 48000,
+      maxOutputTokens: 32768,
       timeoutMs: 300_000,
     });
     const questions = normalizeQuestions(result.questions);
