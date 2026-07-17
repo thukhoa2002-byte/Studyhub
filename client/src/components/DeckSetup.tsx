@@ -652,27 +652,27 @@ export default function DeckSetup({
       )}
 
       {mode === "create" && (
-        <div className="glass-panel mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
+        <div className="glass-panel mode-panel rounded-lg border border-rose-100 bg-white/85 p-4 shadow-sm sm:p-6">
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="w-full rounded-lg border border-rose-100 bg-white/90 px-4 py-3 text-lg font-semibold text-rose-950 outline-none focus:border-rose-300"
+            className="w-full rounded-lg border border-rose-100 bg-white/90 px-4 py-3 font-semibold text-rose-950 outline-none focus:border-rose-300"
             placeholder="Bộ thẻ mới"
           />
-          <label className="mt-3 block text-xs font-bold uppercase tracking-[0.14em] text-teal-600">
-            Mục con cho thẻ đang tạo
+          <div className="mt-3 ml-5 border-l-2 border-teal-100 pl-3 sm:ml-9">
             <input
               list="subdeck-suggestions"
               value={subdeck}
               onChange={(event) => updateSubdeck(event.target.value)}
               onBlur={commitSubdeck}
-              className="mt-1 w-full rounded-lg border border-teal-100 bg-white/90 px-4 py-3 text-sm font-semibold normal-case text-teal-800 outline-none focus:border-teal-300"
-              placeholder="Ví dụ: Nhi::Viêm phổi hoặc Hô hấp"
+              className="w-full rounded-lg border border-teal-100 bg-white/90 px-4 py-3 text-sm font-semibold text-teal-800 outline-none focus:border-teal-300"
+              placeholder="Viêm phổi"
+              aria-label="Mục con"
             />
             <datalist id="subdeck-suggestions">
               {subdeckSuggestions.map((name) => <option key={name} value={name} />)}
             </datalist>
-          </label>
+          </div>
 
           {validCards.length > 0 && <div className="mt-6 overflow-hidden rounded-2xl border border-teal-100 bg-teal-50/50">
             <button type="button" onClick={() => setShowAddedCards((open) => !open)} aria-expanded={showAddedCards} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.16em] text-teal-700 hover:bg-teal-50">
