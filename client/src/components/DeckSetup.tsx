@@ -54,6 +54,7 @@ interface Props {
   savedDecks: SavedDeck[];
   onOpenDeck: (deck: SavedDeck) => void;
   onMergeSubdecks: (deck: SavedDeck, sourcePath: string, targetPath: string) => void | Promise<void>;
+  onMoveSubdeck: (sourceDeck: SavedDeck, sourcePath: string, targetDeck: SavedDeck, targetPath: string) => void | Promise<void>;
   onRenameDeck: (deck: SavedDeck, nextTitle: string) => void | Promise<void>;
   onRenameSubdeck: (deck: SavedDeck, sourcePath: string, nextName: string) => void | Promise<void>;
   onEditDeck: (deck: SavedDeck) => void;
@@ -228,6 +229,7 @@ export default function DeckSetup({
   savedDecks,
   onOpenDeck,
   onMergeSubdecks,
+  onMoveSubdeck,
   onRenameDeck,
   onRenameSubdeck,
   onEditDeck,
@@ -247,7 +249,7 @@ export default function DeckSetup({
   const [showAddedCards, setShowAddedCards] = useState(false);
   const [openDeckMenuId, setOpenDeckMenuId] = useState<string | null>(null);
   const [collapsedDeckIds, setCollapsedDeckIds] = useState<Set<string>>(new Set());
-  const [draggedSubdeck, setDraggedSubdeck] = useState<{ deckId: string; path: string } | null>(null);
+  const [draggedSubdeck, setDraggedSubdeck] = useState<{ deckId: string; path: string; canEdit: boolean } | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [mergingSubdeckKey, setMergingSubdeckKey] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
@@ -329,6 +331,21 @@ export default function DeckSetup({
     else void onRenameSubdeck(target.deck, target.path, value);
   }
 
+  function dropSubdeck(targetDeck: SavedDeck, targetPath: string, targetKey: string) {
+    if (!draggedSubdeck || !draggedSubdeck.canEdit) return;
+    const sourceDeck = savedDecks.find((deck) => deck.id === draggedSubdeck.deckId);
+    if (!sourceDeck || sourceDeck.id === targetDeck.id && !targetPath) return;
+    setDropTargetKey(null);
+    setMergingSubdeckKey(targetKey);
+    const operation = sourceDeck.id === targetDeck.id
+      ? onMergeSubdecks(targetDeck, draggedSubdeck.path, targetPath)
+      : onMoveSubdeck(sourceDeck, draggedSubdeck.path, targetDeck, targetPath);
+    void Promise.resolve(operation).finally(() => {
+      setDraggedSubdeck(null);
+      setMergingSubdeckKey(null);
+    });
+  }
+
   function renderSubdeckRows(nodes: SubdeckNode[], deck: SavedDeck, canEdit: boolean, depth = 0): React.ReactNode {
     return nodes.map((node) => {
       const childDeck: SavedDeck = {
@@ -341,9 +358,8 @@ export default function DeckSetup({
       const rowKey = `${deck.id}:${node.path}`;
       const canDrop = Boolean(
         canEdit &&
-        draggedSubdeck?.deckId === deck.id &&
-        draggedSubdeck.path !== node.path &&
-        !node.path.startsWith(`${draggedSubdeck.path}::`)
+        draggedSubdeck?.canEdit &&
+        (draggedSubdeck.deckId !== deck.id || (draggedSubdeck.path !== node.path && !node.path.startsWith(`${draggedSubdeck.path}::`)))
       );
       const isDropTarget = dropTargetKey === rowKey && canDrop;
       const isMerging = mergingSubdeckKey === rowKey;
@@ -357,7 +373,7 @@ export default function DeckSetup({
               if (!canEdit) return;
               event.dataTransfer.effectAllowed = "move";
               event.dataTransfer.setData("text/plain", node.path);
-              setDraggedSubdeck({ deckId: deck.id, path: node.path });
+              setDraggedSubdeck({ deckId: deck.id, path: node.path, canEdit });
             }}
             onDragOver={(event) => {
               if (!canDrop) return;
@@ -369,12 +385,7 @@ export default function DeckSetup({
             onDrop={(event) => {
               event.preventDefault();
               if (!canDrop || !draggedSubdeck) return;
-              setDropTargetKey(null);
-              setMergingSubdeckKey(rowKey);
-              void Promise.resolve(onMergeSubdecks(deck, draggedSubdeck.path, node.path)).finally(() => {
-                setDraggedSubdeck(null);
-                setMergingSubdeckKey(null);
-              });
+              dropSubdeck(deck, node.path, rowKey);
             }}
             onDragEnd={() => { setDraggedSubdeck(null); setDropTargetKey(null); }}
             title={canEdit ? "Kéo mục này lên mục khác để gộp" : "Mở mục con để học"}
@@ -494,8 +505,27 @@ export default function DeckSetup({
             {savedDecks.map((deck) => {
               const subdeckTree = buildSubdeckTree(deck.cards);
               const canEdit = deck.owner_id === currentUserId || deck.member_role === "admin" || deck.member_access === "edit";
+              const parentRowKey = `${deck.id}:`;
+              const canDropParent = Boolean(canEdit && draggedSubdeck?.canEdit && draggedSubdeck.deckId !== deck.id);
+              const isParentDropTarget = dropTargetKey === parentRowKey && canDropParent;
               return <React.Fragment key={deck.id}>
-              <div className="glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-teal-50 sm:grid-cols-[minmax(0,1fr)_4rem_4rem_4rem_5.5rem]">
+              <div
+                onDragOver={(event) => {
+                  if (!canDropParent) return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  event.dataTransfer.dropEffect = "move";
+                  setDropTargetKey(parentRowKey);
+                }}
+                onDragLeave={() => setDropTargetKey((current) => current === parentRowKey ? null : current)}
+                onDrop={(event) => {
+                  if (!canDropParent) return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  dropSubdeck(deck, "", parentRowKey);
+                }}
+                className={`glass-card deck-library-card relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 rounded-xl bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition sm:grid-cols-[minmax(0,1fr)_4rem_4rem_4rem_5.5rem] ${isParentDropTarget ? "bg-teal-50 ring-2 ring-teal-300" : "hover:bg-teal-50"}`}
+              >
                 <div className="flex min-w-0 items-center gap-2">
                   {subdeckTree.length > 0 ? <button type="button" onClick={() => toggleDeckChildren(deck.id)} title={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-label={collapsedDeckIds.has(deck.id) ? "Mở mục con" : "Thu mục con"} aria-expanded={!collapsedDeckIds.has(deck.id)} className="flex h-9 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-teal-50 hover:text-teal-700"><ChevronDown size={17} className={`transition-transform duration-200 ${collapsedDeckIds.has(deck.id) ? "-rotate-90" : ""}`} /></button> : <span className="w-7 shrink-0" />}
                   <DeckIconPicker title={deck.title} value={deckIcons[deck.id] || deckIcon(deck.title)} onChange={(icon) => updateDeckIcon(deck.id, icon)} />

@@ -450,6 +450,41 @@ export default function App() {
     }
   }
 
+  async function moveSavedSubdeck(sourceDeck: SavedDeck, sourcePath: string, targetDeck: SavedDeck, targetPath: string) {
+    if (!user || !supabase) return;
+    const client = supabase;
+    const canEdit = (deck: SavedDeck) => deck.owner_id === user.id || deck.member_role === "admin" || deck.member_access === "edit";
+    if (!canEdit(sourceDeck) || !canEdit(targetDeck) || sourceDeck.id === targetDeck.id) return;
+    const sourceCards = sourceDeck.cards.filter((card) => {
+      const category = normalizeSubdeck(card.category, "Tự tạo");
+      return category === sourcePath || category.startsWith(`${sourcePath}::`);
+    });
+    if (sourceCards.length === 0) return;
+    const destinationPath = targetPath ? `${targetPath}::${sourcePath}` : sourcePath;
+    try {
+      await Promise.all(sourceCards.map((card, index) => client
+        .from("cards")
+        .update({
+          deck_id: targetDeck.id,
+          category: replaceSubdeckPrefix(card.category, sourcePath, destinationPath),
+          position: targetDeck.cards.length + index,
+        })
+        .eq("id", card.id)
+        .eq("deck_id", sourceDeck.id)
+        .then(({ error }) => { if (error) throw error; })));
+      const nextDecks = await listDecks(user.id);
+      setSavedDecks(nextDecks);
+      const freshDeck = nextDecks.find((item) => item.id === targetDeck.id);
+      if (freshDeck && currentSavedDeck?.id === targetDeck.id) {
+        setCurrentSavedDeck(freshDeck);
+        setQuestions(freshDeck.cards);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`Không thể chuyển mục con: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+    }
+  }
+
   async function renameSavedDeck(deck: SavedDeck, nextTitle: string) {
     if (!user || !supabase) return;
     const title = nextTitle.trim();
@@ -725,6 +760,7 @@ export default function App() {
             savedDecks={savedDecks}
             onOpenDeck={openSavedDeck}
             onMergeSubdecks={mergeSavedSubdecks}
+            onMoveSubdeck={moveSavedSubdeck}
             onRenameDeck={renameSavedDeck}
             onRenameSubdeck={renameSavedSubdeck}
             onEditDeck={editSavedDeck}
