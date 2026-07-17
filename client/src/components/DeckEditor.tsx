@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, ChevronRight, Home, Plus, Save, Trash2, UserRound, Users, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ChevronRight, Home, ListChecks, Plus, Save, Trash2, UserRound, Users, X } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
@@ -88,6 +88,20 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
       const child = normalizeSubdeck(value);
       return { ...item, category: belongsToParent ? (child ? `${parent}::${child}` : parent) : value };
     }));
+  }
+
+  function updateMcq(id: string, changes: Partial<Pick<GeneratedQuestion, "options" | "correctOption" | "explanation" | "answer">>) {
+    const nextQuestions = questions.map((item) => item.id === id ? { ...item, ...changes } : item);
+    setQuestions(nextQuestions);
+    queueAutoSave(nextQuestions);
+  }
+
+  function updateMcqOption(id: string, optionIndex: number, value: string) {
+    const item = questions.find((question) => question.id === id);
+    if (!item?.options) return;
+    const nextOptions = item.options.map((option, index) => index === optionIndex ? value : option);
+    const nextCorrectOption = item.correctOption === item.options[optionIndex] ? value : item.correctOption;
+    updateMcq(id, { options: nextOptions, correctOption: nextCorrectOption });
   }
 
   function commitCategory(id: string) {
@@ -249,6 +263,21 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Front</p><RichTextEditor value={activeQuestion.question} onChange={(value) => update(activeQuestion.id, "question", value)} placeholder="Mặt trước" capitalizeFirst /></div>
             <div><p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Back</p><RichTextEditor value={activeQuestion.answer} onChange={(value) => update(activeQuestion.id, "answer", value)} placeholder="Mặt sau" capitalizeFirst /></div>
           </div>
+          {activeQuestion.options?.length ? <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50/40 p-3">
+            <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-violet-700"><ListChecks size={15} />Lựa chọn trắc nghiệm</div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {activeQuestion.options.map((option, optionIndex) => <input key={`${activeQuestion.id}-option-${optionIndex}`} value={option} onChange={(event) => updateMcqOption(activeQuestion.id, optionIndex, event.target.value)} className="w-full rounded-lg border border-violet-100 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-violet-300" placeholder={`Lựa chọn ${String.fromCharCode(65 + optionIndex)}`} />)}
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="block text-xs font-semibold text-violet-700">Đáp án đúng
+                <select value={activeQuestion.correctOption || ""} onChange={(event) => updateMcq(activeQuestion.id, { correctOption: event.target.value, answer: event.target.value })} className="mt-1 w-full rounded-lg border border-violet-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-violet-300">
+                  <option value="">Chọn đáp án</option>
+                  {activeQuestion.options.map((option, optionIndex) => <option key={`${activeQuestion.id}-correct-${optionIndex}`} value={option}>{String.fromCharCode(65 + optionIndex)}. {option}</option>)}
+                </select>
+              </label>
+              <div><p className="text-xs font-semibold text-violet-700">Giải thích</p><RichTextEditor value={activeQuestion.explanation || ""} onChange={(value) => updateMcq(activeQuestion.id, { explanation: value })} placeholder="Giải thích đáp án" /></div>
+            </div>
+          </div> : null}
         </div>}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
