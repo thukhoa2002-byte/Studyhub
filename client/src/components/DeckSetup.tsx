@@ -37,6 +37,7 @@ import type { LucideIcon } from "lucide-react";
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
+import { DEFAULT_SUBDECK, listSubdeckSuggestions, normalizeSubdeck } from "../utils/subdeck";
 import RichTextEditor from "./RichTextEditor";
 
 interface Props {
@@ -106,9 +107,10 @@ interface DraftCard {
   id: string;
   question: string;
   answer: string;
+  category: string;
 }
 
-function newDraftCard(): DraftCard {
+function newDraftCard(category = ""): DraftCard {
   return {
     id:
       typeof crypto.randomUUID === "function"
@@ -116,6 +118,7 @@ function newDraftCard(): DraftCard {
         : String(Date.now()),
     question: "",
     answer: "",
+    category,
   };
 }
 
@@ -179,6 +182,7 @@ export default function DeckSetup({
 }: Props) {
   const [mode, setMode] = useState<SetupMode>("import");
   const [title, setTitle] = useState("");
+  const [subdeck, setSubdeck] = useState("");
   const [cards, setCards] = useState<DraftCard[]>([newDraftCard()]);
   const [startingReview, setStartingReview] = useState(false);
   const [showAddedCards, setShowAddedCards] = useState(false);
@@ -206,6 +210,22 @@ export default function DeckSetup({
     setCards(nextCards);
     const updatedCard = nextCards.find((card) => card.id === id);
     if (updatedCard?.question.trim() && updatedCard.answer.trim()) {
+      void onSaveDeck(title.trim() || "Bộ thẻ mới", buildQuestions(nextCards));
+    }
+  }
+
+  function updateSubdeck(value: string) {
+    setSubdeck(value);
+    setCards((previous) => previous.map((card, index) => index === previous.length - 1 ? { ...card, category: value } : card));
+  }
+
+  function commitSubdeck() {
+    const normalized = normalizeSubdeck(subdeck, DEFAULT_SUBDECK);
+    const nextCards = cards.map((card, index) => index === cards.length - 1 ? { ...card, category: normalized } : card);
+    setSubdeck(normalized);
+    setCards(nextCards);
+    const currentCard = nextCards[nextCards.length - 1];
+    if (currentCard?.question.trim() && currentCard.answer.trim()) {
       void onSaveDeck(title.trim() || "Bộ thẻ mới", buildQuestions(nextCards));
     }
   }
@@ -247,11 +267,13 @@ export default function DeckSetup({
         id: card.id,
         question: card.question.trim(),
         answer: card.answer.trim(),
-        category: "Tự tạo",
+        category: normalizeSubdeck(card.category || subdeck, DEFAULT_SUBDECK),
         importance: index + 1,
         bookmarked: false,
       }));
   }
+
+  const subdeckSuggestions = listSubdeckSuggestions(savedDecks.flatMap((deck) => deck.cards.map((card) => card.category)));
 
   return (
     <section className="mx-auto max-w-5xl px-5 py-8 sm:py-12">
@@ -406,6 +428,20 @@ export default function DeckSetup({
             className="w-full rounded-lg border border-rose-100 bg-white/90 px-4 py-3 text-lg font-semibold text-rose-950 outline-none focus:border-rose-300"
             placeholder="Bộ thẻ mới"
           />
+          <label className="mt-3 block text-xs font-bold uppercase tracking-[0.14em] text-teal-600">
+            Mục con cho thẻ đang tạo
+            <input
+              list="subdeck-suggestions"
+              value={subdeck}
+              onChange={(event) => updateSubdeck(event.target.value)}
+              onBlur={commitSubdeck}
+              className="mt-1 w-full rounded-lg border border-teal-100 bg-white/90 px-4 py-3 text-sm font-semibold normal-case text-teal-800 outline-none focus:border-teal-300"
+              placeholder="Ví dụ: Nhi::Viêm phổi hoặc Hô hấp"
+            />
+            <datalist id="subdeck-suggestions">
+              {subdeckSuggestions.map((name) => <option key={name} value={name} />)}
+            </datalist>
+          </label>
 
           {validCards.length > 0 && <div className="mt-6 overflow-hidden rounded-2xl border border-teal-100 bg-teal-50/50">
             <button type="button" onClick={() => setShowAddedCards((open) => !open)} aria-expanded={showAddedCards} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.16em] text-teal-700 hover:bg-teal-50">
@@ -415,7 +451,10 @@ export default function DeckSetup({
             {showAddedCards && <div className="space-y-2 border-t border-teal-100 p-3">
               {validCards.map((card, index) => <div key={card.id} className="flex items-center gap-3 rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-slate-700">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">{index + 1}</span>
-                <span className="min-w-0 flex-1 truncate" dangerouslySetInnerHTML={{ __html: card.question }} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate" dangerouslySetInnerHTML={{ __html: card.question }} />
+                  <span className="mt-0.5 block truncate text-[10px] font-semibold text-teal-500">Mục con: {normalizeSubdeck(card.category || subdeck, DEFAULT_SUBDECK)}</span>
+                </span>
                 <button type="button" onClick={() => removeCard(card.id)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Xóa thẻ ${index + 1}`}><Trash2 size={16} /></button>
               </div>)}
             </div>}
@@ -431,7 +470,11 @@ export default function DeckSetup({
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               disabled={!cards[cards.length - 1]?.question.trim() || !cards[cards.length - 1]?.answer.trim()}
-              onClick={() => setCards((previous) => [...previous, newDraftCard()])}
+              onClick={() => {
+                const inheritedSubdeck = normalizeSubdeck(subdeck, DEFAULT_SUBDECK);
+                setSubdeck(inheritedSubdeck);
+                setCards((previous) => [...previous, newDraftCard(inheritedSubdeck)]);
+              }}
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-100 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Plus size={18} />

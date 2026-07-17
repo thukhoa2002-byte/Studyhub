@@ -3,6 +3,7 @@ import { AlertTriangle, Check, ChevronDown, Home, Plus, Save, Trash2, UserRound,
 import type { GeneratedQuestion } from "../services/api";
 import type { SavedDeck } from "../services/supabase";
 import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
+import { DEFAULT_SUBDECK, listSubdeckSuggestions, normalizeSubdeck } from "../utils/subdeck";
 import RichTextEditor from "./RichTextEditor";
 
 interface Props {
@@ -51,6 +52,13 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   const activeQuestion = questions.find((item) => item.id === activeQuestionId) || questions[0];
   const activeQuestionIndex = activeQuestion ? questions.findIndex((item) => item.id === activeQuestion.id) : -1;
 
+  function queueAutoSave(nextQuestions: GeneratedQuestion[]) {
+    if (!title.trim() || nextQuestions.some((item) => !item.question.trim() || !item.answer.trim())) return;
+    pendingAutoSaveRef.current = pendingAutoSaveRef.current.catch(() => undefined).then(async () => {
+      try { await onSave(title.trim(), nextQuestions, visibility); } catch { /* The parent already shows the save error. */ }
+    });
+  }
+
   function update(id: string, field: "question" | "answer", value: string) {
     const previousQuestion = questions.find((item) => item.id === id);
     const syncedAnswer = field === "question" ? toClozeAnswerHtml(value) : "";
@@ -60,17 +68,24 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
       : item
     );
     setQuestions(nextQuestions);
-    const updatedCard = nextQuestions.find((item) => item.id === id);
-    if (title.trim() && updatedCard?.question.trim() && updatedCard.answer.trim()) {
-      const valid = nextQuestions.filter((item) => item.question.trim() && item.answer.trim());
-      pendingAutoSaveRef.current = pendingAutoSaveRef.current.catch(() => undefined).then(async () => {
-        try { await onSave(title.trim(), valid, visibility); } catch { /* The parent already shows the save error. */ }
-      });
-    }
+    queueAutoSave(nextQuestions);
+  }
+
+  function updateCategory(id: string, value: string) {
+    setQuestions((current) => current.map((item) => item.id === id ? { ...item, category: value } : item));
+  }
+
+  function commitCategory(id: string) {
+    const nextQuestions = questions.map((item) => item.id === id
+      ? { ...item, category: normalizeSubdeck(item.category, DEFAULT_SUBDECK) }
+      : item
+    );
+    setQuestions(nextQuestions);
+    queueAutoSave(nextQuestions);
   }
 
   function addCard(scope: "shared" | "personal" = "shared") {
-    const card = { id: crypto.randomUUID(), scope, creatorLabel: currentUserLabel, question: "", answer: "", category: "Tự tạo", importance: 1, bookmarked: false };
+    const card = { id: crypto.randomUUID(), scope, creatorLabel: currentUserLabel, question: "", answer: "", category: normalizeSubdeck(activeQuestion?.category || "", DEFAULT_SUBDECK), importance: 1, bookmarked: false };
     setQuestions((current) => [...current, card]);
     setActiveQuestionId(card.id);
     setShowCardList(false);
@@ -111,16 +126,32 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   }
 
   async function save(saveAndStudy = false) {
-    const valid = questions.filter((item) => item.question.trim() && item.answer.trim());
-    if (!title.trim() || valid.length === 0) return;
+    if (!title.trim() || questions.length === 0) return;
+    if (questions.some((item) => !item.question.trim() || !item.answer.trim())) {
+      setShowIncompleteCardDialog(true);
+      return;
+    }
+    const normalizedQuestions = questions.map((item) => ({
+      ...item,
+      category: normalizeSubdeck(item.category, DEFAULT_SUBDECK),
+    }));
+    setQuestions(normalizedQuestions);
     await pendingAutoSaveRef.current.catch(() => undefined);
-    await (saveAndStudy ? onSaveAndStudy(title.trim(), valid, visibility) : onSave(title.trim(), valid, visibility));
+    await (saveAndStudy ? onSaveAndStudy(title.trim(), normalizedQuestions, visibility) : onSave(title.trim(), normalizedQuestions, visibility));
   }
+
+  const categorySuggestions = listSubdeckSuggestions([
+    ...questions.map((item) => item.category),
+    ...decks.flatMap((deck) => deck.cards.map((item) => item.category)),
+  ]);
 
   function switchDeck(deck: SavedDeck) {
     if (deck.title === title) return;
-    const valid = questions.filter((item) => item.question.trim() && item.answer.trim());
-    if (!title.trim() || valid.length === 0) return;
+    if (!title.trim() || questions.length === 0) return;
+    if (questions.some((item) => !item.question.trim() || !item.answer.trim())) {
+      setShowIncompleteCardDialog(true);
+      return;
+    }
     setPendingDeck(deck);
   }
 
@@ -129,8 +160,12 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
     const deck = pendingDeck;
     setPendingDeck(null);
     setShowDeckList(false);
-    const valid = questions.filter((item) => item.question.trim() && item.answer.trim());
-    await onSave(title.trim(), valid, visibility);
+    const normalizedQuestions = questions.map((item) => ({
+      ...item,
+      category: normalizeSubdeck(item.category, DEFAULT_SUBDECK),
+    }));
+    await pendingAutoSaveRef.current.catch(() => undefined);
+    await onSave(title.trim(), normalizedQuestions, visibility);
     await onSwitchDeck(deck);
   }
 
@@ -162,12 +197,12 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
           {showCardList && <div className="max-h-72 space-y-2 overflow-y-auto border-t border-teal-100 p-3">
             <div className="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] gap-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400" aria-hidden="true">
               <span />
-              <span>Front</span>
+              <span>Front · Mục con</span>
               <span className="border-l border-teal-100 pl-3">Back</span>
             </div>
             {questions.map((item, index) => <button key={item.id} type="button" onClick={() => setActiveQuestionId(item.id)} className={`grid w-full grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${item.id === activeQuestion?.id ? "border-teal-200 bg-teal-100/70 text-teal-900" : "border-white/80 bg-white/85 text-slate-700 hover:border-teal-100 hover:bg-white"}`}>
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-teal-700 shadow-sm">{index + 1}</span>
-              <span className="min-w-0 truncate pr-2" dangerouslySetInnerHTML={{ __html: item.question || "<em>Thẻ trống</em>" }} />
+              <span className="min-w-0 pr-2"><span className="block truncate" dangerouslySetInnerHTML={{ __html: item.question || "<em>Thẻ trống</em>" }} /><span className="mt-0.5 block truncate text-[10px] font-bold text-teal-600">{normalizeSubdeck(item.category, DEFAULT_SUBDECK)}</span></span>
               <span className="min-w-0 truncate border-l border-teal-100 pl-3" dangerouslySetInnerHTML={{ __html: item.answer || "<em>Thẻ trống</em>" }} />
             </button>)}
           </div>}
@@ -175,9 +210,23 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
 
         {activeQuestion && <div key={activeQuestion.id} data-card-id={activeQuestion.id} className="mt-5 rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-500">Thẻ {activeQuestionIndex + 1}</p>
               {visibility === "shared" && <p className="mt-1 text-[11px] font-medium text-slate-400">Đã thêm bởi: <span className="font-semibold text-slate-500">{activeQuestion.creatorLabel || "Chủ bộ thẻ"}</span></p>}
+              <label className="mt-2 block max-w-md text-[10px] font-bold uppercase tracking-[0.14em] text-teal-600">
+                Mục con
+                <input
+                  list="editor-subdeck-suggestions"
+                  value={activeQuestion.category || ""}
+                  onChange={(event) => updateCategory(activeQuestion.id, event.target.value)}
+                  onBlur={() => commitCategory(activeQuestion.id)}
+                  className="mt-1 w-full rounded-lg border border-teal-100 bg-white/90 px-3 py-2 text-xs font-semibold normal-case text-teal-800 outline-none focus:border-teal-300"
+                  placeholder="Ví dụ: Nhi::Viêm phổi"
+                />
+                <datalist id="editor-subdeck-suggestions">
+                  {categorySuggestions.map((name) => <option key={name} value={name} />)}
+                </datalist>
+              </label>
             </div>
             <button disabled={questions.length <= 1} onClick={() => removeCard(activeQuestion.id)} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Xóa thẻ"><Trash2 size={18} /></button>
           </div>
