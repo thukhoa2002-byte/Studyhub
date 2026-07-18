@@ -280,24 +280,31 @@ async function embedFlowFonts(pdf) {
   pdf.registerFontkit(fontkit);
   const privateTimesDir = process.env.REFERENCE_FONT_DIR || (process.platform === "darwin" ? "/System/Library/Fonts/Supplemental" : "");
   const timesFiles = [
-    "Times New Roman.ttf",
-    "Times New Roman Bold.ttf",
-    "Times New Roman Italic.ttf",
-    "Times New Roman Bold Italic.ttf",
+    { local: "Times New Roman.ttf", secret: "times-new-roman.ttf" },
+    { local: "Times New Roman Bold.ttf", secret: "times-new-roman-bold.ttf" },
+    { local: "Times New Roman Italic.ttf", secret: "times-new-roman-italic.ttf" },
+    { local: "Times New Roman Bold Italic.ttf", secret: "times-new-roman-bold-italic.ttf" },
   ];
   if (privateTimesDir) {
     try {
-      const readPrivateFont = async (file) => {
-        const directPath = join(privateTimesDir, file);
-        try {
-          await access(directPath);
-          return readFile(directPath);
-        } catch {
-          const encodedPath = `${directPath}.b64`;
-          await access(encodedPath);
-          const encoded = await readFile(encodedPath, "utf8");
-          return Buffer.from(encoded.replace(/\s+/g, ""), "base64");
+      const readPrivateFont = async ({ local, secret }) => {
+        for (const file of [secret, local]) {
+          const directPath = join(privateTimesDir, file);
+          try {
+            await access(directPath);
+            return readFile(directPath);
+          } catch {
+            const encodedPath = `${directPath}.b64`;
+            try {
+              await access(encodedPath);
+              const encoded = await readFile(encodedPath, "utf8");
+              return Buffer.from(encoded.replace(/\s+/g, ""), "base64");
+            } catch {
+              // Try the next supported filename.
+            }
+          }
         }
+        throw new Error(`Missing Times New Roman font: ${secret}`);
       };
       const times = await Promise.all(timesFiles.map(readPrivateFont));
       const embedTimes = async (buffer) => createFontSet([await pdf.embedFont(buffer, { subset: true })], [buffer]);
