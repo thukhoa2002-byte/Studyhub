@@ -186,6 +186,133 @@ async function createVisibleOcrPdf(file, editedLayout = null) {
   return Buffer.from(await pdf.save({ useObjectStreams: true }));
 }
 
+function wrapFlowText(textValue, font, size, maxWidth) {
+  return String(textValue || "").split(/\r?\n/).flatMap((paragraph) => {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return [""];
+    const lines = [];
+    let line = "";
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word;
+      if (line && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = candidate;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  });
+}
+
+async function embedFlowFonts(pdf) {
+  pdf.registerFontkit(fontkit);
+  const fontDir = join(ROUTE_DIR, "../node_modules/pdfjs-dist/standard_fonts");
+  const [regular, bold, italic, boldItalic] = await Promise.all([
+    readFile(join(fontDir, "LiberationSans-Regular.ttf")),
+    readFile(join(fontDir, "LiberationSans-Bold.ttf")),
+    readFile(join(fontDir, "LiberationSans-Italic.ttf")),
+    readFile(join(fontDir, "LiberationSans-BoldItalic.ttf")),
+  ]);
+  return {
+    regular: await pdf.embedFont(regular, { subset: true }),
+    bold: await pdf.embedFont(bold, { subset: true }),
+    italic: await pdf.embedFont(italic, { subset: true }),
+    boldItalic: await pdf.embedFont(boldItalic, { subset: true }),
+  };
+}
+
+async function renderDiagramCrop(file, pageIndex, blocks) {
+  const diagramBlocks = blocks.filter((block) => ["diagram_label", "diagram_caption"].includes(block.role));
+  if (!diagramBlocks.length) return null;
+  const [{ getDocument }, { createCanvas }] = await Promise.all([
+    import("pdfjs-dist/legacy/build/pdf.mjs"),
+    import("@napi-rs/canvas"),
+  ]);
+  const sourcePdf = await getDocument({ data: new Uint8Array(file.buffer), disableWorker: true, useSystemFonts: true }).promise;
+  const sourcePage = await sourcePdf.getPage(pageIndex + 1);
+  const scale = 1.5;
+  const viewport = sourcePage.getViewport({ scale });
+  const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+  await sourcePage.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+  const minX = Math.max(0, Math.min(...diagramBlocks.map((block) => block.x)) - 0.04);
+  const minY = Math.max(0, Math.min(...diagramBlocks.map((block) => block.y)) - 0.04);
+  const maxX = Math.min(1, Math.max(...diagramBlocks.map((block) => block.x + block.width)) + 0.04);
+  const maxY = Math.min(1, Math.max(...diagramBlocks.map((block) => block.y + block.height)) + 0.04);
+  const sx = Math.round(minX * viewport.width);
+  const sy = Math.round(minY * viewport.height);
+  const sw = Math.max(1, Math.round((maxX - minX) * viewport.width));
+  const sh = Math.max(1, Math.round((maxY - minY) * viewport.height));
+  const crop = createCanvas(sw, sh);
+  crop.getContext("2d").drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+  return { png: crop.toBuffer("image/png"), width: sw, height: sh };
+}
+
+async function createReflowPdf(file, editedLayout = null) {
+  const sourcePdf = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
+  const output = await PDFDocument.create();
+  const fonts = await embedFlowFonts(output);
+  const pageSize = { width: 595.28, height: 841.89 };
+  const margin = { left: 64, right: 64, top: 58, bottom: 58 };
+  const contentWidth = pageSize.width - margin.left - margin.right;
+  let page = output.addPage([pageSize.width, pageSize.height]);
+  let cursorY = pageSize.height - margin.top;
+
+  const newPage = () => {
+    page = output.addPage([pageSize.width, pageSize.height]);
+    cursorY = pageSize.height - margin.top;
+  };
+  const ensureSpace = (height) => {
+    if (cursorY - height < margin.bottom) newPage();
+  };
+  const addTextBlock = (block) => {
+    const role = block.role || "text";
+    if (["header", "footer", "page_number", "metadata", "diagram_label"].includes(role)) return;
+    const isHeading = role === "heading";
+    const isCaption = role === "caption" || role === "diagram_caption";
+    const isList = /^\s*(?:[-•*]|\d+[.)]|[A-Z][.)])\s/.test(block.text || "");
+    const size = isHeading ? 15 : isCaption ? 9.5 : role === "table" ? 10 : 11.5;
+    const lineHeight = size * (isHeading ? 1.25 : 1.45);
+    const indent = !isHeading && !isCaption && !isList ? 18 : 0;
+    const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
+    const lines = wrapFlowText(block.text, font, size, contentWidth - indent);
+    ensureSpace(lines.length * lineHeight + (isHeading ? 12 : 8));
+    cursorY -= isHeading ? 6 : 2;
+    lines.forEach((line, index) => {
+      page.drawText(line, { x: margin.left + (index === 0 ? indent : 0), y: cursorY - size, size, font, color: rgb(0.08, 0.08, 0.08), maxWidth: contentWidth - (index === 0 ? indent : 0), lineHeight });
+      cursorY -= lineHeight;
+    });
+    cursorY -= isHeading ? 7 : 5;
+  };
+  const addDiagram = async (diagram) => {
+    const image = await output.embedPng(diagram.png);
+    const maxWidth = contentWidth;
+    const maxHeight = 310;
+    const scale = Math.min(maxWidth / diagram.width, maxHeight / diagram.height, 1);
+    const width = diagram.width * scale;
+    const height = diagram.height * scale;
+    ensureSpace(height + 20);
+    page.drawImage(image, { x: margin.left + (contentWidth - width) / 2, y: cursorY - height, width, height });
+    cursorY -= height + 16;
+  };
+
+  for (let pageIndex = 0; pageIndex < sourcePdf.getPageCount(); pageIndex += 1) {
+    const pageData = editedLayout?.pages?.[pageIndex]?.blocks ? editedLayout.pages[pageIndex] : (await ocrPageLocally(await makeSinglePagePdf(sourcePdf, pageIndex, file.originalname || "reference-book"), pageIndex, sourcePdf.getPageCount())).page;
+    let diagramAdded = false;
+    for (const block of pageData.blocks) {
+      if (!diagramAdded && ["diagram_label", "diagram_caption"].includes(block.role)) {
+        const diagram = await renderDiagramCrop(file, pageIndex, pageData.blocks);
+        if (diagram) await addDiagram(diagram);
+        diagramAdded = true;
+      }
+      addTextBlock(block);
+    }
+  }
+
+  return Buffer.from(await output.save({ useObjectStreams: true }));
+}
+
 async function extractPage(pageFile, pageIndex, totalPages, source, originalName) {
   try {
     const result = await generateStructuredFromFile({
@@ -278,7 +405,8 @@ router.post("/ocr-pdf", requireGuidelineAdmin, upload.single("file"), async (req
     if (req.body.layout) {
       try { editedLayout = JSON.parse(req.body.layout); } catch { return res.status(400).json({ success: false, message: "Bố cục OCR chỉnh sửa không hợp lệ." }); }
     }
-    const pdf = await createVisibleOcrPdf(req.file, editedLayout);
+    const format = req.body.format || "reflow";
+    const pdf = format === "scan" ? await createVisibleOcrPdf(req.file, editedLayout) : await createReflowPdf(req.file, editedLayout);
     res.type("application/pdf").send(pdf);
   } catch (error) {
     const status = error?.status === 429 ? 429 : 500;

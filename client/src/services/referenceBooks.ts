@@ -52,6 +52,7 @@ export async function createReferenceBookTextPdf(file: File, layout?: ReferenceB
   if (!session?.access_token) throw new Error("Bạn cần đăng nhập để tạo PDF OCR.");
   const form = new FormData();
   form.append("file", file);
+  form.append("format", "reflow");
   if (layout) form.append("layout", JSON.stringify(layout));
   const response = await fetch("/api/reference-books/ocr-pdf", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: form });
   if (!response.ok) {
