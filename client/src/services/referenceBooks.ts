@@ -77,6 +77,7 @@ export async function createReferenceBookTextPdf(file: File, layout?: ReferenceB
 }
 
 export async function generateReferenceBookTextPdf(book: ReferenceBook): Promise<ReferenceBook> {
+  if (!book.source_file_path) throw new Error("Mục này là thư mục, không có PDF gốc để tạo bản PDF chữ.");
   const sourceUrl = await getReferenceBookUrl(book.source_file_path);
   const sourceResponse = await fetch(sourceUrl);
   if (!sourceResponse.ok) throw new Error("Không thể tải PDF gốc để tạo bản OCR.");

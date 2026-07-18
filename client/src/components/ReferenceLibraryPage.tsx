@@ -119,7 +119,9 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
   async function openBook(book: ReferenceBook) {
     setError("");
     try {
-      const url = await getReferenceBookUrl(book.text_pdf_path || book.source_file_path);
+      const filePath = book.text_pdf_path || book.source_file_path;
+      if (!filePath) throw new Error("Mục này là thư mục, không có file PDF để mở.");
+      const url = await getReferenceBookUrl(filePath);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (openError) {
       setError(openError instanceof Error ? openError.message : "Không thể mở sách.");
