@@ -18,6 +18,17 @@ const schema = {
   required: ["title", "author", "publicationYear", "pages"],
   additionalProperties: false,
 };
+const pageSchema = {
+  type: "object",
+  properties: {
+    title: text,
+    author: text,
+    publicationYear: { type: "integer" },
+    pages: schema.properties.pages,
+  },
+  required: ["pages"],
+  additionalProperties: false,
+};
 
 const prompt = `Bạn là hệ thống OCR và phân tích bố cục PDF. Đọc toàn bộ file PDF scan được gửi kèm và trả JSON đúng schema.
 Mục tiêu là tái tạo một PDF có chữ thật nhưng giữ bố cục nhìn thấy của bản scan.
@@ -57,13 +68,18 @@ async function extractAllPages(file) {
 
   for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
     const pageFile = await makeSinglePagePdf(source, pageIndex, file.originalname || "reference-book");
-    const result = await generateStructuredFromFile({
-      file: pageFile,
-      schema,
-      prompt: `${prompt}\n\nĐÂY LÀ TRANG ${pageIndex + 1}/${totalPages} CỦA TÀI LIỆU GỐC. Chỉ trả đúng một phần tử trong pages cho trang này. Không bỏ qua bất kỳ chữ, bảng, chú thích hoặc hình có chữ nào trên trang. pageNumber phải là 1 vì file gửi kèm chỉ chứa trang hiện tại.`,
-      maxOutputTokens: 32768,
-      timeoutMs: 300_000,
-    });
+    let result;
+    try {
+      result = await generateStructuredFromFile({
+        file: pageFile,
+        schema: pageSchema,
+        prompt: `${prompt}\n\nĐÂY LÀ TRANG ${pageIndex + 1}/${totalPages} CỦA TÀI LIỆU GỐC. Chỉ trả đúng một phần tử trong pages cho trang này. Không bỏ qua bất kỳ chữ, bảng, chú thích hoặc hình có chữ nào trên trang. pageNumber phải là 1 vì file gửi kèm chỉ chứa trang hiện tại. Trường title, author và publicationYear có thể để trống nếu trang này không chứa thông tin thư mục.`,
+        maxOutputTokens: 8192,
+        timeoutMs: 300_000,
+      });
+    } catch (error) {
+      throw new Error(`Gemini không đọc được trang ${pageIndex + 1}/${totalPages}: ${error instanceof Error ? error.message : String(error)}`);
+    }
 
     if (!title && result.title?.trim()) title = result.title.trim();
     if (!author && result.author?.trim()) author = result.author.trim();
