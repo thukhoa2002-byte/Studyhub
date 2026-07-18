@@ -3,7 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import GuidelinesPage from "./GuidelinesPage";
-import { createReferenceBook, createReferenceBookTextPdf, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookExtraction } from "../services/referenceBooks";
+import { createReferenceBook, createReferenceBookTextPdf, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookExtraction } from "../services/referenceBooks";
 
 type ReferenceSection = "guidelines" | "books";
 const REFERENCE_BOOK_OWNER_EMAIL = "thukhoa2002@gmail.com";
@@ -119,7 +119,8 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
   }
 
   function roleLabel(role: ReferenceBookBlock["role"]) {
-    return ({ header: "Header", footer: "Footer", page_number: "Số trang", metadata: "Thông tin phụ", diagram_label: "Nhãn sơ đồ", diagram_caption: "Chú thích sơ đồ", heading: "Tiêu đề", table: "Bảng", caption: "Chú thích", text: "Nội dung" })[role];
+    const labels: Record<ReferenceBookBlock["role"], string> = { header: "Header", footer: "Footer", page_number: "Số trang", metadata: "Thông tin phụ", diagram_label: "Nhãn sơ đồ", diagram_caption: "Chú thích sơ đồ", heading: "Tiêu đề", table: "Bảng", caption: "Chú thích", text: "Nội dung" };
+    return labels[role];
   }
 
   return <>
