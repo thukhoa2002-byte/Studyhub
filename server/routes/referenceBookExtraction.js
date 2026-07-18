@@ -342,13 +342,12 @@ async function createReflowPdf(file, editedLayout = null) {
     const isCaption = role === "caption" || role === "diagram_caption";
     const isList = /^\s*(?:[-•*]|\d+[.)]|[A-Z][.)])\s/.test(block.text || "");
     const size = isHeading ? 17 : isCaption ? 10.5 : role === "table" ? 11 : 13;
-    const lineHeight = size * (isHeading ? 1.25 : 1.45);
+    const lineHeight = size * 1.5;
     const indent = !isHeading && !isCaption && !isList ? 18 : 0;
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
     const cleanText = font.sanitize(block.text);
     const lines = wrapFlowText(cleanText, font, size, contentWidth - indent);
-    ensureSpace(lineHeight + (isHeading ? 12 : 8));
-    cursorY -= isHeading ? 6 : 2;
+    ensureSpace(lineHeight);
     lines.forEach((line, index) => {
       if (cursorY - lineHeight < margin.bottom) newPage();
       const lineIndent = index === 0 ? indent : 0;
@@ -359,7 +358,6 @@ async function createReflowPdf(file, editedLayout = null) {
       drawMixedText(page, line, font, { x: margin.left + lineIndent, y: cursorY - size, size, color: rgb(0.08, 0.08, 0.08), extraWordSpacing });
       cursorY -= lineHeight;
     });
-    cursorY -= isHeading ? 7 : 5;
   };
   const addDiagram = async (diagram) => {
     const image = await output.embedPng(diagram.png);
