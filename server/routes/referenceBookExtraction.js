@@ -339,10 +339,13 @@ async function createReflowPdf(file, editedLayout = null) {
   const addTextBlock = (block) => {
     const role = block.role || "text";
     if (["header", "footer", "page_number", "metadata", "diagram_label"].includes(role)) return;
-    const isHeading = role === "heading";
-    const isCaption = role === "caption" || role === "diagram_caption";
+    const sourceText = String(block.text || "").trim();
+    const numberedHeading = /^(?:\d+\.){2,}\s+/u.test(sourceText);
+    const uppercaseHeading = sourceText.length <= 100 && sourceText === sourceText.toLocaleUpperCase("vi") && /[A-ZÀ-ỸĐ]/u.test(sourceText);
+    const isHeading = role === "heading" || numberedHeading || uppercaseHeading;
+    const isCaption = !isHeading && (role === "caption" || role === "diagram_caption");
     const isList = /^\s*(?:[-•*]|\d+[.)]|[A-Z][.)])\s/.test(block.text || "");
-    const size = isHeading ? 17 : isCaption ? 10.5 : role === "table" ? 11 : 13;
+    const size = isHeading ? 16 : isCaption ? 10.5 : role === "table" ? 11 : 13;
     const lineHeight = size * 1.5;
     const indent = !isHeading && !isCaption && !isList ? 18 : 0;
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
