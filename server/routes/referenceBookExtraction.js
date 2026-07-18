@@ -51,8 +51,13 @@ function createFontSanitizer(fontBytes) {
   return (value) => Array.from(String(value || "")).filter((character) => {
     if (character === "\n" || character === "\r") return true;
     const codePoint = character.codePointAt(0);
-    return codePoint !== undefined && face.hasGlyphForCodePoint(codePoint);
-  }).join("");
+    if (codePoint === undefined || codePoint < 0x20 && ![9, 11, 12].includes(codePoint)) return false;
+    try {
+      return face.hasGlyphForCodePoint(codePoint);
+    } catch {
+      return false;
+    }
+  }).join("").normalize("NFC");
 }
 
 const prompt = `Bạn là hệ thống OCR và phân tích bố cục PDF. Đọc toàn bộ file PDF scan được gửi kèm và trả JSON đúng schema.
@@ -198,6 +203,13 @@ async function createVisibleOcrPdf(file, editedLayout = null) {
 }
 
 function wrapFlowText(textValue, font, size, maxWidth) {
+  const measure = (value) => {
+    try {
+      return font.widthOfTextAtSize(value, size);
+    } catch {
+      return Number.POSITIVE_INFINITY;
+    }
+  };
   return String(textValue || "").split(/\r?\n/).flatMap((paragraph) => {
     const words = paragraph.trim().split(/\s+/).filter(Boolean);
     if (!words.length) return [""];
@@ -205,7 +217,7 @@ function wrapFlowText(textValue, font, size, maxWidth) {
     let line = "";
     for (const word of words) {
       const candidate = line ? `${line} ${word}` : word;
-      if (line && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+      if (line && measure(candidate) > maxWidth) {
         lines.push(line);
         line = word;
       } else {
@@ -226,13 +238,32 @@ async function embedFlowFonts(pdf) {
     readFile(join(fontDir, "noto-serif-vietnamese-400-italic.woff2")),
     readFile(join(fontDir, "noto-serif-vietnamese-700-italic.woff2")),
   ]);
-  const sanitize = createFontSanitizer(regular);
+  const regularSanitize = createFontSanitizer(regular);
+  const boldSanitize = createFontSanitizer(bold);
+  const italicSanitize = createFontSanitizer(italic);
+  const boldItalicSanitize = createFontSanitizer(boldItalic);
+  const regularFont = await pdf.embedFont(regular, { subset: true });
+  const boldFont = await pdf.embedFont(bold, { subset: true });
+  const italicFont = await pdf.embedFont(italic, { subset: true });
+  const boldItalicFont = await pdf.embedFont(boldItalic, { subset: true });
+  const sanitizeForFont = (font, value) => {
+    const sanitizer = font === boldFont ? boldSanitize : font === italicFont ? italicSanitize : font === boldItalicFont ? boldItalicSanitize : regularSanitize;
+    return Array.from(sanitizer(value)).filter((character) => {
+      if (character === "\n" || character === "\r") return true;
+      try {
+        font.encodeText(character);
+        return true;
+      } catch {
+        return false;
+      }
+    }).join("");
+  };
   return {
-    regular: await pdf.embedFont(regular, { subset: true }),
-    bold: await pdf.embedFont(bold, { subset: true }),
-    italic: await pdf.embedFont(italic, { subset: true }),
-    boldItalic: await pdf.embedFont(boldItalic, { subset: true }),
-    sanitize,
+    regular: regularFont,
+    bold: boldFont,
+    italic: italicFont,
+    boldItalic: boldItalicFont,
+    sanitizeForFont,
   };
 }
 
@@ -289,7 +320,7 @@ async function createReflowPdf(file, editedLayout = null) {
     const lineHeight = size * (isHeading ? 1.25 : 1.45);
     const indent = !isHeading && !isCaption && !isList ? 18 : 0;
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
-    const lines = wrapFlowText(fonts.sanitize(block.text), font, size, contentWidth - indent);
+    const lines = wrapFlowText(fonts.sanitizeForFont(font, block.text), font, size, contentWidth - indent);
     ensureSpace(lines.length * lineHeight + (isHeading ? 12 : 8));
     cursorY -= isHeading ? 6 : 2;
     lines.forEach((line, index) => {
