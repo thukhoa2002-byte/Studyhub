@@ -29,6 +29,17 @@ const pageSchema = {
   required: ["pages"],
   additionalProperties: false,
 };
+const fallbackTextSchema = {
+  type: "object",
+  properties: {
+    title: text,
+    author: text,
+    publicationYear: { type: "integer" },
+    pageText: text,
+  },
+  required: ["pageText"],
+  additionalProperties: false,
+};
 
 const prompt = `Bạn là hệ thống OCR và phân tích bố cục PDF. Đọc toàn bộ file PDF scan được gửi kèm và trả JSON đúng schema.
 Mục tiêu là tái tạo một PDF có chữ thật nhưng giữ bố cục nhìn thấy của bản scan.
@@ -56,6 +67,52 @@ async function makeSinglePagePdf(source, pageIndex, originalName) {
   };
 }
 
+function makeFallbackPage(pageText) {
+  const lines = String(pageText || "").split(/\n+/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
+  return {
+    pageNumber: 1,
+    width: 1,
+    height: 1,
+    blocks: lines.map((line, index) => ({
+      text: line,
+      x: 0.03,
+      y: Math.min(0.97, 0.03 + index * 0.03),
+      width: 0.94,
+      height: 0.02,
+      fontSize: 0.015,
+      fontWeight: "normal",
+      italic: false,
+      role: "text",
+    })),
+  };
+}
+
+async function extractPage(pageFile, pageIndex, totalPages) {
+  try {
+    const result = await generateStructuredFromFile({
+      file: pageFile,
+      schema: pageSchema,
+      prompt: `${prompt}\n\nĐÂY LÀ TRANG ${pageIndex + 1}/${totalPages} CỦA TÀI LIỆU GỐC. Chỉ trả đúng một phần tử trong pages cho trang này. Không bỏ qua bất kỳ chữ, bảng, chú thích hoặc hình có chữ nào trên trang. pageNumber phải là 1 vì file gửi kèm chỉ chứa trang hiện tại. Trường title, author và publicationYear có thể để trống nếu trang này không chứa thông tin thư mục.`,
+      maxOutputTokens: 8192,
+      timeoutMs: 300_000,
+    });
+    const page = Array.isArray(result.pages) ? result.pages[0] : null;
+    if (!page) throw new Error("Gemini không trả về page layout.");
+    return { result, page };
+  } catch (layoutError) {
+    console.warn(`Reference OCR layout failed for page ${pageIndex + 1}/${totalPages}; retrying text-only OCR.`, layoutError);
+    const fallback = await generateStructuredFromFile({
+      file: pageFile,
+      schema: fallbackTextSchema,
+      prompt: `Bạn là OCR văn bản. Đọc toàn bộ chữ nhìn thấy trên đúng trang PDF được gửi kèm. Chép nguyên văn theo thứ tự từ trên xuống dưới, trái sang phải; giữ tiêu đề, bảng, số liệu, đơn vị, chú thích và nội dung trong ảnh. Không tóm tắt, không dịch, không bỏ dòng, không bịa. Trả pageText là toàn bộ văn bản của trang, có thể dùng xuống dòng. Nếu có bảng, chép từng hàng/ô theo thứ tự đọc. Chỉ trả JSON theo schema. Đây là trang ${pageIndex + 1}/${totalPages}.`,
+      maxOutputTokens: 8192,
+      timeoutMs: 300_000,
+    });
+    if (!String(fallback.pageText || "").trim()) throw new Error(`Gemini không đọc được trang ${pageIndex + 1}/${totalPages}: ${layoutError instanceof Error ? layoutError.message : String(layoutError)}`);
+    return { result: fallback, page: makeFallbackPage(fallback.pageText) };
+  }
+}
+
 async function extractAllPages(file) {
   const source = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
   const totalPages = source.getPageCount();
@@ -68,25 +125,12 @@ async function extractAllPages(file) {
 
   for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
     const pageFile = await makeSinglePagePdf(source, pageIndex, file.originalname || "reference-book");
-    let result;
-    try {
-      result = await generateStructuredFromFile({
-        file: pageFile,
-        schema: pageSchema,
-        prompt: `${prompt}\n\nĐÂY LÀ TRANG ${pageIndex + 1}/${totalPages} CỦA TÀI LIỆU GỐC. Chỉ trả đúng một phần tử trong pages cho trang này. Không bỏ qua bất kỳ chữ, bảng, chú thích hoặc hình có chữ nào trên trang. pageNumber phải là 1 vì file gửi kèm chỉ chứa trang hiện tại. Trường title, author và publicationYear có thể để trống nếu trang này không chứa thông tin thư mục.`,
-        maxOutputTokens: 8192,
-        timeoutMs: 300_000,
-      });
-    } catch (error) {
-      throw new Error(`Gemini không đọc được trang ${pageIndex + 1}/${totalPages}: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    const { result, page } = await extractPage(pageFile, pageIndex, totalPages);
 
     if (!title && result.title?.trim()) title = result.title.trim();
     if (!author && result.author?.trim()) author = result.author.trim();
     if (!publicationYear && Number.isInteger(result.publicationYear) && result.publicationYear > 0) publicationYear = result.publicationYear;
 
-    const page = Array.isArray(result.pages) ? result.pages[0] : null;
-    if (!page) throw new Error(`Gemini không trả về nội dung cho trang ${pageIndex + 1}/${totalPages}.`);
     pages.push({ ...page, pageNumber: pageIndex + 1 });
   }
 
