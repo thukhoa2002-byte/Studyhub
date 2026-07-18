@@ -6,6 +6,7 @@ const GEMINI_API_ROOT = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_UPLOAD_ROOT = "https://generativelanguage.googleapis.com/upload/v1beta";
 const FILE_API_THRESHOLD_BYTES = 14 * 1024 * 1024;
 const GENERATION_RETRY_DELAYS_MS = [2_000, 4_000, 8_000];
+const PDF_FALLBACK_MODEL = "gemini-2.5-flash";
 
 function getApiKey() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -59,12 +60,12 @@ function shouldRetryWithCompatibleOutputLimit(response, payload) {
   return /invalid argument/i.test(String(payload?.error?.message || ""));
 }
 
-async function requestGeneration({ model, apiKey, signal, prompt, mediaParts, schema, maxOutputTokens, useSchema, useJsonMode = true }) {
+async function requestGeneration({ model, apiKey, signal, prompt, mediaParts, schema, maxOutputTokens, useSchema, useJsonMode = true, useOutputLimit = true }) {
   const generationConfig = {
-    maxOutputTokens,
     temperature: 0.2,
   };
   if (useJsonMode) generationConfig.responseMimeType = "application/json";
+  if (useOutputLimit) generationConfig.maxOutputTokens = maxOutputTokens;
   if (useSchema) generationConfig.responseJsonSchema = schema;
 
   const response = await fetch(
@@ -258,6 +259,37 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
         maxOutputTokens: Math.min(maxOutputTokens, 8192),
         useSchema: false,
         useJsonMode: false,
+      }));
+    }
+    if (!response.ok && shouldRetryWithCompatibleOutputLimit(response, payload)) {
+      console.warn("Gemini rejected the output configuration; retrying with a bare generation request.");
+      ({ response, payload } = await requestGenerationWithRetries({
+        model,
+        apiKey,
+        signal: controller.signal,
+        prompt,
+        mediaParts,
+        schema,
+        maxOutputTokens: 0,
+        useSchema: false,
+        useJsonMode: false,
+        useOutputLimit: false,
+      }));
+    }
+    if (!response.ok && shouldRetryWithCompatibleOutputLimit(response, payload) && model !== (process.env.GEMINI_PDF_FALLBACK_MODEL || PDF_FALLBACK_MODEL)) {
+      const fallbackModel = process.env.GEMINI_PDF_FALLBACK_MODEL || PDF_FALLBACK_MODEL;
+      console.warn(`Gemini model ${model} rejected the PDF request; retrying with ${fallbackModel}.`);
+      ({ response, payload } = await requestGenerationWithRetries({
+        model: fallbackModel,
+        apiKey,
+        signal: controller.signal,
+        prompt,
+        mediaParts,
+        schema,
+        maxOutputTokens: 0,
+        useSchema: false,
+        useJsonMode: false,
+        useOutputLimit: false,
       }));
     }
     if (!response.ok) {
