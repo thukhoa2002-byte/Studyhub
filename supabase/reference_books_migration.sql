@@ -6,6 +6,7 @@ create table if not exists public.reference_books (
   publication_year integer,
   source_file_path text not null,
   text_pdf_path text,
+  ocr_layout jsonb,
   status text not null default 'private' check (status in ('private', 'shared')),
   processing_status text not null default 'ready' check (processing_status in ('ready', 'processing', 'failed')),
   processing_error text not null default '',
@@ -13,6 +14,7 @@ create table if not exists public.reference_books (
   updated_at timestamptz not null default now()
 );
 alter table public.reference_books add column if not exists publication_year integer;
+alter table public.reference_books add column if not exists ocr_layout jsonb;
 alter table public.reference_books add column if not exists parent_id uuid references public.reference_books(id) on delete set null;
 alter table public.reference_books add column if not exists item_type text not null default 'book' check (item_type in ('book', 'folder'));
 alter table public.reference_books alter column source_file_path drop not null;

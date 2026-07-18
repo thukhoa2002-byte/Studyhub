@@ -8,6 +8,7 @@ export interface ReferenceBook {
   publication_year: number | null;
   source_file_path: string | null;
   text_pdf_path: string | null;
+  ocr_layout: ReferenceBookExtraction | null;
   parent_id: string | null;
   item_type: "book" | "folder";
   status: "private" | "shared";
@@ -32,7 +33,7 @@ export async function listReferenceBooks() {
   return (data || []) as ReferenceBook[];
 }
 
-export async function createReferenceBook(ownerId: string, title: string, author: string, publicationYear: number | null, file: File, textPdf?: Blob, parentId: string | null = null) {
+export async function createReferenceBook(ownerId: string, title: string, author: string, publicationYear: number | null, file: File, textPdf?: Blob, parentId: string | null = null, ocrLayout: ReferenceBookExtraction | null = null) {
   const storagePath = `${ownerId}/${crypto.randomUUID()}/${file.name.replace(/[^a-zA-Z0-9._-]+/g, "-")}`;
   const storage = client().storage.from("reference-books");
   const uploaded = await storage.upload(storagePath, file, { contentType: "application/pdf", upsert: false });
@@ -42,7 +43,7 @@ export async function createReferenceBook(ownerId: string, title: string, author
     const ocrUpload = await storage.upload(textPdfPath, textPdf, { contentType: "application/pdf", upsert: false });
     if (ocrUpload.error) { await storage.remove([storagePath]); throw ocrUpload.error; }
   }
-  const { data, error } = await client().from("reference_books").insert({ owner_id: ownerId, title: title.trim(), author: author.trim(), publication_year: publicationYear, source_file_path: storagePath, text_pdf_path: textPdfPath, parent_id: parentId, item_type: "book", status: "private", processing_status: "ready" }).select("*").single();
+  const { data, error } = await client().from("reference_books").insert({ owner_id: ownerId, title: title.trim(), author: author.trim(), publication_year: publicationYear, source_file_path: storagePath, text_pdf_path: textPdfPath, ocr_layout: ocrLayout, parent_id: parentId, item_type: "book", status: "private", processing_status: "ready" }).select("*").single();
   if (error) { await storage.remove([storagePath, ...(textPdfPath ? [textPdfPath] : [])]); throw error; }
   return data as ReferenceBook;
 }
@@ -55,6 +56,12 @@ export async function createReferenceBookFolder(ownerId: string, title: string, 
 
 export async function updateReferenceBookDetails(bookId: string, changes: { title: string; author?: string; parentId?: string | null }) {
   const { data, error } = await client().from("reference_books").update({ title: changes.title.trim(), ...(changes.author !== undefined ? { author: changes.author.trim() } : {}), ...(changes.parentId !== undefined ? { parent_id: changes.parentId } : {}), updated_at: new Date().toISOString() }).eq("id", bookId).select("*").single();
+  if (error) throw error;
+  return data as ReferenceBook;
+}
+
+export async function updateReferenceBookLayout(bookId: string, layout: ReferenceBookExtraction) {
+  const { data, error } = await client().from("reference_books").update({ ocr_layout: layout, updated_at: new Date().toISOString() }).eq("id", bookId).select("*").single();
   if (error) throw error;
   return data as ReferenceBook;
 }
@@ -76,14 +83,14 @@ export async function createReferenceBookTextPdf(file: File, layout?: ReferenceB
   return response.blob();
 }
 
-export async function generateReferenceBookTextPdf(book: ReferenceBook): Promise<ReferenceBook> {
+export async function generateReferenceBookTextPdf(book: ReferenceBook, layout: ReferenceBookExtraction | null = book.ocr_layout): Promise<ReferenceBook> {
   if (!book.source_file_path) throw new Error("Mục này là thư mục, không có PDF gốc để tạo bản PDF chữ.");
   const sourceUrl = await getReferenceBookUrl(book.source_file_path);
   const sourceResponse = await fetch(sourceUrl);
   if (!sourceResponse.ok) throw new Error("Không thể tải PDF gốc để tạo bản OCR.");
   const sourceBlob = await sourceResponse.blob();
   const sourceFile = new File([sourceBlob], `${book.title || "reference-book"}.pdf`, { type: "application/pdf" });
-  const textPdf = await createReferenceBookTextPdf(sourceFile);
+  const textPdf = await createReferenceBookTextPdf(sourceFile, layout || undefined);
   const path = `${book.owner_id}/${crypto.randomUUID()}/ocr-${book.title.replace(/[^a-zA-Z0-9._-]+/g, "-")}.pdf`;
   const storage = client().storage.from("reference-books");
   const uploaded = await storage.upload(path, textPdf, { contentType: "application/pdf", upsert: false });

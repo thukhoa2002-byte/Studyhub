@@ -1,9 +1,9 @@
-import { BookOpenCheck, Check, ExternalLink, FileText, FileUp, FolderPlus, Globe2, LibraryBig, Loader2, LockKeyhole, Pencil, Trash2, X } from "lucide-react";
+import { BookOpenCheck, Check, Download, FileDown, FileText, FilePenLine, FileUp, FolderPlus, Globe2, LibraryBig, Loader2, LockKeyhole, Pencil, Save, Trash2, X } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import GuidelinesPage from "./GuidelinesPage";
-import { createReferenceBook, createReferenceBookFolder, createReferenceBookTextPdf, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookDetails, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookExtraction } from "../services/referenceBooks";
+import { createReferenceBook, createReferenceBookFolder, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookDetails, updateReferenceBookLayout, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookExtraction } from "../services/referenceBooks";
 
 type ReferenceSection = "guidelines" | "books";
 const REFERENCE_BOOK_OWNER_EMAIL = "thukhoa2002@gmail.com";
@@ -26,6 +26,9 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
   const [editingTitle, setEditingTitle] = useState("");
   const [editingAuthor, setEditingAuthor] = useState("");
   const [editingParentId, setEditingParentId] = useState<string | null>(null);
+  const [contentBookId, setContentBookId] = useState<string | null>(null);
+  const [contentLayout, setContentLayout] = useState<ReferenceBookExtraction | null>(null);
+  const [contentBusy, setContentBusy] = useState(false);
   const isOwner = user?.email?.trim().toLowerCase() === REFERENCE_BOOK_OWNER_EMAIL;
   const visibleBooks = isOwner ? books : books.filter((book) => book.status === "shared");
   const folders = visibleBooks.filter((book) => book.item_type === "folder");
@@ -54,8 +57,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
         setPublicationYear((current) => current || (layout.publicationYear ? String(layout.publicationYear) : ""));
         return;
       }
-      const textPdf = await createReferenceBookTextPdf(file, extraction || undefined);
-      await createReferenceBook(user.id, title, author, Number(publicationYear) || null, file, textPdf, parentId);
+      await createReferenceBook(user.id, title, author, Number(publicationYear) || null, file, undefined, parentId, extraction);
       setTitle("");
       setAuthor("");
       setPublicationYear("");
@@ -142,6 +144,108 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
     }
   }
 
+  async function beginContentEdit(book: ReferenceBook) {
+    if (!isOwner || book.item_type === "folder") return;
+    setContentBusy(true);
+    setError("");
+    try {
+      let layout = book.ocr_layout;
+      if (!layout) {
+        if (!book.source_file_path) throw new Error("Sách chưa có PDF gốc để tạo nội dung sửa.");
+        const sourceUrl = await getReferenceBookUrl(book.source_file_path);
+        const response = await fetch(sourceUrl);
+        if (!response.ok) throw new Error("Không thể tải PDF gốc để tạo nội dung sửa.");
+        layout = await extractReferenceBook(new File([await response.blob()], `${book.title || "reference-book"}.pdf`, { type: "application/pdf" }));
+      }
+      setContentBookId(book.id);
+      setContentLayout(layout);
+    } catch (editError) {
+      setError(editError instanceof Error ? editError.message : "Không thể mở nội dung để sửa.");
+    } finally {
+      setContentBusy(false);
+    }
+  }
+
+  function updateContentBlockText(pageIndex: number, blockIndex: number, text: string) {
+    setContentLayout((current) => current ? { ...current, pages: current.pages.map((page, currentPageIndex) => currentPageIndex === pageIndex ? { ...page, blocks: page.blocks.map((block, currentBlockIndex) => currentBlockIndex === blockIndex ? { ...block, text } : block) } : page) } : current);
+  }
+
+  function removeContentBlock(pageIndex: number, blockIndex: number) {
+    setContentLayout((current) => current ? { ...current, pages: current.pages.map((page, currentPageIndex) => currentPageIndex === pageIndex ? { ...page, blocks: page.blocks.filter((_block, currentBlockIndex) => currentBlockIndex !== blockIndex) } : page) } : current);
+  }
+
+  async function saveContentEdit() {
+    if (!isOwner || !contentBookId || !contentLayout) return;
+    const book = books.find((item) => item.id === contentBookId);
+    if (!book) return;
+    setContentBusy(true);
+    setError("");
+    try {
+      const updated = await updateReferenceBookLayout(book.id, contentLayout);
+      setBooks((items) => items.map((item) => item.id === updated.id ? updated : item));
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Không thể lưu nội dung sửa.");
+    } finally {
+      setContentBusy(false);
+    }
+  }
+
+  async function exportEditedPdf(book: ReferenceBook) {
+    if (!isOwner || !contentLayout || contentBookId !== book.id) return;
+    setContentBusy(true);
+    setError("");
+    try {
+      const saved = await updateReferenceBookLayout(book.id, contentLayout);
+      const generated = await generateReferenceBookTextPdf(saved, contentLayout);
+      setBooks((items) => items.map((item) => item.id === generated.id ? generated : item));
+      await openBook(generated);
+    } catch (pdfError) {
+      setError(pdfError instanceof Error ? pdfError.message : "Không thể xuất PDF.");
+    } finally {
+      setContentBusy(false);
+    }
+  }
+
+  async function exportWord(book: ReferenceBook) {
+    if (!isOwner || book.item_type === "folder") return;
+    const layout = contentBookId === book.id ? contentLayout : book.ocr_layout;
+    if (!layout) {
+      setError("Hãy bấm Sửa nội dung và lưu layout trước khi xuất Word.");
+      return;
+    }
+    setContentBusy(true);
+    setError("");
+    try {
+      const { AlignmentType, Document, HeadingLevel, Packer, Paragraph, TextRun } = await import("docx");
+      let firstHeading = true;
+      const paragraphs = layout.pages.flatMap((page) => page.blocks.filter((block) => !["header", "footer", "page_number", "metadata", "diagram_label"].includes(block.role)).map((block) => {
+        const text = block.text.replace(/\s+/g, " ").trim();
+        if (!text) return null;
+        const isHeading = block.role === "heading";
+        const isTitle = isHeading && firstHeading;
+        if (isTitle) firstHeading = false;
+        return new Paragraph({
+          alignment: isHeading ? AlignmentType.LEFT : AlignmentType.JUSTIFIED,
+          heading: isHeading ? (isTitle ? HeadingLevel.TITLE : HeadingLevel.HEADING_2) : undefined,
+          indent: !isHeading ? { firstLine: 360 } : undefined,
+          spacing: { before: 0, after: 0, line: 360 },
+          children: [new TextRun({ text, bold: isHeading || block.fontWeight === "bold", italics: block.italic, font: "Times New Roman", size: isTitle ? 34 : 24 })],
+        });
+      }).filter((paragraph): paragraph is InstanceType<typeof Paragraph> => Boolean(paragraph)));
+      const document = new Document({ sections: [{ properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } }, children: paragraphs }] });
+      const blob = await Packer.toBlob(document);
+      const anchor = window.document.createElement("a");
+      anchor.href = URL.createObjectURL(blob);
+      anchor.download = `${book.title.replace(/[^a-zA-Z0-9._-]+/g, "-")}.docx`;
+      anchor.click();
+      URL.revokeObjectURL(anchor.href);
+    } catch (wordError) {
+      setError(wordError instanceof Error ? wordError.message : "Không thể xuất file Word.");
+    } finally {
+      setContentBusy(false);
+    }
+  }
+
   async function removeBook(book: ReferenceBook) {
     if (!isOwner) return;
     try {
@@ -169,11 +273,13 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
     return labels[role];
   }
 
+  const contentBook = contentBookId ? books.find((book) => book.id === contentBookId) || null : null;
+
   function renderTree(parent: string | null = null, depth = 0): ReactNode {
     return visibleBooks.filter((book) => (book.parent_id || null) === parent).map((book) => {
       const folder = book.item_type === "folder";
       const editing = editingBookId === book.id;
-      return <div key={book.id} className="space-y-1" style={{ marginLeft: depth ? `${depth * 24}px` : undefined }}><div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"><div className="min-w-0 flex-1">{editing ? <div className="grid gap-2 sm:grid-cols-[1fr_1fr_180px]"><input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} className="rounded-lg border border-teal-200 px-2 py-1 text-sm" /><input value={editingAuthor} onChange={(event) => setEditingAuthor(event.target.value)} disabled={folder} placeholder="Tác giả" className="rounded-lg border border-teal-200 px-2 py-1 text-sm disabled:bg-slate-50" /><select value={editingParentId || ""} onChange={(event) => setEditingParentId(event.target.value || null)} className="rounded-lg border border-teal-200 px-2 py-1 text-sm"><option value="">Thư mục gốc</option>{folders.filter((item) => item.id !== book.id).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></div> : <><p className="truncate font-bold text-slate-700">{folder ? "📁 " : "📖 "}{book.title}</p><p className="text-xs text-slate-400">{folder ? "Thư mục" : `${book.author || "Chưa ghi tác giả"}${book.publication_year ? ` · ${book.publication_year}` : ""}`}{book.status === "private" ? " · Riêng tư" : " · Đã đăng công khai"}{!folder && (book.text_pdf_path ? " · Có PDF chữ" : " · Chưa tạo PDF chữ")}</p></>}</div><div className="flex shrink-0 items-center gap-1">{isOwner && editing ? <><button type="button" title="Lưu sửa" onClick={() => void saveEdit(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><Check size={17} /></button><button type="button" title="Hủy sửa" onClick={() => setEditingBookId(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-50"><X size={17} /></button></> : <>{isOwner && <button type="button" title="Sửa mục" onClick={() => beginEdit(book)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-50"><Pencil size={17} /></button>}{isOwner && folder === false && !book.text_pdf_path && <button type="button" title="Tạo PDF chữ" disabled={ocrBookId === book.id} onClick={() => void rebuildBook(book)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50 disabled:opacity-50">{ocrBookId === book.id ? <Loader2 className="animate-spin" size={17} /> : <FileText size={17} />}</button>}{!folder && <button type="button" title="Xem PDF chữ hoặc PDF gốc" onClick={() => void openBook(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><ExternalLink size={17} /></button>}{isOwner && <><button type="button" title={book.status === "shared" ? "Gỡ công khai" : "Đăng công khai"} onClick={() => void toggleBookStatus(book)} className={`rounded-lg p-2 ${book.status === "shared" ? "text-amber-600 hover:bg-amber-50" : "text-blue-600 hover:bg-blue-50"}`}>{book.status === "shared" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" title="Xóa mục" onClick={() => void removeBook(book)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={17} /></button></>}</>}</div></div>{renderTree(book.id, depth + 1)}</div>;
+      return <div key={book.id} className="space-y-1" style={{ marginLeft: depth ? `${depth * 24}px` : undefined }}><div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"><div className="min-w-0 flex-1">{editing ? <div className="grid gap-2 sm:grid-cols-[1fr_1fr_180px]"><input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} className="rounded-lg border border-teal-200 px-2 py-1 text-sm" /><input value={editingAuthor} onChange={(event) => setEditingAuthor(event.target.value)} disabled={folder} placeholder="Tác giả" className="rounded-lg border border-teal-200 px-2 py-1 text-sm disabled:bg-slate-50" /><select value={editingParentId || ""} onChange={(event) => setEditingParentId(event.target.value || null)} className="rounded-lg border border-teal-200 px-2 py-1 text-sm"><option value="">Thư mục gốc</option>{folders.filter((item) => item.id !== book.id).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></div> : <><p className="truncate font-bold text-slate-700">{folder ? "📁 " : "📖 "}{book.title}</p><p className="text-xs text-slate-400">{folder ? "Thư mục" : `${book.author || "Chưa ghi tác giả"}${book.publication_year ? ` · ${book.publication_year}` : ""}`}{book.status === "private" ? " · Riêng tư" : " · Đã đăng công khai"}{!folder && (book.text_pdf_path ? " · Có PDF chữ" : " · Chưa tạo PDF chữ")}</p></>}</div><div className="flex shrink-0 items-center gap-1">{isOwner && editing ? <><button type="button" title="Lưu sửa" onClick={() => void saveEdit(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><Check size={17} /></button><button type="button" title="Hủy sửa" onClick={() => setEditingBookId(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-50"><X size={17} /></button></> : <>{isOwner && <button type="button" title="Sửa mục" onClick={() => beginEdit(book)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-50"><Pencil size={17} /></button>}{isOwner && !folder && <button type="button" title="Sửa nội dung" disabled={contentBusy} onClick={() => void beginContentEdit(book)} className="rounded-lg p-2 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"><FilePenLine size={17} /></button>}{isOwner && !folder && <button type="button" title="Xuất Word" disabled={contentBusy} onClick={() => void exportWord(book)} className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 disabled:opacity-50"><Download size={17} /></button>}{isOwner && folder === false && !book.text_pdf_path && <button type="button" title="Tạo PDF chữ" disabled={ocrBookId === book.id} onClick={() => void rebuildBook(book)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50 disabled:opacity-50">{ocrBookId === book.id ? <Loader2 className="animate-spin" size={17} /> : <FileText size={17} />}</button>}{!folder && <button type="button" title="Xuất hoặc mở PDF" onClick={() => book.text_pdf_path ? void openBook(book) : void rebuildBook(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><FileDown size={17} /></button>}{isOwner && <><button type="button" title={book.status === "shared" ? "Gỡ công khai" : "Đăng công khai"} onClick={() => void toggleBookStatus(book)} className={`rounded-lg p-2 ${book.status === "shared" ? "text-amber-600 hover:bg-amber-50" : "text-blue-600 hover:bg-blue-50"}`}>{book.status === "shared" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" title="Xóa mục" onClick={() => void removeBook(book)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={17} /></button></>}</>}</div></div>{renderTree(book.id, depth + 1)}</div>;
     });
   }
 
@@ -206,6 +312,21 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
 
         {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         {extraction && isOwner && <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50/40 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-bold text-teal-800">Gemini đã đọc {extraction.pages.length} trang · {extraction.pages.reduce((sum, page) => sum + page.blocks.length, 0)} khối text</p><button type="button" onClick={removeNonLearningBlocks} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">Ẩn header, footer, số trang</button></div><div className="mt-3 max-h-[70vh] space-y-2 overflow-y-auto">{extraction.pages.map((page, pageIndex) => page.blocks.map((block, blockIndex) => <div key={`${page.pageNumber}-${blockIndex}`} className={`rounded-lg px-3 py-2 ${["header", "footer", "page_number", "metadata"].includes(block.role) ? "bg-amber-50" : "bg-white"}`}><div className="mb-1 flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase tracking-wide text-rose-500">Trang {page.pageNumber} · {roleLabel(block.role)}</span><button type="button" title="Xóa block" aria-label="Xóa block" onClick={() => removeBlock(pageIndex, blockIndex)} className="rounded-md p-1 text-rose-500 hover:bg-rose-100"><Trash2 size={14} /></button></div><textarea value={block.text} onChange={(event) => updateBlockText(pageIndex, blockIndex, event.target.value)} className="min-h-10 w-full resize-y rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs leading-5 text-slate-600 outline-none focus:border-teal-300" /></div>))}</div></div>}
+
+        {contentLayout && contentBook && isOwner && <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><p className="text-xs font-bold uppercase tracking-[.14em] text-indigo-600">Chỉnh sửa nội dung</p><p className="mt-1 font-bold text-slate-800">{contentBook.title}</p><p className="text-xs text-slate-500">Sửa trực tiếp từng đoạn trước khi xuất Word hoặc PDF.</p></div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" disabled={contentBusy} onClick={() => void saveContentEdit()} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"><Save size={15} />Lưu nội dung</button>
+              <button type="button" disabled={contentBusy} onClick={() => void exportWord(contentBook)} className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700 disabled:opacity-50"><Download size={15} />Xuất Word</button>
+              <button type="button" disabled={contentBusy} onClick={() => void exportEditedPdf(contentBook)} className="inline-flex items-center gap-2 rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-bold text-teal-700 disabled:opacity-50"><FileDown size={15} />Xuất PDF</button>
+              <button type="button" title="Đóng trình sửa" onClick={() => { setContentBookId(null); setContentLayout(null); }} className="rounded-lg p-2 text-slate-500 hover:bg-white"><X size={17} /></button>
+            </div>
+          </div>
+          <div className="mt-4 max-h-[70vh] space-y-3 overflow-y-auto">
+            {contentLayout.pages.map((page, pageIndex) => page.blocks.map((block, blockIndex) => <div key={`content-${page.pageNumber}-${blockIndex}`} className="rounded-xl border border-white bg-white p-3 shadow-sm"><div className="mb-1 flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase tracking-wide text-indigo-500">Trang {page.pageNumber} · {roleLabel(block.role)}</span><button type="button" title="Xóa block" aria-label="Xóa block" onClick={() => removeContentBlock(pageIndex, blockIndex)} className="rounded-md p-1 text-rose-500 hover:bg-rose-50"><Trash2 size={14} /></button></div><textarea value={block.text} onChange={(event) => updateContentBlockText(pageIndex, blockIndex, event.target.value)} className="min-h-12 w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm leading-6 text-slate-700 outline-none focus:border-indigo-300" /></div>))}
+          </div>
+        </div>}
 
         <div className="mt-5 grid gap-2">{renderTree()}</div>
       </div>
