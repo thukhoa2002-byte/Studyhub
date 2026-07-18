@@ -15,7 +15,7 @@ import SiteAnalytics from "./components/SiteAnalytics";
 import SharedDeckNotification from "./components/SharedDeckNotification";
 import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import DrugsPage from "./components/DrugsPage";
-import GuidelinesPage from "./components/GuidelinesPage";
+import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
@@ -782,7 +782,7 @@ export default function App() {
         <SiteAnalytics userId={user?.id} visible={workspaceTab === "flashcards" && analyticsAdmin && !editing && questions.length === 0} />
 
         <div className={workspaceTab === "guidelines" ? "block" : "hidden"} aria-hidden={workspaceTab !== "guidelines"}>
-          <GuidelinesPage user={user} onAiCallsRemaining={setAiCallsRemaining} />
+          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} />
         </div>
 
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>

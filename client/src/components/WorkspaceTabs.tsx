@@ -12,7 +12,7 @@ interface Props {
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
   { id: "flashcards", label: "Flashcard", icon: BookOpen },
   { id: "mcq", label: "MCQ", icon: McqIcon },
-  { id: "guidelines", label: "Guidelines", icon: BookOpenCheck },
+  { id: "guidelines", label: "Tài liệu tham khảo", icon: BookOpenCheck },
   { id: "drugs", label: "Drugs", icon: Pill },
 ];
 
