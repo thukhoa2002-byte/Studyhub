@@ -160,7 +160,7 @@ async function ocrPageLocally(pageFile, pageIndex, totalPages) {
 async function createVisibleOcrPdf(file, editedLayout = null) {
   const pdf = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
   pdf.registerFontkit(fontkit);
-  const fontPath = join(ROUTE_DIR, "../node_modules/pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf");
+  const fontPath = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files/noto-serif-vietnamese-400-normal.woff2");
   const fontBytes = await readFile(fontPath);
   const font = await pdf.embedFont(fontBytes, { subset: true });
   const sanitizeText = createFontSanitizer(fontBytes);
@@ -219,12 +219,12 @@ function wrapFlowText(textValue, font, size, maxWidth) {
 
 async function embedFlowFonts(pdf) {
   pdf.registerFontkit(fontkit);
-  const fontDir = join(ROUTE_DIR, "../node_modules/pdfjs-dist/standard_fonts");
+  const fontDir = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files");
   const [regular, bold, italic, boldItalic] = await Promise.all([
-    readFile(join(fontDir, "LiberationSans-Regular.ttf")),
-    readFile(join(fontDir, "LiberationSans-Bold.ttf")),
-    readFile(join(fontDir, "LiberationSans-Italic.ttf")),
-    readFile(join(fontDir, "LiberationSans-BoldItalic.ttf")),
+    readFile(join(fontDir, "noto-serif-vietnamese-400-normal.woff2")),
+    readFile(join(fontDir, "noto-serif-vietnamese-700-normal.woff2")),
+    readFile(join(fontDir, "noto-serif-vietnamese-400-italic.woff2")),
+    readFile(join(fontDir, "noto-serif-vietnamese-700-italic.woff2")),
   ]);
   const sanitize = createFontSanitizer(regular);
   return {
@@ -285,7 +285,7 @@ async function createReflowPdf(file, editedLayout = null) {
     const isHeading = role === "heading";
     const isCaption = role === "caption" || role === "diagram_caption";
     const isList = /^\s*(?:[-•*]|\d+[.)]|[A-Z][.)])\s/.test(block.text || "");
-    const size = isHeading ? 15 : isCaption ? 9.5 : role === "table" ? 10 : 11.5;
+    const size = isHeading ? 17 : isCaption ? 10.5 : role === "table" ? 11 : 13;
     const lineHeight = size * (isHeading ? 1.25 : 1.45);
     const indent = !isHeading && !isCaption && !isList ? 18 : 0;
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
