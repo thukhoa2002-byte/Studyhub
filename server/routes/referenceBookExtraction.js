@@ -323,7 +323,8 @@ async function createReflowPdf(file, editedLayout = null) {
   const output = await PDFDocument.create();
   const fonts = await embedFlowFonts(output);
   const pageSize = { width: 595.28, height: 841.89 };
-  const margin = { left: 64, right: 64, top: 58, bottom: 58 };
+  // Word Normal margins: 2.54 cm (1 inch) on every side.
+  const margin = { left: 72, right: 72, top: 72, bottom: 72 };
   const contentWidth = pageSize.width - margin.left - margin.right;
   let page = output.addPage([pageSize.width, pageSize.height]);
   let cursorY = pageSize.height - margin.top;
