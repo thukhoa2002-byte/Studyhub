@@ -257,23 +257,21 @@ function drawMixedText(page, value, fontSet, options) {
 
 function wrapFlowText(textValue, fontSet, size, maxWidth) {
   const measure = (value) => fontSet.widthOfTextAtSize(value, size);
-  return String(textValue || "").split(/\r?\n/).flatMap((paragraph) => {
-    const words = paragraph.trim().split(/\s+/).filter(Boolean);
-    if (!words.length) return [""];
-    const lines = [];
-    let line = "";
-    for (const word of words) {
-      const candidate = line ? `${line} ${word}` : word;
-      if (line && measure(candidate) > maxWidth) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = candidate;
-      }
+  const words = String(textValue || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  if (!words.length) return [];
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && measure(candidate) > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
     }
-    if (line) lines.push(line);
-    return lines;
-  });
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
 async function embedFlowFonts(pdf) {
@@ -376,6 +374,7 @@ async function createReflowPdf(file, editedLayout = null) {
   const ensureSpace = (height) => {
     if (cursorY - height < margin.bottom) newPage();
   };
+  let documentTitleAdded = false;
   const addTextBlock = (block) => {
     const role = block.role || "text";
     if (["header", "footer", "page_number", "metadata", "diagram_label"].includes(role)) return;
@@ -383,9 +382,11 @@ async function createReflowPdf(file, editedLayout = null) {
     const numberedHeading = /^(?:\d+\.){2,}\s+/u.test(sourceText);
     const uppercaseHeading = sourceText.length <= 100 && sourceText === sourceText.toLocaleUpperCase("vi") && /[A-ZÀ-ỸĐ]/u.test(sourceText);
     const isHeading = role === "heading" || numberedHeading || uppercaseHeading;
+    const isDocumentTitle = isHeading && !documentTitleAdded && !numberedHeading;
+    if (isDocumentTitle) documentTitleAdded = true;
     const isCaption = !isHeading && (role === "caption" || role === "diagram_caption");
     const isList = /^\s*(?:[-•*]|\d+[.)]|[A-Z][.)])\s/.test(block.text || "");
-    const size = isHeading ? 16 : isCaption ? 10.5 : role === "table" ? 11 : 13;
+    const size = isDocumentTitle ? 17 : 12;
     const lineHeight = size * 1.5;
     const indent = !isHeading && !isCaption && !isList ? 18 : 0;
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
@@ -395,9 +396,9 @@ async function createReflowPdf(file, editedLayout = null) {
     lines.forEach((line, index) => {
       if (cursorY - lineHeight < margin.bottom) newPage();
       const lineIndent = index === 0 ? indent : 0;
+      const lineWidth = contentWidth - lineIndent;
       const spaces = (line.match(/ /g) || []).length;
       const justify = !isHeading && !isCaption && !isList && index < lines.length - 1 && spaces > 0;
-      const lineWidth = contentWidth - lineIndent;
       const extraWordSpacing = justify ? Math.max(0, (lineWidth - font.widthOfTextAtSize(line, size)) / spaces) : 0;
       drawMixedText(page, line, font, { x: margin.left + lineIndent, y: cursorY - size, size, color: rgb(0.08, 0.08, 0.08), extraWordSpacing });
       cursorY -= lineHeight;
