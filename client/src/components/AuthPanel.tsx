@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, Camera, LogIn, LogOut, UserRound } from "lucide-react";
+import { Bell, BellOff, Camera, LogOut, UserRound } from "lucide-react";
 import { supabase } from "../services/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -23,7 +23,6 @@ async function signInWithGoogle() {
 
 export default function AuthPanel({ onUserChange, specialUser = false, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange }: Props) {
   const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
@@ -51,29 +50,6 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
 
   if (!supabase) {
     return <span className="text-xs font-medium text-slate-400">Chế độ khách</span>;
-  }
-
-  async function signIn() {
-    if (!email.trim()) return;
-    if (!supabase) return;
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { emailRedirectTo: window.location.origin },
-      });
-      if (error) {
-        alert(`${error.message}${error.status ? ` (mã ${error.status})` : ""}`);
-      } else {
-        alert("Đã gửi link đăng nhập vào email của bạn.");
-      }
-    } catch (error) {
-      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      alert(`Không kết nối được Supabase: ${detail}`);
-      console.error("Supabase sign-in failed", error);
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function updateAvatar(event: React.ChangeEvent<HTMLInputElement>) {
@@ -145,19 +121,6 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
         <span className="font-bold text-blue-600">G</span>
         Google
       </button>
-      <form onSubmit={(event) => { event.preventDefault(); void signIn(); }} className="flex items-center gap-2">
-        <input
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          type="email"
-          placeholder="Email"
-          className="hidden w-36 rounded-full border border-rose-100 bg-white px-3 py-1.5 text-xs outline-none focus:border-rose-300 sm:block"
-        />
-        <button disabled={busy} className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-200 disabled:opacity-50">
-          <LogIn size={14} />
-          {busy ? "Đang gửi..." : "Email"}
-        </button>
-      </form>
     </div>
   );
 }
