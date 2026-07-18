@@ -287,8 +287,19 @@ async function embedFlowFonts(pdf) {
   ];
   if (privateTimesDir) {
     try {
-      await Promise.all(timesFiles.map((file) => access(join(privateTimesDir, file))));
-      const times = await Promise.all(timesFiles.map((file) => readFile(join(privateTimesDir, file))));
+      const readPrivateFont = async (file) => {
+        const directPath = join(privateTimesDir, file);
+        try {
+          await access(directPath);
+          return readFile(directPath);
+        } catch {
+          const encodedPath = `${directPath}.b64`;
+          await access(encodedPath);
+          const encoded = await readFile(encodedPath, "utf8");
+          return Buffer.from(encoded.replace(/\s+/g, ""), "base64");
+        }
+      };
+      const times = await Promise.all(timesFiles.map(readPrivateFont));
       const embedTimes = async (buffer) => createFontSet([await pdf.embedFont(buffer, { subset: true })], [buffer]);
       return {
         regular: await embedTimes(times[0]),
