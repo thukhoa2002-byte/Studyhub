@@ -12,6 +12,7 @@ import mcqRouter from "./routes/mcq.js";
 import clinicalCaseRouter from "./routes/clinicalCase.js";
 import guidelineExtractionRouter from "./routes/guidelineExtraction.js";
 import mcqImportRouter from "./routes/mcqImport.js";
+import referenceBookExtractionRouter from "./routes/referenceBookExtraction.js";
 import { getAiCallsRemaining } from "./services/aiUsage.js";
 
 dotenv.config();
@@ -45,6 +46,7 @@ app.use("/api/generate-mcq", mcqRouter);
 app.use("/api/generate-clinical-case", clinicalCaseRouter);
 app.use("/api/extract-guideline", guidelineExtractionRouter);
 app.use("/api/mcq-import", mcqImportRouter);
+app.use("/api/reference-books", referenceBookExtractionRouter);
 
 if (existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
