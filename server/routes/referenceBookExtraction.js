@@ -255,6 +255,15 @@ function drawMixedText(page, value, fontSet, options) {
   flush();
 }
 
+function shouldJoinFlowBlocks(previous, current) {
+  if (!previous || previous.role !== "text" || current.role !== "text") return false;
+  if (previous.fontWeight !== current.fontWeight || previous.italic !== current.italic) return false;
+  const previousText = String(previous.text || "").trim();
+  const currentText = String(current.text || "").trim();
+  if (!previousText || !currentText || !/^[a-zà-ỹđ]/u.test(currentText)) return false;
+  return !/[.!?:;…]$/u.test(previousText);
+}
+
 function wrapFlowText(textValue, fontSet, size, maxWidth) {
   const measure = (value) => fontSet.widthOfTextAtSize(value, size);
   const words = String(textValue || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
@@ -416,16 +425,31 @@ async function createReflowPdf(file, editedLayout = null) {
     cursorY -= height + 16;
   };
 
+  const flowItems = [];
   for (let pageIndex = 0; pageIndex < sourcePdf.getPageCount(); pageIndex += 1) {
     const pageData = editedLayout?.pages?.[pageIndex]?.blocks ? editedLayout.pages[pageIndex] : (await ocrPageLocally(await makeSinglePagePdf(sourcePdf, pageIndex, file.originalname || "reference-book"), pageIndex, sourcePdf.getPageCount())).page;
     let diagramAdded = false;
     for (const block of pageData.blocks) {
       if (!diagramAdded && ["diagram_label", "diagram_caption"].includes(block.role)) {
-        const diagram = await renderDiagramCrop(file, pageIndex, pageData.blocks);
-        if (diagram) await addDiagram(diagram);
+        flowItems.push({ kind: "diagram", pageIndex, blocks: pageData.blocks });
         diagramAdded = true;
       }
-      addTextBlock(block);
+      if (["header", "footer", "page_number", "metadata", "diagram_label"].includes(block.role)) continue;
+      const previous = flowItems[flowItems.length - 1];
+      if (previous?.kind === "text" && shouldJoinFlowBlocks(previous.block, block)) {
+        previous.block.text = `${previous.block.text} ${block.text}`;
+      } else {
+        flowItems.push({ kind: "text", block: { ...block } });
+      }
+    }
+  }
+
+  for (const item of flowItems) {
+    if (item.kind === "diagram") {
+      const diagram = await renderDiagramCrop(file, item.pageIndex, item.blocks);
+      if (diagram) await addDiagram(diagram);
+    } else {
+      addTextBlock(item.block);
     }
   }
 
