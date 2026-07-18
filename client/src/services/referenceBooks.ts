@@ -19,7 +19,8 @@ export interface ReferenceBook {
 }
 
 export interface ReferenceBookBlock { text: string; x: number; y: number; width: number; height: number; fontSize: number; fontWeight: "normal" | "bold"; italic: boolean; role: "text" | "heading" | "table" | "caption" | "header" | "footer" | "page_number" | "metadata" | "diagram_label" | "diagram_caption" }
-export interface ReferenceBookPage { pageNumber: number; width: number; height: number; blocks: ReferenceBookBlock[] }
+export interface ReferenceBookDiagramCrop { x: number; y: number; width: number; height: number }
+export interface ReferenceBookPage { pageNumber: number; width: number; height: number; blocks: ReferenceBookBlock[]; diagram_crop?: ReferenceBookDiagramCrop }
 export interface ReferenceBookExtraction { title: string; author: string; publicationYear: number; pages: ReferenceBookPage[] }
 
 function client() {

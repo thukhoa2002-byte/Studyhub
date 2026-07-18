@@ -3,10 +3,20 @@ import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import GuidelinesPage from "./GuidelinesPage";
-import { createReferenceBook, createReferenceBookFolder, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookDetails, updateReferenceBookLayout, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookExtraction } from "../services/referenceBooks";
+import { createReferenceBook, createReferenceBookFolder, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookDetails, updateReferenceBookLayout, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookDiagramCrop, type ReferenceBookExtraction, type ReferenceBookPage } from "../services/referenceBooks";
 
 type ReferenceSection = "guidelines" | "books";
 const REFERENCE_BOOK_OWNER_EMAIL = "thukhoa2002@gmail.com";
+
+function defaultDiagramCrop(page: ReferenceBookPage): ReferenceBookDiagramCrop {
+  const blocks = page.blocks.filter((block) => ["diagram_label", "diagram_caption"].includes(block.role));
+  if (!blocks.length) return { x: 0.05, y: 0.05, width: 0.9, height: 0.9 };
+  const minX = Math.max(0, Math.min(...blocks.map((block) => block.x)) - 0.1);
+  const minY = Math.max(0, Math.min(...blocks.map((block) => block.y)) - 0.1);
+  const maxX = Math.min(1, Math.max(...blocks.map((block) => block.x + block.width)) + 0.1);
+  const maxY = Math.min(1, Math.max(...blocks.map((block) => block.y + block.height)) + 0.1);
+  return { x: minX, y: minY, width: Math.max(0.05, maxX - minX), height: Math.max(0.05, maxY - minY) };
+}
 
 export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { user: User | null; onAiCallsRemaining?: (remaining: number) => void }) {
   const [section, setSection] = useState<ReferenceSection>("guidelines");
@@ -174,6 +184,14 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
     setContentLayout((current) => current ? { ...current, pages: current.pages.map((page, currentPageIndex) => currentPageIndex === pageIndex ? { ...page, blocks: page.blocks.filter((_block, currentBlockIndex) => currentBlockIndex !== blockIndex) } : page) } : current);
   }
 
+  function updateDiagramCrop(pageIndex: number, field: keyof ReferenceBookDiagramCrop, value: number) {
+    setContentLayout((current) => current ? { ...current, pages: current.pages.map((page, currentPageIndex) => {
+      if (currentPageIndex !== pageIndex) return page;
+      const crop = { ...(page.diagram_crop || defaultDiagramCrop(page)), [field]: Math.max(0, Math.min(1, value)) };
+      return { ...page, diagram_crop: crop };
+    }) } : current);
+  }
+
   async function saveContentEdit() {
     if (!isOwner || !contentBookId || !contentLayout) return;
     const book = books.find((item) => item.id === contentBookId);
@@ -273,6 +291,13 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
     return labels[role];
   }
 
+  function renderDiagramCropEditor(page: ReferenceBookPage, pageIndex: number): ReactNode {
+    if (!page.blocks.some((block) => ["diagram_label", "diagram_caption"].includes(block.role))) return null;
+    const crop = page.diagram_crop || defaultDiagramCrop(page);
+    const fields: Array<[keyof ReferenceBookDiagramCrop, string]> = [["x", "Trái"], ["y", "Trên"], ["width", "Rộng"], ["height", "Cao"]];
+    return <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2"><div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-amber-700">Vùng sơ đồ · chỉnh theo % trang</div><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{fields.map(([field, label]) => <label key={field} className="text-[10px] font-semibold text-slate-600">{label}<input type="number" min="0" max="100" step="1" value={Math.round(crop[field] * 100)} onChange={(event) => updateDiagramCrop(pageIndex, field, Number(event.target.value || 0) / 100)} className="mt-1 w-full rounded-md border border-amber-200 bg-white px-2 py-1 text-xs text-slate-700" /></label>)}</div></div>;
+  }
+
   const contentBook = contentBookId ? books.find((book) => book.id === contentBookId) || null : null;
 
   function renderTree(parent: string | null = null, depth = 0): ReactNode {
@@ -324,7 +349,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
             </div>
           </div>
           <div className="mt-4 max-h-[75vh] overflow-y-auto rounded-xl bg-slate-100 p-3 sm:p-6">
-            {contentLayout.pages.map((page, pageIndex) => <div key={`editor-page-${page.pageNumber}`} className="mx-auto mb-6 max-w-[760px] last:mb-0"><div className="mb-2 text-center text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Trang {page.pageNumber}</div><div className="min-h-[900px] bg-white px-8 py-10 shadow-[0_2px_12px_rgba(15,23,42,.08)] sm:px-16 sm:py-14">{page.blocks.map((block, blockIndex) => { const heading = block.role === "heading"; const normalizedText = block.text.replace(/\s+/g, " ").trim(); const rows = Math.max(1, Math.min(12, Math.ceil(normalizedText.length / 88))); return <div key={`content-${page.pageNumber}-${blockIndex}`} className="group relative"><textarea value={block.text} rows={rows} onChange={(event) => updateContentBlockText(pageIndex, blockIndex, event.target.value)} aria-label={`Nội dung trang ${page.pageNumber}, ${roleLabel(block.role)}`} className={`block min-h-0 w-full resize-y overflow-hidden border-0 bg-transparent px-0 py-0.5 leading-[1.5] text-slate-800 outline-none transition-colors focus:bg-indigo-50/40 ${heading ? "font-bold text-sm" : "text-[13px]"}`} /><span className="pointer-events-none absolute -left-5 top-1 hidden text-[9px] font-bold uppercase tracking-wide text-indigo-400 group-focus-within:block">{roleLabel(block.role)}</span><button type="button" title="Xóa block" aria-label="Xóa block" onClick={() => removeContentBlock(pageIndex, blockIndex)} className="absolute -right-7 top-1 hidden rounded-md p-1 text-rose-500 hover:bg-rose-50 group-hover:block"><Trash2 size={14} /></button></div>; })}</div></div>)}
+            {contentLayout.pages.map((page, pageIndex) => <div key={`editor-page-${page.pageNumber}`} className="mx-auto mb-6 max-w-[760px] last:mb-0"><div className="mb-2 text-center text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Trang {page.pageNumber}</div>{renderDiagramCropEditor(page, pageIndex)}<div className="min-h-[900px] bg-white px-8 py-10 shadow-[0_2px_12px_rgba(15,23,42,.08)] sm:px-16 sm:py-14">{page.blocks.map((block, blockIndex) => { const heading = block.role === "heading"; const normalizedText = block.text.replace(/\s+/g, " ").trim(); const rows = Math.max(1, Math.min(12, Math.ceil(normalizedText.length / 88))); return <div key={`content-${page.pageNumber}-${blockIndex}`} className="group relative"><textarea value={block.text} rows={rows} onChange={(event) => updateContentBlockText(pageIndex, blockIndex, event.target.value)} aria-label={`Nội dung trang ${page.pageNumber}, ${roleLabel(block.role)}`} className={`block min-h-0 w-full resize-y overflow-hidden border-0 bg-transparent px-0 py-0.5 leading-[1.5] text-slate-800 outline-none transition-colors focus:bg-indigo-50/40 ${heading ? "font-bold text-sm" : "text-[13px]"}`} /><span className="pointer-events-none absolute -left-5 top-1 hidden text-[9px] font-bold uppercase tracking-wide text-indigo-400 group-focus-within:block">{roleLabel(block.role)}</span><button type="button" title="Xóa block" aria-label="Xóa block" onClick={() => removeContentBlock(pageIndex, blockIndex)} className="absolute -right-7 top-1 hidden rounded-md p-1 text-rose-500 hover:bg-rose-50 group-hover:block"><Trash2 size={14} /></button></div>; })}</div></div>)}
           </div>
         </div>}
 

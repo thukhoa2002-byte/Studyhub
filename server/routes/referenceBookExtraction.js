@@ -339,7 +339,7 @@ async function embedFlowFonts(pdf) {
   };
 }
 
-async function renderDiagramCrop(file, pageIndex, blocks) {
+async function renderDiagramCrop(file, pageIndex, blocks, cropOverride = null) {
   const diagramBlocks = blocks.filter((block) => ["diagram_label", "diagram_caption"].includes(block.role));
   if (!diagramBlocks.length) return null;
   const [{ getDocument }, { createCanvas }] = await Promise.all([
@@ -352,10 +352,10 @@ async function renderDiagramCrop(file, pageIndex, blocks) {
   const viewport = sourcePage.getViewport({ scale });
   const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
   await sourcePage.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
-  const minX = Math.max(0, Math.min(...diagramBlocks.map((block) => block.x)) - 0.04);
-  const minY = Math.max(0, Math.min(...diagramBlocks.map((block) => block.y)) - 0.04);
-  const maxX = Math.min(1, Math.max(...diagramBlocks.map((block) => block.x + block.width)) + 0.04);
-  const maxY = Math.min(1, Math.max(...diagramBlocks.map((block) => block.y + block.height)) + 0.04);
+  const minX = cropOverride ? Math.max(0, Math.min(1, cropOverride.x)) : Math.max(0, Math.min(...diagramBlocks.map((block) => block.x)) - 0.1);
+  const minY = cropOverride ? Math.max(0, Math.min(1, cropOverride.y)) : Math.max(0, Math.min(...diagramBlocks.map((block) => block.y)) - 0.1);
+  const maxX = cropOverride ? Math.max(minX, Math.min(1, cropOverride.x + cropOverride.width)) : Math.min(1, Math.max(...diagramBlocks.map((block) => block.x + block.width)) + 0.1);
+  const maxY = cropOverride ? Math.max(minY, Math.min(1, cropOverride.y + cropOverride.height)) : Math.min(1, Math.max(...diagramBlocks.map((block) => block.y + block.height)) + 0.1);
   const sx = Math.round(minX * viewport.width);
   const sy = Math.round(minY * viewport.height);
   const sw = Math.max(1, Math.round((maxX - minX) * viewport.width));
@@ -431,7 +431,7 @@ async function createReflowPdf(file, editedLayout = null) {
     let diagramAdded = false;
     for (const block of pageData.blocks) {
       if (!diagramAdded && ["diagram_label", "diagram_caption"].includes(block.role)) {
-        flowItems.push({ kind: "diagram", pageIndex, blocks: pageData.blocks });
+        flowItems.push({ kind: "diagram", pageIndex, blocks: pageData.blocks, crop: pageData.diagram_crop || null });
         diagramAdded = true;
       }
       if (["header", "footer", "page_number", "metadata", "diagram_label"].includes(block.role)) continue;
@@ -446,7 +446,7 @@ async function createReflowPdf(file, editedLayout = null) {
 
   for (const item of flowItems) {
     if (item.kind === "diagram") {
-      const diagram = await renderDiagramCrop(file, item.pageIndex, item.blocks);
+      const diagram = await renderDiagramCrop(file, item.pageIndex, item.blocks, item.crop);
       if (diagram) await addDiagram(diagram);
     } else {
       addTextBlock(item.block);
