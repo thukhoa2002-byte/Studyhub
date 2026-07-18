@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import fontkit from "@pdf-lib/fontkit";
-import { PDFDocument, rgb, setWordSpacing } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 
@@ -45,20 +45,6 @@ const fallbackTextSchema = {
   required: ["pageText"],
   additionalProperties: false,
 };
-
-function createFontSanitizer(fontBytes) {
-  const face = fontkit.create(fontBytes);
-  return (value) => Array.from(String(value || "")).filter((character) => {
-    if (character === "\n" || character === "\r") return true;
-    const codePoint = character.codePointAt(0);
-    if (codePoint === undefined || codePoint < 0x20 && ![9, 11, 12].includes(codePoint)) return false;
-    try {
-      return face.hasGlyphForCodePoint(codePoint);
-    } catch {
-      return false;
-    }
-  }).join("").normalize("NFC");
-}
 
 const prompt = `Bạn là hệ thống OCR và phân tích bố cục PDF. Đọc toàn bộ file PDF scan được gửi kèm và trả JSON đúng schema.
 Mục tiêu là tái tạo một PDF có chữ thật nhưng giữ bố cục nhìn thấy của bản scan.
@@ -164,11 +150,8 @@ async function ocrPageLocally(pageFile, pageIndex, totalPages) {
 
 async function createVisibleOcrPdf(file, editedLayout = null) {
   const pdf = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
-  pdf.registerFontkit(fontkit);
-  const fontPath = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files/noto-serif-vietnamese-400-normal.woff");
-  const fontBytes = await readFile(fontPath);
-  const font = await pdf.embedFont(fontBytes, { subset: true });
-  const sanitizeText = createFontSanitizer(fontBytes);
+  const fonts = await embedFlowFonts(pdf);
+  const fontSet = fonts.regular;
 
   for (let pageIndex = 0; pageIndex < pdf.getPageCount(); pageIndex += 1) {
     const pageFile = await makeSinglePagePdf(pdf, pageIndex, file.originalname || "reference-book");
@@ -178,7 +161,7 @@ async function createVisibleOcrPdf(file, editedLayout = null) {
     const pageHeight = page.getHeight();
 
     for (const block of ocrPage.blocks) {
-      const value = sanitizeText(String(block.text || "").replace(/\s+/g, " ").trim());
+      const value = fontSet.sanitize(String(block.text || "").replace(/\s+/g, " ").trim());
       if (!value) continue;
       const x = Math.max(0, block.x * pageWidth);
       const width = Math.max(12, Math.min(pageWidth - x, block.width * pageWidth));
@@ -188,28 +171,91 @@ async function createVisibleOcrPdf(file, editedLayout = null) {
 
       if (["header", "footer", "page_number", "metadata", "diagram_label", "diagram_caption"].includes(block.role)) {
         if (["diagram_label", "diagram_caption"].includes(block.role)) {
-          page.drawText(value, { x, y: y + Math.max(0, height - size) * 0.25, size, font, color: rgb(0.05, 0.05, 0.05), opacity: 0.01, maxWidth: width, lineHeight: size * 1.15 });
+          drawMixedText(page, value, fontSet, { x, y: y + Math.max(0, height - size) * 0.25, size, color: rgb(0.05, 0.05, 0.05), opacity: 0.01 });
         }
         continue;
       }
 
       // Cover the scanned glyphs locally, then draw selectable OCR text in their place.
       page.drawRectangle({ x: Math.max(0, x - 1), y: Math.max(0, y - 1), width: Math.min(pageWidth - x + 1, width + 2), height: height + 2, color: rgb(1, 1, 1) });
-      page.drawText(value, { x, y: y + Math.max(0, height - size) * 0.25, size, font, color: rgb(0.05, 0.05, 0.05), maxWidth: width, lineHeight: size * 1.15 });
+      drawMixedText(page, value, fontSet, { x, y: y + Math.max(0, height - size) * 0.25, size, color: rgb(0.05, 0.05, 0.05) });
     }
   }
 
   return Buffer.from(await pdf.save({ useObjectStreams: true }));
 }
 
-function wrapFlowText(textValue, font, size, maxWidth) {
-  const measure = (value) => {
-    try {
-      return font.widthOfTextAtSize(value, size);
-    } catch {
-      return Number.POSITIVE_INFINITY;
-    }
+function createFontSet(fonts, buffers) {
+  const entries = fonts.map((font, index) => ({ font, face: fontkit.create(buffers[index]) }));
+  const fontFor = (character) => {
+    const codePoint = character.codePointAt(0);
+    if (codePoint === undefined || codePoint < 0x20 && ![9, 11, 12].includes(codePoint)) return null;
+    return entries.find((entry) => {
+      try {
+        return entry.face.hasGlyphForCodePoint(codePoint) && Boolean(entry.font.encodeText(character));
+      } catch {
+        return false;
+      }
+    }) || null;
   };
+  return {
+    fontFor,
+    sanitize(value) {
+      return Array.from(String(value || "").normalize("NFC")).filter((character) => character === "\n" || character === "\r" || fontFor(character)).join("");
+    },
+    widthOfTextAtSize(value, size) {
+      let width = 0;
+      let run = "";
+      let runFont = null;
+      const flush = () => {
+        if (run && runFont) width += runFont.widthOfTextAtSize(run, size);
+        run = "";
+      };
+      for (const character of String(value || "")) {
+        const entry = fontFor(character);
+        if (!entry) continue;
+        if (entry.font !== runFont) {
+          flush();
+          runFont = entry.font;
+        }
+        run += character;
+      }
+      flush();
+      return width;
+    },
+  };
+}
+
+function drawMixedText(page, value, fontSet, options) {
+  const { x, y, size, color, opacity, extraWordSpacing = 0 } = options;
+  let cursorX = x;
+  let run = "";
+  let runFont = null;
+  const flush = () => {
+    if (!run || !runFont) return;
+    page.drawText(run, { x: cursorX, y, size, font: runFont, color, ...(opacity === undefined ? {} : { opacity }) });
+    cursorX += runFont.widthOfTextAtSize(run, size);
+    run = "";
+  };
+  for (const character of String(value || "")) {
+    if (character === "\n" || character === "\r") continue;
+    const entry = fontSet.fontFor(character);
+    if (!entry) continue;
+    if (character === " ") {
+      flush();
+      page.drawText(character, { x: cursorX, y, size, font: entry.font, color, ...(opacity === undefined ? {} : { opacity }) });
+      cursorX += entry.font.widthOfTextAtSize(character, size) + extraWordSpacing;
+      continue;
+    }
+    if (runFont && runFont !== entry.font) flush();
+    runFont = entry.font;
+    run += character;
+  }
+  flush();
+}
+
+function wrapFlowText(textValue, fontSet, size, maxWidth) {
+  const measure = (value) => fontSet.widthOfTextAtSize(value, size);
   return String(textValue || "").split(/\r?\n/).flatMap((paragraph) => {
     const words = paragraph.trim().split(/\s+/).filter(Boolean);
     if (!words.length) return [""];
@@ -232,38 +278,15 @@ function wrapFlowText(textValue, font, size, maxWidth) {
 async function embedFlowFonts(pdf) {
   pdf.registerFontkit(fontkit);
   const fontDir = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files");
-  const [regular, bold, italic, boldItalic] = await Promise.all([
-    readFile(join(fontDir, "noto-serif-vietnamese-400-normal.woff")),
-    readFile(join(fontDir, "noto-serif-vietnamese-700-normal.woff")),
-    readFile(join(fontDir, "noto-serif-vietnamese-400-italic.woff")),
-    readFile(join(fontDir, "noto-serif-vietnamese-700-italic.woff")),
-  ]);
-  const regularSanitize = createFontSanitizer(regular);
-  const boldSanitize = createFontSanitizer(bold);
-  const italicSanitize = createFontSanitizer(italic);
-  const boldItalicSanitize = createFontSanitizer(boldItalic);
-  const regularFont = await pdf.embedFont(regular, { subset: true });
-  const boldFont = await pdf.embedFont(bold, { subset: true });
-  const italicFont = await pdf.embedFont(italic, { subset: true });
-  const boldItalicFont = await pdf.embedFont(boldItalic, { subset: true });
-  const sanitizeForFont = (font, value) => {
-    const sanitizer = font === boldFont ? boldSanitize : font === italicFont ? italicSanitize : font === boldItalicFont ? boldItalicSanitize : regularSanitize;
-    return Array.from(sanitizer(value)).filter((character) => {
-      if (character === "\n" || character === "\r") return true;
-      try {
-        font.encodeText(character);
-        return true;
-      } catch {
-        return false;
-      }
-    }).join("");
-  };
+  const subsets = ["latin", "latin-ext", "vietnamese"];
+  const loadStyle = (weight, italic) => Promise.all(subsets.map((subset) => readFile(join(fontDir, `noto-serif-${subset}-${weight}-${italic ? "italic" : "normal"}.woff`))));
+  const [regular, bold, italic, boldItalic] = await Promise.all([loadStyle(400, false), loadStyle(700, false), loadStyle(400, true), loadStyle(700, true)]);
+  const embedFontSet = async (buffers) => createFontSet(await Promise.all(buffers.map((buffer) => pdf.embedFont(buffer, { subset: true })) ), buffers);
   return {
-    regular: regularFont,
-    bold: boldFont,
-    italic: italicFont,
-    boldItalic: boldItalicFont,
-    sanitizeForFont,
+    regular: await embedFontSet(regular),
+    bold: await embedFontSet(bold),
+    italic: await embedFontSet(italic),
+    boldItalic: await embedFontSet(boldItalic),
   };
 }
 
@@ -320,7 +343,8 @@ async function createReflowPdf(file, editedLayout = null) {
     const lineHeight = size * (isHeading ? 1.25 : 1.45);
     const indent = !isHeading && !isCaption && !isList ? 18 : 0;
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
-    const lines = wrapFlowText(fonts.sanitizeForFont(font, block.text), font, size, contentWidth - indent);
+    const cleanText = font.sanitize(block.text);
+    const lines = wrapFlowText(cleanText, font, size, contentWidth - indent);
     ensureSpace(lines.length * lineHeight + (isHeading ? 12 : 8));
     cursorY -= isHeading ? 6 : 2;
     lines.forEach((line, index) => {
@@ -329,9 +353,7 @@ async function createReflowPdf(file, editedLayout = null) {
       const justify = !isHeading && !isCaption && !isList && index < lines.length - 1 && spaces > 0;
       const lineWidth = contentWidth - lineIndent;
       const extraWordSpacing = justify ? Math.max(0, (lineWidth - font.widthOfTextAtSize(line, size)) / spaces) : 0;
-      if (extraWordSpacing > 0) page.pushOperators(setWordSpacing(extraWordSpacing));
-      page.drawText(line, { x: margin.left + lineIndent, y: cursorY - size, size, font, color: rgb(0.08, 0.08, 0.08), maxWidth: lineWidth, lineHeight });
-      if (extraWordSpacing > 0) page.pushOperators(setWordSpacing(0));
+      drawMixedText(page, line, font, { x: margin.left + lineIndent, y: cursorY - size, size, color: rgb(0.08, 0.08, 0.08), extraWordSpacing });
       cursorY -= lineHeight;
     });
     cursorY -= isHeading ? 7 : 5;
