@@ -347,9 +347,10 @@ async function createReflowPdf(file, editedLayout = null) {
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
     const cleanText = font.sanitize(block.text);
     const lines = wrapFlowText(cleanText, font, size, contentWidth - indent);
-    ensureSpace(lines.length * lineHeight + (isHeading ? 12 : 8));
+    ensureSpace(lineHeight + (isHeading ? 12 : 8));
     cursorY -= isHeading ? 6 : 2;
     lines.forEach((line, index) => {
+      if (cursorY - lineHeight < margin.bottom) newPage();
       const lineIndent = index === 0 ? indent : 0;
       const spaces = (line.match(/ /g) || []).length;
       const justify = !isHeading && !isCaption && !isList && index < lines.length - 1 && spaces > 0;
