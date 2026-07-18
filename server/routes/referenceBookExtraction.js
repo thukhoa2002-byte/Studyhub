@@ -109,7 +109,7 @@ async function ocrPageLocally(pageFile, pageIndex, totalPages) {
     import("@napi-rs/canvas"),
     import("tesseract.js"),
   ]);
-  const pdf = await getDocument({ data: pageFile.buffer, disableWorker: true, useSystemFonts: true }).promise;
+  const pdf = await getDocument({ data: new Uint8Array(pageFile.buffer), disableWorker: true, useSystemFonts: true }).promise;
   const pdfPage = await pdf.getPage(1);
   const viewport = pdfPage.getViewport({ scale: 2 });
   const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
