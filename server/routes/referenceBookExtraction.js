@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import fontkit from "@pdf-lib/fontkit";
@@ -278,6 +278,28 @@ function wrapFlowText(textValue, fontSet, size, maxWidth) {
 
 async function embedFlowFonts(pdf) {
   pdf.registerFontkit(fontkit);
+  const privateTimesDir = process.env.REFERENCE_FONT_DIR || (process.platform === "darwin" ? "/System/Library/Fonts/Supplemental" : "");
+  const timesFiles = [
+    "Times New Roman.ttf",
+    "Times New Roman Bold.ttf",
+    "Times New Roman Italic.ttf",
+    "Times New Roman Bold Italic.ttf",
+  ];
+  if (privateTimesDir) {
+    try {
+      await Promise.all(timesFiles.map((file) => access(join(privateTimesDir, file))));
+      const times = await Promise.all(timesFiles.map((file) => readFile(join(privateTimesDir, file))));
+      const embedTimes = async (buffer) => createFontSet([await pdf.embedFont(buffer, { subset: true })], [buffer]);
+      return {
+        regular: await embedTimes(times[0]),
+        bold: await embedTimes(times[1]),
+        italic: await embedTimes(times[2]),
+        boldItalic: await embedTimes(times[3]),
+      };
+    } catch (error) {
+      console.warn("Times New Roman fonts are unavailable; falling back to Noto Serif.", error instanceof Error ? error.message : String(error));
+    }
+  }
   const fontDir = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files");
   // Match the CSS subset order so Vietnamese-specific glyphs use their complete font.
   const subsets = ["latin", "vietnamese", "latin-ext"];
