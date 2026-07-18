@@ -32,7 +32,11 @@ export interface GeneratedQuestion {
 export async function generateMultipleChoice(image: File): Promise<GenerateQuestionsResponse> {
   const formData = new FormData();
   formData.append("image", image);
-  const response = await fetch(`${API_URL}/api/generate-mcq`, { method: "POST", body: formData });
+  const { supabase } = await import("./supabase");
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Bạn cần đăng nhập để tạo trắc nghiệm.");
+  const response = await fetch(`${API_URL}/api/generate-mcq`, { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: formData });
   if (!response.ok) { const error = (await response.json().catch(() => null)) as { message?: string } | null; throw new Error(error?.message || "Không thể tạo câu trắc nghiệm."); }
   const result = (await response.json()) as GenerateQuestionsResponse;
   result.data = result.data.map((question, index) => ({ ...question, id: crypto.randomUUID?.() ?? index.toString(), bookmarked: false }));

@@ -17,14 +17,21 @@ alter table public.reference_books add column if not exists publication_year int
 create index if not exists reference_books_owner_created_idx on public.reference_books(owner_id, created_at desc);
 alter table public.reference_books enable row level security;
 
+drop policy if exists "read own or shared reference books" on public.reference_books;
+drop policy if exists "owners create reference books" on public.reference_books;
+drop policy if exists "owners update reference books" on public.reference_books;
+drop policy if exists "owners delete reference books" on public.reference_books;
 create policy "read own or shared reference books" on public.reference_books for select using (owner_id = auth.uid() or status = 'shared');
-create policy "owners create reference books" on public.reference_books for insert with check (owner_id = auth.uid());
-create policy "owners update reference books" on public.reference_books for update using (owner_id = auth.uid()) with check (owner_id = auth.uid());
-create policy "owners delete reference books" on public.reference_books for delete using (owner_id = auth.uid());
+create policy "owners create reference books" on public.reference_books for insert to authenticated with check (owner_id = auth.uid() and lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com');
+create policy "owners update reference books" on public.reference_books for update to authenticated using (owner_id = auth.uid() and lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com') with check (owner_id = auth.uid() and lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com');
+create policy "owners delete reference books" on public.reference_books for delete to authenticated using (owner_id = auth.uid() and lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com');
 
 insert into storage.buckets (id, name, public) values ('reference-books', 'reference-books', false) on conflict (id) do nothing;
+drop policy if exists "read own or shared reference files" on storage.objects;
+drop policy if exists "owners upload reference files" on storage.objects;
+drop policy if exists "owners delete reference files" on storage.objects;
 create policy "read own or shared reference files" on storage.objects for select using (
   bucket_id = 'reference-books' and exists (select 1 from public.reference_books b where b.owner_id = auth.uid() or b.status = 'shared')
 );
-create policy "owners upload reference files" on storage.objects for insert with check (bucket_id = 'reference-books' and (storage.foldername(name))[1] = auth.uid()::text);
-create policy "owners delete reference files" on storage.objects for delete using (bucket_id = 'reference-books' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "owners upload reference files" on storage.objects for insert to authenticated with check (bucket_id = 'reference-books' and (storage.foldername(name))[1] = auth.uid()::text and lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com');
+create policy "owners delete reference files" on storage.objects for delete to authenticated using (bucket_id = 'reference-books' and (storage.foldername(name))[1] = auth.uid()::text and lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com');

@@ -3,12 +3,13 @@ import multer from "multer";
 import { createHash } from "node:crypto";
 import { generateStructuredFromImage } from "../services/gemini.js";
 import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
+import { requireAuth } from "../middleware/requireAuth.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 const cache = new Map();
 
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", requireAuth, upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "Không có ảnh." });
     const key = createHash("sha256").update(req.file.buffer).digest("hex");

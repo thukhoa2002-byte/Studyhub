@@ -203,6 +203,15 @@ export default function App() {
     return false;
   }
 
+  function changeWorkspaceTab(nextTab: WorkspaceTab) {
+    if (nextTab === "mcq" && !requireLogin()) return;
+    setWorkspaceTab(nextTab);
+  }
+
+  useEffect(() => {
+    if (!user && workspaceTab === "mcq") setWorkspaceTab("flashcards");
+  }, [user, workspaceTab]);
+
   function continueWithGoogle() {
     setLoginRequiredOpen(false);
     window.dispatchEvent(new Event("hocbai:google-sign-in"));
@@ -767,7 +776,7 @@ export default function App() {
 
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
-        <WorkspaceTabs activeTab={workspaceTab} onChange={setWorkspaceTab} />
+        <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} />
 
         {workspaceTab === "flashcards" && questions.length > 0 && (
           <Navbar

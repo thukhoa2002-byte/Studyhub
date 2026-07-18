@@ -46,6 +46,18 @@ export async function deleteReferenceBook(book: ReferenceBook) {
   if (paths.length) await client().storage.from("reference-books").remove(paths);
 }
 
+export async function updateReferenceBookStatus(bookId: string, status: ReferenceBook["status"]) {
+  const { data, error } = await client().from("reference_books").update({ status, updated_at: new Date().toISOString() }).eq("id", bookId).select("*").single();
+  if (error) throw error;
+  return data as ReferenceBook;
+}
+
+export async function getReferenceBookUrl(path: string) {
+  const { data, error } = await client().storage.from("reference-books").createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) throw error || new Error("Không thể mở sách.");
+  return data.signedUrl;
+}
+
 export async function extractReferenceBook(file: File): Promise<ReferenceBookExtraction> {
   const client = await import("./supabase");
   if (!client.supabase) throw new Error("Supabase chưa được cấu hình.");
