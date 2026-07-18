@@ -103,6 +103,43 @@ function makeFallbackPage(pageText, yOffset = 0, yScale = 1) {
   };
 }
 
+async function ocrPageLocally(pageFile, pageIndex, totalPages) {
+  const [{ getDocument }, { createCanvas }, { createWorker }] = await Promise.all([
+    import("pdfjs-dist/legacy/build/pdf.mjs"),
+    import("@napi-rs/canvas"),
+    import("tesseract.js"),
+  ]);
+  const pdf = await getDocument({ data: pageFile.buffer, disableWorker: true, useSystemFonts: true }).promise;
+  const pdfPage = await pdf.getPage(1);
+  const viewport = pdfPage.getViewport({ scale: 2 });
+  const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+  await pdfPage.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+  const worker = await createWorker("vie+eng");
+  try {
+    const { data } = await worker.recognize(canvas.toBuffer("image/png"));
+    const sourceBlocks = data.blocks?.length ? data.blocks : data.lines?.length ? data.lines : [];
+    const blocks = sourceBlocks.map((block) => {
+      const bbox = block.bbox || { x0: 0, y0: 0, x1: viewport.width, y1: viewport.height };
+      return {
+        text: String(block.text || "").replace(/\s+/g, " ").trim(),
+        x: bbox.x0 / viewport.width,
+        y: bbox.y0 / viewport.height,
+        width: (bbox.x1 - bbox.x0) / viewport.width,
+        height: (bbox.y1 - bbox.y0) / viewport.height,
+        fontSize: Math.max(0.01, (bbox.y1 - bbox.y0) / viewport.height),
+        fontWeight: "normal",
+        italic: false,
+        role: "text",
+      };
+    }).filter((block) => block.text);
+    if (!blocks.length && String(data.text || "").trim()) blocks.push(...makeFallbackPage(data.text).blocks);
+    if (!blocks.length) throw new Error(`OCR cục bộ không nhận diện được trang ${pageIndex + 1}/${totalPages}.`);
+    return { result: {}, page: { pageNumber: pageIndex + 1, width: 1, height: 1, blocks } };
+  } finally {
+    await worker.terminate();
+  }
+}
+
 async function extractPage(pageFile, pageIndex, totalPages, source, originalName) {
   try {
     const result = await generateStructuredFromFile({
@@ -116,6 +153,14 @@ async function extractPage(pageFile, pageIndex, totalPages, source, originalName
     if (!page) throw new Error("Gemini không trả về page layout.");
     return { result, page };
   } catch (layoutError) {
+    if (/RECITATION/i.test(layoutError?.message || "")) {
+      try {
+        console.warn(`Gemini blocked page ${pageIndex + 1}/${totalPages}; using local OCR.`);
+        return await ocrPageLocally(pageFile, pageIndex, totalPages);
+      } catch (localError) {
+        console.warn(`Local OCR failed for page ${pageIndex + 1}/${totalPages}; retrying split Gemini OCR.`, localError);
+      }
+    }
     console.warn(`Reference OCR layout failed for page ${pageIndex + 1}/${totalPages}; retrying split text OCR.`, layoutError);
     const sourcePage = source.getPage(pageIndex);
     const pageHeight = sourcePage.getHeight();

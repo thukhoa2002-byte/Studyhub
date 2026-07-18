@@ -17,12 +17,15 @@
   "author": "Thủ Khoa",
   "license": "MIT",
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.68",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "multer": "^2.2.0",
     "openai": "^6.46.0",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.4.149",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
