@@ -46,6 +46,15 @@ const fallbackTextSchema = {
   additionalProperties: false,
 };
 
+function createFontSanitizer(fontBytes) {
+  const face = fontkit.create(fontBytes);
+  return (value) => Array.from(String(value || "")).filter((character) => {
+    if (character === "\n" || character === "\r") return true;
+    const codePoint = character.codePointAt(0);
+    return codePoint !== undefined && face.hasGlyphForCodePoint(codePoint);
+  }).join("");
+}
+
 const prompt = `Bạn là hệ thống OCR và phân tích bố cục PDF. Đọc toàn bộ file PDF scan được gửi kèm và trả JSON đúng schema.
 Mục tiêu là tái tạo một PDF có chữ thật nhưng giữ bố cục nhìn thấy của bản scan.
 - Tự nhận diện tên sách, tác giả và năm xuất bản từ bìa/trang thông tin; nếu không chắc chắn thì trả chuỗi rỗng và publicationYear = 0.
@@ -152,7 +161,9 @@ async function createVisibleOcrPdf(file, editedLayout = null) {
   const pdf = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
   pdf.registerFontkit(fontkit);
   const fontPath = join(ROUTE_DIR, "../node_modules/pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf");
-  const font = await pdf.embedFont(await readFile(fontPath), { subset: true });
+  const fontBytes = await readFile(fontPath);
+  const font = await pdf.embedFont(fontBytes, { subset: true });
+  const sanitizeText = createFontSanitizer(fontBytes);
 
   for (let pageIndex = 0; pageIndex < pdf.getPageCount(); pageIndex += 1) {
     const pageFile = await makeSinglePagePdf(pdf, pageIndex, file.originalname || "reference-book");
@@ -162,7 +173,7 @@ async function createVisibleOcrPdf(file, editedLayout = null) {
     const pageHeight = page.getHeight();
 
     for (const block of ocrPage.blocks) {
-      const value = String(block.text || "").replace(/\s+/g, " ").trim();
+      const value = sanitizeText(String(block.text || "").replace(/\s+/g, " ").trim());
       if (!value) continue;
       const x = Math.max(0, block.x * pageWidth);
       const width = Math.max(12, Math.min(pageWidth - x, block.width * pageWidth));
@@ -215,11 +226,13 @@ async function embedFlowFonts(pdf) {
     readFile(join(fontDir, "LiberationSans-Italic.ttf")),
     readFile(join(fontDir, "LiberationSans-BoldItalic.ttf")),
   ]);
+  const sanitize = createFontSanitizer(regular);
   return {
     regular: await pdf.embedFont(regular, { subset: true }),
     bold: await pdf.embedFont(bold, { subset: true }),
     italic: await pdf.embedFont(italic, { subset: true }),
     boldItalic: await pdf.embedFont(boldItalic, { subset: true }),
+    sanitize,
   };
 }
 
@@ -276,7 +289,7 @@ async function createReflowPdf(file, editedLayout = null) {
     const lineHeight = size * (isHeading ? 1.25 : 1.45);
     const indent = !isHeading && !isCaption && !isList ? 18 : 0;
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
-    const lines = wrapFlowText(block.text, font, size, contentWidth - indent);
+    const lines = wrapFlowText(fonts.sanitize(block.text), font, size, contentWidth - indent);
     ensureSpace(lines.length * lineHeight + (isHeading ? 12 : 8));
     cursorY -= isHeading ? 6 : 2;
     lines.forEach((line, index) => {
