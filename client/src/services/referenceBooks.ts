@@ -15,7 +15,7 @@ export interface ReferenceBook {
   updated_at: string;
 }
 
-export interface ReferenceBookBlock { text: string; x: number; y: number; width: number; height: number; fontSize: number; fontWeight: "normal" | "bold"; italic: boolean; role: "text" | "heading" | "table" | "caption" }
+export interface ReferenceBookBlock { text: string; x: number; y: number; width: number; height: number; fontSize: number; fontWeight: "normal" | "bold"; italic: boolean; role: "text" | "heading" | "table" | "caption" | "header" | "footer" | "page_number" | "metadata" | "diagram_label" | "diagram_caption" }
 export interface ReferenceBookPage { pageNumber: number; width: number; height: number; blocks: ReferenceBookBlock[] }
 export interface ReferenceBookExtraction { title: string; author: string; publicationYear: number; pages: ReferenceBookPage[] }
 
@@ -45,13 +45,14 @@ export async function createReferenceBook(ownerId: string, title: string, author
   return data as ReferenceBook;
 }
 
-export async function createReferenceBookTextPdf(file: File): Promise<Blob> {
+export async function createReferenceBookTextPdf(file: File, layout?: ReferenceBookExtraction): Promise<Blob> {
   const { supabase } = await import("./supabase");
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Bạn cần đăng nhập để tạo PDF OCR.");
   const form = new FormData();
   form.append("file", file);
+  if (layout) form.append("layout", JSON.stringify(layout));
   const response = await fetch("/api/reference-books/ocr-pdf", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: form });
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { message?: string } | null;

@@ -46,7 +46,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
         setPublicationYear((current) => current || (layout.publicationYear ? String(layout.publicationYear) : ""));
         return;
       }
-      const textPdf = await createReferenceBookTextPdf(file);
+      const textPdf = await createReferenceBookTextPdf(file, extraction || undefined);
       await createReferenceBook(user.id, title, author, Number(publicationYear) || null, file, textPdf);
       setTitle("");
       setAuthor("");
@@ -106,6 +106,22 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
     }
   }
 
+  function updateBlockText(pageIndex: number, blockIndex: number, text: string) {
+    setExtraction((current) => current ? { ...current, pages: current.pages.map((page, currentPageIndex) => currentPageIndex === pageIndex ? { ...page, blocks: page.blocks.map((block, currentBlockIndex) => currentBlockIndex === blockIndex ? { ...block, text } : block) } : page) } : current);
+  }
+
+  function removeBlock(pageIndex: number, blockIndex: number) {
+    setExtraction((current) => current ? { ...current, pages: current.pages.map((page, currentPageIndex) => currentPageIndex === pageIndex ? { ...page, blocks: page.blocks.filter((_block, currentBlockIndex) => currentBlockIndex !== blockIndex) } : page) } : current);
+  }
+
+  function removeNonLearningBlocks() {
+    setExtraction((current) => current ? { ...current, pages: current.pages.map((page) => ({ ...page, blocks: page.blocks.filter((block) => !["header", "footer", "page_number", "metadata"].includes(block.role)) })) } : current);
+  }
+
+  function roleLabel(role: ReferenceBookBlock["role"]) {
+    return ({ header: "Header", footer: "Footer", page_number: "Số trang", metadata: "Thông tin phụ", diagram_label: "Nhãn sơ đồ", diagram_caption: "Chú thích sơ đồ", heading: "Tiêu đề", table: "Bảng", caption: "Chú thích", text: "Nội dung" })[role];
+  }
+
   return <>
     <div className="mx-auto flex w-full max-w-[1600px] px-4 pt-6 sm:px-6 xl:px-8">
       <div className="inline-flex rounded-lg border border-teal-100 bg-white/75 p-1 shadow-sm">
@@ -127,7 +143,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
         </form> : <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">Kho tải sách dành riêng cho chủ sở hữu. Bạn có thể xem các sách đã được đăng công khai bên dưới.</div>}
 
         {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-        {extraction && isOwner && <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50/40 p-4"><p className="text-sm font-bold text-teal-800">Gemini đã đọc {extraction.pages.length} trang · {extraction.pages.reduce((sum, page) => sum + page.blocks.length, 0)} khối text</p><div className="mt-3 max-h-[70vh] space-y-2 overflow-y-auto">{extraction.pages.flatMap((page) => page.blocks.map((block, index) => <p key={`${page.pageNumber}-${index}`} className="rounded-lg bg-white px-3 py-2 text-xs leading-5 text-slate-600"><span className="mr-2 font-bold text-rose-500">Trang {page.pageNumber}</span>{block.text}</p>))}</div></div>}
+        {extraction && isOwner && <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50/40 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-bold text-teal-800">Gemini đã đọc {extraction.pages.length} trang · {extraction.pages.reduce((sum, page) => sum + page.blocks.length, 0)} khối text</p><button type="button" onClick={removeNonLearningBlocks} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">Ẩn header, footer, số trang</button></div><div className="mt-3 max-h-[70vh] space-y-2 overflow-y-auto">{extraction.pages.map((page, pageIndex) => page.blocks.map((block, blockIndex) => <div key={`${page.pageNumber}-${blockIndex}`} className={`rounded-lg px-3 py-2 ${["header", "footer", "page_number", "metadata"].includes(block.role) ? "bg-amber-50" : "bg-white"}`}><div className="mb-1 flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase tracking-wide text-rose-500">Trang {page.pageNumber} · {roleLabel(block.role)}</span><button type="button" title="Xóa block" aria-label="Xóa block" onClick={() => removeBlock(pageIndex, blockIndex)} className="rounded-md p-1 text-rose-500 hover:bg-rose-100"><Trash2 size={14} /></button></div><textarea value={block.text} onChange={(event) => updateBlockText(pageIndex, blockIndex, event.target.value)} className="min-h-10 w-full resize-y rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs leading-5 text-slate-600 outline-none focus:border-teal-300" /></div>))}</div></div>}
 
         <div className="mt-5 grid gap-2">{visibleBooks.map((book) => <div key={book.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3"><div className="min-w-0"><p className="truncate font-bold text-slate-700">{book.title}</p><p className="text-xs text-slate-400">{book.author || "Chưa ghi tác giả"}{book.publication_year ? ` · ${book.publication_year}` : ""} · {book.status === "private" ? "Riêng tư" : "Đã đăng công khai"}{book.text_pdf_path ? " · Có PDF chữ" : " · Chưa tạo PDF chữ"}</p></div><div className="flex shrink-0 items-center gap-1">{isOwner && !book.text_pdf_path && <button type="button" title="Tạo PDF chữ" disabled={ocrBookId === book.id} onClick={() => void rebuildBook(book)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50 disabled:opacity-50">{ocrBookId === book.id ? <Loader2 className="animate-spin" size={17} /> : <FileText size={17} />}</button>}<button type="button" title="Xem PDF chữ hoặc PDF gốc" onClick={() => void openBook(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><ExternalLink size={17} /> </button>{isOwner && <><button type="button" title={book.status === "shared" ? "Gỡ công khai" : "Đăng công khai"} onClick={() => void toggleBookStatus(book)} className={`rounded-lg p-2 ${book.status === "shared" ? "text-amber-600 hover:bg-amber-50" : "text-blue-600 hover:bg-blue-50"}`}>{book.status === "shared" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" title="Xóa sách" onClick={() => void removeBook(book)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={17} /></button></>}</div></div>)}</div>
       </div>

@@ -9,7 +9,7 @@ import { generateStructuredFromFile } from "../services/gemini.js";
 import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024, fieldSize: 20 * 1024 * 1024 } });
 const ROUTE_DIR = dirname(fileURLToPath(import.meta.url));
 const text = { type: "string" };
 const schema = {
@@ -18,7 +18,7 @@ const schema = {
     title: text,
     author: text,
     publicationYear: { type: "integer" },
-    pages: { type: "array", items: { type: "object", properties: { pageNumber: { type: "integer" }, width: { type: "number" }, height: { type: "number" }, blocks: { type: "array", items: { type: "object", properties: { text, x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" }, fontSize: { type: "number" }, fontWeight: { type: "string", enum: ["normal", "bold"] }, italic: { type: "boolean" }, role: { type: "string", enum: ["text", "heading", "table", "caption"] } }, required: ["text", "x", "y", "width", "height", "fontSize", "fontWeight", "italic", "role"], additionalProperties: false } } }, required: ["pageNumber", "width", "height", "blocks"], additionalProperties: false } },
+    pages: { type: "array", items: { type: "object", properties: { pageNumber: { type: "integer" }, width: { type: "number" }, height: { type: "number" }, blocks: { type: "array", items: { type: "object", properties: { text, x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" }, fontSize: { type: "number" }, fontWeight: { type: "string", enum: ["normal", "bold"] }, italic: { type: "boolean" }, role: { type: "string", enum: ["text", "heading", "table", "caption", "header", "footer", "page_number", "metadata", "diagram_label", "diagram_caption"] } }, required: ["text", "x", "y", "width", "height", "fontSize", "fontWeight", "italic", "role"], additionalProperties: false } } }, required: ["pageNumber", "width", "height", "blocks"], additionalProperties: false } },
   },
   required: ["title", "author", "publicationYear", "pages"],
   additionalProperties: false,
@@ -53,6 +53,9 @@ Mục tiêu là tái tạo một PDF có chữ thật nhưng giữ bố cục nh
 - Mỗi khối chữ là một block, tọa độ x/y/width/height dùng số chuẩn hóa 0..1 theo trang; gốc tọa độ ở góc trái trên.
 - Giữ thứ tự đọc từ trên xuống dưới, trái sang phải. Không tóm tắt, không dịch, không tự sửa nội dung.
 - Nhận diện heading, text, table và caption. Với bảng, giữ từng ô/hàng ở thứ tự đọc; không gộp nội dung khác ô.
+- Phân loại phần không phải nội dung bài học: header là đầu trang lặp lại hoặc tên sách/chương chạy ở đầu trang; footer là chân trang lặp lại; page_number là số trang; metadata là tên tác giả, mã tài liệu, thông tin xuất bản hoặc dòng hành chính. Không gán các nhãn này cho tiêu đề mục và kiến thức chỉ vì chúng nằm ở đầu trang.
+- Không bỏ block bị phân loại là header/footer/page_number/metadata; vẫn trả về để người kiểm tra có thể sửa hoặc xóa.
+- Với sơ đồ, lưu chữ trong từng ô/nhãn là diagram_label và tiêu đề/chú thích sơ đồ là diagram_caption. Không biến đường nối, mũi tên hoặc quan hệ không phải chữ thành block văn bản; giữ nguyên vị trí tương đối để hình sơ đồ gốc được bảo toàn.
 - fontSize là kích thước tương đối theo chiều cao trang; fontWeight/italic phản ánh chữ nhìn thấy.
 - Nếu chữ không đọc rõ, giữ phần đọc được và đánh dấu trong text bằng [KHÓ ĐỌC], không bịa.
 Chỉ trả JSON, không thêm markdown.`;
@@ -145,7 +148,7 @@ async function ocrPageLocally(pageFile, pageIndex, totalPages) {
   }
 }
 
-async function createVisibleOcrPdf(file) {
+async function createVisibleOcrPdf(file, editedLayout = null) {
   const pdf = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
   pdf.registerFontkit(fontkit);
   const fontPath = join(ROUTE_DIR, "../node_modules/pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf");
@@ -153,7 +156,7 @@ async function createVisibleOcrPdf(file) {
 
   for (let pageIndex = 0; pageIndex < pdf.getPageCount(); pageIndex += 1) {
     const pageFile = await makeSinglePagePdf(pdf, pageIndex, file.originalname || "reference-book");
-    const { page: ocrPage } = await ocrPageLocally(pageFile, pageIndex, pdf.getPageCount());
+    const ocrPage = editedLayout?.pages?.[pageIndex]?.blocks ? editedLayout.pages[pageIndex] : (await ocrPageLocally(pageFile, pageIndex, pdf.getPageCount())).page;
     const page = pdf.getPage(pageIndex);
     const pageWidth = page.getWidth();
     const pageHeight = page.getHeight();
@@ -166,6 +169,13 @@ async function createVisibleOcrPdf(file) {
       const height = Math.max(8, block.height * pageHeight);
       const y = Math.max(0, pageHeight - (block.y + block.height) * pageHeight);
       const size = Math.max(6, Math.min(28, height * 0.82));
+
+      if (["header", "footer", "page_number", "metadata", "diagram_label", "diagram_caption"].includes(block.role)) {
+        if (["diagram_label", "diagram_caption"].includes(block.role)) {
+          page.drawText(value, { x, y: y + Math.max(0, height - size) * 0.25, size, font, color: rgb(0.05, 0.05, 0.05), opacity: 0.01, maxWidth: width, lineHeight: size * 1.15 });
+        }
+        continue;
+      }
 
       // Cover the scanned glyphs locally, then draw selectable OCR text in their place.
       page.drawRectangle({ x: Math.max(0, x - 1), y: Math.max(0, y - 1), width: Math.min(pageWidth - x + 1, width + 2), height: height + 2, color: rgb(1, 1, 1) });
@@ -264,7 +274,11 @@ router.post("/ocr-pdf", requireGuidelineAdmin, upload.single("file"), async (req
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "Chưa chọn PDF sách." });
     if (req.file.mimetype !== "application/pdf") return res.status(415).json({ success: false, message: "Chỉ hỗ trợ PDF sách." });
-    const pdf = await createVisibleOcrPdf(req.file);
+    let editedLayout = null;
+    if (req.body.layout) {
+      try { editedLayout = JSON.parse(req.body.layout); } catch { return res.status(400).json({ success: false, message: "Bố cục OCR chỉnh sửa không hợp lệ." }); }
+    }
+    const pdf = await createVisibleOcrPdf(req.file, editedLayout);
     res.type("application/pdf").send(pdf);
   } catch (error) {
     const status = error?.status === 429 ? 429 : 500;
