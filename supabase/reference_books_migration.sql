@@ -3,6 +3,7 @@ create table if not exists public.reference_books (
   owner_id uuid not null references auth.users(id) on delete cascade,
   title text not null,
   author text not null default '',
+  publication_year integer,
   source_file_path text not null,
   text_pdf_path text,
   status text not null default 'private' check (status in ('private', 'shared')),
@@ -11,6 +12,7 @@ create table if not exists public.reference_books (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table public.reference_books add column if not exists publication_year integer;
 
 create index if not exists reference_books_owner_created_idx on public.reference_books(owner_id, created_at desc);
 alter table public.reference_books enable row level security;

@@ -5,6 +5,7 @@ export interface ReferenceBook {
   owner_id: string;
   title: string;
   author: string;
+  publication_year: number | null;
   source_file_path: string;
   text_pdf_path: string | null;
   status: "private" | "shared";
@@ -16,7 +17,7 @@ export interface ReferenceBook {
 
 export interface ReferenceBookBlock { text: string; x: number; y: number; width: number; height: number; fontSize: number; fontWeight: "normal" | "bold"; italic: boolean; role: "text" | "heading" | "table" | "caption" }
 export interface ReferenceBookPage { pageNumber: number; width: number; height: number; blocks: ReferenceBookBlock[] }
-export interface ReferenceBookExtraction { title: string; pages: ReferenceBookPage[] }
+export interface ReferenceBookExtraction { title: string; author: string; publicationYear: number; pages: ReferenceBookPage[] }
 
 function client() {
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
@@ -29,12 +30,12 @@ export async function listReferenceBooks() {
   return (data || []) as ReferenceBook[];
 }
 
-export async function createReferenceBook(ownerId: string, title: string, author: string, file: File) {
+export async function createReferenceBook(ownerId: string, title: string, author: string, publicationYear: number | null, file: File) {
   const storagePath = `${ownerId}/${crypto.randomUUID()}/${file.name.replace(/[^a-zA-Z0-9._-]+/g, "-")}`;
   const storage = client().storage.from("reference-books");
   const uploaded = await storage.upload(storagePath, file, { contentType: "application/pdf", upsert: false });
   if (uploaded.error) throw uploaded.error;
-  const { data, error } = await client().from("reference_books").insert({ owner_id: ownerId, title: title.trim(), author: author.trim(), source_file_path: storagePath, status: "private", processing_status: "ready" }).select("*").single();
+  const { data, error } = await client().from("reference_books").insert({ owner_id: ownerId, title: title.trim(), author: author.trim(), publication_year: publicationYear, source_file_path: storagePath, status: "private", processing_status: "ready" }).select("*").single();
   if (error) { await storage.remove([storagePath]); throw error; }
   return data as ReferenceBook;
 }
