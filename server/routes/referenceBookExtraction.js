@@ -1,11 +1,16 @@
 import express from "express";
 import multer from "multer";
-import { PDFDocument } from "pdf-lib";
+import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import fontkit from "@pdf-lib/fontkit";
+import { PDFDocument, rgb } from "pdf-lib";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+const ROUTE_DIR = dirname(fileURLToPath(import.meta.url));
 const text = { type: "string" };
 const schema = {
   type: "object",
@@ -140,6 +145,37 @@ async function ocrPageLocally(pageFile, pageIndex, totalPages) {
   }
 }
 
+async function createVisibleOcrPdf(file) {
+  const pdf = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
+  pdf.registerFontkit(fontkit);
+  const fontPath = join(ROUTE_DIR, "../node_modules/pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf");
+  const font = await pdf.embedFont(await readFile(fontPath), { subset: true });
+
+  for (let pageIndex = 0; pageIndex < pdf.getPageCount(); pageIndex += 1) {
+    const pageFile = await makeSinglePagePdf(pdf, pageIndex, file.originalname || "reference-book");
+    const { page: ocrPage } = await ocrPageLocally(pageFile, pageIndex, pdf.getPageCount());
+    const page = pdf.getPage(pageIndex);
+    const pageWidth = page.getWidth();
+    const pageHeight = page.getHeight();
+
+    for (const block of ocrPage.blocks) {
+      const value = String(block.text || "").replace(/\s+/g, " ").trim();
+      if (!value) continue;
+      const x = Math.max(0, block.x * pageWidth);
+      const width = Math.max(12, Math.min(pageWidth - x, block.width * pageWidth));
+      const height = Math.max(8, block.height * pageHeight);
+      const y = Math.max(0, pageHeight - (block.y + block.height) * pageHeight);
+      const size = Math.max(6, Math.min(28, height * 0.82));
+
+      // Cover the scanned glyphs locally, then draw selectable OCR text in their place.
+      page.drawRectangle({ x: Math.max(0, x - 1), y: Math.max(0, y - 1), width: Math.min(pageWidth - x + 1, width + 2), height: height + 2, color: rgb(1, 1, 1) });
+      page.drawText(value, { x, y: y + Math.max(0, height - size) * 0.25, size, font, color: rgb(0.05, 0.05, 0.05), maxWidth: width, lineHeight: size * 1.15 });
+    }
+  }
+
+  return Buffer.from(await pdf.save({ useObjectStreams: true }));
+}
+
 async function extractPage(pageFile, pageIndex, totalPages, source, originalName) {
   try {
     const result = await generateStructuredFromFile({
@@ -221,6 +257,18 @@ router.post("/extract", requireGuidelineAdmin, upload.single("file"), async (req
   } catch (error) {
     const status = error?.status === 429 ? 429 : 500;
     return res.status(status).json({ success: false, message: error?.message || "Không thể OCR sách bằng Gemini." });
+  }
+});
+
+router.post("/ocr-pdf", requireGuidelineAdmin, upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: "Chưa chọn PDF sách." });
+    if (req.file.mimetype !== "application/pdf") return res.status(415).json({ success: false, message: "Chỉ hỗ trợ PDF sách." });
+    const pdf = await createVisibleOcrPdf(req.file);
+    res.type("application/pdf").send(pdf);
+  } catch (error) {
+    const status = error?.status === 429 ? 429 : 500;
+    return res.status(status).json({ success: false, message: error?.message || "Không thể tạo PDF OCR." });
   }
 });
 

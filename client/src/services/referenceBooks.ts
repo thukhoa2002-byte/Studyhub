@@ -30,13 +30,49 @@ export async function listReferenceBooks() {
   return (data || []) as ReferenceBook[];
 }
 
-export async function createReferenceBook(ownerId: string, title: string, author: string, publicationYear: number | null, file: File) {
+export async function createReferenceBook(ownerId: string, title: string, author: string, publicationYear: number | null, file: File, textPdf?: Blob) {
   const storagePath = `${ownerId}/${crypto.randomUUID()}/${file.name.replace(/[^a-zA-Z0-9._-]+/g, "-")}`;
   const storage = client().storage.from("reference-books");
   const uploaded = await storage.upload(storagePath, file, { contentType: "application/pdf", upsert: false });
   if (uploaded.error) throw uploaded.error;
-  const { data, error } = await client().from("reference_books").insert({ owner_id: ownerId, title: title.trim(), author: author.trim(), publication_year: publicationYear, source_file_path: storagePath, status: "private", processing_status: "ready" }).select("*").single();
-  if (error) { await storage.remove([storagePath]); throw error; }
+  const textPdfPath = textPdf ? `${ownerId}/${crypto.randomUUID()}/ocr-${file.name.replace(/[^a-zA-Z0-9._-]+/g, "-")}` : null;
+  if (textPdf && textPdfPath) {
+    const ocrUpload = await storage.upload(textPdfPath, textPdf, { contentType: "application/pdf", upsert: false });
+    if (ocrUpload.error) { await storage.remove([storagePath]); throw ocrUpload.error; }
+  }
+  const { data, error } = await client().from("reference_books").insert({ owner_id: ownerId, title: title.trim(), author: author.trim(), publication_year: publicationYear, source_file_path: storagePath, text_pdf_path: textPdfPath, status: "private", processing_status: "ready" }).select("*").single();
+  if (error) { await storage.remove([storagePath, ...(textPdfPath ? [textPdfPath] : [])]); throw error; }
+  return data as ReferenceBook;
+}
+
+export async function createReferenceBookTextPdf(file: File): Promise<Blob> {
+  const { supabase } = await import("./supabase");
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Bạn cần đăng nhập để tạo PDF OCR.");
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch("/api/reference-books/ocr-pdf", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: form });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message || "Không thể tạo PDF OCR.");
+  }
+  return response.blob();
+}
+
+export async function generateReferenceBookTextPdf(book: ReferenceBook): Promise<ReferenceBook> {
+  const sourceUrl = await getReferenceBookUrl(book.source_file_path);
+  const sourceResponse = await fetch(sourceUrl);
+  if (!sourceResponse.ok) throw new Error("Không thể tải PDF gốc để tạo bản OCR.");
+  const sourceBlob = await sourceResponse.blob();
+  const sourceFile = new File([sourceBlob], `${book.title || "reference-book"}.pdf`, { type: "application/pdf" });
+  const textPdf = await createReferenceBookTextPdf(sourceFile);
+  const path = `${book.owner_id}/${crypto.randomUUID()}/ocr-${book.title.replace(/[^a-zA-Z0-9._-]+/g, "-")}.pdf`;
+  const storage = client().storage.from("reference-books");
+  const uploaded = await storage.upload(path, textPdf, { contentType: "application/pdf", upsert: false });
+  if (uploaded.error) throw uploaded.error;
+  const { data, error } = await client().from("reference_books").update({ text_pdf_path: path, updated_at: new Date().toISOString() }).eq("id", book.id).select("*").single();
+  if (error) { await storage.remove([path]); throw error; }
   return data as ReferenceBook;
 }
 

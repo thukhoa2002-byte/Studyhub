@@ -1,9 +1,9 @@
-import { BookOpenCheck, ExternalLink, FileUp, Globe2, LibraryBig, Loader2, LockKeyhole, Trash2 } from "lucide-react";
+import { BookOpenCheck, ExternalLink, FileText, FileUp, Globe2, LibraryBig, Loader2, LockKeyhole, Trash2 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import GuidelinesPage from "./GuidelinesPage";
-import { createReferenceBook, deleteReferenceBook, extractReferenceBook, getReferenceBookUrl, listReferenceBooks, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookExtraction } from "../services/referenceBooks";
+import { createReferenceBook, createReferenceBookTextPdf, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookExtraction } from "../services/referenceBooks";
 
 type ReferenceSection = "guidelines" | "books";
 const REFERENCE_BOOK_OWNER_EMAIL = "thukhoa2002@gmail.com";
@@ -18,6 +18,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [extraction, setExtraction] = useState<ReferenceBookExtraction | null>(null);
+  const [ocrBookId, setOcrBookId] = useState<string | null>(null);
   const isOwner = user?.email?.trim().toLowerCase() === REFERENCE_BOOK_OWNER_EMAIL;
   const visibleBooks = isOwner ? books : books.filter((book) => book.status === "shared");
 
@@ -45,7 +46,8 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
         setPublicationYear((current) => current || (layout.publicationYear ? String(layout.publicationYear) : ""));
         return;
       }
-      await createReferenceBook(user.id, title, author, Number(publicationYear) || null, file);
+      const textPdf = await createReferenceBookTextPdf(file);
+      await createReferenceBook(user.id, title, author, Number(publicationYear) || null, file, textPdf);
       setTitle("");
       setAuthor("");
       setPublicationYear("");
@@ -73,10 +75,24 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
   async function openBook(book: ReferenceBook) {
     setError("");
     try {
-      const url = await getReferenceBookUrl(book.source_file_path);
+      const url = await getReferenceBookUrl(book.text_pdf_path || book.source_file_path);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (openError) {
       setError(openError instanceof Error ? openError.message : "Không thể mở sách.");
+    }
+  }
+
+  async function rebuildBook(book: ReferenceBook) {
+    if (!isOwner) return;
+    setOcrBookId(book.id);
+    setError("");
+    try {
+      const updated = await generateReferenceBookTextPdf(book);
+      setBooks((items) => items.map((item) => item.id === updated.id ? updated : item));
+    } catch (ocrError) {
+      setError(ocrError instanceof Error ? ocrError.message : "Không thể tạo PDF OCR.");
+    } finally {
+      setOcrBookId(null);
     }
   }
 
@@ -113,7 +129,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
         {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         {extraction && isOwner && <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50/40 p-4"><p className="text-sm font-bold text-teal-800">Gemini đã đọc {extraction.pages.length} trang · {extraction.pages.reduce((sum, page) => sum + page.blocks.length, 0)} khối text</p><div className="mt-3 max-h-[70vh] space-y-2 overflow-y-auto">{extraction.pages.flatMap((page) => page.blocks.map((block, index) => <p key={`${page.pageNumber}-${index}`} className="rounded-lg bg-white px-3 py-2 text-xs leading-5 text-slate-600"><span className="mr-2 font-bold text-rose-500">Trang {page.pageNumber}</span>{block.text}</p>))}</div></div>}
 
-        <div className="mt-5 grid gap-2">{visibleBooks.map((book) => <div key={book.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3"><div className="min-w-0"><p className="truncate font-bold text-slate-700">{book.title}</p><p className="text-xs text-slate-400">{book.author || "Chưa ghi tác giả"}{book.publication_year ? ` · ${book.publication_year}` : ""} · {book.status === "private" ? "Riêng tư" : "Đã đăng công khai"}</p></div><div className="flex shrink-0 items-center gap-1"><button type="button" title="Xem sách" onClick={() => void openBook(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><ExternalLink size={17} /></button>{isOwner && <><button type="button" title={book.status === "shared" ? "Gỡ công khai" : "Đăng công khai"} onClick={() => void toggleBookStatus(book)} className={`rounded-lg p-2 ${book.status === "shared" ? "text-amber-600 hover:bg-amber-50" : "text-blue-600 hover:bg-blue-50"}`}>{book.status === "shared" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" title="Xóa sách" onClick={() => void removeBook(book)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={17} /></button></>}</div></div>)}</div>
+        <div className="mt-5 grid gap-2">{visibleBooks.map((book) => <div key={book.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3"><div className="min-w-0"><p className="truncate font-bold text-slate-700">{book.title}</p><p className="text-xs text-slate-400">{book.author || "Chưa ghi tác giả"}{book.publication_year ? ` · ${book.publication_year}` : ""} · {book.status === "private" ? "Riêng tư" : "Đã đăng công khai"}{book.text_pdf_path ? " · Có PDF chữ" : " · Chưa tạo PDF chữ"}</p></div><div className="flex shrink-0 items-center gap-1">{isOwner && !book.text_pdf_path && <button type="button" title="Tạo PDF chữ" disabled={ocrBookId === book.id} onClick={() => void rebuildBook(book)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50 disabled:opacity-50">{ocrBookId === book.id ? <Loader2 className="animate-spin" size={17} /> : <FileText size={17} />}</button>}<button type="button" title="Xem PDF chữ hoặc PDF gốc" onClick={() => void openBook(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><ExternalLink size={17} /> </button>{isOwner && <><button type="button" title={book.status === "shared" ? "Gỡ công khai" : "Đăng công khai"} onClick={() => void toggleBookStatus(book)} className={`rounded-lg p-2 ${book.status === "shared" ? "text-amber-600 hover:bg-amber-50" : "text-blue-600 hover:bg-blue-50"}`}>{book.status === "shared" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" title="Xóa sách" onClick={() => void removeBook(book)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={17} /></button></>}</div></div>)}</div>
       </div>
     </section>}
   </>;
