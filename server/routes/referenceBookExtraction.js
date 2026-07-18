@@ -158,7 +158,7 @@ async function extractPage(pageFile, pageIndex, totalPages, source, originalName
         console.warn(`Gemini blocked page ${pageIndex + 1}/${totalPages}; using local OCR.`);
         return await ocrPageLocally(pageFile, pageIndex, totalPages);
       } catch (localError) {
-        console.warn(`Local OCR failed for page ${pageIndex + 1}/${totalPages}; retrying split Gemini OCR.`, localError);
+        throw new Error(`Gemini chặn trang ${pageIndex + 1}/${totalPages}; OCR cục bộ chưa chạy được: ${localError instanceof Error ? localError.message : String(localError)}`);
       }
     }
     console.warn(`Reference OCR layout failed for page ${pageIndex + 1}/${totalPages}; retrying split text OCR.`, layoutError);
