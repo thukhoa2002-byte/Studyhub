@@ -192,7 +192,8 @@ function createFontSet(fonts, buffers) {
     if (codePoint === undefined || codePoint < 0x20 && ![9, 11, 12].includes(codePoint)) return null;
     return entries.find((entry) => {
       try {
-        return entry.face.hasGlyphForCodePoint(codePoint) && Boolean(entry.font.encodeText(character));
+        const glyph = entry.face.glyphForCodePoint(codePoint);
+        return Boolean(glyph?.id) && Boolean(entry.font.encodeText(character));
       } catch {
         return false;
       }
@@ -278,7 +279,8 @@ function wrapFlowText(textValue, fontSet, size, maxWidth) {
 async function embedFlowFonts(pdf) {
   pdf.registerFontkit(fontkit);
   const fontDir = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files");
-  const subsets = ["latin", "latin-ext", "vietnamese"];
+  // Match the CSS subset order so Vietnamese-specific glyphs use their complete font.
+  const subsets = ["latin", "vietnamese", "latin-ext"];
   const loadStyle = (weight, italic) => Promise.all(subsets.map((subset) => readFile(join(fontDir, `noto-serif-${subset}-${weight}-${italic ? "italic" : "normal"}.woff`))));
   const [regular, bold, italic, boldItalic] = await Promise.all([loadStyle(400, false), loadStyle(700, false), loadStyle(400, true), loadStyle(700, true)]);
   const embedFontSet = async (buffers) => createFontSet(await Promise.all(buffers.map((buffer) => pdf.embedFont(buffer, { subset: true })) ), buffers);
