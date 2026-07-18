@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import fontkit from "@pdf-lib/fontkit";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, setWordSpacing } from "pdf-lib";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 
@@ -293,7 +293,14 @@ async function createReflowPdf(file, editedLayout = null) {
     ensureSpace(lines.length * lineHeight + (isHeading ? 12 : 8));
     cursorY -= isHeading ? 6 : 2;
     lines.forEach((line, index) => {
-      page.drawText(line, { x: margin.left + (index === 0 ? indent : 0), y: cursorY - size, size, font, color: rgb(0.08, 0.08, 0.08), maxWidth: contentWidth - (index === 0 ? indent : 0), lineHeight });
+      const lineIndent = index === 0 ? indent : 0;
+      const spaces = (line.match(/ /g) || []).length;
+      const justify = !isHeading && !isCaption && !isList && index < lines.length - 1 && spaces > 0;
+      const lineWidth = contentWidth - lineIndent;
+      const extraWordSpacing = justify ? Math.max(0, (lineWidth - font.widthOfTextAtSize(line, size)) / spaces) : 0;
+      if (extraWordSpacing > 0) page.pushOperators(setWordSpacing(extraWordSpacing));
+      page.drawText(line, { x: margin.left + lineIndent, y: cursorY - size, size, font, color: rgb(0.08, 0.08, 0.08), maxWidth: lineWidth, lineHeight });
+      if (extraWordSpacing > 0) page.pushOperators(setWordSpacing(0));
       cursorY -= lineHeight;
     });
     cursorY -= isHeading ? 7 : 5;

@@ -1,9 +1,9 @@
-import { BookOpenCheck, ExternalLink, FileText, FileUp, Globe2, LibraryBig, Loader2, LockKeyhole, Trash2 } from "lucide-react";
+import { BookOpenCheck, Check, ExternalLink, FileText, FileUp, FolderPlus, Globe2, LibraryBig, Loader2, LockKeyhole, Pencil, Trash2, X } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import GuidelinesPage from "./GuidelinesPage";
-import { createReferenceBook, createReferenceBookTextPdf, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookExtraction } from "../services/referenceBooks";
+import { createReferenceBook, createReferenceBookFolder, createReferenceBookTextPdf, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookDetails, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookExtraction } from "../services/referenceBooks";
 
 type ReferenceSection = "guidelines" | "books";
 const REFERENCE_BOOK_OWNER_EMAIL = "thukhoa2002@gmail.com";
@@ -14,13 +14,21 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [publicationYear, setPublicationYear] = useState("");
+  const [parentId, setParentId] = useState<string | null>(null);
+  const [newFolderTitle, setNewFolderTitle] = useState("");
+  const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [extraction, setExtraction] = useState<ReferenceBookExtraction | null>(null);
   const [ocrBookId, setOcrBookId] = useState<string | null>(null);
+  const [editingBookId, setEditingBookId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [editingAuthor, setEditingAuthor] = useState("");
+  const [editingParentId, setEditingParentId] = useState<string | null>(null);
   const isOwner = user?.email?.trim().toLowerCase() === REFERENCE_BOOK_OWNER_EMAIL;
   const visibleBooks = isOwner ? books : books.filter((book) => book.status === "shared");
+  const folders = visibleBooks.filter((book) => book.item_type === "folder");
 
   const refreshBooks = useCallback(async () => {
     try {
@@ -47,10 +55,11 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
         return;
       }
       const textPdf = await createReferenceBookTextPdf(file, extraction || undefined);
-      await createReferenceBook(user.id, title, author, Number(publicationYear) || null, file, textPdf);
+      await createReferenceBook(user.id, title, author, Number(publicationYear) || null, file, textPdf, parentId);
       setTitle("");
       setAuthor("");
       setPublicationYear("");
+      setParentId(null);
       setFile(null);
       setExtraction(null);
       await refreshBooks();
@@ -58,6 +67,41 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
       setError(saveError instanceof Error ? saveError.message : "Không thể OCR/lưu sách.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function addFolder(event: FormEvent) {
+    event.preventDefault();
+    if (!isOwner || !user || !newFolderTitle.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      const folder = await createReferenceBookFolder(user.id, newFolderTitle, newFolderParentId);
+      setBooks((items) => [...items, folder]);
+      setNewFolderTitle("");
+      setNewFolderParentId(null);
+    } catch (folderError) {
+      setError(folderError instanceof Error ? folderError.message : "Không thể tạo thư mục.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function beginEdit(book: ReferenceBook) {
+    setEditingBookId(book.id);
+    setEditingTitle(book.title);
+    setEditingAuthor(book.author || "");
+    setEditingParentId(book.parent_id || null);
+  }
+
+  async function saveEdit(book: ReferenceBook) {
+    if (!isOwner || !editingTitle.trim()) return;
+    try {
+      const updated = await updateReferenceBookDetails(book.id, { title: editingTitle, author: book.item_type === "folder" ? "" : editingAuthor, parentId: editingParentId });
+      setBooks((items) => items.map((item) => item.id === updated.id ? updated : item));
+      setEditingBookId(null);
+    } catch (editError) {
+      setError(editError instanceof Error ? editError.message : "Không thể sửa mục sách.");
     }
   }
 
@@ -123,6 +167,14 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
     return labels[role];
   }
 
+  function renderTree(parent: string | null = null, depth = 0): ReactNode {
+    return visibleBooks.filter((book) => (book.parent_id || null) === parent).map((book) => {
+      const folder = book.item_type === "folder";
+      const editing = editingBookId === book.id;
+      return <div key={book.id} className="space-y-1" style={{ marginLeft: depth ? `${depth * 24}px` : undefined }}><div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"><div className="min-w-0 flex-1">{editing ? <div className="grid gap-2 sm:grid-cols-[1fr_1fr_180px]"><input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} className="rounded-lg border border-teal-200 px-2 py-1 text-sm" /><input value={editingAuthor} onChange={(event) => setEditingAuthor(event.target.value)} disabled={folder} placeholder="Tác giả" className="rounded-lg border border-teal-200 px-2 py-1 text-sm disabled:bg-slate-50" /><select value={editingParentId || ""} onChange={(event) => setEditingParentId(event.target.value || null)} className="rounded-lg border border-teal-200 px-2 py-1 text-sm"><option value="">Thư mục gốc</option>{folders.filter((item) => item.id !== book.id).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></div> : <><p className="truncate font-bold text-slate-700">{folder ? "📁 " : "📖 "}{book.title}</p><p className="text-xs text-slate-400">{folder ? "Thư mục" : `${book.author || "Chưa ghi tác giả"}${book.publication_year ? ` · ${book.publication_year}` : ""}`}{book.status === "private" ? " · Riêng tư" : " · Đã đăng công khai"}{!folder && (book.text_pdf_path ? " · Có PDF chữ" : " · Chưa tạo PDF chữ")}</p></>}</div><div className="flex shrink-0 items-center gap-1">{isOwner && editing ? <><button type="button" title="Lưu sửa" onClick={() => void saveEdit(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><Check size={17} /></button><button type="button" title="Hủy sửa" onClick={() => setEditingBookId(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-50"><X size={17} /></button></> : <>{isOwner && <button type="button" title="Sửa mục" onClick={() => beginEdit(book)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-50"><Pencil size={17} /></button>}{isOwner && folder === false && !book.text_pdf_path && <button type="button" title="Tạo PDF chữ" disabled={ocrBookId === book.id} onClick={() => void rebuildBook(book)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50 disabled:opacity-50">{ocrBookId === book.id ? <Loader2 className="animate-spin" size={17} /> : <FileText size={17} />}</button>}{!folder && <button type="button" title="Xem PDF chữ hoặc PDF gốc" onClick={() => void openBook(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><ExternalLink size={17} /></button>}{isOwner && <><button type="button" title={book.status === "shared" ? "Gỡ công khai" : "Đăng công khai"} onClick={() => void toggleBookStatus(book)} className={`rounded-lg p-2 ${book.status === "shared" ? "text-amber-600 hover:bg-amber-50" : "text-blue-600 hover:bg-blue-50"}`}>{book.status === "shared" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" title="Xóa mục" onClick={() => void removeBook(book)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={17} /></button></>}</>}</div></div>{renderTree(book.id, depth + 1)}</div>;
+    });
+  }
+
   return <>
     <div className="mx-auto flex w-full max-w-[1600px] px-4 pt-6 sm:px-6 xl:px-8">
       <div className="inline-flex rounded-lg border border-teal-100 bg-white/75 p-1 shadow-sm">
@@ -135,18 +187,25 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
       <div className="glass-panel border border-rose-100 bg-white/75 p-5">
         <div className="flex items-center gap-3"><LibraryBig className="text-rose-500" size={28} /><div><h1 className="text-xl font-extrabold text-rose-950">Sách tham khảo</h1><p className="text-sm text-slate-500">Sách đã đăng công khai mới hiển thị cho mọi tài khoản.</p></div></div>
 
-        {isOwner ? <form onSubmit={addBook} className="mt-5 grid gap-3 rounded-2xl border border-dashed border-teal-200 bg-teal-50/40 p-4 sm:grid-cols-[1fr_1fr_140px_auto]">
+        {isOwner && <form onSubmit={addFolder} className="mt-5 grid gap-3 rounded-2xl border border-dashed border-violet-200 bg-violet-50/40 p-4 sm:grid-cols-[1fr_220px_auto]">
+          <input value={newFolderTitle} onChange={(event) => setNewFolderTitle(event.target.value)} placeholder="Tên thư mục mới" className="rounded-xl border border-violet-100 bg-white px-3 py-2.5" />
+          <select value={newFolderParentId || ""} onChange={(event) => setNewFolderParentId(event.target.value || null)} className="rounded-xl border border-violet-100 bg-white px-3 py-2.5"><option value="">Thư mục gốc</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.title}</option>)}</select>
+          <button disabled={busy || !newFolderTitle.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><FolderPlus size={17} />Tạo thư mục</button>
+        </form>}
+
+        {isOwner ? <form onSubmit={addBook} className="mt-3 grid gap-3 rounded-2xl border border-dashed border-teal-200 bg-teal-50/40 p-4 sm:grid-cols-[1fr_1fr_140px_220px_auto]">
           <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên sách (AI sẽ tự điền)" className="rounded-xl border border-teal-100 bg-white px-3 py-2.5" />
           <input value={author} onChange={(event) => setAuthor(event.target.value)} placeholder="Tác giả (AI sẽ tự điền)" className="rounded-xl border border-teal-100 bg-white px-3 py-2.5" />
           <input type="number" value={publicationYear} onChange={(event) => setPublicationYear(event.target.value)} placeholder="Năm" className="rounded-xl border border-teal-100 bg-white px-3 py-2.5" />
+          <select value={parentId || ""} onChange={(event) => setParentId(event.target.value || null)} className="rounded-xl border border-teal-100 bg-white px-3 py-2.5"><option value="">Thư mục gốc</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.title}</option>)}</select>
           <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-sm font-bold text-teal-700"><FileUp size={17} />{file ? file.name : "Chọn PDF"}<input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
-          <button disabled={busy || !file} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:col-span-4">{busy && <Loader2 className="animate-spin" size={17} />}{busy ? "Đang đọc bằng Gemini..." : extraction ? "Lưu sách riêng tư" : "Đọc bằng Gemini"}</button>
+          <button disabled={busy || !file} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:col-span-5">{busy && <Loader2 className="animate-spin" size={17} />}{busy ? "Đang đọc bằng Gemini..." : extraction ? "Lưu sách riêng tư" : "Đọc bằng Gemini"}</button>
         </form> : <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">Kho tải sách dành riêng cho chủ sở hữu. Bạn có thể xem các sách đã được đăng công khai bên dưới.</div>}
 
         {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         {extraction && isOwner && <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50/40 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-bold text-teal-800">Gemini đã đọc {extraction.pages.length} trang · {extraction.pages.reduce((sum, page) => sum + page.blocks.length, 0)} khối text</p><button type="button" onClick={removeNonLearningBlocks} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">Ẩn header, footer, số trang</button></div><div className="mt-3 max-h-[70vh] space-y-2 overflow-y-auto">{extraction.pages.map((page, pageIndex) => page.blocks.map((block, blockIndex) => <div key={`${page.pageNumber}-${blockIndex}`} className={`rounded-lg px-3 py-2 ${["header", "footer", "page_number", "metadata"].includes(block.role) ? "bg-amber-50" : "bg-white"}`}><div className="mb-1 flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase tracking-wide text-rose-500">Trang {page.pageNumber} · {roleLabel(block.role)}</span><button type="button" title="Xóa block" aria-label="Xóa block" onClick={() => removeBlock(pageIndex, blockIndex)} className="rounded-md p-1 text-rose-500 hover:bg-rose-100"><Trash2 size={14} /></button></div><textarea value={block.text} onChange={(event) => updateBlockText(pageIndex, blockIndex, event.target.value)} className="min-h-10 w-full resize-y rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs leading-5 text-slate-600 outline-none focus:border-teal-300" /></div>))}</div></div>}
 
-        <div className="mt-5 grid gap-2">{visibleBooks.map((book) => <div key={book.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3"><div className="min-w-0"><p className="truncate font-bold text-slate-700">{book.title}</p><p className="text-xs text-slate-400">{book.author || "Chưa ghi tác giả"}{book.publication_year ? ` · ${book.publication_year}` : ""} · {book.status === "private" ? "Riêng tư" : "Đã đăng công khai"}{book.text_pdf_path ? " · Có PDF chữ" : " · Chưa tạo PDF chữ"}</p></div><div className="flex shrink-0 items-center gap-1">{isOwner && !book.text_pdf_path && <button type="button" title="Tạo PDF chữ" disabled={ocrBookId === book.id} onClick={() => void rebuildBook(book)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50 disabled:opacity-50">{ocrBookId === book.id ? <Loader2 className="animate-spin" size={17} /> : <FileText size={17} />}</button>}<button type="button" title="Xem PDF chữ hoặc PDF gốc" onClick={() => void openBook(book)} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><ExternalLink size={17} /> </button>{isOwner && <><button type="button" title={book.status === "shared" ? "Gỡ công khai" : "Đăng công khai"} onClick={() => void toggleBookStatus(book)} className={`rounded-lg p-2 ${book.status === "shared" ? "text-amber-600 hover:bg-amber-50" : "text-blue-600 hover:bg-blue-50"}`}>{book.status === "shared" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" title="Xóa sách" onClick={() => void removeBook(book)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={17} /></button></>}</div></div>)}</div>
+        <div className="mt-5 grid gap-2">{renderTree()}</div>
       </div>
     </section>}
   </>;

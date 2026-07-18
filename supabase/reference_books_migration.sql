@@ -13,8 +13,12 @@ create table if not exists public.reference_books (
   updated_at timestamptz not null default now()
 );
 alter table public.reference_books add column if not exists publication_year integer;
+alter table public.reference_books add column if not exists parent_id uuid references public.reference_books(id) on delete set null;
+alter table public.reference_books add column if not exists item_type text not null default 'book' check (item_type in ('book', 'folder'));
+alter table public.reference_books alter column source_file_path drop not null;
 
 create index if not exists reference_books_owner_created_idx on public.reference_books(owner_id, created_at desc);
+create index if not exists reference_books_parent_idx on public.reference_books(parent_id, created_at asc);
 alter table public.reference_books enable row level security;
 
 drop policy if exists "read own or shared reference books" on public.reference_books;
