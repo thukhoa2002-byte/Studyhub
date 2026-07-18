@@ -29,11 +29,20 @@ function extractResponseText(payload) {
   throw new Error("Gemini không trả về nội dung.");
 }
 
+function parseGeneratedJson(payload) {
+  const text = extractResponseText(payload);
+  try { return JSON.parse(text); }
+  catch {
+    const unfenced = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    return JSON.parse(unfenced);
+  }
+}
+
 function createApiError(response, payload, fallback) {
-  const apiMessage = String(payload?.error?.message || fallback || `Gemini API lỗi ${response.status}.`);
+  const apiMessage = String(payload?.error?.message || `Gemini API lỗi ${response.status}.`);
   const message = /high demand|temporarily unavailable|overloaded|resource exhausted/i.test(apiMessage)
     ? "Gemini đang quá tải tạm thời sau khi đã tự thử lại. Vui lòng thử lại sau ít phút."
-    : apiMessage;
+    : fallback ? `${fallback} ${apiMessage}` : apiMessage;
   const error = new Error(message);
   error.status = response.status;
   return error;
@@ -50,12 +59,12 @@ function shouldRetryWithCompatibleOutputLimit(response, payload) {
   return /invalid argument/i.test(String(payload?.error?.message || ""));
 }
 
-async function requestGeneration({ model, apiKey, signal, prompt, mediaParts, schema, maxOutputTokens, useSchema }) {
+async function requestGeneration({ model, apiKey, signal, prompt, mediaParts, schema, maxOutputTokens, useSchema, useJsonMode = true }) {
   const generationConfig = {
-    responseMimeType: "application/json",
     maxOutputTokens,
     temperature: 0.2,
   };
+  if (useJsonMode) generationConfig.responseMimeType = "application/json";
   if (useSchema) generationConfig.responseJsonSchema = schema;
 
   const response = await fetch(
@@ -237,11 +246,25 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
         useSchema: false,
       }));
     }
+    if (!response.ok && shouldRetryWithCompatibleOutputLimit(response, payload)) {
+      console.warn("Gemini rejected JSON response mode; retrying with a plain response while the prompt still requires JSON.");
+      ({ response, payload } = await requestGenerationWithRetries({
+        model,
+        apiKey,
+        signal: controller.signal,
+        prompt,
+        mediaParts,
+        schema,
+        maxOutputTokens: Math.min(maxOutputTokens, 8192),
+        useSchema: false,
+        useJsonMode: false,
+      }));
+    }
     if (!response.ok) {
       throw createApiError(response, payload);
     }
 
-    return JSON.parse(extractResponseText(payload));
+    return parseGeneratedJson(payload);
   } catch (error) {
     if (error?.name === "AbortError") {
       throw new Error("Gemini xử lý quá lâu. Vui lòng thử lại với file nhỏ hơn hoặc chọn phạm vi trích xuất hẹp hơn.");
