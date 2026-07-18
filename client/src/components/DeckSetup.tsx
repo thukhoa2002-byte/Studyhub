@@ -288,6 +288,7 @@ export default function DeckSetup({
     const rightDate = Date.parse(right.created_at || "") || 0;
     return deckSort === "oldest" ? leftDate - rightDate : rightDate - leftDate;
   }), [deckSort, savedDecks]);
+  const dueCardCount = useMemo(() => savedDecks.reduce((total, deck) => total + (deck.review_stats?.due ?? statsForCards(deck.cards).due), 0), [savedDecks]);
   const previewCards = previewDeck ? previewDeck.cards.slice(previewPage * 8, previewPage * 8 + 8) : [];
   const previewPageCount = previewDeck ? Math.max(1, Math.ceil(previewDeck.cards.length / 8)) : 1;
 
@@ -540,7 +541,7 @@ export default function DeckSetup({
         <div className="relative mb-6">
           {startingReview && <span className="study-runner" aria-hidden="true">🏃‍♂️</span>}
           <div className={`glass-panel flex flex-col gap-5 rounded-2xl border border-teal-100 bg-gradient-to-r from-rose-50 via-white to-teal-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8 ${startingReview ? "study-box-exit" : ""}`}>
-          <div><p className="text-sm font-semibold text-teal-600">🌸 Ôn tập thông minh</p><h2 className="mt-1 text-2xl font-bold text-rose-950 sm:text-3xl">Hôm nay ôn gì nhỉ?</h2><p className="mt-2 text-sm text-slate-500">Ôn bài lẹ đi, Thầy sắp díiiii rồi!!!</p></div>
+          <div><p className="text-sm font-semibold text-teal-600">🌸 Ôn tập thông minh</p><h2 className="mt-1 text-2xl font-bold text-rose-950 sm:text-3xl">Hôm nay ôn gì nhỉ?</h2><p className="mt-2 text-sm text-slate-500">Hôm nay có {dueCardCount} thẻ cần ôn</p></div>
           <button disabled={startingReview} onClick={startDueReview} className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-6 py-4 text-sm font-bold text-white shadow-sm hover:bg-teal-500 disabled:cursor-wait sm:min-w-44">Ôn lẹ <ArrowRight size={18} className="ml-2" /></button>
           </div>
         </div>
