@@ -26,7 +26,7 @@ function extractResponseText(payload) {
 
   const reason = payload?.promptFeedback?.blockReason;
   if (reason) throw new Error(`Gemini đã từ chối nội dung (${reason}).`);
-  throw new Error("Gemini không trả về nội dung.");
+  throw new Error(`Gemini không trả về nội dung${finishReason ? ` (finishReason: ${finishReason})` : ""}.`);
 }
 
 function parseGeneratedJson(payload) {
@@ -278,7 +278,25 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
       throw createApiError(response, payload);
     }
 
-    return parseGeneratedJson(payload);
+    try {
+      return parseGeneratedJson(payload);
+    } catch (error) {
+      if (!/Gemini không trả về nội dung/i.test(error?.message || "")) throw error;
+      console.warn("Gemini returned an empty candidate; retrying without response schema.");
+      ({ response, payload } = await requestGenerationWithRetries({
+        model,
+        apiKey,
+        signal: controller.signal,
+        prompt,
+        mediaParts,
+        schema,
+        maxOutputTokens: Math.min(maxOutputTokens, 8192),
+        useSchema: false,
+        useJsonMode: true,
+      }));
+      if (!response.ok) throw createApiError(response, payload);
+      return parseGeneratedJson(payload);
+    }
   } catch (error) {
     if (error?.name === "AbortError") {
       throw new Error("Gemini xử lý quá lâu. Vui lòng thử lại với file nhỏ hơn hoặc chọn phạm vi trích xuất hẹp hơn.");
