@@ -67,7 +67,23 @@ async function makeSinglePagePdf(source, pageIndex, originalName) {
   };
 }
 
-function makeFallbackPage(pageText) {
+async function makePageRegionPdf(source, pageIndex, originalName, regionName, y, height) {
+  const pagePdf = await PDFDocument.create();
+  const [page] = await pagePdf.copyPages(source, [pageIndex]);
+  page.setCropBox(0, y, page.getWidth(), height);
+  pagePdf.addPage(page);
+  const bytes = await pagePdf.save({ useObjectStreams: true });
+  return {
+    fieldname: "file",
+    originalname: `${originalName.replace(/\.pdf$/i, "")}-page-${pageIndex + 1}-${regionName}.pdf`,
+    encoding: "7bit",
+    mimetype: "application/pdf",
+    buffer: Buffer.from(bytes),
+    size: bytes.length,
+  };
+}
+
+function makeFallbackPage(pageText, yOffset = 0, yScale = 1) {
   const lines = String(pageText || "").split(/\n+/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
   return {
     pageNumber: 1,
@@ -76,10 +92,10 @@ function makeFallbackPage(pageText) {
     blocks: lines.map((line, index) => ({
       text: line,
       x: 0.03,
-      y: Math.min(0.97, 0.03 + index * 0.03),
+      y: Math.min(0.97, yOffset + (0.03 + index * 0.03) * yScale),
       width: 0.94,
-      height: 0.02,
-      fontSize: 0.015,
+      height: 0.02 * yScale,
+      fontSize: 0.015 * yScale,
       fontWeight: "normal",
       italic: false,
       role: "text",
@@ -87,7 +103,7 @@ function makeFallbackPage(pageText) {
   };
 }
 
-async function extractPage(pageFile, pageIndex, totalPages) {
+async function extractPage(pageFile, pageIndex, totalPages, source, originalName) {
   try {
     const result = await generateStructuredFromFile({
       file: pageFile,
@@ -100,16 +116,30 @@ async function extractPage(pageFile, pageIndex, totalPages) {
     if (!page) throw new Error("Gemini không trả về page layout.");
     return { result, page };
   } catch (layoutError) {
-    console.warn(`Reference OCR layout failed for page ${pageIndex + 1}/${totalPages}; retrying text-only OCR.`, layoutError);
-    const fallback = await generateStructuredFromFile({
-      file: pageFile,
-      schema: fallbackTextSchema,
-      prompt: `Bạn là OCR văn bản. Đọc toàn bộ chữ nhìn thấy trên đúng trang PDF được gửi kèm. Chép nguyên văn theo thứ tự từ trên xuống dưới, trái sang phải; giữ tiêu đề, bảng, số liệu, đơn vị, chú thích và nội dung trong ảnh. Không tóm tắt, không dịch, không bỏ dòng, không bịa. Trả pageText là toàn bộ văn bản của trang, có thể dùng xuống dòng. Nếu có bảng, chép từng hàng/ô theo thứ tự đọc. Chỉ trả JSON theo schema. Đây là trang ${pageIndex + 1}/${totalPages}.`,
-      maxOutputTokens: 8192,
-      timeoutMs: 300_000,
-    });
-    if (!String(fallback.pageText || "").trim()) throw new Error(`Gemini không đọc được trang ${pageIndex + 1}/${totalPages}: ${layoutError instanceof Error ? layoutError.message : String(layoutError)}`);
-    return { result: fallback, page: makeFallbackPage(fallback.pageText) };
+    console.warn(`Reference OCR layout failed for page ${pageIndex + 1}/${totalPages}; retrying split text OCR.`, layoutError);
+    const sourcePage = source.getPage(pageIndex);
+    const pageHeight = sourcePage.getHeight();
+    const halfHeight = pageHeight / 2;
+    const regions = [
+      { name: "top", y: halfHeight, offset: 0 },
+      { name: "bottom", y: 0, offset: 0.5 },
+    ];
+    const blocks = [];
+    let result = {};
+    for (const region of regions) {
+      const regionFile = await makePageRegionPdf(source, pageIndex, originalName, region.name, region.y, halfHeight);
+      const regionResult = await generateStructuredFromFile({
+        file: regionFile,
+        schema: fallbackTextSchema,
+        prompt: `Bạn đang trích xuất nội dung từ một vùng của trang tài liệu do người dùng cung cấp. Hãy liệt kê tất cả thông tin đọc được trong vùng này theo thứ tự từ trên xuống dưới và trái sang phải: tiêu đề, nhãn, số liệu, đơn vị, chú thích và các ô bảng. Không nhận xét, không giải thích, không thêm kiến thức ngoài vùng ảnh. Trả pageText là các đoạn ngắn theo dòng để giữ đủ dữ liệu. Chỉ trả JSON theo schema. Đây là vùng ${region.name} của trang ${pageIndex + 1}/${totalPages}.`,
+        maxOutputTokens: 8192,
+        timeoutMs: 300_000,
+      });
+      if (!String(regionResult.pageText || "").trim()) throw new Error(`Gemini không đọc được vùng ${region.name} của trang ${pageIndex + 1}/${totalPages}.`);
+      result = { ...result, ...regionResult };
+      blocks.push(...makeFallbackPage(regionResult.pageText, region.offset, 0.5).blocks);
+    }
+    return { result, page: { pageNumber: 1, width: 1, height: 1, blocks } };
   }
 }
 
@@ -125,7 +155,7 @@ async function extractAllPages(file) {
 
   for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
     const pageFile = await makeSinglePagePdf(source, pageIndex, file.originalname || "reference-book");
-    const { result, page } = await extractPage(pageFile, pageIndex, totalPages);
+    const { result, page } = await extractPage(pageFile, pageIndex, totalPages, source, file.originalname || "reference-book");
 
     if (!title && result.title?.trim()) title = result.title.trim();
     if (!author && result.author?.trim()) author = result.author.trim();
