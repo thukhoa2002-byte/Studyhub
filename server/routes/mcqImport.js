@@ -1,8 +1,9 @@
 import express from "express";
 import multer from "multer";
 import { randomUUID } from "node:crypto";
-import { unlink } from "node:fs/promises";
+import { readFile, unlink } from "node:fs/promises";
 import os from "node:os";
+import { PDFDocument } from "pdf-lib";
 import { requireMcqAdmin } from "../middleware/mcqAdmin.js";
 import { generateStructuredFromFile } from "../services/gemini.js";
 import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
@@ -10,6 +11,8 @@ import { consumeAiCall, getAiCallsRemaining } from "../services/aiUsage.js";
 const router = express.Router();
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 120 * 1024 * 1024;
+const INLINE_FILE_THRESHOLD_BYTES = 14 * 1024 * 1024;
+const PDF_PAGES_PER_PASS = 6;
 const upload = multer({
   // Large PDFs must not occupy the Render process heap while Gemini is reading them.
   storage: multer.diskStorage({
@@ -122,6 +125,37 @@ function normalizeQuestions(rawQuestions) {
   });
 }
 
+async function splitLargePdf(file) {
+  if (file.mimetype !== "application/pdf" || file.size <= INLINE_FILE_THRESHOLD_BYTES) return [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
+  const source = await PDFDocument.load(await readFile(file.path), { ignoreEncryption: true });
+  const totalPages = source.getPageCount();
+  const chunks = [];
+  for (let pageIndex = 0; pageIndex < totalPages; pageIndex += PDF_PAGES_PER_PASS) {
+    const endIndex = Math.min(pageIndex + PDF_PAGES_PER_PASS, totalPages);
+    const chunkPdf = await PDFDocument.create();
+    const copiedPages = await chunkPdf.copyPages(source, Array.from({ length: endIndex - pageIndex }, (_, offset) => pageIndex + offset));
+    copiedPages.forEach((page) => chunkPdf.addPage(page));
+    const bytes = await chunkPdf.save({ useObjectStreams: true });
+    chunks.push({
+      file: {
+        ...file,
+        buffer: Buffer.from(bytes),
+        size: bytes.length,
+        originalname: `${file.originalname.replace(/\.pdf$/i, "")}-pages-${pageIndex + 1}-${endIndex}.pdf`,
+      },
+      startPage: pageIndex + 1,
+      endPage: endIndex,
+      totalPages,
+    });
+  }
+  return chunks;
+}
+
+function promptForFilePart(file, startPage, endPage, totalPages) {
+  if (!endPage) return prompt;
+  return `${prompt}\n\nPHẠM VI XỬ LÝ HIỆN TẠI: Đây là trang PDF ${startPage}-${endPage} trên tổng ${totalPages} trang của file ${file.originalname}. Chỉ trích các câu hỏi nhìn thấy trong cụm này. Giữ nguyên thứ tự trong cụm; đáp án hoặc lời giải không xuất hiện trong cụm thì để trống, không đoán.`;
+}
+
 function uploadFiles(req, res, next) {
   upload.array("files", 20)(req, res, (error) => {
     if (!error) return next();
@@ -157,14 +191,18 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
     if (aiCallsRemaining === null) {
       return res.status(429).json({ success: false, message: "Đã hết lượt AI dùng chung.", aiCallsRemaining: 0 });
     }
-    const result = await generateStructuredFromFile({
-      files,
-      schema,
-      prompt,
-      maxOutputTokens: 32768,
-      timeoutMs: 300_000,
-    });
-    const questions = normalizeQuestions(result.questions);
+    const chunks = (await Promise.all(files.map(splitLargePdf))).flat();
+    const results = [];
+    for (const chunk of chunks) {
+      results.push(await generateStructuredFromFile({
+        file: chunk.file,
+        schema,
+        prompt: promptForFilePart(chunk.file, chunk.startPage, chunk.endPage, chunk.totalPages),
+        maxOutputTokens: 8192,
+        timeoutMs: 300_000,
+      }));
+    }
+    const questions = normalizeQuestions(results.flatMap((result) => result.questions || []));
     if (!questions.length) {
       return res.status(422).json({
         success: false,
@@ -174,7 +212,7 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
     return res.json({
       success: true,
       data: {
-        title: result.title || "Bộ MCQ mới",
+        title: results.find((result) => result.title?.trim())?.title || "Bộ MCQ mới",
         questions,
       },
       aiCallsRemaining,

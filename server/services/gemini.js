@@ -6,7 +6,6 @@ const GEMINI_API_ROOT = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_UPLOAD_ROOT = "https://generativelanguage.googleapis.com/upload/v1beta";
 const FILE_API_THRESHOLD_BYTES = 14 * 1024 * 1024;
 const GENERATION_RETRY_DELAYS_MS = [2_000, 4_000, 8_000];
-const PDF_FALLBACK_MODEL = "gemini-2.5-flash";
 
 function getApiKey() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -184,8 +183,7 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
 
   try {
     const totalBytes = inputFiles.reduce((sum, inputFile) => sum + (inputFile.size ?? inputFile.buffer?.length ?? 0), 0);
-    // PDFs are more reliable through Gemini Files API and avoid a base64 copy in Render memory.
-    const useFilesApi = totalBytes > FILE_API_THRESHOLD_BYTES || inputFiles.some((inputFile) => inputFile.mimetype === "application/pdf");
+    const useFilesApi = totalBytes > FILE_API_THRESHOLD_BYTES;
     const mediaParts = [];
     for (const [index, inputFile] of inputFiles.entries()) {
       if (inputFiles.length > 1) {
@@ -265,22 +263,6 @@ export async function generateStructuredFromFile({ file, files, prompt, schema, 
       console.warn("Gemini rejected the output configuration; retrying with a bare generation request.");
       ({ response, payload } = await requestGenerationWithRetries({
         model,
-        apiKey,
-        signal: controller.signal,
-        prompt,
-        mediaParts,
-        schema,
-        maxOutputTokens: 0,
-        useSchema: false,
-        useJsonMode: false,
-        useOutputLimit: false,
-      }));
-    }
-    if (!response.ok && shouldRetryWithCompatibleOutputLimit(response, payload) && model !== (process.env.GEMINI_PDF_FALLBACK_MODEL || PDF_FALLBACK_MODEL)) {
-      const fallbackModel = process.env.GEMINI_PDF_FALLBACK_MODEL || PDF_FALLBACK_MODEL;
-      console.warn(`Gemini model ${model} rejected the PDF request; retrying with ${fallbackModel}.`);
-      ({ response, payload } = await requestGenerationWithRetries({
-        model: fallbackModel,
         apiKey,
         signal: controller.signal,
         prompt,
