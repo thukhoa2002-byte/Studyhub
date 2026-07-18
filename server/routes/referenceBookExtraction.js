@@ -165,7 +165,7 @@ async function ocrPageLocally(pageFile, pageIndex, totalPages) {
 async function createVisibleOcrPdf(file, editedLayout = null) {
   const pdf = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
   pdf.registerFontkit(fontkit);
-  const fontPath = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files/noto-serif-vietnamese-400-normal.woff2");
+  const fontPath = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files/noto-serif-vietnamese-400-normal.woff");
   const fontBytes = await readFile(fontPath);
   const font = await pdf.embedFont(fontBytes, { subset: true });
   const sanitizeText = createFontSanitizer(fontBytes);
@@ -233,10 +233,10 @@ async function embedFlowFonts(pdf) {
   pdf.registerFontkit(fontkit);
   const fontDir = join(ROUTE_DIR, "../node_modules/@fontsource/noto-serif/files");
   const [regular, bold, italic, boldItalic] = await Promise.all([
-    readFile(join(fontDir, "noto-serif-vietnamese-400-normal.woff2")),
-    readFile(join(fontDir, "noto-serif-vietnamese-700-normal.woff2")),
-    readFile(join(fontDir, "noto-serif-vietnamese-400-italic.woff2")),
-    readFile(join(fontDir, "noto-serif-vietnamese-700-italic.woff2")),
+    readFile(join(fontDir, "noto-serif-vietnamese-400-normal.woff")),
+    readFile(join(fontDir, "noto-serif-vietnamese-700-normal.woff")),
+    readFile(join(fontDir, "noto-serif-vietnamese-400-italic.woff")),
+    readFile(join(fontDir, "noto-serif-vietnamese-700-italic.woff")),
   ]);
   const regularSanitize = createFontSanitizer(regular);
   const boldSanitize = createFontSanitizer(bold);
