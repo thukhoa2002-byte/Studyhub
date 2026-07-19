@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ClipboardPaste, Download, FileSearch, FileText, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { Check, ClipboardPaste, Crop, Download, FileSearch, FileText, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { extractMcqFiles } from "../services/api";
 import { deleteMcqBank, mcqLibraryErrorMessage, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
 
@@ -13,6 +13,8 @@ type Props = {
 
 const requiredOptionIds = ["A", "B", "C", "D"] as const;
 const optionIds = ["A", "B", "C", "D", "E"] as const;
+type CropField = "x" | "y" | "width" | "height";
+type CropEditor = { questionIndex: number; source: string; x: number; y: number; width: number; height: number };
 
 function cleanLine(value: string) {
   return value.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, " ").trim();
@@ -55,6 +57,17 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
     image.onerror = () => resolve({ width: 480, height: 320 });
     image.src = dataUrl;
   });
+}
+
+function clampCrop(editor: CropEditor, field: CropField, rawValue: number): CropEditor {
+  const minimum = field === "x" || field === "y" ? 0 : 1;
+  const value = Number.isFinite(rawValue) ? Math.max(minimum, Math.min(100, rawValue)) : minimum;
+  const next = { ...editor, [field]: value };
+  next.width = Math.max(1, Math.min(next.width, 100 - next.x));
+  next.height = Math.max(1, Math.min(next.height, 100 - next.y));
+  next.x = Math.max(0, Math.min(next.x, 100 - next.width));
+  next.y = Math.max(0, Math.min(next.y, 100 - next.height));
+  return next;
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -202,6 +215,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   const [notice, setNotice] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [visibility, setVisibility] = useState<"draft" | "published">("draft");
+  const [cropEditor, setCropEditor] = useState<CropEditor | null>(null);
 
   useEffect(() => {
     if (!requestedBank) return;
@@ -305,6 +319,45 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     }
   }
 
+  function openCropEditor(questionIndex: number, source: string | undefined) {
+    if (!source) return;
+    setCropEditor({ questionIndex, source, x: 0, y: 0, width: 100, height: 100 });
+    setError("");
+  }
+
+  async function applyImageCrop() {
+    if (!cropEditor) return;
+    const editor = cropEditor;
+    setBusy(true);
+    try {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const element = new Image();
+        element.crossOrigin = "anonymous";
+        element.onload = () => resolve(element);
+        element.onerror = () => reject(new Error("Không thể đọc ảnh để cắt."));
+        element.src = editor.source;
+      });
+      const sourceX = image.naturalWidth * editor.x / 100;
+      const sourceY = image.naturalHeight * editor.y / 100;
+      const sourceWidth = image.naturalWidth * editor.width / 100;
+      const sourceHeight = image.naturalHeight * editor.height / 100;
+      const scale = Math.min(1, 1800 / sourceWidth, 1800 / sourceHeight);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+      canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Trình duyệt không hỗ trợ xử lý ảnh.");
+      context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+      editQuestion(editor.questionIndex, { image_url: canvas.toDataURL("image/png") });
+      setCropEditor(null);
+      setError("");
+    } catch (cropError) {
+      setError(cropError instanceof Error ? cropError.message : "Không thể cắt ảnh.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function persist(status: "draft" | "published") {
     if (!title.trim() || !questions.length) {
       setError("Hãy điền tên bộ và ít nhất một câu hỏi.");
@@ -372,7 +425,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         <div className="mt-3">
           <label className="text-xs font-black uppercase tracking-wider text-teal-700">Giải thích / ghi chú sau khi hiện đáp án<textarea value={question.explanation || ""} onChange={(event) => editQuestion(questionIndex, { explanation: event.target.value })} rows={5} placeholder="Giữ nguyên lời giải, ghi chú, căn cứ hoặc ngoại lệ trong tài liệu nguồn." className="mt-1.5 min-h-32 w-full resize-y rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-sm font-normal normal-case tracking-normal leading-6 text-slate-700 outline-none focus:border-teal-400" /></label>
         </div>
-        {question.image_url && <figure className="mt-3"><img src={question.image_url} alt={question.image_alt || "Hình kèm câu hỏi"} className="max-h-72 rounded-2xl border border-slate-200 object-contain" /><input value={question.image_alt || ""} onChange={(event) => editQuestion(questionIndex, { image_alt: event.target.value })} placeholder="Chú thích trung tính cho ảnh" className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></figure>}
+        {question.image_url && <figure className="mt-3"><img src={question.image_url} alt={question.image_alt || "Hình kèm câu hỏi"} className="max-h-72 rounded-2xl border border-slate-200 object-contain" /><div className="mt-2 flex flex-wrap items-center gap-2"><button type="button" onClick={() => openCropEditor(questionIndex, question.image_url)} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-50"><Crop size={15} />Cắt hình</button><input value={question.image_alt || ""} onChange={(event) => editQuestion(questionIndex, { image_alt: event.target.value })} placeholder="Chú thích trung tính cho ảnh" className="min-w-[220px] flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div></figure>}
         {question.review_note && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Cần kiểm tra: {question.review_note}</p>}
       </article>)}</div>
       <button type="button" onClick={() => { setQuestions((items) => [...items, { id: crypto.randomUUID(), source_number: items.length + 1, question: "", options: requiredOptionIds.map((id) => ({ id, text: "" })) }]); setReviewed(false); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700"><Plus size={17} />Thêm câu thủ công</button>
@@ -385,5 +438,6 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         <button type="button" disabled={busy || (visibility === "published" && (!reviewed || invalidCount > 0))} onClick={() => void persist(visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? "Lưu thay đổi" : "Lưu bộ MCQ"}</button>
       </div>
     </div>}
+    {cropEditor && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Cắt hình câu hỏi"><div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-violet-600">Chỉnh hình câu hỏi</p><h3 className="mt-1 text-lg font-black text-slate-900">Cắt phần cần giữ lại</h3></div><button type="button" title="Đóng" aria-label="Đóng trình cắt hình" onClick={() => setCropEditor(null)} className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"><X size={19} /></button></div><div className="mt-5 grid gap-5 lg:grid-cols-[1fr_280px]"><div className="flex min-h-64 items-center justify-center rounded-2xl bg-slate-100 p-3"><img src={cropEditor.source} alt="Xem trước hình cần cắt" className="max-h-[52vh] max-w-full object-contain" /></div><div className="space-y-4">{(["x", "y", "width", "height"] as const).map((field) => <label key={field} className="block text-sm font-bold text-slate-700"><span className="flex items-center justify-between"><span>{field === "x" ? "Từ trái" : field === "y" ? "Từ trên" : field === "width" ? "Chiều rộng" : "Chiều cao"}</span><output>{Math.round(cropEditor[field])}%</output></span><input type="range" min={1} max={100} value={cropEditor[field]} onChange={(event) => setCropEditor((current) => current ? clampCrop(current, field, Number(event.target.value)) : current)} className="mt-2 w-full accent-violet-600" /></label>)}<p className="text-xs leading-5 text-slate-500">Kéo các thanh để chọn vùng ảnh. Phần ngoài vùng chọn sẽ bị loại bỏ.</p></div></div><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCropEditor(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600">Hủy</button><button type="button" disabled={busy} onClick={() => void applyImageCrop()} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"><Check size={17} />Áp dụng</button></div></div></div>}
   </section>;
 }
