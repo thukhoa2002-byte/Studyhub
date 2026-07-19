@@ -120,7 +120,15 @@ export async function saveMcqBank(
       contentType: imageBlob.type || `image/${extension}`,
       upsert: true,
     });
-    if (uploadError) throw new Error(`MCQ_STORAGE_RLS: ${uploadError.message}`);
+    if (uploadError) {
+      // Keep the image in the bank JSON when Storage RLS is not ready yet.
+      // This prevents an image permission issue from discarding the whole draft.
+      if (/row-level security policy/i.test(uploadError.message)) {
+        storedQuestions.push(question);
+        continue;
+      }
+      throw new Error(`MCQ_STORAGE_UPLOAD: ${uploadError.message}`);
+    }
     const { data: publicUrl } = client.storage.from("mcq-assets").getPublicUrl(imagePath);
     storedQuestions.push({ ...question, image_url: publicUrl.publicUrl });
   }
