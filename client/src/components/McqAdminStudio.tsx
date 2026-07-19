@@ -124,6 +124,8 @@ function normalizeMcqJson(payload: unknown): { title: string; description: strin
       image_url: jsonText(source.image_url ?? source.imageUrl ?? source.image_data ?? source.image) || undefined,
       image_alt: jsonText(source.image_alt ?? source.imageAlt ?? source.image_caption),
       review_note: jsonText(source.review_note ?? source.reviewNote),
+      source_page: Number(source.source_page ?? source.sourcePage) > 0 ? Number(source.source_page ?? source.sourcePage) : undefined,
+      image_page: Number(source.image_page ?? source.imagePage) > 0 ? Number(source.image_page ?? source.imagePage) : undefined,
     };
   });
 
@@ -244,9 +246,11 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         options: requiredOptionIds.map((id) => ({ id, text: cleanLine(question.options.find((option) => option.id === id)?.text || "") })),
         correct_answer: question.correct_answer || "",
         explanation: cleanLine(question.explanation),
-        image_url: question.image_source_name ? imageUrls.get(question.image_source_name) : undefined,
+        image_url: question.image_url || (question.image_source_name ? imageUrls.get(question.image_source_name) : undefined),
         image_alt: cleanLine(question.image_alt),
         review_note: cleanLine(question.review_note),
+        source_page: question.source_page,
+        image_page: question.image_page,
       })));
       if (typeof result.aiCallsRemaining === "number") onAiCallsRemaining?.(result.aiCallsRemaining);
       setNotice("Gemini đã trích xong. Hãy kiểm tra và sửa trước khi xuất Word hoặc đăng.");

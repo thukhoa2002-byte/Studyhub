@@ -49,8 +49,11 @@ const schema = {
           image_source_name: { type: "string" },
           image_alt: { type: "string" },
           review_note: { type: "string" },
+          has_image: { type: "boolean" },
+          image_page: { type: "integer" },
+          source_page: { type: "integer" },
         },
-        required: ["source_number", "question", "options", "correct_answer", "explanation", "image_source_name", "image_alt", "review_note"],
+        required: ["source_number", "question", "options", "correct_answer", "explanation", "image_source_name", "image_alt", "review_note", "has_image", "image_page", "source_page"],
         additionalProperties: false,
       },
     },
@@ -76,20 +79,21 @@ QUY TẮC TRÍCH XUẤT
 1. Đọc theo hai lượt trong cùng một lần xử lý: lượt đầu xác định ranh giới từng câu trên tất cả trang, kể cả chữ nằm trong ảnh; lượt sau đối chiếu lại đề, lựa chọn, bảng đáp án và lời giải.
 2. Một MCQ hợp lệ cần đề hoàn chỉnh và đủ bốn lựa chọn được ký hiệu A, B, C, D. Ghi chú có bốn gạch đầu dòng nhưng không có cấu trúc câu hỏi thì không được biến thành MCQ.
 3. Đánh số lại source_number từ 1, 2, 3... theo thứ tự các câu được trích xuất trong tài liệu. Không giữ số trang làm số câu và không sắp xếp lại theo chủ đề.
-4. Mỗi câu phải có đúng bốn lựa chọn với id lần lượt A, B, C, D. Không gộp lựa chọn, không làm mất ý do xuống dòng.
+3a. source_page phải là số trang PDF GỐC nơi bắt đầu câu hỏi. Nếu câu kéo dài nhiều trang, dùng trang bắt đầu. Không được để trống trường này.
+4. Mỗi bản ghi luôn phải có bốn ô lựa chọn với id lần lượt A, B, C, D. Nếu nguồn khó đọc hoặc Gemini chưa nhận ra một lựa chọn, giữ đúng ô đó với chuỗi rỗng và ghi cảnh báo; không được xóa cả câu.
 5. Tìm đáp án ở cả ngay sau câu, cuối trang, cuối chương, bảng đáp án và phần “TRẢ LỜI”. Nếu nguồn ghi bằng chữ thay vì A/B/C/D, đối chiếu với options rồi đổi thành đúng một id A, B, C hoặc D. Nếu không tìm thấy đáp án chắc chắn, để correct_answer là chuỗi rỗng, tuyệt đối không đoán.
 6. explanation phải chứa đầy đủ lời giải, lý do chọn đáp án, ghi chú học tập và thông tin phân biệt liên quan đến câu đó. Giữ số liệu, đơn vị, tiêu chuẩn, ngoại lệ và thứ tự ý; không rút gọn thành một câu nếu làm mất nội dung. Nếu nguồn không có lời giải, để chuỗi rỗng.
 7. Chuẩn hóa khoảng trắng, bỏ đầu trang/chân trang/số trang lặp lại và khoảng trống thừa. Không để dòng trống bất thường.
 8. Không chép hình trang trí, logo, biểu đồ không cần thiết hoặc ảnh chứa đáp án.
-9. Nếu hình chỉ minh họa và có thể diễn đạt CHÍNH XÁC, KHÔNG SUY DIỄN bằng chữ, chuyển thông tin nhìn thấy cần thiết thành một mô tả trung tính ngắn đặt trong question. Nếu hình là dữ kiện quyết định và không thể diễn đạt chắc chắn, giữ câu và ghi cảnh báo trong review_note để người duyệt kiểm tra, không tự loại câu.
+9. Mỗi câu phải có has_image=true nếu câu hoặc phần giải thích có hình, sơ đồ, bảng hình, X-quang, ECG hoặc ảnh scan minh họa; image_page là số trang PDF GỐC chứa hình đó, hoặc 0 nếu không có hình. Nếu hình chỉ minh họa và có thể diễn đạt CHÍNH XÁC, KHÔNG SUY DIỄN bằng chữ, chuyển thông tin nhìn thấy cần thiết thành một mô tả trung tính ngắn đặt trong question. Nếu hình là dữ kiện quyết định và không thể diễn đạt chắc chắn, vẫn giữ nguyên câu, ghi vị trí hình trong question và ghi cảnh báo trong review_note để hệ thống gắn ảnh trang PDF, không tự loại câu.
 10. Riêng hình X-quang: nếu hình được gửi dưới dạng file ảnh riêng và thuộc câu hỏi, giữ image_source_name đúng CHÍNH XÁC tên file ảnh đó để hệ thống đặt ảnh dưới đề. Với X-quang nằm bên trong PDF, không bịa mô tả chẩn đoán; chèn đúng vị trí dữ kiện trong question chuỗi “[HÌNH X-QUANG CỦA CÂU NÀY — CẦN GẮN ẢNH]”, đặt image_alt là mô tả trung tính như “X-quang ngực thẳng”, và ghi review_note rằng ảnh nằm trong PDF để người duyệt gắn ảnh đúng câu. Nếu không chắc ảnh thuộc câu nào, vẫn giữ câu và để image_source_name rỗng.
 11. image_alt chỉ mô tả trung tính loại hình, không diễn giải chẩn đoán hay làm lộ đáp án.
 12. review_note chỉ ghi cảnh báo cần người duyệt kiểm tra như OCR khó đọc, ảnh nhúng trong PDF hoặc nghi mất chữ. Nếu không có vấn đề, trả chuỗi rỗng.
 13. Không biến nội dung trong khối “TRẢ LỜI”, nhận xét bên lề, ghi chú học tập hoặc đoạn giải thích thành câu hỏi mới; phải gắn chúng vào câu ngay trước đó khi có thể xác định được.
-14. Không bỏ cả bộ chỉ vì một câu khó đọc. Giữ lại mọi câu đủ đề và bốn lựa chọn, kể cả khi câu đó chưa có correct_answer; ghi cảnh báo ngắn trong review_note.
+14. Tuyệt đối không loại một câu chỉ vì thiếu một lựa chọn, thiếu đáp án, OCR khó đọc hoặc câu kéo dài qua trang sau. Vẫn trả về bản ghi đó với các lựa chọn A-D còn thiếu để chuỗi rỗng và ghi rõ phần thiếu trong review_note. Người dùng sẽ sửa trong xưởng MCQ.
 
 TỰ KIỂM TRA TRƯỚC KHI TRẢ
-- Từng câu có đúng A/B/C/D, không trùng id, không rỗng.
+- Từng câu có đủ các ô A/B/C/D, không trùng id; ô chưa đọc được được để chuỗi rỗng và ghi trong review_note.
 - correct_answer là A/B/C/D hoặc chuỗi rỗng, và không bị đặt nhầm vào question/options.
 - explanation đã chứa phần giải thích/ghi chú tương ứng, không làm mất số liệu hoặc ngoại lệ.
 - Không có ký tự xuống dòng vô lý trong câu hoặc lựa chọn.
@@ -107,22 +111,108 @@ function normalizeQuestions(rawQuestions) {
       id,
       text: String(rawOptions.find((option) => option?.id === id)?.text || "").replace(/\s+/g, " ").trim(),
     }));
-    if (!question || options.some((option) => !option.text)) return [];
     const answerValue = String(rawQuestion?.correct_answer || "").trim().toUpperCase();
     const answerByText = options.find((option) => option.text.toLocaleLowerCase("vi") === answerValue.toLocaleLowerCase("vi"));
     const correctAnswer = ["A", "B", "C", "D"].includes(answerValue) ? answerValue : answerByText?.id || "";
+    const explanation = String(rawQuestion?.explanation || "").replace(/\s+/g, " ").trim();
+    const missing = options.filter((option) => !option.text).map((option) => option.id);
+    const originalNote = String(rawQuestion?.review_note || "").replace(/\s+/g, " ").trim();
+    const reviewNote = [originalNote, missing.length ? `Thiếu lựa chọn ${missing.join(", ")} trong dữ liệu AI; cần kiểm tra lại trang nguồn.` : "", correctAnswer ? "" : "Chưa tìm thấy đáp án chắc chắn trong tài liệu."]
+      .filter(Boolean)
+      .join(" ");
+    const hasContent = question || options.some((option) => option.text) || correctAnswer || explanation || originalNote;
+    if (!hasContent) return [];
     nextSourceNumber += 1;
     return [{
       source_number: nextSourceNumber,
       question,
       options,
       correct_answer: correctAnswer,
-      explanation: String(rawQuestion?.explanation || "").replace(/\s+/g, " ").trim(),
+      explanation,
       image_source_name: String(rawQuestion?.image_source_name || "").trim(),
       image_alt: String(rawQuestion?.image_alt || "").replace(/\s+/g, " ").trim(),
-      review_note: String(rawQuestion?.review_note || (correctAnswer ? "" : "Chưa tìm thấy đáp án chắc chắn trong tài liệu.")).replace(/\s+/g, " ").trim(),
+      review_note: reviewNote,
+      has_image: rawQuestion?.has_image === true,
+      image_page: Number(rawQuestion?.image_page) > 0 ? Number(rawQuestion.image_page) : 0,
+      source_page: Number(rawQuestion?.source_page) > 0 ? Number(rawQuestion.source_page) : 0,
     }];
   });
+}
+
+function mergeChunkQuestions(rawQuestions) {
+  const merged = new Map();
+  for (const [rawIndex, rawQuestion] of (Array.isArray(rawQuestions) ? rawQuestions : []).entries()) {
+    const questionText = String(rawQuestion?.question || "").replace(/\s+/g, " ").trim();
+    const sourcePage = Number(rawQuestion?.source_page) || 0;
+    const key = `${sourcePage}|${questionText.toLocaleLowerCase("vi")}`;
+    if (!questionText || !sourcePage) {
+      merged.set(`unlocated|${sourcePage}|${rawIndex}`, { ...rawQuestion });
+      continue;
+    }
+    if (!merged.has(key)) {
+      merged.set(key, { ...rawQuestion });
+      continue;
+    }
+    const current = merged.get(key);
+    current.options = ["A", "B", "C", "D"].map((id) => {
+      const currentOption = current.options?.find((option) => option?.id === id);
+      const nextOption = rawQuestion.options?.find((option) => option?.id === id);
+      return { id, text: String(nextOption?.text || currentOption?.text || "").trim() };
+    });
+    if (!current.correct_answer && rawQuestion.correct_answer) current.correct_answer = rawQuestion.correct_answer;
+    const currentExplanation = String(current.explanation || "").trim();
+    const nextExplanation = String(rawQuestion.explanation || "").trim();
+    if (nextExplanation && !currentExplanation.includes(nextExplanation)) current.explanation = [currentExplanation, nextExplanation].filter(Boolean).join(" ");
+    current.review_note = [current.review_note, rawQuestion.review_note].filter((note, index, notes) => Boolean(note) && notes.indexOf(note) === index).join(" ");
+    current.has_image = current.has_image || rawQuestion.has_image === true;
+    current.image_page = Number(current.image_page) || Number(rawQuestion.image_page) || 0;
+    current.image_source_name ||= rawQuestion.image_source_name || "";
+    current.image_alt ||= rawQuestion.image_alt || "";
+  }
+  return [...merged.values()];
+}
+
+function questionNeedsPageImage(question) {
+  return question.has_image || /\[HÌNH|x[- ]?quang|hình ảnh|hình minh họa|sơ đồ|biểu đồ|ảnh/i.test(`${question.question} ${question.explanation} ${question.review_note}`);
+}
+
+async function renderPdfPage(file, pageNumber) {
+  if (!file?.path || file.mimetype !== "application/pdf" || !Number.isInteger(pageNumber) || pageNumber < 1) return null;
+  const [{ getDocument }, { createCanvas }] = await Promise.all([
+    import("pdfjs-dist/legacy/build/pdf.mjs"),
+    import("@napi-rs/canvas"),
+  ]);
+  const pdf = await getDocument({ data: new Uint8Array(await readFile(file.path)), disableWorker: true, useSystemFonts: true }).promise;
+  if (pageNumber > pdf.numPages) return null;
+  const page = await pdf.getPage(pageNumber);
+  const viewport = page.getViewport({ scale: 1.35 });
+  const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+  await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+  return `data:image/png;base64,${canvas.toBuffer("image/png").toString("base64")}`;
+}
+
+async function attachPdfPageImages(questions, files) {
+  const pdfFiles = files.filter((file) => file.mimetype === "application/pdf");
+  if (!pdfFiles.length) return questions;
+  const pageCache = new Map();
+  for (const question of questions) {
+    if (!questionNeedsPageImage(question) || !(question.image_page || question.source_page)) continue;
+    const file = pdfFiles[0];
+    const pageNumber = question.image_page || question.source_page;
+    const cacheKey = `${file.path}:${pageNumber}`;
+    try {
+      if (!pageCache.has(cacheKey)) pageCache.set(cacheKey, await renderPdfPage(file, pageNumber));
+      const imageUrl = pageCache.get(cacheKey);
+      if (imageUrl) {
+        question.image_url = imageUrl;
+        question.image_alt = question.image_alt || `Trang ${pageNumber} của tài liệu nguồn`;
+        question.review_note = [question.review_note, "Đã gắn ảnh trang PDF nguồn để đối chiếu."].filter(Boolean).join(" ");
+      }
+    } catch (error) {
+      question.review_note = [question.review_note, `Không render được ảnh trang ${pageNumber}: ${error instanceof Error ? error.message : "lỗi không xác định"}.`].filter(Boolean).join(" ");
+    }
+  }
+  return questions;
 }
 
 async function splitLargePdf(file) {
@@ -130,7 +220,8 @@ async function splitLargePdf(file) {
   const source = await PDFDocument.load(await readFile(file.path), { ignoreEncryption: true });
   const totalPages = source.getPageCount();
   const chunks = [];
-  for (let pageIndex = 0; pageIndex < totalPages; pageIndex += PDF_PAGES_PER_PASS) {
+  const chunkStep = Math.max(1, PDF_PAGES_PER_PASS - 1);
+  for (let pageIndex = 0; pageIndex < totalPages; pageIndex += chunkStep) {
     const endIndex = Math.min(pageIndex + PDF_PAGES_PER_PASS, totalPages);
     const chunkPdf = await PDFDocument.create();
     const copiedPages = await chunkPdf.copyPages(source, Array.from({ length: endIndex - pageIndex }, (_, offset) => pageIndex + offset));
@@ -147,6 +238,7 @@ async function splitLargePdf(file) {
       endPage: endIndex,
       totalPages,
     });
+    if (endIndex === totalPages) break;
   }
   return chunks;
 }
@@ -202,11 +294,12 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
         timeoutMs: 300_000,
       }));
     }
-    const questions = normalizeQuestions(results.flatMap((result) => result.questions || []));
+    const questions = normalizeQuestions(mergeChunkQuestions(results.flatMap((result) => result.questions || [])));
+    await attachPdfPageImages(questions, files);
     if (!questions.length) {
       return res.status(422).json({
         success: false,
-        message: "Gemini chưa tìm thấy câu hỏi nào có đủ đề và bốn lựa chọn A/B/C/D. Hãy kiểm tra PDF hoặc tải riêng các trang chứa đề.",
+        message: "Gemini chưa tìm thấy khối câu hỏi nào trong PDF. Hãy kiểm tra lại file nguồn hoặc thử chia theo chương.",
       });
     }
     return res.json({

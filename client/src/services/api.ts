@@ -101,6 +101,9 @@ export interface ImportedMcqQuestion {
   image_source_name: string;
   image_alt: string;
   review_note: string;
+  source_page?: number;
+  image_page?: number;
+  image_url?: string;
 }
 
 export interface McqImportResponse {

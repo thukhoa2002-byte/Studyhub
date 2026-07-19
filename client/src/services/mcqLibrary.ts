@@ -11,6 +11,8 @@ export type McqLibraryQuestion = {
   image_url?: string;
   image_alt?: string;
   review_note?: string;
+  source_page?: number;
+  image_page?: number;
 };
 
 export interface McqLibraryBank {
