@@ -8,11 +8,19 @@ stable
 security definer
 set search_path = public, auth
 as $$
-  select lower(coalesce(auth.jwt() ->> 'email', '')) = 'thukhoa2002@gmail.com'
+  select lower(coalesce(
+    nullif(auth.jwt() ->> 'email', ''),
+    (select lower(email) from auth.users where id = auth.uid()),
+    ''
+  )) = 'thukhoa2002@gmail.com'
     or exists (
       select 1
       from public.mcq_admins admin
-      where admin.email = lower(coalesce(auth.jwt() ->> 'email', ''))
+      where admin.email = lower(coalesce(
+        nullif(auth.jwt() ->> 'email', ''),
+        (select lower(email) from auth.users where id = auth.uid()),
+        ''
+      ))
     );
 $$;
 
