@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-export type McqOption = { id: "A" | "B" | "C" | "D"; text: string };
+export type McqOption = { id: "A" | "B" | "C" | "D" | "E"; text: string };
 export type McqLibraryQuestion = {
   id: string;
   source_number: number;

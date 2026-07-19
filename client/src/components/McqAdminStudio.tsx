@@ -11,7 +11,8 @@ type Props = {
   requestedBank?: McqLibraryBank | null;
 };
 
-const optionIds = ["A", "B", "C", "D"] as const;
+const requiredOptionIds = ["A", "B", "C", "D"] as const;
+const optionIds = ["A", "B", "C", "D", "E"] as const;
 
 function cleanLine(value: string) {
   return value.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, " ").trim();
@@ -137,7 +138,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     setNotice("Đang chỉnh sửa bộ MCQ đã chọn. Chỉ tài khoản của bạn có quyền lưu thay đổi.");
   }, [requestedBank]);
 
-  const invalidCount = useMemo(() => questions.filter((question) => !cleanLine(question.question) || question.options.length !== 4 || question.options.some((option) => !cleanLine(option.text))).length, [questions]);
+  const invalidCount = useMemo(() => questions.filter((question) => !cleanLine(question.question) || question.options.length < 4 || question.options.length > 5 || question.options.some((option) => !cleanLine(option.text))).length, [questions]);
 
   async function extract() {
     if (!files.length) return;
@@ -154,7 +155,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         id: crypto.randomUUID(),
         source_number: question.source_number || index + 1,
         question: cleanLine(question.question),
-        options: optionIds.map((id) => ({ id, text: cleanLine(question.options.find((option) => option.id === id)?.text || "") })),
+        options: requiredOptionIds.map((id) => ({ id, text: cleanLine(question.options.find((option) => option.id === id)?.text || "") })),
         correct_answer: question.correct_answer || "",
         explanation: cleanLine(question.explanation),
         image_url: question.image_source_name ? imageUrls.get(question.image_source_name) : undefined,
@@ -216,7 +217,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
   async function persist(status: "draft" | "published") {
     if (!title.trim() || !questions.length || invalidCount) {
-      setError("Hãy điền đủ tên bộ, câu hỏi và bốn lựa chọn A/B/C/D.");
+      setError("Hãy điền đủ tên bộ, câu hỏi và ít nhất bốn lựa chọn A/B/C/D.");
       return;
     }
     if (status === "published" && !reviewed) {
@@ -265,17 +266,17 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         <textarea value={question.question} onChange={(event) => editQuestion(questionIndex, { question: event.target.value })} rows={2} className="mt-3 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 font-bold leading-6 outline-none focus:border-violet-400" />
         <div className="mt-3 grid gap-2 sm:grid-cols-2">{question.options.map((option, optionIndex) => {
           const isCorrect = question.correct_answer === option.id;
-          return <label key={option.id} className={`flex items-center gap-2 rounded-xl border p-2 ${isCorrect ? "border-teal-300 bg-teal-50/70" : "border-slate-200 bg-slate-50/60"}`}><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${isCorrect ? "bg-teal-500 text-white" : "bg-violet-100 text-violet-700"}`}>{option.id}</span><textarea value={option.text} onChange={(event) => editOption(questionIndex, optionIndex, event.target.value)} rows={2} className="min-w-0 flex-1 resize-y bg-transparent text-sm leading-5 outline-none" />{isCorrect && <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-teal-700">Đúng</span>}</label>;
+          return <div key={option.id} className={`flex items-center gap-2 rounded-xl border p-2 ${isCorrect ? "border-teal-300 bg-teal-50/70" : "border-slate-200 bg-slate-50/60"}`}><button type="button" title={`Chọn ${option.id} là đáp án đúng`} aria-label={`Chọn ${option.id} là đáp án đúng`} onClick={() => editQuestion(questionIndex, { correct_answer: option.id })} className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black transition ${isCorrect ? "bg-teal-500 text-white" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}>{option.id}</button><textarea value={option.text} onChange={(event) => editOption(questionIndex, optionIndex, event.target.value)} rows={2} className="min-w-0 flex-1 resize-y bg-transparent text-sm leading-5 outline-none" />{isCorrect && <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-teal-700">Đúng</span>}</div>;
         })}</div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-[7.5rem_minmax(0,1fr)]">
-          <label className="text-xs font-black uppercase tracking-wider text-teal-700">Đáp án đúng<select value={question.correct_answer || ""} onChange={(event) => editQuestion(questionIndex, { correct_answer: event.target.value })} className="mt-1.5 w-full rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-slate-700 outline-none focus:border-teal-400"><option value="">Chưa xác định</option>{optionIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+        {question.options.length < optionIds.length && <button type="button" title="Thêm lựa chọn" aria-label="Thêm lựa chọn" onClick={() => { const nextId = optionIds[question.options.length]; if (!nextId) return; editQuestion(questionIndex, { options: [...question.options, { id: nextId, text: "" }] }); }} className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-violet-200 bg-white text-violet-700 hover:bg-violet-50"><Plus size={16} /></button>}
+        <div className="mt-3">
           <label className="text-xs font-black uppercase tracking-wider text-teal-700">Giải thích / ghi chú sau khi hiện đáp án<textarea value={question.explanation || ""} onChange={(event) => editQuestion(questionIndex, { explanation: event.target.value })} rows={5} placeholder="Giữ nguyên lời giải, ghi chú, căn cứ hoặc ngoại lệ trong tài liệu nguồn." className="mt-1.5 min-h-32 w-full resize-y rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-sm font-normal normal-case tracking-normal leading-6 text-slate-700 outline-none focus:border-teal-400" /></label>
         </div>
         {question.image_url && <figure className="mt-3"><img src={question.image_url} alt={question.image_alt || "Hình kèm câu hỏi"} className="max-h-72 rounded-2xl border border-slate-200 object-contain" /><input value={question.image_alt || ""} onChange={(event) => editQuestion(questionIndex, { image_alt: event.target.value })} placeholder="Chú thích trung tính cho ảnh" className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></figure>}
         {question.review_note && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Cần kiểm tra: {question.review_note}</p>}
       </article>)}</div>
-      <button type="button" onClick={() => { setQuestions((items) => [...items, { id: crypto.randomUUID(), source_number: items.length + 1, question: "", options: optionIds.map((id) => ({ id, text: "" })) }]); setReviewed(false); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700"><Plus size={17} />Thêm câu thủ công</button>
-      <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-teal-200 bg-teal-50/70 p-4 text-sm font-semibold text-teal-900"><input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-600" /><span><strong className="block">Tôi đã kiểm tra toàn bộ {questions.length} câu</strong>Đáp án, lời giải, câu hỏi, lựa chọn A/B/C/D và ảnh kèm theo đã được rà soát.</span></label>
+      <button type="button" onClick={() => { setQuestions((items) => [...items, { id: crypto.randomUUID(), source_number: items.length + 1, question: "", options: requiredOptionIds.map((id) => ({ id, text: "" })) }]); setReviewed(false); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700"><Plus size={17} />Thêm câu thủ công</button>
+      <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-teal-200 bg-teal-50/70 p-4 text-sm font-semibold text-teal-900"><input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-600" /><span><strong className="block">Tôi đã kiểm tra toàn bộ {questions.length} câu</strong>Đáp án, lời giải, câu hỏi, lựa chọn A/B/C/D/E và ảnh kèm theo đã được rà soát.</span></label>
       <p className="mt-4 text-right text-xs font-semibold text-slate-500">Bản Word gồm toàn bộ câu hỏi trong một file, chỉ tải về máy của bạn và không xuất hiện trong thư viện MCQ.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
         <button type="button" disabled={busy || !reviewed || !title.trim() || invalidCount > 0} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
