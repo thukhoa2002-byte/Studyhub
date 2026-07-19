@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ClipboardPaste, Download, FileSearch, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { ClipboardPaste, Download, FileSearch, FileText, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { extractMcqFiles } from "../services/api";
 import { deleteMcqBank, mcqLibraryErrorMessage, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
 
@@ -68,6 +68,81 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function safeFilename(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "bo-mcq";
+}
+
+function jsonText(value: unknown) {
+  if (typeof value === "string") return cleanLine(value);
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return "";
+}
+
+function isJsonFile(file: File | undefined) {
+  return Boolean(file && (file.type === "application/json" || file.name.toLowerCase().endsWith(".json")));
+}
+
+function normalizeMcqJson(payload: unknown): { title: string; description: string; questions: McqLibraryQuestion[] } {
+  const root = Array.isArray(payload) ? {} : (payload && typeof payload === "object" ? payload as Record<string, unknown> : {});
+  const rawQuestions = Array.isArray(payload) ? payload : root.questions;
+  if (!Array.isArray(rawQuestions) || !rawQuestions.length) {
+    throw new Error("JSON không có danh sách questions hoặc danh sách đang rỗng.");
+  }
+
+  const questions = rawQuestions.map((rawQuestion, questionIndex) => {
+    if (!rawQuestion || typeof rawQuestion !== "object") {
+      throw new Error(`Câu ${questionIndex + 1} trong JSON không hợp lệ.`);
+    }
+    const source = rawQuestion as Record<string, unknown>;
+    const question = jsonText(source.question ?? source.prompt ?? source.stem ?? source.text);
+    const rawOptions = source.options ?? source.choices;
+    const optionEntries = Array.isArray(rawOptions)
+      ? rawOptions.map((option, optionIndex) => {
+        if (typeof option === "string") return { id: optionIds[optionIndex], text: option };
+        const item = option && typeof option === "object" ? option as Record<string, unknown> : {};
+        return { id: jsonText(item.id ?? item.label).toUpperCase(), text: jsonText(item.text ?? item.content ?? item.value) };
+      })
+      : rawOptions && typeof rawOptions === "object"
+        ? Object.entries(rawOptions as Record<string, unknown>).map(([id, text]) => ({ id: id.toUpperCase(), text: jsonText(text) }))
+        : [];
+    const options = optionIds
+      .map((id) => optionEntries.find((option) => option.id === id && option.text))
+      .filter((option): option is { id: typeof optionIds[number]; text: string } => Boolean(option))
+      .map((option) => ({ id: option.id, text: option.text }));
+    if (!question) throw new Error(`Câu ${questionIndex + 1} chưa có nội dung question.`);
+    if (options.length < requiredOptionIds.length) throw new Error(`Câu ${questionIndex + 1} phải có đủ lựa chọn A, B, C và D.`);
+    const correctAnswer = jsonText(source.correct_answer ?? source.correctAnswer ?? source.answer ?? source.correct_option).toUpperCase();
+    if (correctAnswer && !options.some((option) => option.id === correctAnswer)) {
+      throw new Error(`Câu ${questionIndex + 1} có correct_answer không trùng với các lựa chọn.`);
+    }
+    const sourceNumber = Number(source.source_number ?? source.sourceNumber ?? questionIndex + 1);
+    return {
+      id: crypto.randomUUID(),
+      source_number: Number.isFinite(sourceNumber) && sourceNumber > 0 ? sourceNumber : questionIndex + 1,
+      question,
+      options,
+      correct_answer: correctAnswer,
+      explanation: jsonText(source.explanation ?? source.explain ?? source.solution),
+      image_url: jsonText(source.image_url ?? source.imageUrl ?? source.image_data ?? source.image) || undefined,
+      image_alt: jsonText(source.image_alt ?? source.imageAlt ?? source.image_caption),
+      review_note: jsonText(source.review_note ?? source.reviewNote),
+    };
+  });
+
+  return {
+    title: jsonText(root.title) || "Bộ MCQ mới",
+    description: jsonText(root.description),
+    questions,
+  };
+}
+
+function exportJson(title: string, description: string, questions: McqLibraryQuestion[]) {
+  const payload = {
+    format: "mcq-v1",
+    version: 1,
+    title: title.trim(),
+    description: description.trim(),
+    questions: questions.map(({ id: _id, ...question }) => question),
+  };
+  downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" }), `${safeFilename(title)}.mcq.json`);
 }
 
 async function exportWord(title: string, questions: McqLibraryQuestion[]) {
@@ -144,6 +219,17 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     if (!files.length) return;
     setBusy(true); setError(""); setNotice(""); setReviewed(false);
     try {
+      if (files.length === 1 && isJsonFile(files[0])) {
+        const payload = JSON.parse(await files[0].text()) as unknown;
+        const normalized = normalizeMcqJson(payload);
+        setBankId(undefined);
+        setVisibility("draft");
+        setTitle(normalized.title);
+        setDescription(normalized.description);
+        setQuestions(normalized.questions);
+        setNotice("Đã nạp JSON chuẩn MCQ trực tiếp, không gọi Gemini. Hãy kiểm tra trước khi lưu hoặc xuất Word.");
+        return;
+      }
       const result = await extractMcqFiles(files);
       const imageFiles = new Map(files.filter((file) => file.type.startsWith("image/")).map((file) => [file.name, file]));
       const imageUrls = new Map<string, string>();
@@ -248,10 +334,10 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
     <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto]">
       <button type="button" onClick={() => inputRef.current?.click()} className="flex min-h-32 items-center justify-center rounded-3xl border border-dashed border-violet-300 bg-violet-50/50 px-5 text-center transition hover:bg-violet-50">
-        <span><Upload className="mx-auto text-violet-600" /><strong className="mt-2 block text-slate-800">Chọn PDF hoặc ảnh câu hỏi</strong><small className="mt-1 block text-slate-500">Tối đa 20 file, mỗi file 100 MB và tổng 120 MB. PDF note/scan sẽ được đọc cả chữ nằm trong ảnh; ảnh X-quang nên tải thành file ảnh riêng.</small></span>
+        <span><Upload className="mx-auto text-violet-600" /><strong className="mt-2 block text-slate-800">Chọn PDF, ảnh hoặc JSON MCQ</strong><small className="mt-1 block text-slate-500">PDF/ảnh sẽ gọi Gemini. JSON chuẩn MCQ được nạp trực tiếp, không phụ thuộc máy chủ AI.</small></span>
       </button>
-      <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Trích bằng Gemini</button>
-      <input ref={inputRef} className="hidden" type="file" multiple accept="application/pdf,image/png,image/jpeg" onChange={(event) => setFiles(Array.from(event.target.files ?? []))} />
+      <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : isJsonFile(files[0]) ? <FileText /> : <FileSearch />}{isJsonFile(files[0]) ? "Nạp JSON chuẩn" : "Trích bằng Gemini"}</button>
+      <input ref={inputRef} className="hidden" type="file" multiple accept="application/pdf,image/png,image/jpeg,application/json,.json" onChange={(event) => setFiles(Array.from(event.target.files ?? []))} />
     </div>
     {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={`${file.name}-${file.size}`} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{file.type.startsWith("image/") && <ImageIcon size={13} />}{file.name}</span>)}</div>}
     {error && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
@@ -280,6 +366,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <p className="mt-4 text-right text-xs font-semibold text-slate-500">Bản Word gồm toàn bộ câu hỏi trong một file, chỉ tải về máy của bạn và không xuất hiện trong thư viện MCQ.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
         <button type="button" disabled={busy || !reviewed || !title.trim() || invalidCount > 0} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
+        <button type="button" disabled={busy || !title.trim() || invalidCount > 0} onClick={() => exportJson(title, description, questions)} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold text-sky-700 disabled:opacity-40"><FileText size={17} />Xuất JSON chuẩn</button>
         <span className={`inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold ${visibility === "published" ? "border-teal-200 bg-teal-50 text-teal-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{visibility === "published" ? <Globe2 size={17} /> : <LockKeyhole size={17} />}{visibility === "published" ? "Mọi người sẽ thấy" : "Chỉ mình bạn thấy"}</span>
         <button type="button" disabled={busy || (visibility === "published" && (!reviewed || invalidCount > 0))} onClick={() => void persist(visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? "Lưu thay đổi" : "Lưu bộ MCQ"}</button>
       </div>
