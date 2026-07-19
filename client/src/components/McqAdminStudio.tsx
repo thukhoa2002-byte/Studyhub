@@ -306,20 +306,30 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   }
 
   async function persist(status: "draft" | "published") {
-    if (!title.trim() || !questions.length || invalidCount) {
-      setError("Hãy điền đủ tên bộ, câu hỏi và ít nhất bốn lựa chọn A/B/C/D.");
+    if (!title.trim() || !questions.length) {
+      setError("Hãy điền tên bộ và ít nhất một câu hỏi.");
       return;
     }
-    if (status === "published" && !reviewed) {
-      setError("Bạn cần xác nhận đã kiểm tra toàn bộ trước khi đăng công khai.");
-      return;
+    if (status === "published") {
+      if (invalidCount) {
+        setError("Không thể đăng công khai khi còn câu thiếu nội dung hoặc lựa chọn A/B/C/D.");
+        return;
+      }
+      if (!reviewed) {
+        setError("Bạn cần xác nhận đã kiểm tra toàn bộ trước khi đăng công khai.");
+        return;
+      }
     }
     setBusy(true); setError(""); setNotice("");
     try {
       const saved = await saveMcqBank(userId, { title, description, questions, status }, bankId);
       setBankId(saved.id);
       setQuestions(saved.questions);
-      setNotice(status === "published" ? "Đã đăng công khai vào thư viện MCQ." : "Đã lưu bản nháp riêng tư.");
+      setNotice(status === "published"
+        ? "Đã đăng công khai vào thư viện MCQ."
+        : invalidCount
+          ? "Đã lưu bản nháp riêng tư. Một số câu còn thiếu dữ liệu và cần sửa trước khi đăng."
+          : "Đã lưu bản nháp riêng tư.");
       await onChanged();
     } catch (saveError) {
       setError(mcqLibraryErrorMessage(saveError, "Không thể lưu bộ MCQ."));
@@ -370,7 +380,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <p className="mt-4 text-right text-xs font-semibold text-slate-500">Bản Word gồm toàn bộ câu hỏi trong một file, chỉ tải về máy của bạn và không xuất hiện trong thư viện MCQ.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
         <button type="button" disabled={busy || !reviewed || !title.trim() || invalidCount > 0} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
-        <button type="button" disabled={busy || !title.trim() || invalidCount > 0} onClick={() => exportJson(title, description, questions)} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold text-sky-700 disabled:opacity-40"><FileText size={17} />Xuất JSON chuẩn</button>
+        <button type="button" disabled={busy || !title.trim() || !questions.length} onClick={() => exportJson(title, description, questions)} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold text-sky-700 disabled:opacity-40"><FileText size={17} />Xuất JSON chuẩn</button>
         <span className={`inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold ${visibility === "published" ? "border-teal-200 bg-teal-50 text-teal-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{visibility === "published" ? <Globe2 size={17} /> : <LockKeyhole size={17} />}{visibility === "published" ? "Mọi người sẽ thấy" : "Chỉ mình bạn thấy"}</span>
         <button type="button" disabled={busy || (visibility === "published" && (!reviewed || invalidCount > 0))} onClick={() => void persist(visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? "Lưu thay đổi" : "Lưu bộ MCQ"}</button>
       </div>
