@@ -13,6 +13,7 @@ export type McqLibraryQuestion = {
   review_note?: string;
   source_page?: number;
   image_page?: number;
+  shared_context?: string;
 };
 
 export interface McqLibraryBank {

@@ -104,6 +104,7 @@ export interface ImportedMcqQuestion {
   source_page?: number;
   image_page?: number;
   image_url?: string;
+  shared_context?: string;
 }
 
 export interface McqImportResponse {

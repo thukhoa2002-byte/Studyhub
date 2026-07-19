@@ -52,8 +52,9 @@ const schema = {
           has_image: { type: "boolean" },
           image_page: { type: "integer" },
           source_page: { type: "integer" },
+          shared_context: { type: "string" },
         },
-        required: ["source_number", "question", "options", "correct_answer", "explanation", "image_source_name", "image_alt", "review_note", "has_image", "image_page", "source_page"],
+        required: ["source_number", "question", "options", "correct_answer", "explanation", "image_source_name", "image_alt", "review_note", "has_image", "image_page", "source_page", "shared_context"],
         additionalProperties: false,
       },
     },
@@ -80,6 +81,7 @@ QUY TẮC TRÍCH XUẤT
 2. Một MCQ hợp lệ cần đề hoàn chỉnh và đủ bốn lựa chọn được ký hiệu A, B, C, D. Ghi chú có bốn gạch đầu dòng nhưng không có cấu trúc câu hỏi thì không được biến thành MCQ.
 3. Đánh số lại source_number từ 1, 2, 3... theo thứ tự các câu được trích xuất trong tài liệu. Không giữ số trang làm số câu và không sắp xếp lại theo chủ đề.
 3a. source_page phải là số trang PDF GỐC nơi bắt đầu câu hỏi. Nếu câu kéo dài nhiều trang, dùng trang bắt đầu. Không được để trống trường này.
+3b. Nếu tài liệu có tiêu đề như “Tình huống này dùng cho câu 56-58”, “Dữ kiện chung cho câu 1-5” hoặc một bệnh cảnh nằm trước nhiều câu, xác định đúng phạm vi câu và chép nguyên văn bệnh cảnh vào shared_context của TỪNG câu trong nhóm. Không lặp bệnh cảnh vào question.
 4. Mỗi bản ghi luôn phải có bốn ô lựa chọn với id lần lượt A, B, C, D. Nếu nguồn khó đọc hoặc Gemini chưa nhận ra một lựa chọn, giữ đúng ô đó với chuỗi rỗng và ghi cảnh báo; không được xóa cả câu.
 5. Tìm đáp án ở cả ngay sau câu, cuối trang, cuối chương, bảng đáp án và phần “TRẢ LỜI”. Nếu nguồn ghi bằng chữ thay vì A/B/C/D, đối chiếu với options rồi đổi thành đúng một id A, B, C hoặc D. Nếu không tìm thấy đáp án chắc chắn, để correct_answer là chuỗi rỗng, tuyệt đối không đoán.
 6. explanation phải chứa đầy đủ lời giải, lý do chọn đáp án, ghi chú học tập và thông tin phân biệt liên quan đến câu đó. Giữ số liệu, đơn vị, tiêu chuẩn, ngoại lệ và thứ tự ý; không rút gọn thành một câu nếu làm mất nội dung. Nếu nguồn không có lời giải, để chuỗi rỗng.
@@ -135,6 +137,7 @@ function normalizeQuestions(rawQuestions) {
       has_image: rawQuestion?.has_image === true,
       image_page: Number(rawQuestion?.image_page) > 0 ? Number(rawQuestion.image_page) : 0,
       source_page: Number(rawQuestion?.source_page) > 0 ? Number(rawQuestion.source_page) : 0,
+      shared_context: String(rawQuestion?.shared_context || "").replace(/\s+/g, " ").trim(),
     }];
   });
 }
@@ -168,6 +171,7 @@ function mergeChunkQuestions(rawQuestions) {
     current.image_page = Number(current.image_page) || Number(rawQuestion.image_page) || 0;
     current.image_source_name ||= rawQuestion.image_source_name || "";
     current.image_alt ||= rawQuestion.image_alt || "";
+    current.shared_context ||= rawQuestion.shared_context || "";
   }
   return [...merged.values()];
 }

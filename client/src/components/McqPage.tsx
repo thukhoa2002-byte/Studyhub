@@ -16,6 +16,7 @@ type QuizQuestion = {
   review_required?: boolean;
   image_url?: string;
   image_alt?: string;
+  shared_context?: string;
 };
 type QuizBank = { title: string; questions: QuizQuestion[] };
 type Props = { userId?: string; userEmail?: string; onAiCallsRemaining?: (remaining: number) => void };
@@ -323,7 +324,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
         </div>
         {previewLoading || !previewBank ? <div className="mt-8 rounded-2xl bg-slate-50 px-5 py-10 text-center text-sm font-semibold text-slate-500">Đang nạp toàn bộ câu hỏi…</div> : <div className="mt-8 space-y-4">
           {previewBank.questions.map((previewQuestion, questionIndex) => <article key={previewQuestion.id || questionIndex} className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-start gap-3"><span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-violet-100 px-2 text-xs font-black text-violet-700">{questionIndex + 1}</span><div className="min-w-0 flex-1"><h2 className="text-base font-bold leading-7 text-slate-800 sm:text-lg">{previewQuestion.question}</h2>{previewQuestion.image_url && <img src={previewQuestion.image_url} alt={previewQuestion.image_alt || "Hình ảnh kèm câu hỏi"} className="mt-4 max-h-[28rem] max-w-full rounded-2xl border border-slate-200 object-contain" />}</div></div>
+            <div className="flex items-start gap-3"><span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-violet-100 px-2 text-xs font-black text-violet-700">{questionIndex + 1}</span><div className="min-w-0 flex-1">{previewQuestion.shared_context && <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm leading-6 text-slate-700"><p className="mb-1 text-xs font-extrabold uppercase tracking-wider text-amber-700">Tình huống chung</p>{previewQuestion.shared_context}</div>}<h2 className="text-base font-bold leading-7 text-slate-800 sm:text-lg">{previewQuestion.question}</h2>{previewQuestion.image_url && <img src={previewQuestion.image_url} alt={previewQuestion.image_alt || "Hình ảnh kèm câu hỏi"} className="mt-4 max-h-[28rem] max-w-full rounded-2xl border border-slate-200 object-contain" />}</div></div>
             <div className="mt-5 grid gap-2.5 sm:grid-cols-2">{previewQuestion.options.map((option) => <div key={option.id} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3.5 text-sm font-semibold text-slate-700"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-600">{option.id}</span><span className="pt-0.5 leading-6">{option.text}</span></div>)}</div>
           </article>)}
         </div>}
@@ -397,6 +398,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
 
         <article className="mt-7 rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-violet-50/40 to-teal-50/45 p-5 sm:p-7">
           <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-violet-600">Câu nguồn #{question.source_number}</p>
+          {question.shared_context && <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm leading-6 text-slate-700"><p className="mb-1 text-xs font-extrabold uppercase tracking-wider text-amber-700">Tình huống chung</p>{question.shared_context}</div>}
           <h2 className="mt-3 text-lg font-bold leading-7 text-slate-800 sm:text-xl">{question.question}</h2>
           {question.image_url && <img src={question.image_url} alt={question.image_alt || "Hình X-quang kèm theo câu hỏi"} className="mx-auto mt-6 max-h-[30rem] max-w-full rounded-2xl border border-slate-200 bg-white object-contain shadow-sm" />}
           <div className="mt-6 space-y-3">

@@ -139,6 +139,7 @@ function normalizeMcqJson(payload: unknown): { title: string; description: strin
       review_note: jsonText(source.review_note ?? source.reviewNote),
       source_page: Number(source.source_page ?? source.sourcePage) > 0 ? Number(source.source_page ?? source.sourcePage) : undefined,
       image_page: Number(source.image_page ?? source.imagePage) > 0 ? Number(source.image_page ?? source.imagePage) : undefined,
+      shared_context: jsonText(source.shared_context ?? source.sharedContext ?? source.case_context),
     };
   });
 
@@ -170,6 +171,14 @@ async function exportWord(title: string, questions: McqLibraryQuestion[]) {
     }),
   ];
   for (const [index, question] of questions.entries()) {
+    const previousContext = questions[index - 1]?.shared_context?.trim();
+    const sharedContext = question.shared_context?.trim();
+    if (sharedContext && sharedContext !== previousContext) {
+      children.push(new Paragraph({
+        spacing: { before: index === 0 ? 0 : 160, after: 100, line: 300 },
+        children: [new TextRun({ text: `Tình huống chung: ${sharedContext}`, bold: true, size: 21, font: "Calibri", color: "4B5563" })],
+      }));
+    }
     children.push(new Paragraph({
       spacing: { before: index === 0 ? 0 : 180, after: 100, line: 300 },
       children: [new TextRun({ text: `Câu ${question.source_number || index + 1}. ${cleanLine(question.question)}`, bold: true, size: 22, font: "Calibri" })],
@@ -265,6 +274,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         review_note: cleanLine(question.review_note),
         source_page: question.source_page,
         image_page: question.image_page,
+        shared_context: cleanLine(question.shared_context || ""),
       })));
       if (typeof result.aiCallsRemaining === "number") onAiCallsRemaining?.(result.aiCallsRemaining);
       setNotice("Gemini đã trích xong. Hãy kiểm tra và sửa trước khi xuất Word hoặc đăng.");
@@ -416,6 +426,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"><label className="text-sm font-bold text-slate-700">Tên bộ MCQ<input value={title} onChange={(event) => { setTitle(event.target.value); setReviewed(false); }} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Mô tả ngắn<input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Chủ đề, nguồn hoặc phạm vi câu hỏi" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Quyền xem<select value={visibility} onChange={(event) => setVisibility(event.target.value as "draft" | "published")} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400"><option value="draft">Riêng tư</option><option value="published">Công khai</option></select></label></div>
       <div className="mt-5 space-y-4">{questions.map((question, questionIndex) => <article key={question.id} className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3"><label className="text-xs font-black uppercase tracking-wider text-violet-600">Câu nguồn<input type="number" min={1} value={question.source_number} onChange={(event) => editQuestion(questionIndex, { source_number: Number(event.target.value) })} className="ml-2 w-20 rounded-lg border border-slate-200 px-2 py-1 text-slate-700" /></label><div className="flex shrink-0 items-center gap-1"><label htmlFor={`mcq-image-${question.id}`} title={question.image_url ? "Đổi hình câu hỏi" : "Thêm hình câu hỏi"} aria-label={question.image_url ? "Đổi hình câu hỏi" : "Thêm hình câu hỏi"} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-violet-600 hover:bg-violet-50"><ImagePlus size={17} /><input id={`mcq-image-${question.id}`} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => { void attachQuestionImage(questionIndex, event.target.files?.[0]); event.target.value = ""; }} /></label><button type="button" title="Dán hình từ clipboard" aria-label="Dán hình từ clipboard" onClick={() => void attachQuestionImageFromClipboard(questionIndex)} className="flex h-8 w-8 items-center justify-center rounded-lg text-violet-600 hover:bg-violet-50"><ClipboardPaste size={16} /></button>{question.image_url && <button type="button" title="Bỏ hình câu hỏi" aria-label="Bỏ hình câu hỏi" onClick={() => editQuestion(questionIndex, { image_url: undefined, image_alt: "" })} className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"><X size={17} /></button>}<button type="button" aria-label={`Xóa câu ${questionIndex + 1}`} title={`Xóa câu ${questionIndex + 1}`} onClick={() => { if (!confirm(`Xóa câu ${questionIndex + 1}?`)) return; setQuestions((items) => items.filter((_, index) => index !== questionIndex)); setReviewed(false); }} className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50"><Trash2 size={16} /></button></div></div>
+        {question.shared_context !== undefined ? <label className="mt-3 block text-xs font-black uppercase tracking-wider text-amber-700">Tình huống chung cho nhóm câu<textarea value={question.shared_context} onChange={(event) => editQuestion(questionIndex, { shared_context: event.target.value })} rows={4} placeholder="Dữ kiện/bệnh cảnh dùng chung cho các câu phía dưới" className="mt-1.5 w-full resize-y rounded-xl border border-amber-200 bg-amber-50/40 px-3 py-2.5 text-sm font-normal normal-case tracking-normal leading-6 text-slate-700 outline-none focus:border-amber-400" /></label> : <button type="button" onClick={() => editQuestion(questionIndex, { shared_context: "" })} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/40 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50"><Plus size={14} />Thêm tình huống chung</button>}
         <textarea value={question.question} onChange={(event) => editQuestion(questionIndex, { question: event.target.value })} rows={2} className="mt-3 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 font-bold leading-6 outline-none focus:border-violet-400" />
         <div className="mt-3 grid gap-2 sm:grid-cols-2">{question.options.map((option, optionIndex) => {
           const isCorrect = question.correct_answer === option.id;
