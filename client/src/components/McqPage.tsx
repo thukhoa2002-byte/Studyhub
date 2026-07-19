@@ -99,9 +99,16 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   const refreshLibrary = useCallback(async () => {
     if (!userId) { setLibraryBanks([]); setBankStates([]); return; }
     try {
-      const [banks, states] = await Promise.all([listMcqBanks(), listMcqBankStates()]);
+      // The bank list is the source of truth for drafts. A missing/old status
+      // RPC must not hide a bank that was already saved successfully.
+      const banks = await listMcqBanks();
       setLibraryBanks(banks);
-      setBankStates(states);
+      try {
+        setBankStates(await listMcqBankStates());
+      } catch (stateError) {
+        console.warn("Không thể tải trạng thái MCQ, vẫn hiển thị bản nháp đã lưu.", stateError);
+        setBankStates([]);
+      }
     }
     catch (loadError) { console.warn("Không thể tải thư viện MCQ", loadError); }
   }, [userId]);
