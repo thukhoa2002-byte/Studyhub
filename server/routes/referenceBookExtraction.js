@@ -370,8 +370,16 @@ async function createReflowPdf(file, editedLayout = null) {
   const output = await PDFDocument.create();
   const fonts = await embedFlowFonts(output);
   const pageSize = { width: 595.28, height: 841.89 };
-  // Word Normal margins: 2.54 cm (1 inch) on every side.
-  const margin = { left: 72, right: 72, top: 72, bottom: 72 };
+  // A stable Word-like Normal style keeps the reflow output independent from
+  // the original scan's uneven coordinates.
+  const style = {
+    margin: { left: 72, right: 72, top: 72, bottom: 72 },
+    bodySize: 13,
+    titleSize: 18,
+    lineSpacing: 1.5,
+    firstLineIndent: 18,
+  };
+  const margin = style.margin;
   const contentWidth = pageSize.width - margin.left - margin.right;
   let page = output.addPage([pageSize.width, pageSize.height]);
   let cursorY = pageSize.height - margin.top;
@@ -395,9 +403,9 @@ async function createReflowPdf(file, editedLayout = null) {
     if (isDocumentTitle) documentTitleAdded = true;
     const isCaption = !isHeading && (role === "caption" || role === "diagram_caption");
     const isList = /^\s*(?:[-•*]|\d+[.)]|[A-Z][.)])\s/.test(block.text || "");
-    const size = isDocumentTitle ? 17 : 12;
-    const lineHeight = size * 1.5;
-    const indent = !isHeading && !isCaption && !isList ? 18 : 0;
+    const size = isDocumentTitle ? style.titleSize : style.bodySize;
+    const lineHeight = size * style.lineSpacing;
+    const indent = !isHeading && !isCaption && !isList ? style.firstLineIndent : 0;
     const font = isHeading ? fonts.bold : block.fontWeight === "bold" && block.italic ? fonts.boldItalic : block.fontWeight === "bold" ? fonts.bold : block.italic || isCaption ? fonts.italic : fonts.regular;
     const cleanText = font.sanitize(block.text);
     const lines = wrapFlowText(cleanText, font, size, contentWidth - indent);
