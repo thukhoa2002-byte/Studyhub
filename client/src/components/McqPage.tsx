@@ -353,13 +353,13 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
           <div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Khu vực luyện tập</p><h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1><p className="mt-1 text-sm text-slate-500">Chọn một bộ đề để bắt đầu làm trắc nghiệm.</p></div>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {decks.map((deck) => <article key={deck.key} className="group relative flex min-h-64 flex-col rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
+          {decks.map((deck) => <article key={deck.key} className="group relative flex min-h-48 flex-col rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md sm:p-5">
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><McqIcon size={26} /></div><h2 className="min-w-0 text-xl font-extrabold text-rose-950">{deck.title}</h2></div>
               <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span>
             </div>
-            <p className="mt-4 text-sm leading-6 text-slate-500">{deck.description}</p>
-            <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-6">
+            <p className="mt-3 text-sm leading-5 text-slate-500">{deck.description}</p>
+            <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
               {isAdmin ? <div className="flex items-center gap-1 rounded-2xl border border-violet-100 bg-white/95 p-1.5 shadow-sm backdrop-blur">
                 <button type="button" aria-label={`Sửa ${deck.title}`} title="Sửa tên và nội dung bộ MCQ" onClick={() => void requestDeckEdit(deck)} className="rounded-xl p-2 text-violet-700 hover:bg-violet-50"><Pencil size={16} /></button>
                 <label title={deck.visibility === "published" ? "Đang công khai — bấm để đổi quyền xem" : "Đang riêng tư — bấm để đổi quyền xem"} className="relative inline-flex cursor-pointer rounded-xl p-2 text-slate-600 hover:bg-violet-50">{deck.visibility === "published" ? <Globe2 size={16} className="text-teal-600" /> : <LockKeyhole size={16} />}<select aria-label={`Quyền xem ${deck.title}`} value={deck.visibility} onChange={(event) => void changeDeckVisibility(deck, event.target.value as "draft" | "published")} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"><option value="published">Công khai</option><option value="draft">Riêng tư</option></select></label>

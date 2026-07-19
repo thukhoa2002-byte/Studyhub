@@ -219,32 +219,67 @@ async function attachPdfPageImages(questions, files) {
   return questions;
 }
 
-async function splitLargePdf(file) {
-  if (file.mimetype !== "application/pdf" || file.size <= INLINE_FILE_THRESHOLD_BYTES) return [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
-  const source = await PDFDocument.load(await readFile(file.path), { ignoreEncryption: true });
-  const totalPages = source.getPageCount();
+async function splitPdfPart(part, pagesPerPass) {
+  const sourceBytes = part.file.buffer || await readFile(part.file.path);
+  const source = await PDFDocument.load(sourceBytes, { ignoreEncryption: true });
+  const partPageCount = source.getPageCount();
+  if (partPageCount <= 1) return [];
+  const totalPages = part.totalPages || part.startPage + partPageCount - 1;
   const chunks = [];
-  const chunkStep = Math.max(1, PDF_PAGES_PER_PASS - 1);
-  for (let pageIndex = 0; pageIndex < totalPages; pageIndex += chunkStep) {
-    const endIndex = Math.min(pageIndex + PDF_PAGES_PER_PASS, totalPages);
+  const chunkStep = Math.max(1, pagesPerPass - 1);
+  for (let pageIndex = 0; pageIndex < partPageCount; pageIndex += chunkStep) {
+    const endIndex = Math.min(pageIndex + pagesPerPass, partPageCount);
+    const globalStart = part.startPage + pageIndex;
+    const globalEnd = part.startPage + endIndex - 1;
     const chunkPdf = await PDFDocument.create();
     const copiedPages = await chunkPdf.copyPages(source, Array.from({ length: endIndex - pageIndex }, (_, offset) => pageIndex + offset));
     copiedPages.forEach((page) => chunkPdf.addPage(page));
     const bytes = await chunkPdf.save({ useObjectStreams: true });
     chunks.push({
       file: {
-        ...file,
+        ...part.file,
+        path: undefined,
         buffer: Buffer.from(bytes),
         size: bytes.length,
-        originalname: `${file.originalname.replace(/\.pdf$/i, "")}-pages-${pageIndex + 1}-${endIndex}.pdf`,
+        originalname: `${part.file.originalname.replace(/\.pdf$/i, "")}-pages-${globalStart}-${globalEnd}.pdf`,
       },
-      startPage: pageIndex + 1,
-      endPage: endIndex,
+      startPage: globalStart,
+      endPage: globalEnd,
       totalPages,
     });
-    if (endIndex === totalPages) break;
+    if (endIndex === partPageCount) break;
   }
   return chunks;
+}
+
+async function splitLargePdf(file) {
+  if (file.mimetype !== "application/pdf" || file.size <= INLINE_FILE_THRESHOLD_BYTES) return [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
+  return splitPdfPart({ file, startPage: 1, endPage: 0, totalPages: 0 }, PDF_PAGES_PER_PASS);
+}
+
+function isOutputLimitError(error) {
+  return /MAX_TOKENS|đầu ra AI đã chạm giới hạn|tài liệu quá dài/i.test(error instanceof Error ? error.message : String(error));
+}
+
+async function generateChunkWithFallback(chunk) {
+  try {
+    return [await generateStructuredFromFile({
+      file: chunk.file,
+      schema,
+      prompt: promptForFilePart(chunk.file, chunk.startPage, chunk.endPage, chunk.totalPages),
+      maxOutputTokens: 8192,
+      timeoutMs: 300_000,
+    })];
+  } catch (error) {
+    const pageCount = chunk.endPage ? chunk.endPage - chunk.startPage + 1 : chunk.totalPages;
+    if (!isOutputLimitError(error) || pageCount <= 1) throw error;
+    const smallerChunks = await splitPdfPart(chunk, Math.max(1, Math.ceil(pageCount / 2)));
+    if (!smallerChunks.length) throw error;
+    console.warn(`MCQ chunk pages ${chunk.startPage}-${chunk.endPage || chunk.totalPages} hit MAX_TOKENS; retrying as ${smallerChunks.length} smaller chunks.`);
+    const results = [];
+    for (const smallerChunk of smallerChunks) results.push(...await generateChunkWithFallback(smallerChunk));
+    return results;
+  }
 }
 
 function promptForFilePart(file, startPage, endPage, totalPages) {
@@ -289,15 +324,7 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
     }
     const chunks = (await Promise.all(files.map(splitLargePdf))).flat();
     const results = [];
-    for (const chunk of chunks) {
-      results.push(await generateStructuredFromFile({
-        file: chunk.file,
-        schema,
-        prompt: promptForFilePart(chunk.file, chunk.startPage, chunk.endPage, chunk.totalPages),
-        maxOutputTokens: 8192,
-        timeoutMs: 300_000,
-      }));
-    }
+    for (const chunk of chunks) results.push(...await generateChunkWithFallback(chunk));
     const questions = normalizeQuestions(mergeChunkQuestions(results.flatMap((result) => result.questions || [])));
     await attachPdfPageImages(questions, files);
     if (!questions.length) {
