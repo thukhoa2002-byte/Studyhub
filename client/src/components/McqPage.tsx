@@ -110,7 +110,10 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
         setBankStates([]);
       }
     }
-    catch (loadError) { console.warn("Không thể tải thư viện MCQ", loadError); }
+    catch (loadError) {
+      console.warn("Không thể tải thư viện MCQ", loadError);
+      setError(mcqLibraryErrorMessage(loadError, "Không thể tải danh sách bộ MCQ."));
+    }
   }, [userId]);
   useEffect(() => { void refreshLibrary(); }, [refreshLibrary]);
   const decks = useMemo<DeckDefinition[]>(() => [

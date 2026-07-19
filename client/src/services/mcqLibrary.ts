@@ -82,10 +82,7 @@ export async function listMcqBanks(): Promise<McqLibraryBank[]> {
     .select("*")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
-  if (error) {
-    if (/mcq_banks|schema cache/i.test(error.message)) return [];
-    throw error;
-  }
+  if (error) throw error;
   return (data ?? []) as McqLibraryBank[];
 }
 
