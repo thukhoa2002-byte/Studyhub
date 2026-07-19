@@ -32,7 +32,10 @@ export type McqBankState = Pick<McqLibraryBank, "id" | "status">;
 export type McqAdminAccess = { email: string; is_owner: boolean; created_at: string | null };
 
 export function mcqLibraryErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) return error.message;
+  if (error instanceof Error && error.message) {
+    if (/row-level security policy/i.test(error.message)) return "Supabase đang chặn quyền tạo bộ MCQ. Hãy chạy file supabase/fix_mcq_rls.sql trong Supabase SQL Editor rồi tải lại trang.";
+    return error.message;
+  }
   if (typeof error === "object" && error !== null) {
     const candidate = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
     const parts = [candidate.message, candidate.details, candidate.hint]
@@ -96,11 +99,14 @@ export async function listMcqBankStates(): Promise<McqBankState[]> {
 }
 
 export async function saveMcqBank(
-  userId: string,
+  _userId: string,
   input: Pick<McqLibraryBank, "title" | "description" | "questions" | "status">,
   bankId?: string,
 ): Promise<McqLibraryBank> {
   const client = requireSupabase();
+  const { data: { user: sessionUser } } = await client.auth.getUser();
+  if (!sessionUser?.id) throw new Error("Phiên đăng nhập không hợp lệ. Hãy đăng nhập lại trước khi lưu MCQ.");
+  const effectiveUserId = sessionUser.id;
   const now = new Date().toISOString();
   const targetId = bankId || crypto.randomUUID();
   const storedQuestions: McqLibraryQuestion[] = [];
@@ -111,7 +117,7 @@ export async function saveMcqBank(
     }
     const imageBlob = await fetch(question.image_url).then((response) => response.blob());
     const extension = imageBlob.type === "image/jpeg" ? "jpg" : imageBlob.type === "image/webp" ? "webp" : "png";
-    const imagePath = `${userId}/${targetId}/${question.id}.${extension}`;
+    const imagePath = `${effectiveUserId}/${targetId}/${question.id}.${extension}`;
     const { error: uploadError } = await client.storage.from("mcq-assets").upload(imagePath, imageBlob, {
       contentType: imageBlob.type || `image/${extension}`,
       upsert: true,
@@ -143,7 +149,7 @@ export async function saveMcqBank(
 
   const { data, error } = await client
     .from("mcq_banks")
-    .insert({ id: targetId, owner_id: userId, ...payload })
+    .insert({ id: targetId, owner_id: effectiveUserId, ...payload })
     .select("*")
     .single();
   if (error) throw error;
