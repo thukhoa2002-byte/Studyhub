@@ -33,6 +33,7 @@ export type McqAdminAccess = { email: string; is_owner: boolean; created_at: str
 
 export function mcqLibraryErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) {
+    if (/MCQ_STORAGE_RLS/i.test(error.message)) return "Supabase đang chặn quyền tải hình MCQ lên Storage. Hãy chạy lại phần policy Storage trong supabase/fix_mcq_rls.sql.";
     if (/row-level security policy/i.test(error.message)) return "Supabase đang chặn quyền tạo bộ MCQ. Hãy chạy file supabase/fix_mcq_rls.sql trong Supabase SQL Editor rồi tải lại trang.";
     return error.message;
   }
@@ -119,7 +120,7 @@ export async function saveMcqBank(
       contentType: imageBlob.type || `image/${extension}`,
       upsert: true,
     });
-    if (uploadError) throw uploadError;
+    if (uploadError) throw new Error(`MCQ_STORAGE_RLS: ${uploadError.message}`);
     const { data: publicUrl } = client.storage.from("mcq-assets").getPublicUrl(imagePath);
     storedQuestions.push({ ...question, image_url: publicUrl.publicUrl });
   }
