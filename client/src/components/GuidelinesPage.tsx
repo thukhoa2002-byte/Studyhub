@@ -98,6 +98,8 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   const [streamedEntryCount, setStreamedEntryCount] = useState(0);
   const [streamPreviewEntries, setStreamPreviewEntries] = useState<ExtractedGuidelineEntry[]>([]);
   const [showGuidelineContent, setShowGuidelineContent] = useState(false);
+  const [guidelineTab, setGuidelineTab] = useState<"translated" | "original">("translated");
+  const [originalPdfUrl, setOriginalPdfUrl] = useState("");
   const documentFormRef = useRef<HTMLFormElement>(null);
 
   const selectedDocument = useMemo(
@@ -140,6 +142,14 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
       .then(setEntries)
       .catch((error) => setNotice(errorMessage(error)));
   }, [selectedId]);
+
+  useEffect(() => {
+    let active = true;
+    setOriginalPdfUrl("");
+    if (guidelineTab !== "original" || !selectedDocument?.file_path) return () => { active = false; };
+    void getGuidelineFileUrl(selectedDocument.file_path).then((url) => { if (active) setOriginalPdfUrl(url); }).catch((error) => { if (active) setNotice(errorMessage(error)); });
+    return () => { active = false; };
+  }, [guidelineTab, selectedDocument?.file_path]);
 
   async function readDocumentWithAi() {
     const formElement = documentFormRef.current;
@@ -412,6 +422,14 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
 
         {notice && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/85 px-4 py-3 text-sm leading-6 text-amber-900">{notice}</div>}
 
+        <div className="mt-6 inline-flex rounded-xl border border-teal-100 bg-white/80 p-1 shadow-sm" role="tablist" aria-label="Phiên bản guideline">
+          <button type="button" role="tab" aria-selected={guidelineTab === "translated"} onClick={() => setGuidelineTab("translated")} className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold ${guidelineTab === "translated" ? "bg-teal-500 text-white" : "text-slate-600 hover:bg-teal-50"}`}><BookOpenCheck size={16} />Dịch</button>
+          <button type="button" role="tab" aria-selected={guidelineTab === "original"} onClick={() => setGuidelineTab("original")} className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold ${guidelineTab === "original" ? "bg-rose-500 text-white" : "text-slate-600 hover:bg-rose-50"}`}><FileText size={16} />Gốc</button>
+        </div>
+
+        {guidelineTab === "original" ? <div className="mt-6 rounded-3xl border border-rose-100 bg-white/75 p-4 sm:p-5">
+          {!selectedDocument ? <div className="grid min-h-72 place-items-center rounded-2xl border border-dashed border-rose-200 text-sm text-slate-400">Chọn guideline để xem bản gốc.</div> : <><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-rose-500">Bản gốc</p><h2 className="mt-1 text-lg font-extrabold text-rose-950">{selectedDocument.title}</h2><p className="mt-1 text-sm text-slate-500">PDF nguyên bản, không qua dịch hoặc trích xuất.</p></div><div className="flex flex-wrap gap-2">{originalPdfUrl && <a href={originalPdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><ExternalLink size={16} />Mở PDF gốc</a>}{selectedDocument.supplement_file_path && <button type="button" onClick={() => void getGuidelineFileUrl(selectedDocument.supplement_file_path!).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setNotice(errorMessage(error)))} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><Files size={16} />Supplementary</button>}</div></div>{originalPdfUrl ? <iframe title={`PDF gốc ${selectedDocument.title}`} src={originalPdfUrl} className="mt-4 h-[75vh] w-full rounded-2xl border border-slate-200 bg-slate-100" /> : <div className="mt-4 grid min-h-72 place-items-center rounded-2xl border border-dashed border-rose-200 text-sm text-slate-400">Đang tải PDF gốc...</div>}</>}
+        </div> : <>
         {canManage && showDocumentForm && <form ref={documentFormRef} onSubmit={submitDocument} className="mt-6 grid gap-4 rounded-3xl border border-rose-100 bg-white/75 p-5 sm:grid-cols-2">
           <label className="text-sm font-bold text-slate-700">Tên guideline<input name="title" required placeholder="2024 ESC Guidelines for AF" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
           <label className="text-sm font-bold text-slate-700">Hiệp hội<input name="society" required defaultValue="ESC" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
@@ -495,6 +513,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
             </>}
           </div>
         </div>
+        </>}
       </div>
     </section>
   );
