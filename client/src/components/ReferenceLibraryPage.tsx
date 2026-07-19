@@ -39,6 +39,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
   const [contentBookId, setContentBookId] = useState<string | null>(null);
   const [contentLayout, setContentLayout] = useState<ReferenceBookExtraction | null>(null);
   const [contentBusy, setContentBusy] = useState(false);
+  const [extractionProgress, setExtractionProgress] = useState("");
   const isOwner = user?.email?.trim().toLowerCase() === REFERENCE_BOOK_OWNER_EMAIL;
   const visibleBooks = isOwner ? books : books.filter((book) => book.status === "shared");
   const folders = visibleBooks.filter((book) => book.item_type === "folder");
@@ -60,7 +61,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
     setError("");
     try {
       if (!extraction) {
-        const layout = await extractReferenceBook(file);
+        const layout = await extractReferenceBook(file, (progress) => setExtractionProgress(progress.message));
         setExtraction(layout);
         setTitle((current) => current.trim() || layout.title);
         setAuthor((current) => current.trim() || layout.author);
@@ -74,11 +75,13 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
       setParentId(null);
       setFile(null);
       setExtraction(null);
+      setExtractionProgress("");
       await refreshBooks();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Không thể OCR/lưu sách.");
     } finally {
       setBusy(false);
+      setExtractionProgress("");
     }
   }
 
@@ -332,7 +335,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
           <input type="number" value={publicationYear} onChange={(event) => setPublicationYear(event.target.value)} placeholder="Năm" className="rounded-xl border border-teal-100 bg-white px-3 py-2.5" />
           <select value={parentId || ""} onChange={(event) => setParentId(event.target.value || null)} className="rounded-xl border border-teal-100 bg-white px-3 py-2.5"><option value="">Thư mục gốc</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.title}</option>)}</select>
           <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-sm font-bold text-teal-700"><FileUp size={17} />{file ? file.name : "Chọn PDF"}<input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
-          <button disabled={busy || !file} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:col-span-5">{busy && <Loader2 className="animate-spin" size={17} />}{busy ? "Đang đọc bằng Gemini..." : extraction ? "Lưu sách riêng tư" : "Đọc bằng Gemini"}</button>
+          <button disabled={busy || !file} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:col-span-5">{busy && <Loader2 className="animate-spin" size={17} />}{busy ? (extractionProgress || "Gemini đang đọc tài liệu ở chế độ nền...") : extraction ? "Lưu sách riêng tư" : "Đọc bằng Gemini"}</button>
         </form> : <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">Kho tải sách dành riêng cho chủ sở hữu. Bạn có thể xem các sách đã được đăng công khai bên dưới.</div>}
 
         {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}

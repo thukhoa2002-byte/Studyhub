@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import { randomUUID } from "node:crypto";
 import { access, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +11,8 @@ import { requireGuidelineAdmin } from "../middleware/guidelineAdmin.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024, fieldSize: 20 * 1024 * 1024 } });
+const extractionJobs = new Map();
+const EXTRACTION_JOB_TTL_MS = 30 * 60 * 1000;
 const ROUTE_DIR = dirname(fileURLToPath(import.meta.url));
 const text = { type: "string" };
 const schema = {
@@ -512,7 +515,7 @@ async function extractPage(pageFile, pageIndex, totalPages, source, originalName
   }
 }
 
-async function extractAllPages(file) {
+async function extractAllPages(file, onProgress = () => {}) {
   const source = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
   const totalPages = source.getPageCount();
   if (!totalPages) throw new Error("PDF không có trang để đọc.");
@@ -521,6 +524,7 @@ async function extractAllPages(file) {
   let title = "";
   let author = "";
   let publicationYear = 0;
+  onProgress({ currentPage: 0, totalPages });
 
   for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
     const pageFile = await makeSinglePagePdf(source, pageIndex, file.originalname || "reference-book");
@@ -531,21 +535,56 @@ async function extractAllPages(file) {
     if (!publicationYear && Number.isInteger(result.publicationYear) && result.publicationYear > 0) publicationYear = result.publicationYear;
 
     pages.push({ ...page, pageNumber: pageIndex + 1 });
+    onProgress({ currentPage: pageIndex + 1, totalPages });
   }
 
   return { title, author, publicationYear, pages };
+}
+
+async function runExtractionJob(jobId, file) {
+  const job = extractionJobs.get(jobId);
+  if (!job) return;
+  job.status = "processing";
+  job.message = "Gemini đang đọc từng trang và phân tích bố cục...";
+  try {
+    job.data = await extractAllPages(file, ({ currentPage, totalPages }) => {
+      job.totalPages = totalPages;
+      job.currentPage = currentPage;
+      job.progress = totalPages ? Math.round((currentPage / totalPages) * 100) : 0;
+      job.message = currentPage ? `Đã đọc ${currentPage}/${totalPages} trang...` : "Đang chuẩn bị các trang...";
+    });
+    job.status = "completed";
+    job.progress = 100;
+    job.message = "Đã đọc xong toàn bộ tài liệu.";
+  } catch (error) {
+    job.status = "failed";
+    job.message = error?.message || "Không thể OCR sách bằng Gemini.";
+  } finally {
+    job.file = null;
+    setTimeout(() => extractionJobs.delete(jobId), EXTRACTION_JOB_TTL_MS).unref?.();
+  }
 }
 
 router.post("/extract", requireGuidelineAdmin, upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "Chưa chọn PDF sách." });
     if (req.file.mimetype !== "application/pdf") return res.status(415).json({ success: false, message: "Chỉ hỗ trợ PDF sách." });
-    const result = await extractAllPages(req.file);
-    return res.json({ success: true, data: result });
+    const source = await PDFDocument.load(req.file.buffer, { ignoreEncryption: true });
+    const totalPages = source.getPageCount();
+    const jobId = randomUUID();
+    extractionJobs.set(jobId, { ownerEmail: req.guidelineAdmin.email, status: "queued", progress: 0, currentPage: 0, totalPages, message: "Đã nhận file, đang xếp hàng xử lý...", data: null, file: req.file });
+    void runExtractionJob(jobId, req.file);
+    return res.status(202).json({ success: true, jobId, status: "queued", progress: 0, totalPages, message: "Đã nhận file, Gemini sẽ xử lý ở chế độ nền." });
   } catch (error) {
     const status = error?.status === 429 ? 429 : 500;
     return res.status(status).json({ success: false, message: error?.message || "Không thể OCR sách bằng Gemini." });
   }
+});
+
+router.get("/extract/:jobId", requireGuidelineAdmin, (req, res) => {
+  const job = extractionJobs.get(req.params.jobId);
+  if (!job || job.ownerEmail !== req.guidelineAdmin.email) return res.status(404).json({ success: false, message: "Không tìm thấy tác vụ OCR hoặc tác vụ đã hết hạn." });
+  return res.json({ success: true, status: job.status, progress: job.progress, currentPage: job.currentPage, totalPages: job.totalPages, message: job.message, data: job.status === "completed" ? job.data : undefined });
 });
 
 router.post("/ocr-pdf", requireGuidelineAdmin, upload.single("file"), async (req, res) => {

@@ -119,7 +119,7 @@ export async function getReferenceBookUrl(path: string) {
   return data.signedUrl;
 }
 
-export async function extractReferenceBook(file: File): Promise<ReferenceBookExtraction> {
+export async function extractReferenceBook(file: File, onProgress?: (progress: { currentPage: number; totalPages: number; message: string }) => void): Promise<ReferenceBookExtraction> {
   const client = await import("./supabase");
   if (!client.supabase) throw new Error("Supabase chưa được cấu hình.");
   const { data: { session } } = await client.supabase.auth.getSession();
@@ -127,7 +127,20 @@ export async function extractReferenceBook(file: File): Promise<ReferenceBookExt
   const form = new FormData();
   form.append("file", file);
   const response = await fetch("/api/reference-books/extract", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: form });
-  const body = await response.json().catch(() => null) as { success?: boolean; data?: ReferenceBookExtraction; message?: string } | null;
-  if (!response.ok || !body?.data) throw new Error(body?.message || "Không thể OCR sách bằng Gemini.");
-  return body.data;
+  const body = await response.json().catch(() => null) as { success?: boolean; data?: ReferenceBookExtraction; message?: string; jobId?: string; status?: string; progress?: number; currentPage?: number; totalPages?: number } | null;
+  if (!response.ok) throw new Error(body?.message || "Không thể bắt đầu OCR sách bằng Gemini.");
+  if (body?.data) return body.data;
+  if (!body?.jobId) throw new Error(body?.message || "Máy chủ không trả mã tác vụ OCR.");
+
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const { data: { session: currentSession } } = await client.supabase.auth.getSession();
+    if (!currentSession?.access_token) throw new Error("Phiên đăng nhập đã hết hạn trong lúc OCR.");
+    const statusResponse = await fetch(`/api/reference-books/extract/${body.jobId}`, { headers: { Authorization: `Bearer ${currentSession.access_token}` } });
+    const statusBody = await statusResponse.json().catch(() => null) as { success?: boolean; status?: string; data?: ReferenceBookExtraction; message?: string; progress?: number; currentPage?: number; totalPages?: number } | null;
+    if (!statusResponse.ok) throw new Error(statusBody?.message || "Không thể theo dõi tiến độ OCR.");
+    onProgress?.({ currentPage: statusBody?.currentPage || 0, totalPages: statusBody?.totalPages || body.totalPages || 0, message: statusBody?.message || "Gemini đang xử lý..." });
+    if (statusBody?.status === "completed" && statusBody.data) return statusBody.data;
+    if (statusBody?.status === "failed") throw new Error(statusBody.message || "Không thể OCR sách bằng Gemini.");
+  }
 }
