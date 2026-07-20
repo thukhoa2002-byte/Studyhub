@@ -320,6 +320,27 @@ html[data-theme="test-light"] .setup-mode-tabs {
   box-shadow: 0 20px 45px rgba(0,0,0,.08), inset 0 2px 3px -1px rgba(255,255,255,.9) !important;
 }
 html[data-theme="test-light"] .workspace-tabs { border-radius: 999px !important; }
+html[data-theme="test-light"] .setup-mode-tabs {
+  width: calc(100% - 2rem);
+  margin-left: 2rem;
+  overflow: visible;
+  border-radius: 1rem !important;
+  border-left: 2px solid rgba(225,29,72,.24) !important;
+  box-shadow: 0 14px 32px rgba(0,0,0,.07), inset 0 2px 3px -1px rgba(255,255,255,.9) !important;
+}
+html[data-theme="test-light"] .setup-mode-tabs::before {
+  position: absolute;
+  top: 1.25rem;
+  bottom: 1.25rem;
+  left: -2rem;
+  width: 1.2rem;
+  border-top: 2px solid rgba(225,29,72,.24);
+  border-bottom: 2px solid rgba(225,29,72,.24);
+  border-left: 2px solid rgba(225,29,72,.24);
+  border-radius: .8rem 0 0 .8rem;
+  content: "";
+  pointer-events: none;
+}
 html[data-theme="test-light"] .workspace-tabs__button,
 html[data-theme="test-light"] .setup-mode-tab { color: rgba(28,28,30,.58); }
 html[data-theme="test-light"] .workspace-tabs__button {
@@ -381,6 +402,16 @@ html[data-theme="test-light"] [class*="to-blue-"] { --tw-gradient-to: #ccfbf1 va
 html[data-theme="test-light"] .glass-header button:hover { background-color: rgba(255,255,255,.42) !important; }
 html[data-theme="test-light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.2); }
 html[data-theme="test-light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.32); }
+@media (max-width: 639px) {
+  html[data-theme="test-light"] .setup-mode-tabs {
+    width: calc(100% - .75rem);
+    margin-left: .75rem;
+  }
+  html[data-theme="test-light"] .setup-mode-tabs::before {
+    left: -.75rem;
+    width: .45rem;
+  }
+}
 
 .panda-bob { animation: panda-bob 2.8s ease-in-out infinite; transform-origin: 50% 85%; }
 .panda-action-eat { animation: panda-chew 1.15s ease-in-out infinite; }
