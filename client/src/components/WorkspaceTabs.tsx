@@ -54,7 +54,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
             >
-              <Icon size={21} strokeWidth={2.2} />
+              <span className="workspace-tabs__icon shrink-0"><Icon size={21} strokeWidth={2.2} /></span>
               <span className="workspace-tabs__label">{label}</span>
             </button>
           );
