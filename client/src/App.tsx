@@ -66,9 +66,9 @@ export default function App() {
   const [loginRequiredOpen, setLoginRequiredOpen] = useState(false);
   const [welcomeClosing, setWelcomeClosing] = useState(false);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
-  const [theme, setTheme] = useState<"color" | "basic" | "anki" | "test">(() => {
+  const [theme, setTheme] = useState<"color" | "basic" | "anki" | "test" | "test-light">(() => {
     const savedTheme = localStorage.getItem("hocbai-theme");
-    return savedTheme === "basic" || savedTheme === "anki" || savedTheme === "test" ? savedTheme : "color";
+    return savedTheme === "basic" || savedTheme === "anki" || savedTheme === "test" || savedTheme === "test-light" ? savedTheme : "color";
   });
   const [sharedDeckNotificationsEnabled, setSharedDeckNotificationsEnabled] = useState(true);
   const [deckActivityNotifications, setDeckActivityNotifications] = useState<DeckActivityNotification[]>([]);

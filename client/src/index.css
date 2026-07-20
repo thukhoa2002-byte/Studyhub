@@ -439,6 +439,81 @@ html[data-theme="test"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255
 html[data-theme="test"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.38); }
 html[data-theme="test"] button:hover { transform: translateY(-1px); }
 
+/* Test light: same Apple liquid-glass language with a bright canvas. */
+html[data-theme="test-light"] body,
+html[data-theme="test-light"] header,
+html[data-theme="test-light"] main {
+  background: #e5e5ea !important;
+  color: #1c1c1e;
+}
+html[data-theme="test-light"] body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-image: linear-gradient(135deg, #e5e5ea 0%, #f7f7f9 52%, #e9f7fa 100%) !important;
+}
+html[data-theme="test-light"] main {
+  background-image: linear-gradient(135deg, rgba(229,229,234,.96), rgba(247,247,249,.9) 52%, rgba(233,247,250,.94)) !important;
+}
+html[data-theme="test-light"] .glass-header,
+html[data-theme="test-light"] .glass-panel,
+html[data-theme="test-light"] .glass-card,
+html[data-theme="test-light"] .glass-dialog {
+  border-color: rgba(255,255,255,.56) !important;
+  background-color: rgba(255,255,255,.34) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,.42), transparent 42%, rgba(10,132,255,.08)) !important;
+  box-shadow: 0 22px 60px rgba(0,0,0,.1), inset 0 2px 3px -1px rgba(255,255,255,.86), inset 0 -2px 4px -1px rgba(0,0,0,.06) !important;
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+}
+html[data-theme="test-light"] [class*="bg-gradient-"] {
+  background-color: rgba(255,255,255,.5) !important;
+  background-image: linear-gradient(135deg, rgba(191,90,242,.15), rgba(255,255,255,.7) 48%, rgba(10,132,255,.12)) !important;
+}
+html[data-theme="test-light"] .workspace-tabs,
+html[data-theme="test-light"] .setup-mode-tabs {
+  border-color: rgba(255,255,255,.64) !important;
+  background: rgba(255,255,255,.36) !important;
+  box-shadow: 0 20px 45px rgba(0,0,0,.08), inset 0 2px 3px -1px rgba(255,255,255,.9) !important;
+}
+html[data-theme="test-light"] .workspace-tabs { border-radius: 999px !important; }
+html[data-theme="test-light"] .workspace-tabs__button,
+html[data-theme="test-light"] .setup-mode-tab { color: rgba(28,28,30,.58); }
+html[data-theme="test-light"] .workspace-tabs__button {
+  min-height: 2.8rem;
+  border-radius: 999px;
+  font-size: .875rem;
+}
+html[data-theme="test-light"] .workspace-tabs__button--active,
+html[data-theme="test-light"] .workspace-tabs__button:hover,
+html[data-theme="test-light"] .setup-mode-tab--active { color: #1c1c1e !important; }
+html[data-theme="test-light"] .workspace-tabs__glider,
+html[data-theme="test-light"] .setup-mode-tabs__glider {
+  border-color: rgba(255,255,255,.75) !important;
+  background: rgba(255,255,255,.72) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.1), inset 0 1px 1px rgba(255,255,255,.95) !important;
+}
+html[data-theme="test-light"] .workspace-tabs__glider { top: .375rem; bottom: .375rem; border-radius: 999px; }
+html[data-theme="test-light"] input,
+html[data-theme="test-light"] textarea,
+html[data-theme="test-light"] select,
+html[data-theme="test-light"] [contenteditable="true"] { border-color: rgba(0,0,0,.14) !important; background-color: rgba(255,255,255,.62) !important; color: #1c1c1e !important; }
+html[data-theme="test-light"] input::placeholder,
+html[data-theme="test-light"] textarea::placeholder { color: rgba(28,28,30,.46); }
+html[data-theme="test-light"] [class*="text-slate-500"],
+html[data-theme="test-light"] [class*="text-slate-400"],
+html[data-theme="test-light"] [class*="text-slate-600"] { color: rgba(28,28,30,.62) !important; }
+html[data-theme="test-light"] [class*="text-rose-950"],
+html[data-theme="test-light"] [class*="text-slate-700"],
+html[data-theme="test-light"] [class*="text-slate-800"] { color: #1c1c1e !important; }
+html[data-theme="test-light"] [class*="bg-white"] { background-color: rgba(255,255,255,.62) !important; color: #1c1c1e; }
+html[data-theme="test-light"] [class*="bg-slate-50"] { background-color: rgba(255,255,255,.42) !important; }
+html[data-theme="test-light"] button[class*="bg-violet-"] { background-color: #8b5cf6 !important; color: #fff !important; }
+html[data-theme="test-light"] button[class*="bg-rose-"],
+html[data-theme="test-light"] button[class*="bg-teal-"] { color: #fff !important; }
+html[data-theme="test-light"] button:disabled { opacity: .52 !important; }
+html[data-theme="test-light"] .glass-header button:hover { background-color: rgba(255,255,255,.42) !important; }
+html[data-theme="test-light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.2); }
+html[data-theme="test-light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.32); }
+
 .panda-bob { animation: panda-bob 2.8s ease-in-out infinite; transform-origin: 50% 85%; }
 .panda-action-eat { animation: panda-chew 1.15s ease-in-out infinite; }
 .panda-action-wake { animation: panda-stretch 2.2s ease-in-out infinite; }
