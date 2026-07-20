@@ -770,8 +770,8 @@ export default function App() {
 
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
-        <div className="mx-auto flex w-full max-w-[1900px] flex-col items-stretch gap-4 pb-8 sm:gap-6 lg:flex-row lg:items-start">
-          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} />
+        <div className="relative min-h-[calc(100vh-4rem)] pb-8 lg:pl-64">
+          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
           <div className="min-w-0 flex-1">
 
         {workspaceTab === "flashcards" && questions.length > 0 && (

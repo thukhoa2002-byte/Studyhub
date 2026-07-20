@@ -39,7 +39,7 @@ export default function Header({ onHome, onUserChange, specialUser = false, them
         {/* Right */}
 
         <div className="flex shrink-0 items-center gap-3">
-          <AuthPanel onUserChange={onUserChange ?? (() => undefined)} specialUser={specialUser} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
+          <AuthPanel onUserChange={onUserChange ?? (() => undefined)} specialUser={specialUser} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} showMenu={false} />
         </div>
 
       </div>
