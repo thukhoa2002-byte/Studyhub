@@ -80,8 +80,8 @@ export default function McqAccessPanel({ userEmail, open, onMouseEnter, onMouseL
         </div>
       </div>
 
-      <div className="mcq-access-popover__card mt-3 rounded-3xl border border-amber-200/80 bg-white/90 p-4 shadow-[0_18px_50px_rgba(180,83,9,.12)] backdrop-blur-xl">
-        <div className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"><FolderTree size={21} /></span><div className="min-w-0"><p className="text-xs font-black uppercase tracking-[.14em] text-amber-700">Cây thư mục</p><p className="mt-1 text-sm font-bold text-slate-700">Quản lý bộ MCQ</p></div></div>
+      <div className="mcq-access-popover__card relative mt-3 rounded-3xl border border-amber-200/80 bg-white/90 p-4 shadow-[0_18px_50px_rgba(180,83,9,.12)] backdrop-blur-xl">
+        <div className="flex items-center"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"><FolderTree size={21} /></span><div id="mcq-folder-create-slot" className="ml-auto" /></div>
         <div id="mcq-folder-panel-slot" className="mt-3 max-h-[min(38vh,25rem)] space-y-3 overflow-y-auto" />
       </div>
     </aside>
