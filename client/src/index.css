@@ -643,6 +643,42 @@ html[data-theme="test-light"] .setup-mode-tabs {
   -webkit-backdrop-filter: none !important;
 }
 
+/* Deck progress and utility icons keep the clear study-state colors. */
+html[data-theme="test-light"] .deck-library-panel [class~="text-sky-400"],
+html[data-theme="test-light"] .deck-library-panel [class~="text-sky-500"],
+html[data-theme="test-light"] .deck-library-panel [class~="text-sky-600"] { color: #0799e5 !important; }
+html[data-theme="test-light"] .deck-library-panel [class~="text-rose-400"],
+html[data-theme="test-light"] .deck-library-panel [class~="text-rose-500"] { color: #ff1744 !important; }
+html[data-theme="test-light"] .deck-library-panel [class~="text-emerald-400"],
+html[data-theme="test-light"] .deck-library-panel [class~="text-emerald-500"] { color: #00bf70 !important; }
+html[data-theme="test-light"] .deck-library-panel [class~="text-violet-600"],
+html[data-theme="test-light"] .deck-library-panel [class~="text-purple-600"] { color: #6f22ff !important; }
+html[data-theme="test-light"] .deck-library-panel [class~="bg-sky-400"] { background-color: #1aa7e6 !important; }
+html[data-theme="test-light"] .deck-library-panel [class~="bg-rose-400"] { background-color: #ff5875 !important; }
+html[data-theme="test-light"] .deck-library-panel [class~="bg-emerald-400"] { background-color: #12c88a !important; }
+html[data-theme="test-light"] .deck-library-panel [class~="text-slate-600"] { color: #526a83 !important; }
+
+/* Shared semantic colors for MCQ, reference documents and Drugs content. */
+html[data-theme="test-light"] [class~="text-sky-400"],
+html[data-theme="test-light"] [class~="text-sky-500"],
+html[data-theme="test-light"] [class~="text-sky-600"] { color: #0799e5 !important; }
+html[data-theme="test-light"] [class~="text-rose-400"],
+html[data-theme="test-light"] [class~="text-rose-500"],
+html[data-theme="test-light"] [class~="text-rose-600"] { color: #ff1744 !important; }
+html[data-theme="test-light"] [class~="text-emerald-400"],
+html[data-theme="test-light"] [class~="text-emerald-500"],
+html[data-theme="test-light"] [class~="text-emerald-600"] { color: #00bf70 !important; }
+html[data-theme="test-light"] [class~="text-violet-600"],
+html[data-theme="test-light"] [class~="text-violet-700"],
+html[data-theme="test-light"] [class~="text-purple-600"],
+html[data-theme="test-light"] [class~="text-purple-700"] { color: #6f22ff !important; }
+html[data-theme="test-light"] [class~="text-teal-600"],
+html[data-theme="test-light"] [class~="text-teal-700"],
+html[data-theme="test-light"] [class~="text-cyan-600"],
+html[data-theme="test-light"] [class~="text-cyan-700"] { color: #008f86 !important; }
+html[data-theme="test-light"] [class~="text-amber-600"],
+html[data-theme="test-light"] [class~="text-amber-700"] { color: #a86b00 !important; }
+
 @media (max-width: 639px) {
   html[data-theme="test-light"] .setup-mode-tabs {
     width: calc(100% - .75rem);
