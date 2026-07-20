@@ -22,6 +22,18 @@ export interface McqLibraryBank {
   title: string;
   description: string;
   questions: McqLibraryQuestion[];
+  folder_id?: string | null;
+  status: "draft" | "published" | "archived";
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+}
+
+export interface McqFolder {
+  id: string;
+  owner_id: string;
+  title: string;
+  parent_id: string | null;
   status: "draft" | "published" | "archived";
   created_at: string;
   updated_at: string;
@@ -33,6 +45,7 @@ export type McqAdminAccess = { email: string; is_owner: boolean; created_at: str
 
 export function mcqLibraryErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) {
+    if (/mcq_folders|folder_id|schema cache/i.test(error.message)) return "Chưa có cấu trúc thư mục MCQ. Hãy chạy file supabase/mcq_folders_migration.sql trong Supabase SQL Editor.";
     if (/MCQ_STORAGE_RLS/i.test(error.message)) return "Supabase đang chặn quyền tải hình MCQ lên Storage. Hãy chạy lại phần policy Storage trong supabase/fix_mcq_rls.sql.";
     if (/row-level security policy/i.test(error.message)) return "Supabase đang chặn quyền tạo bộ MCQ. Hãy chạy file supabase/fix_mcq_rls.sql trong Supabase SQL Editor rồi tải lại trang.";
     return error.message;
@@ -85,6 +98,67 @@ export async function listMcqBanks(): Promise<McqLibraryBank[]> {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as McqLibraryBank[];
+}
+
+export async function listMcqFolders(): Promise<McqFolder[]> {
+  const { data, error } = await requireSupabase()
+    .from("mcq_folders")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as McqFolder[];
+}
+
+export async function createMcqFolder(ownerId: string, title: string, parentId: string | null = null): Promise<McqFolder> {
+  const client = requireSupabase();
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) throw new Error("Tên thư mục không được để trống.");
+  const { data: { user } } = await client.auth.getUser();
+  if (!user?.id) throw new Error("Phiên đăng nhập không hợp lệ.");
+  const { data, error } = await client
+    .from("mcq_folders")
+    .insert({ owner_id: user.id || ownerId, title: normalizedTitle, parent_id: parentId, status: "draft", published_at: null })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as McqFolder;
+}
+
+export async function updateMcqFolder(
+  folderId: string,
+  changes: { title?: string; parentId?: string | null; status?: "draft" | "published" | "archived" },
+): Promise<McqFolder> {
+  const client = requireSupabase();
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (changes.title !== undefined) {
+    const title = changes.title.trim();
+    if (!title) throw new Error("Tên thư mục không được để trống.");
+    payload.title = title;
+  }
+  if (changes.parentId !== undefined) payload.parent_id = changes.parentId;
+  if (changes.status !== undefined) {
+    payload.status = changes.status;
+    payload.published_at = changes.status === "published" ? new Date().toISOString() : null;
+  }
+  const { data, error } = await client.from("mcq_folders").update(payload).eq("id", folderId).select("*").single();
+  if (error) throw error;
+  return data as McqFolder;
+}
+
+export async function deleteMcqFolder(folderId: string): Promise<void> {
+  const { error } = await requireSupabase().from("mcq_folders").delete().eq("id", folderId);
+  if (error) throw error;
+}
+
+export async function moveMcqBank(bankId: string, folderId: string | null): Promise<McqLibraryBank> {
+  const { data, error } = await requireSupabase()
+    .from("mcq_banks")
+    .update({ folder_id: folderId, updated_at: new Date().toISOString() })
+    .eq("id", bankId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as McqLibraryBank;
 }
 
 export async function listMcqBankStates(): Promise<McqBankState[]> {
