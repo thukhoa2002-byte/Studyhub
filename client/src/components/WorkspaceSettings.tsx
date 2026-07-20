@@ -43,7 +43,7 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
   }
 
   return (
-    <div className="mt-3 lg:mt-5">
+    <div className="workspace-settings mt-3 lg:mt-5">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -53,7 +53,7 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
         className={`flex h-11 w-full items-center justify-start gap-3 rounded-xl border bg-white/80 px-3 text-slate-600 shadow-sm transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 ${open ? "border-teal-200 bg-teal-50 text-teal-700" : "border-white/80"}`}
       >
         <Settings size={21} />
-        <span className="text-sm font-bold">Cài đặt</span>
+        <span className="workspace-settings__label text-sm font-bold">Cài đặt</span>
       </button>
 
       {open && <div className="glass-dialog mt-3 rounded-2xl border border-rose-100 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.15)]">

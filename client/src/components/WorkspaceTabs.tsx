@@ -29,10 +29,10 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
 
   return (
-    <div className="workspace-sidebar flex w-full flex-col px-5 pt-5 lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-[60] lg:w-72 lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:bg-white/80 lg:px-5 lg:py-6 lg:shadow-[8px_0_30px_rgba(15,23,42,.04)]">
+    <div className="workspace-sidebar flex w-full flex-col px-5 pt-5 lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-[60] lg:w-16 lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:bg-white/80 lg:px-2 lg:py-6 lg:shadow-[8px_0_30px_rgba(15,23,42,.04)]">
       <div className="workspace-sidebar__brand hidden items-center gap-3 lg:flex">
         <img src="/hoc-bai-icon.png" alt="StudyHub" className="h-11 w-11 rounded-xl object-contain" />
-        <div className="min-w-0"><p className="truncate text-lg font-extrabold tracking-tight text-rose-950">StudyHub</p><p className="text-xs font-medium text-rose-400">Học đều, nhớ lâu</p></div>
+        <div className="workspace-sidebar__brand-copy min-w-0"><p className="truncate text-lg font-extrabold tracking-tight text-rose-950">StudyHub</p><p className="text-xs font-medium text-rose-400">Học đều, nhớ lâu</p></div>
       </div>
       <div className="workspace-sidebar__divider my-6 hidden border-t border-slate-200/80 lg:block" />
       <nav
@@ -66,11 +66,11 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
         })}
       </nav>
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
-      <div className="mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">
+      <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-100 bg-teal-50 text-teal-700">
           {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? <img src={(user.user_metadata.avatar_url || user.user_metadata.picture) as string} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : <span className="text-sm font-black">{user ? (user.email?.[0] || "U").toUpperCase() : "?"}</span>}
         </span>
-        <div className="min-w-0"><p className="truncate text-sm font-bold text-slate-800">{user?.user_metadata?.full_name || user?.email || "Khách"}</p><p className="truncate text-xs text-slate-400">{user ? "Tài khoản StudyHub" : "Đăng nhập để đồng bộ"}</p></div>
+        <div className="workspace-sidebar__account-copy min-w-0"><p className="truncate text-sm font-bold text-slate-800">{user?.user_metadata?.full_name || user?.email || "Khách"}</p><p className="truncate text-xs text-slate-400">{user ? "Tài khoản StudyHub" : "Đăng nhập để đồng bộ"}</p></div>
       </div>
     </div>
   );
