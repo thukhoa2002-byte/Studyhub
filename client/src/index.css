@@ -325,7 +325,7 @@ html[data-theme="test-light"] .setup-mode-tabs {
   margin-left: 2rem;
   overflow: visible;
   border-radius: 1rem !important;
-  border-left: 2px solid rgba(184,91,116,.22) !important;
+  border-left: 2px solid rgba(100,116,139,.22) !important;
   box-shadow: 0 14px 32px rgba(0,0,0,.07), inset 0 2px 3px -1px rgba(255,255,255,.9) !important;
 }
 html[data-theme="test-light"] .setup-mode-tabs::before {
@@ -334,9 +334,9 @@ html[data-theme="test-light"] .setup-mode-tabs::before {
   bottom: 1.25rem;
   left: -2rem;
   width: 1.2rem;
-  border-top: 2px solid rgba(184,91,116,.22);
-  border-bottom: 2px solid rgba(184,91,116,.22);
-  border-left: 2px solid rgba(184,91,116,.22);
+  border-top: 2px solid rgba(100,116,139,.22);
+  border-bottom: 2px solid rgba(100,116,139,.22);
+  border-left: 2px solid rgba(100,116,139,.22);
   border-radius: .8rem 0 0 .8rem;
   content: "";
   pointer-events: none;
@@ -379,26 +379,26 @@ html[data-theme="test-light"] button:disabled { opacity: .52 !important; }
 /* Warm Test Light accents: replace the default violet/blue utilities without
    changing the shared component palette used by the other themes. */
 html[data-theme="test-light"] [class*="text-violet-"],
-html[data-theme="test-light"] [class*="text-fuchsia-"] { color: #b85b74 !important; }
+html[data-theme="test-light"] [class*="text-fuchsia-"] { color: #596579 !important; }
 html[data-theme="test-light"] [class*="text-indigo-"],
 html[data-theme="test-light"] [class*="text-blue-"],
 html[data-theme="test-light"] [class*="text-sky-"] { color: #0f766e !important; }
 html[data-theme="test-light"] [class*="bg-violet-"],
-html[data-theme="test-light"] [class*="bg-fuchsia-"] { background-color: rgba(184,91,116,.12) !important; }
+html[data-theme="test-light"] [class*="bg-fuchsia-"] { background-color: rgba(100,116,139,.12) !important; }
 html[data-theme="test-light"] [class*="bg-indigo-"],
 html[data-theme="test-light"] [class*="bg-blue-"],
 html[data-theme="test-light"] [class*="bg-sky-"] { background-color: rgba(13,148,136,.13) !important; }
 html[data-theme="test-light"] [class*="border-violet-"],
-html[data-theme="test-light"] [class*="border-fuchsia-"] { border-color: rgba(184,91,116,.26) !important; }
+html[data-theme="test-light"] [class*="border-fuchsia-"] { border-color: rgba(100,116,139,.26) !important; }
 html[data-theme="test-light"] [class*="border-indigo-"],
 html[data-theme="test-light"] [class*="border-blue-"],
 html[data-theme="test-light"] [class*="border-sky-"] { border-color: rgba(13,148,136,.28) !important; }
 html[data-theme="test-light"] button[class*="bg-violet-"],
-html[data-theme="test-light"] button[class*="bg-fuchsia-"] { background-color: #c45e79 !important; color: #fff !important; }
+html[data-theme="test-light"] button[class*="bg-fuchsia-"] { background-color: #64748b !important; color: #fff !important; }
 html[data-theme="test-light"] [class*="from-violet-"],
-html[data-theme="test-light"] [class*="from-fuchsia-"] { --tw-gradient-from: #f3dce2 var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(243 220 226 / 0) var(--tw-gradient-to-position) !important; }
+html[data-theme="test-light"] [class*="from-fuchsia-"] { --tw-gradient-from: #e8edf2 var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(232 237 242 / 0) var(--tw-gradient-to-position) !important; }
 html[data-theme="test-light"] [class*="to-sky-"],
-html[data-theme="test-light"] [class*="to-blue-"] { --tw-gradient-to: #ccfbf1 var(--tw-gradient-to-position) !important; }
+html[data-theme="test-light"] [class*="to-blue-"] { --tw-gradient-to: #e6eef0 var(--tw-gradient-to-position) !important; }
 html[data-theme="test-light"] .glass-header button:hover { background-color: rgba(255,255,255,.42) !important; }
 html[data-theme="test-light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.2); }
 html[data-theme="test-light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.32); }
