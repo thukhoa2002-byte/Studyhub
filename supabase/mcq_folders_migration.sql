@@ -45,3 +45,31 @@ drop policy if exists "mcq admin deletes folders" on public.mcq_folders;
 create policy "mcq admin deletes folders" on public.mcq_folders
   for delete to authenticated
   using (public.is_mcq_admin());
+
+-- Use a security-definer RPC so a delete cannot silently affect zero rows
+-- when the client role is filtered by RLS. The function also verifies that
+-- the requested folder actually existed.
+create or replace function public.delete_mcq_folder(p_folder_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  if not public.is_mcq_admin() then
+    raise exception 'Only MCQ admins can delete folders';
+  end if;
+
+  delete from public.mcq_folders
+  where id = p_folder_id;
+
+  if not found then
+    raise exception 'MCQ folder not found';
+  end if;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.delete_mcq_folder(uuid) from public;
+grant execute on function public.delete_mcq_folder(uuid) to authenticated;

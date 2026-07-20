@@ -144,8 +144,9 @@ export async function updateMcqFolder(
 }
 
 export async function deleteMcqFolder(folderId: string): Promise<void> {
-  const { error } = await requireSupabase().from("mcq_folders").delete().eq("id", folderId);
+  const { data, error } = await requireSupabase().rpc("delete_mcq_folder", { p_folder_id: folderId });
   if (error) throw error;
+  if (data !== true) throw new Error("Không xóa được thư mục. Hãy chạy file supabase/fix_mcq_folder_delete.sql trong Supabase SQL Editor.");
 }
 
 export async function moveMcqBank(bankId: string, folderId: string | null): Promise<McqLibraryBank> {
