@@ -618,6 +618,31 @@ html[data-theme="test-light"] .glass-header button:hover { background-color: rgb
 html[data-theme="test-light"] .file-drop-zone--active { border-color: var(--tl-primary-ink) !important; background-color: var(--tl-primary-soft) !important; box-shadow: 0 0 0 3px rgba(77,105,131,.14), inset 0 1px 0 rgba(255,255,255,.85); }
 html[data-theme="test-light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.2); }
 html[data-theme="test-light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.32); }
+
+/* Keep Liquid Glass on navigation only; content panels stay clear and readable. */
+html[data-theme="test-light"] .glass-header,
+html[data-theme="test-light"] .glass-panel:not(.workspace-tabs),
+html[data-theme="test-light"] .glass-card,
+html[data-theme="test-light"] .glass-dialog {
+  border-color: rgba(62,84,107,.28) !important;
+  background-color: rgba(255,255,255,.08) !important;
+  background-image: linear-gradient(135deg, rgba(228,76,119,.08), transparent 48%, rgba(51,126,196,.11)) !important;
+  box-shadow: 0 8px 22px rgba(38,50,65,.08) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: var(--tl-ink) !important;
+}
+html[data-theme="test-light"] .glass-header::after,
+html[data-theme="test-light"] .glass-panel:not(.workspace-tabs)::before,
+html[data-theme="test-light"] .glass-card::before,
+html[data-theme="test-light"] .glass-dialog::before { display: none !important; }
+html[data-theme="test-light"] .setup-mode-tabs {
+  background: rgba(255,255,255,.08) !important;
+  box-shadow: 0 8px 22px rgba(38,50,65,.08) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 @media (max-width: 639px) {
   html[data-theme="test-light"] .setup-mode-tabs {
     width: calc(100% - .75rem);
