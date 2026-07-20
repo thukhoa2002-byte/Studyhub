@@ -65,11 +65,11 @@ export default function McqAccessPanel({ userEmail, open, onMouseEnter, onMouseL
   if (!isOwner || !open) return null;
 
   return (
-    <aside className="mcq-access-popover fixed z-[70]" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} aria-label="Xưởng MCQ">
+    <aside className="mcq-access-popover fixed z-[70]" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} aria-label="Quyền MCQ">
       <div className="mcq-access-popover__card rounded-3xl border border-teal-200/80 bg-white/90 p-4 shadow-[0_18px_50px_rgba(15,118,110,.14)] backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-teal-100 text-teal-700"><ShieldCheck size={21} /></span>
-          <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[.14em] text-teal-700">Xưởng MCQ</p><p className="mt-1 text-sm font-bold text-slate-700">Email được cấp quyền</p></div>
+          <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[.14em] text-teal-700">Quyền MCQ</p><p className="mt-1 text-sm font-bold text-slate-700">Email được cấp quyền</p></div>
         </div>
         {admins.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{admins.map((admin) => <span key={admin.email} className="inline-flex max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600"><span className="truncate">{admin.email}</span>{admin.is_owner ? <em className="shrink-0 not-italic text-teal-600">Chủ sở hữu</em> : <button type="button" disabled={busy} aria-label={`Thu hồi quyền ${admin.email}`} title="Thu hồi quyền" onClick={() => void revokeAccess(admin.email)} className="shrink-0 text-rose-500 hover:text-rose-700"><UserMinus size={15} /></button>}</span>)}</div>}
         {admins.length === 0 && <p className="mt-4 rounded-xl border border-dashed border-slate-200 px-3 py-3 text-xs font-semibold text-slate-400">Chưa có email nào.</p>}
