@@ -203,6 +203,7 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-sidebar:has(.site-analytics--sidebar-open) { width: 15rem; }
   .site-analytics--sidebar-open { position: fixed; top: 6rem; left: 15rem; z-index: 55; width: 18rem !important; max-height: calc(100vh - 7rem); margin-top: 0 !important; overflow-y: auto; }
   .mcq-access-popover { top: 9.5rem; left: 15rem; width: min(25rem, calc(100vw - 16rem)); }
+  .reference-sections-popover { top: 13.5rem; left: 15rem; width: min(25rem, calc(100vw - 16rem)); transition: opacity 180ms ease; }
   .workspace-sidebar:hover .workspace-sidebar__brand,
   .workspace-sidebar:focus-within .workspace-sidebar__brand { justify-content: flex-start; }
   .workspace-sidebar:not(:hover):not(:focus-within) .workspace-sidebar__brand { width: 100%; justify-content: center; gap: 0; }
@@ -237,7 +238,8 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-tabs__button--dock-neighbor { transform: translateX(1px) scale(1.01); }
 }
 @media (max-width: 1023px) {
-  .mcq-access-popover { display: none; }
+  .mcq-access-popover,
+  .reference-sections-popover { display: none; }
 }
 .mode-panel { animation: mode-panel-in 560ms cubic-bezier(.22,1,.36,1) both; transform-origin: 50% 0; will-change: opacity, transform, filter; }
 @keyframes mode-panel-in { from { opacity: 0; filter: blur(4px); transform: translateY(12px) scale(.985); } 70% { filter: blur(0); transform: translateY(-1px) scale(1.002); } to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } }

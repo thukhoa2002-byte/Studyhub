@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
 import McqIcon from "./McqIcon";
 import McqAccessPanel from "./McqAccessPanel";
+import ReferenceSectionsPanel, { type ReferenceSection } from "./ReferenceSectionsPanel";
 import SiteAnalytics from "./SiteAnalytics";
 import WorkspaceSettings from "./WorkspaceSettings";
 
@@ -20,6 +21,8 @@ interface Props {
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
   analyticsAdmin: boolean;
   onAnalyticsExpanded: (expanded: boolean) => void;
+  referenceSection: ReferenceSection;
+  onReferenceSectionChange: (section: ReferenceSection) => void;
 }
 
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
@@ -29,10 +32,12 @@ const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?
   { id: "drugs", label: "Drugs", icon: Pill },
 ];
 
-export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded }: Props) {
+export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded, referenceSection, onReferenceSectionChange }: Props) {
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
   const [mcqPanelOpen, setMcqPanelOpen] = useState(false);
   const [mcqPanelTimer, setMcqPanelTimer] = useState<number | null>(null);
+  const [referencePanelOpen, setReferencePanelOpen] = useState(false);
+  const [referencePanelTimer, setReferencePanelTimer] = useState<number | null>(null);
 
   function keepMcqPanelOpen() {
     if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
@@ -42,6 +47,16 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
   function scheduleMcqPanelClose() {
     const timer = window.setTimeout(() => setMcqPanelOpen(false), 180);
     setMcqPanelTimer(timer);
+  }
+
+  function keepReferencePanelOpen() {
+    if (referencePanelTimer !== null) window.clearTimeout(referencePanelTimer);
+    setReferencePanelOpen(true);
+  }
+
+  function scheduleReferencePanelClose() {
+    const timer = window.setTimeout(() => setReferencePanelOpen(false), 180);
+    setReferencePanelTimer(timer);
   }
 
   useEffect(() => {
@@ -72,10 +87,10 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
               key={id}
               type="button"
               onClick={() => onChange(id)}
-              onMouseLeave={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); }}
-              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") keepMcqPanelOpen(); }}
-              onFocus={() => { setHoveredTab(id); if (id === "mcq") keepMcqPanelOpen(); }}
-              onBlur={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); }}
+              onMouseLeave={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
+              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") keepMcqPanelOpen(); if (id === "guidelines") keepReferencePanelOpen(); }}
+              onFocus={() => { setHoveredTab(id); if (id === "mcq") keepMcqPanelOpen(); if (id === "guidelines") keepReferencePanelOpen(); }}
+              onBlur={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
             >
@@ -86,6 +101,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
         })}
       </nav>
       <McqAccessPanel userEmail={user?.email} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
+      <ReferenceSectionsPanel section={referenceSection} onChange={onReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
       {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={onAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
       <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">

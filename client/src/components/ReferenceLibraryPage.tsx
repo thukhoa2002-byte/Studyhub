@@ -1,12 +1,12 @@
-import { BookOpenCheck, Check, Download, FileDown, FileText, FilePenLine, FileUp, FolderPlus, Globe2, LibraryBig, Loader2, LockKeyhole, Pencil, Save, Trash2, X } from "lucide-react";
+import { Check, Download, FileDown, FileText, FilePenLine, FileUp, FolderPlus, Globe2, LibraryBig, Loader2, LockKeyhole, Pencil, Save, Trash2, X } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import GuidelinesPage from "./GuidelinesPage";
 import FileDropZone from "./FileDropZone";
+import type { ReferenceSection } from "./ReferenceSectionsPanel";
 import { createReferenceBook, createReferenceBookFolder, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookDetails, updateReferenceBookLayout, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookDiagramCrop, type ReferenceBookExtraction, type ReferenceBookPage } from "../services/referenceBooks";
 
-type ReferenceSection = "guidelines" | "books";
 const REFERENCE_BOOK_OWNER_EMAIL = "thukhoa2002@gmail.com";
 
 function defaultDiagramCrop(page: ReferenceBookPage): ReferenceBookDiagramCrop {
@@ -19,8 +19,7 @@ function defaultDiagramCrop(page: ReferenceBookPage): ReferenceBookDiagramCrop {
   return { x: minX, y: minY, width: Math.max(0.05, maxX - minX), height: Math.max(0.05, maxY - minY) };
 }
 
-export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { user: User | null; onAiCallsRemaining?: (remaining: number) => void }) {
-  const [section, setSection] = useState<ReferenceSection>("guidelines");
+export default function ReferenceLibraryPage({ user, onAiCallsRemaining, section }: { user: User | null; onAiCallsRemaining?: (remaining: number) => void; section: ReferenceSection }) {
   const [books, setBooks] = useState<ReferenceBook[]>([]);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -313,13 +312,6 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
   }
 
   return <>
-    <div className="mx-auto flex w-full max-w-[1600px] px-4 pt-6 sm:px-6 xl:px-8">
-      <div className="inline-flex rounded-lg border border-teal-100 bg-white/75 p-1 shadow-sm">
-        <button type="button" onClick={() => setSection("guidelines")} className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-bold ${section === "guidelines" ? "bg-teal-500 text-white" : "text-slate-600 hover:bg-teal-50"}`}><BookOpenCheck size={17} />Guideline</button>
-        <button type="button" onClick={() => setSection("books")} className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-bold ${section === "books" ? "bg-rose-500 text-white" : "text-slate-600 hover:bg-rose-50"}`}><LibraryBig size={17} />Sách</button>
-      </div>
-    </div>
-
     {section === "guidelines" ? <GuidelinesPage user={user} onAiCallsRemaining={onAiCallsRemaining} /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
       <div className="glass-panel border border-rose-100 bg-white/75 p-5">
         <div className="flex items-center gap-3"><LibraryBig className="text-rose-500" size={28} /><div><h1 className="text-xl font-extrabold text-rose-950">Sách tham khảo</h1><p className="text-sm text-slate-500">Sách đã đăng công khai mới hiển thị cho mọi tài khoản.</p></div></div>

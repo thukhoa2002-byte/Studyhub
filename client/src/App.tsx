@@ -15,6 +15,7 @@ import SharedDeckNotification from "./components/SharedDeckNotification";
 import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import DrugsPage from "./components/DrugsPage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
+import type { ReferenceSection } from "./components/ReferenceSectionsPanel";
 import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
@@ -33,6 +34,7 @@ import {
 
 export default function App() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("flashcards");
+  const [referenceSection, setReferenceSection] = useState<ReferenceSection>("guidelines");
   const [mode, setMode] = useState<"study" | "review">("study");
   const [studyCurrentId, setStudyCurrentId] = useState<string | null>(null);
 
@@ -771,7 +773,7 @@ export default function App() {
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
         <div className={`relative min-h-[calc(100vh-4rem)] pb-8 ${analyticsOpen ? "lg:pl-[34rem]" : "lg:pl-20"}`}>
-          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} />
+          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} referenceSection={referenceSection} onReferenceSectionChange={setReferenceSection} />
           <div className="min-w-0 flex-1">
 
         {workspaceTab === "flashcards" && questions.length > 0 && (
@@ -785,7 +787,7 @@ export default function App() {
         )}
 
         <div className={workspaceTab === "guidelines" ? "block" : "hidden"} aria-hidden={workspaceTab !== "guidelines"}>
-          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} />
+          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section={referenceSection} />
         </div>
 
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
