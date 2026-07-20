@@ -46,6 +46,7 @@ export type McqAdminAccess = { email: string; is_owner: boolean; created_at: str
 export function mcqLibraryErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) {
     if (/mcq_folders|folder_id|schema cache/i.test(error.message)) return "Chưa có cấu trúc thư mục MCQ. Hãy chạy file supabase/mcq_folders_migration.sql trong Supabase SQL Editor.";
+    if (/delete_mcq_folder/i.test(error.message)) return "Chưa cài quyền xóa thư mục MCQ. Hãy chạy file supabase/fix_mcq_folder_delete.sql trong Supabase SQL Editor rồi tải lại trang.";
     if (/MCQ_STORAGE_RLS/i.test(error.message)) return "Supabase đang chặn quyền tải hình MCQ lên Storage. Hãy chạy lại phần policy Storage trong supabase/fix_mcq_rls.sql.";
     if (/row-level security policy/i.test(error.message)) return "Supabase đang chặn quyền tạo bộ MCQ. Hãy chạy file supabase/fix_mcq_rls.sql trong Supabase SQL Editor rồi tải lại trang.";
     return error.message;
