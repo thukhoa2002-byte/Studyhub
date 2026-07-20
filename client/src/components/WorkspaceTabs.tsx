@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
 import McqIcon from "./McqIcon";
+import McqAccessPanel from "./McqAccessPanel";
 import SiteAnalytics from "./SiteAnalytics";
 import WorkspaceSettings from "./WorkspaceSettings";
 
@@ -30,6 +31,18 @@ const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?
 
 export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded }: Props) {
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
+  const [mcqPanelOpen, setMcqPanelOpen] = useState(false);
+  const [mcqPanelTimer, setMcqPanelTimer] = useState<number | null>(null);
+
+  function keepMcqPanelOpen() {
+    if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
+    setMcqPanelOpen(true);
+  }
+
+  function scheduleMcqPanelClose() {
+    const timer = window.setTimeout(() => setMcqPanelOpen(false), 180);
+    setMcqPanelTimer(timer);
+  }
 
   useEffect(() => {
     if (!analyticsAdmin) onAnalyticsExpanded(false);
@@ -59,10 +72,10 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
               key={id}
               type="button"
               onClick={() => onChange(id)}
-              onMouseEnter={() => setHoveredTab(id)}
-              onMouseLeave={() => setHoveredTab(null)}
-              onFocus={() => setHoveredTab(id)}
-              onBlur={() => setHoveredTab(null)}
+              onMouseLeave={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); }}
+              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") keepMcqPanelOpen(); }}
+              onFocus={() => { setHoveredTab(id); if (id === "mcq") keepMcqPanelOpen(); }}
+              onBlur={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); }}
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
             >
@@ -72,6 +85,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
           );
         })}
       </nav>
+      <McqAccessPanel userEmail={user?.email} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
       {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={onAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
       <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">
