@@ -758,7 +758,7 @@ export default function App() {
       {showWelcome && <div className={`welcome-screen${welcomeClosing ? " welcome-screen--closing" : ""}`} role="status" aria-live="polite">
         <div className="welcome-card">
           <div className="welcome-icon"><img src="/brain-learning-icon.png" alt="Não bộ đang học" /></div>
-          <p className="welcome-kicker">Học bài thoiii 🌸</p>
+          <p className="welcome-kicker">StudyHub 🌸</p>
           <h1>Chào bạn!</h1>
           <p className="welcome-message">Mình cùng học một chút nhé.<br />Mỗi ngày tiến bộ một xíu là giỏi lắm rồi! 😊</p>
           <div className="welcome-quote" aria-label="Lời nhắc hôm nay">

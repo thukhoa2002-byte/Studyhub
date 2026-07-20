@@ -46,7 +46,7 @@ export default function UploadImage({
 
             <h1 className="mt-8 text-5xl font-black tracking-tight text-slate-800">
 
-              Học bài thoiii
+              StudyHub
 
             </h1>
 

@@ -26,7 +26,7 @@ export default function Header({ onHome, onUserChange, specialUser = false, them
 
             <h1 className="text-lg font-bold tracking-tight text-rose-950">
 
-              Học bài thoiii
+              StudyHub
 
             </h1>
 
