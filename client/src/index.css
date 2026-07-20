@@ -201,7 +201,16 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-tabs__glider--mcq { transform: translateY(calc(100% + .5rem)); }
   .workspace-tabs__glider--guidelines { transform: translateY(calc(200% + 1rem)); }
   .workspace-tabs__glider--drugs { transform: translateY(calc(300% + 1.5rem)); }
-  .workspace-tabs__button { justify-content: flex-start; padding-inline: 1rem; }
+  .workspace-sidebar { transition: width 420ms cubic-bezier(.22,1,.36,1); }
+  .workspace-sidebar:hover,
+  .workspace-sidebar:focus-within { width: 16rem; }
+  .workspace-sidebar .workspace-tabs__button { justify-content: center; padding-inline: .5rem; transition: transform 360ms cubic-bezier(.22,1,.36,1), color 240ms ease, background-color 240ms ease; }
+  .workspace-sidebar:hover .workspace-tabs__button,
+  .workspace-sidebar:focus-within .workspace-tabs__button { justify-content: flex-start; padding-inline: 1rem; }
+  .workspace-sidebar:not(:hover):not(:focus-within) .workspace-tabs__label { max-width: 0; opacity: 0; visibility: hidden; }
+  .workspace-tabs__label { max-width: 14rem; overflow: hidden; white-space: nowrap; opacity: 1; transition: max-width 360ms cubic-bezier(.22,1,.36,1), opacity 180ms ease, visibility 180ms ease; }
+  .workspace-tabs__button--dock-hover { transform: scale(1.06); }
+  .workspace-tabs__button--dock-neighbor { transform: scale(1.025); }
 }
 .mode-panel { animation: mode-panel-in 560ms cubic-bezier(.22,1,.36,1) both; transform-origin: 50% 0; will-change: opacity, transform, filter; }
 @keyframes mode-panel-in { from { opacity: 0; filter: blur(4px); transform: translateY(12px) scale(.985); } 70% { filter: blur(0); transform: translateY(-1px) scale(1.002); } to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } }
