@@ -343,23 +343,33 @@ html[data-theme="test-light"] {
   --tl-amber-ink: #533b20;
   --tl-amber-soft: rgba(141,98,43,.19);
   --tl-danger: #c2415b;
-  --tl-surface: rgba(255,255,255,.54);
-  --tl-surface-strong: rgba(255,255,255,.7);
+  --tl-glass-bg: rgba(255,255,255,.15);
+  --tl-glass-border: rgba(255,255,255,.4);
+  --tl-glass-shadow: rgba(0,0,0,.1);
+  --tl-glass-highlight: rgba(255,255,255,.8);
+  --tl-glass-caustic: rgba(255,255,255,.4);
+  --tl-reflection-start: rgba(255,255,255,.6);
+  --tl-pill-bg: rgba(255,255,255,.7);
+  --tl-icon-color: rgba(0,0,0,.5);
+  --tl-icon-active: rgba(0,0,0,.95);
+  --tl-divider: rgba(0,0,0,.15);
+  --tl-surface: rgba(255,255,255,.25);
+  --tl-surface-strong: rgba(255,255,255,.42);
   --tl-border: rgba(62,84,107,.32);
 }
 html[data-theme="test-light"] body,
 html[data-theme="test-light"] header,
 html[data-theme="test-light"] main {
-  background: #e5e5ea !important;
+  background: transparent !important;
   color: var(--tl-ink);
 }
 html[data-theme="test-light"] body {
   font-family: Arial, Helvetica, sans-serif;
   background-image:
-    linear-gradient(116deg, rgba(228,76,119,.62) 0%, rgba(228,76,119,.24) 24%, transparent 45%),
-    linear-gradient(244deg, rgba(51,126,196,.58) 4%, rgba(51,126,196,.22) 29%, transparent 54%),
-    linear-gradient(154deg, transparent 27%, rgba(222,142,62,.36) 47%, rgba(255,255,255,.06) 65%, transparent 81%),
-    linear-gradient(135deg, #e5e5ea 0%, #f7f7f9 52%, #e9f7fa 100%) !important;
+    radial-gradient(circle at 12% 22%, rgba(228,76,119,.78) 0%, rgba(228,76,119,.35) 19%, transparent 43%),
+    radial-gradient(circle at 85% 72%, rgba(51,126,196,.72) 0%, rgba(51,126,196,.3) 24%, transparent 50%),
+    radial-gradient(circle at 55% 48%, rgba(222,142,62,.42) 0%, rgba(255,255,255,.08) 34%, transparent 68%),
+    linear-gradient(135deg, #f0d9e1 0%, #e9e8ed 49%, #dcecf5 100%) !important;
 }
 html[data-theme="test-light"] main {
   background: transparent !important;
@@ -369,22 +379,37 @@ html[data-theme="test-light"] .glass-header,
 html[data-theme="test-light"] .glass-panel,
 html[data-theme="test-light"] .glass-card,
 html[data-theme="test-light"] .glass-dialog {
-  border-color: rgba(255,255,255,.8) !important;
+  border-color: rgba(255,255,255,.62) !important;
   background-color: var(--tl-surface) !important;
-  background-image: linear-gradient(135deg, rgba(255,255,255,.3), rgba(191,91,120,.08) 34%, transparent 52%, rgba(58,106,148,.14)) !important;
-  box-shadow: 0 18px 48px rgba(52,70,91,.14), inset 0 2px 3px -1px rgba(255,255,255,.9), inset 0 -2px 4px -1px rgba(52,70,91,.08) !important;
-  backdrop-filter: blur(28px) saturate(135%);
-  -webkit-backdrop-filter: blur(28px) saturate(135%);
+  background-image: linear-gradient(135deg, rgba(255,255,255,.1), rgba(191,91,120,.15) 34%, transparent 52%, rgba(58,106,148,.2)) !important;
+  box-shadow: 0 18px 48px rgba(52,70,91,.12), inset 0 1px 1px rgba(255,255,255,.62), inset 0 -1px 2px rgba(52,70,91,.08) !important;
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
 }
 html[data-theme="test-light"] [class*="bg-gradient-"] {
-  background-color: rgba(255,255,255,.5) !important;
-  background-image: linear-gradient(135deg, rgba(191,91,120,.16), rgba(255,255,255,.68) 48%, rgba(58,106,148,.18)) !important;
+  background-color: rgba(255,255,255,.27) !important;
+  background-image: linear-gradient(135deg, rgba(191,91,120,.2), rgba(255,255,255,.3) 48%, rgba(58,106,148,.22)) !important;
 }
 html[data-theme="test-light"] .workspace-tabs,
 html[data-theme="test-light"] .setup-mode-tabs {
-  border-color: rgba(255,255,255,.78) !important;
-  background: rgba(255,255,255,.54) !important;
-  box-shadow: 0 16px 38px rgba(64,75,88,.08), inset 0 2px 3px -1px rgba(255,255,255,.92) !important;
+  border-color: var(--tl-glass-border) !important;
+  background: var(--tl-glass-bg) !important;
+  box-shadow: 0 40px 80px -20px var(--tl-glass-shadow), 0 10px 30px -10px var(--tl-glass-shadow), inset 0 2px 3px -1px var(--tl-glass-highlight), inset 0 -2px 4px -1px var(--tl-glass-caustic), inset 0 0 0 1px var(--tl-glass-border) !important;
+  backdrop-filter: blur(50px) saturate(200%);
+  -webkit-backdrop-filter: blur(50px) saturate(200%);
+}
+html[data-theme="test-light"] .workspace-tabs::before,
+html[data-theme="test-light"] .setup-mode-tabs::before {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  left: 1px;
+  height: 46%;
+  border-radius: 99px 99px 24px 24px / 99px 99px 12px 12px;
+  background: linear-gradient(180deg, var(--tl-reflection-start), transparent);
+  content: "";
+  pointer-events: none;
+  z-index: 2;
 }
 html[data-theme="test-light"] .workspace-tabs { border-radius: 999px !important; }
 html[data-theme="test-light"] .setup-mode-tabs {
@@ -409,7 +434,7 @@ html[data-theme="test-light"] .setup-mode-tabs::before {
   pointer-events: none;
 }
 html[data-theme="test-light"] .workspace-tabs__button,
-html[data-theme="test-light"] .setup-mode-tab { color: var(--tl-muted); }
+html[data-theme="test-light"] .setup-mode-tab { color: var(--tl-icon-color); }
 html[data-theme="test-light"] .workspace-tabs__button {
   min-height: 2.8rem;
   border-radius: 999px;
@@ -417,12 +442,12 @@ html[data-theme="test-light"] .workspace-tabs__button {
 }
 html[data-theme="test-light"] .workspace-tabs__button--active,
 html[data-theme="test-light"] .workspace-tabs__button:hover,
-html[data-theme="test-light"] .setup-mode-tab--active { color: var(--tl-ink) !important; }
+html[data-theme="test-light"] .setup-mode-tab--active { color: var(--tl-icon-active) !important; }
 html[data-theme="test-light"] .workspace-tabs__glider,
 html[data-theme="test-light"] .setup-mode-tabs__glider {
-  border-color: rgba(87,111,135,.34) !important;
-  background: linear-gradient(135deg, rgba(206,130,152,.25), rgba(255,255,255,.7) 48%, rgba(120,155,183,.27)) !important;
-  box-shadow: 0 8px 22px rgba(52,70,91,.16), inset 0 1px 1px rgba(255,255,255,.92) !important;
+  border-color: rgba(255,255,255,.4) !important;
+  background: var(--tl-pill-bg) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05), inset 0 1px 1px rgba(255,255,255,.8) !important;
 }
 html[data-theme="test-light"] .workspace-tabs__glider { top: .375rem; bottom: .375rem; border-radius: 999px; }
 html[data-theme="test-light"] input,
