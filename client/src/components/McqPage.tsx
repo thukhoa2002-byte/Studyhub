@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Eye, Globe2, LockKe
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
 import McqIcon from "./McqIcon";
+import RippleButton from "./RippleButton";
 import { addMcqAdmin, archiveMcqBank, deleteMcqBank, hasMcqAdminAccess, listMcqAdmins, listMcqBanks, listMcqBankStates, mcqLibraryErrorMessage, removeMcqAdmin, saveMcqBank, type McqAdminAccess, type McqBankState, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
 
 type Option = { id: string; text: string };
@@ -368,7 +369,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
                 <label title={deck.visibility === "published" ? "Đang công khai — bấm để đổi quyền xem" : "Đang riêng tư — bấm để đổi quyền xem"} className="relative inline-flex cursor-pointer rounded-xl p-2 text-slate-600 hover:bg-violet-50">{deck.visibility === "published" ? <Globe2 size={16} className="text-teal-600" /> : <LockKeyhole size={16} />}<select aria-label={`Quyền xem ${deck.title}`} value={deck.visibility} onChange={(event) => void changeDeckVisibility(deck, event.target.value as "draft" | "published")} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"><option value="published">Công khai</option><option value="draft">Riêng tư</option></select></label>
                 <button type="button" aria-label={`Xóa bộ ${deck.title}`} title="Xóa cả bộ MCQ" onClick={() => void removeDeck(deck)} className="rounded-xl p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={16} /></button>
               </div> : <span />}
-              <div className="ml-auto flex items-center justify-end gap-2 text-sm font-bold"><button type="button" onClick={() => void openPreview(deck)} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3 py-2 text-violet-700 hover:bg-violet-50"><Eye size={15} />Xem trước</button><button type="button" onClick={() => openDeck(deck)} className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-white group-hover:bg-violet-600">Bắt đầu<Play size={15} fill="currentColor" /></button></div>
+              <div className="ml-auto flex items-center justify-end gap-2 text-sm font-bold"><button type="button" onClick={() => void openPreview(deck)} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3 py-2 text-violet-700 hover:bg-violet-50"><Eye size={15} />Xem trước</button><RippleButton text="Bắt đầu" icon={<Play size={15} fill="currentColor" />} onClick={() => openDeck(deck)} className="px-3 py-2 text-sm font-bold" /></div>
             </div>
           </article>)}
         </div>

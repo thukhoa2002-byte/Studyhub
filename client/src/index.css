@@ -59,6 +59,46 @@ button:hover {
 
 button:active { transform: translateY(0) scale(.97); }
 
+.ripple-btn {
+  --ripple-bg: #8b5cf6;
+  --ripple-circle: #c4b5fd;
+  position: relative;
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: .75rem;
+  background: var(--ripple-bg);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  transition: box-shadow .3s ease, transform .3s ease, background-color .3s ease;
+}
+.ripple-btn__circle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.875rem;
+  height: 1.875rem;
+  pointer-events: none;
+  border-radius: 999px;
+  background: var(--ripple-circle);
+  transform: translate(-50%, -50%);
+  transition: transform .7s ease;
+}
+.ripple-btn__circle--1 { transform: translate(-3.3em, -4em); }
+.ripple-btn__circle--2 { transform: translate(-6em, 1.3em); }
+.ripple-btn__circle--3 { transform: translate(-.2em, 1.8em); }
+.ripple-btn__circle--4 { transform: translate(3.5em, 1.4em); }
+.ripple-btn__circle--5 { transform: translate(3.5em, -3.8em); }
+.ripple-btn__label { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: .4rem; }
+.ripple-btn:hover { box-shadow: 0 8px 20px rgba(71,85,105,.2); }
+.ripple-btn:hover .ripple-btn__circle { transform: translate(-50%, -50%) scale(4); transition-duration: 1.2s; }
+.ripple-btn:disabled { cursor: not-allowed; opacity: .45; }
+.ripple-btn:disabled:hover { box-shadow: none; transform: none; }
+
 .glass-header { position: relative; isolation: isolate; overflow: visible; box-shadow: 0 1px 0 rgba(255,255,255,.8), 0 10px 28px rgba(148,163,184,.08); }
 .glass-header::after { position: absolute; inset: 0; z-index: -1; pointer-events: none; content: ""; background: linear-gradient(105deg, transparent 18%, rgba(255,255,255,.46) 45%, transparent 70%); transform: translateX(-120%); animation: liquid-glass-sheen 8s cubic-bezier(.4,0,.2,1) infinite; }
 
@@ -402,6 +442,7 @@ html[data-theme="test-light"] button[class~="bg-violet-600"],
 html[data-theme="test-light"] button[class~="bg-fuchsia-400"],
 html[data-theme="test-light"] button[class~="bg-fuchsia-500"],
 html[data-theme="test-light"] button[class~="bg-fuchsia-600"] { background-color: #8090a2 !important; color: #fff !important; }
+html[data-theme="test-light"] .ripple-btn { --ripple-bg: #8090a2; --ripple-circle: #aebbc8; }
 html[data-theme="test-light"] button[aria-label*="Xóa"] svg,
 html[data-theme="test-light"] button[title*="Xóa"] svg,
 html[data-theme="test-light"] button[aria-label*="Thu hồi"] svg { color: #c2415b !important; }
