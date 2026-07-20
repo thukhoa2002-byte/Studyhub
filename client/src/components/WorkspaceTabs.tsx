@@ -18,9 +18,9 @@ const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?
 
 export default function WorkspaceTabs({ activeTab, onChange }: Props) {
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 pt-5">
+    <div className="w-full px-5 pt-5 lg:sticky lg:top-[5.5rem] lg:w-64 lg:shrink-0 lg:px-0 lg:pt-5">
       <nav
-        className="workspace-tabs glass-panel grid grid-cols-2 gap-2 border border-white/70 bg-white/58 p-2 sm:grid-cols-4"
+        className="workspace-tabs glass-panel grid grid-cols-2 gap-2 border border-white/70 bg-white/58 p-2 sm:grid-cols-4 lg:grid-cols-1"
         aria-label="Khu vực học tập"
       >
         <span

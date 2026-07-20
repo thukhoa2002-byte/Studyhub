@@ -770,7 +770,9 @@ export default function App() {
 
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
-        <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} />
+        <div className="mx-auto flex w-full max-w-[1900px] flex-col items-stretch gap-4 pb-8 sm:gap-6 lg:flex-row lg:items-start">
+          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} />
+          <div className="min-w-0 flex-1">
 
         {workspaceTab === "flashcards" && questions.length > 0 && (
           <Navbar
@@ -841,6 +843,8 @@ export default function App() {
           />
         )}
 
+          </div>
+        </div>
       </main>
       {!showWelcome && deckActivityNotifications.length > 0 && <SharedDeckNotification notifications={deckActivityNotifications} onDismiss={(notificationId) => void dismissSharedDeckNotification(notificationId)} onDisable={() => void changeSharedDeckNotifications(false)} />}
       <Footer />
