@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent } from "react";
 import { Check, ClipboardPaste, Crop, Download, FileSearch, FileText, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { extractMcqFiles } from "../services/api";
 import { deleteMcqBank, mcqLibraryErrorMessage, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
@@ -14,8 +15,15 @@ type Props = {
 
 const requiredOptionIds = ["A", "B", "C", "D"] as const;
 const optionIds = ["A", "B", "C", "D", "E"] as const;
-type CropField = "x" | "y" | "width" | "height";
 type CropEditor = { questionIndex: number; source: string; x: number; y: number; width: number; height: number };
+type CropHandle = "nw" | "ne" | "sw" | "se";
+type CropDrag = { mode: "create" | "move" | "resize"; handle?: CropHandle; pointerId: number; startX: number; startY: number; startCrop: CropEditor };
+const cropHandleClasses: Record<CropHandle, string> = {
+  nw: "-left-2 -top-2 cursor-nwse-resize",
+  ne: "-right-2 -top-2 cursor-nesw-resize",
+  sw: "-bottom-2 -left-2 cursor-nesw-resize",
+  se: "-bottom-2 -right-2 cursor-nwse-resize",
+};
 
 function cleanLine(value: string) {
   return value.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, " ").trim();
@@ -60,15 +68,16 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
   });
 }
 
-function clampCrop(editor: CropEditor, field: CropField, rawValue: number): CropEditor {
-  const minimum = field === "x" || field === "y" ? 0 : 1;
-  const value = Number.isFinite(rawValue) ? Math.max(minimum, Math.min(100, rawValue)) : minimum;
-  const next = { ...editor, [field]: value };
-  next.width = Math.max(1, Math.min(next.width, 100 - next.x));
-  next.height = Math.max(1, Math.min(next.height, 100 - next.y));
-  next.x = Math.max(0, Math.min(next.x, 100 - next.width));
-  next.y = Math.max(0, Math.min(next.y, 100 - next.height));
-  return next;
+function normalizeCrop(editor: CropEditor): CropEditor {
+  const width = Math.max(1, Math.min(100, editor.width));
+  const height = Math.max(1, Math.min(100, editor.height));
+  return {
+    ...editor,
+    x: Math.max(0, Math.min(100 - width, editor.x)),
+    y: Math.max(0, Math.min(100 - height, editor.y)),
+    width,
+    height,
+  };
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -226,6 +235,8 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   const [visibility, setVisibility] = useState<"draft" | "published">("draft");
   const [cropEditor, setCropEditor] = useState<CropEditor | null>(null);
   const [recentBanks, setRecentBanks] = useState<McqLibraryBank[]>([]);
+  const cropStageRef = useRef<HTMLDivElement | null>(null);
+  const cropDragRef = useRef<CropDrag | null>(null);
 
   useEffect(() => {
     if (!requestedBank) return;
@@ -334,6 +345,69 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     if (!source) return;
     setCropEditor({ questionIndex, source, x: 0, y: 0, width: 100, height: 100 });
     setError("");
+  }
+
+  function cropPoint(event: PointerEvent<HTMLDivElement>) {
+    const stage = cropStageRef.current;
+    if (!stage) return { x: 0, y: 0 };
+    const rect = stage.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+      y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)),
+    };
+  }
+
+  function handleCropPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (!cropEditor || event.button !== 0) return;
+    const point = cropPoint(event);
+    const target = event.target as HTMLElement;
+    const handle = target.closest<HTMLElement>("[data-crop-handle]")?.dataset.cropHandle as CropHandle | undefined;
+    const fullCrop = cropEditor.x === 0 && cropEditor.y === 0 && cropEditor.width === 100 && cropEditor.height === 100;
+    const inside = point.x >= cropEditor.x && point.x <= cropEditor.x + cropEditor.width && point.y >= cropEditor.y && point.y <= cropEditor.y + cropEditor.height;
+    cropDragRef.current = {
+      mode: handle ? "resize" : (!fullCrop && inside ? "move" : "create"),
+      handle,
+      pointerId: event.pointerId,
+      startX: point.x,
+      startY: point.y,
+      startCrop: cropEditor,
+    };
+    cropStageRef.current?.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  function handleCropPointerMove(event: PointerEvent<HTMLDivElement>) {
+    const drag = cropDragRef.current;
+    if (!drag || !cropEditor || drag.pointerId !== event.pointerId) return;
+    const point = cropPoint(event);
+    const dx = point.x - drag.startX;
+    const dy = point.y - drag.startY;
+    const base = drag.startCrop;
+    let next = base;
+
+    if (drag.mode === "create") {
+      next = { ...base, x: Math.min(drag.startX, point.x), y: Math.min(drag.startY, point.y), width: Math.abs(dx), height: Math.abs(dy) };
+    } else if (drag.mode === "move") {
+      next = { ...base, x: base.x + dx, y: base.y + dy };
+    } else if (drag.handle) {
+      let left = base.x;
+      let top = base.y;
+      let right = base.x + base.width;
+      let bottom = base.y + base.height;
+      if (drag.handle.includes("w")) left = Math.min(Math.max(0, point.x), right - 1);
+      if (drag.handle.includes("e")) right = Math.max(Math.min(100, point.x), left + 1);
+      if (drag.handle.includes("n")) top = Math.min(Math.max(0, point.y), bottom - 1);
+      if (drag.handle.includes("s")) bottom = Math.max(Math.min(100, point.y), top + 1);
+      next = { ...base, x: left, y: top, width: right - left, height: bottom - top };
+    }
+    setCropEditor(normalizeCrop(next));
+  }
+
+  function handleCropPointerUp(event: PointerEvent<HTMLDivElement>) {
+    if (cropDragRef.current?.pointerId === event.pointerId) {
+      cropStageRef.current?.releasePointerCapture(event.pointerId);
+      cropDragRef.current = null;
+    }
   }
 
   async function applyImageCrop() {
@@ -456,6 +530,6 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         <button type="button" disabled={busy || !title.trim() || !questions.length} onClick={() => void persist(publishBlocked ? "draft" : visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? (publishBlocked ? "Lưu bản nháp" : "Lưu thay đổi") : "Lưu bộ MCQ"}</button>
       </div>
     </div>}
-    {cropEditor && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Cắt hình câu hỏi"><div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-violet-600">Chỉnh hình câu hỏi</p><h3 className="mt-1 text-lg font-black text-slate-900">Cắt phần cần giữ lại</h3></div><button type="button" title="Đóng" aria-label="Đóng trình cắt hình" onClick={() => setCropEditor(null)} className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"><X size={19} /></button></div><div className="mt-5 grid gap-5 lg:grid-cols-[1fr_280px]"><div className="flex min-h-64 items-center justify-center rounded-2xl bg-slate-100 p-3"><img src={cropEditor.source} alt="Xem trước hình cần cắt" className="max-h-[52vh] max-w-full object-contain" /></div><div className="space-y-4">{(["x", "y", "width", "height"] as const).map((field) => <label key={field} className="block text-sm font-bold text-slate-700"><span className="flex items-center justify-between"><span>{field === "x" ? "Từ trái" : field === "y" ? "Từ trên" : field === "width" ? "Chiều rộng" : "Chiều cao"}</span><output>{Math.round(cropEditor[field])}%</output></span><input type="range" min={1} max={100} value={cropEditor[field]} onChange={(event) => setCropEditor((current) => current ? clampCrop(current, field, Number(event.target.value)) : current)} className="mt-2 w-full accent-violet-600" /></label>)}<p className="text-xs leading-5 text-slate-500">Kéo các thanh để chọn vùng ảnh. Phần ngoài vùng chọn sẽ bị loại bỏ.</p></div></div><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCropEditor(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600">Hủy</button><button type="button" disabled={busy} onClick={() => void applyImageCrop()} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"><Check size={17} />Áp dụng</button></div></div></div>}
+    {cropEditor && <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Cắt hình câu hỏi"><div className="flex min-h-full items-center justify-center"><div className="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-violet-600">Chỉnh hình câu hỏi</p><h3 className="mt-1 text-lg font-black text-slate-900">Cắt phần cần giữ lại</h3></div><button type="button" title="Đóng" aria-label="Đóng trình cắt hình" onClick={() => setCropEditor(null)} className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"><X size={19} /></button></div><div className="mt-5 flex justify-center"><div ref={cropStageRef} onPointerDown={handleCropPointerDown} onPointerMove={handleCropPointerMove} onPointerUp={handleCropPointerUp} onPointerCancel={handleCropPointerUp} className="relative inline-block max-w-full touch-none select-none overflow-hidden rounded-2xl bg-slate-100 shadow-inner"><img src={cropEditor.source} alt="Xem trước hình cần cắt" draggable={false} className="block max-h-[68vh] max-w-[min(90vw,900px)] object-contain" /><div className="absolute border-2 border-white bg-transparent shadow-[0_0_0_9999px_rgba(15,23,42,0.5)]" style={{ left: `${cropEditor.x}%`, top: `${cropEditor.y}%`, width: `${cropEditor.width}%`, height: `${cropEditor.height}%` }}><span data-crop-handle="nw" className={`pointer-events-auto absolute h-4 w-4 rounded-sm border-2 border-white bg-violet-600 shadow ${cropHandleClasses.nw}`} /><span data-crop-handle="ne" className={`pointer-events-auto absolute h-4 w-4 rounded-sm border-2 border-white bg-violet-600 shadow ${cropHandleClasses.ne}`} /><span data-crop-handle="sw" className={`pointer-events-auto absolute h-4 w-4 rounded-sm border-2 border-white bg-violet-600 shadow ${cropHandleClasses.sw}`} /><span data-crop-handle="se" className={`pointer-events-auto absolute h-4 w-4 rounded-sm border-2 border-white bg-violet-600 shadow ${cropHandleClasses.se}`} /></div></div></div><p className="mt-3 text-center text-xs font-semibold text-slate-500">Kéo trực tiếp trên ảnh để tạo hoặc di chuyển vùng cắt. Kéo các góc để chỉnh kích thước.</p><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCropEditor(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600">Hủy</button><button type="button" disabled={busy} onClick={() => void applyImageCrop()} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"><Check size={17} />Áp dụng</button></div></div></div></div>}
   </section>;
 }
