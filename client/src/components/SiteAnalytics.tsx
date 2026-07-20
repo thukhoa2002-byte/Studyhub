@@ -164,7 +164,21 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
     ?? (visitorKey.startsWith("guest:") ? `Khách • ${visitorKey.slice(-4).toUpperCase()}` : "Thành viên");
 
   return (
-    <section className={placement === "sidebar" ? "site-analytics site-analytics--sidebar site-analytics--sidebar-open glass-panel mt-3 w-full rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm" : "site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5"} aria-label="Thống kê truy cập">
+    <>
+      {placement === "sidebar" && <section className="site-analytics site-analytics--sidebar mt-3 w-full" aria-label="Bảng điều khiển riêng">
+        <button
+          type="button"
+          onClick={() => { setCollapsed(true); setActivePanel(null); onExpandedChange?.(false); }}
+          aria-label="Thu gọn bảng điều khiển riêng"
+          aria-expanded={true}
+          title="Thu gọn bảng điều khiển riêng"
+          className="flex h-11 w-full items-center justify-start gap-3 rounded-xl border border-teal-200 bg-teal-50/80 px-3 text-teal-700 shadow-sm hover:bg-teal-100"
+        >
+          <Activity size={20} />
+          <span className="workspace-tabs__label text-sm font-bold">Bảng điều khiển</span>
+        </button>
+      </section>}
+      <section className={placement === "sidebar" ? "site-analytics site-analytics--sidebar site-analytics--sidebar-open glass-panel mt-3 w-full rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm" : "site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5"} aria-label="Thống kê truy cập">
       <div className="mb-4 flex items-center justify-between gap-3 px-1">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-rose-500">Bảng điều khiển riêng</p>
@@ -207,6 +221,7 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
       </div>}
 
       {unavailable && <p className="mt-3 px-1 text-xs text-amber-600">Chạy lại file SQL thống kê trong Supabase để bật danh sách chi tiết.</p>}
-    </section>
+      </section>
+    </>
   );
 }
