@@ -10,7 +10,7 @@ export default function Review({ questions, toggleBookmark }: Props) {
   const saved = questions.filter((question) => question.bookmarked);
 
   return (
-    <section className="mx-auto max-w-4xl px-5 py-10">
+    <section className="mx-auto w-full max-w-[1600px] px-5 py-10">
       <div className="rounded-3xl border border-rose-100 bg-white/90 p-7 shadow-sm sm:p-9">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-rose-400">Thẻ đã đánh dấu</p>
         <h1 className="mt-2 text-3xl font-bold text-rose-950">Ôn lại sau</h1>

@@ -2,7 +2,7 @@ import { Pill, PillBottle } from "lucide-react";
 
 export default function DrugsPage() {
   return (
-    <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="drugs-title">
+    <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8" aria-labelledby="drugs-title">
       <div className="glass-panel overflow-hidden border border-rose-100/80 bg-white/68 p-7 sm:p-10">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-100 to-teal-100 text-rose-600 shadow-sm">

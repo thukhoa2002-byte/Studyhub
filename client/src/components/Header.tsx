@@ -14,7 +14,7 @@ export default function Header({ onHome, onUserChange, specialUser = false, them
   return (
     <header className="glass-header sticky top-0 z-50 border-b border-rose-100 bg-white/65 backdrop-blur-xl">
 
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
+      <div className="mx-auto flex h-16 max-w-[1900px] items-center justify-between px-5 sm:px-6 xl:px-8">
 
         {/* Logo */}
 

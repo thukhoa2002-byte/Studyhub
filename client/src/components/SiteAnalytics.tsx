@@ -135,7 +135,7 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
 
   if (collapsed) {
     return (
-      <section className="site-analytics site-analytics--collapsed mx-auto mb-6 flex max-w-5xl justify-end px-5" aria-label="Bảng điều khiển riêng">
+      <section className="site-analytics site-analytics--collapsed mx-auto mb-6 flex w-full max-w-[1600px] justify-end px-5" aria-label="Bảng điều khiển riêng">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
@@ -161,7 +161,7 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
     ?? (visitorKey.startsWith("guest:") ? `Khách • ${visitorKey.slice(-4).toUpperCase()}` : "Thành viên");
 
   return (
-    <section className="site-analytics glass-panel mx-auto mb-6 max-w-5xl rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5" aria-label="Thống kê truy cập">
+    <section className="site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5" aria-label="Thống kê truy cập">
       <div className="mb-4 flex items-center justify-between gap-3 px-1">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-rose-500">Bảng điều khiển riêng</p>

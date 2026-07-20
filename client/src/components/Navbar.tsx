@@ -17,7 +17,7 @@ export default function Navbar({
 }: Props) {
   return (
     <nav className="glass-header border-b border-rose-100 bg-white/60 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-rose-950">
             {deckTitle || "Bộ thẻ đang học"}

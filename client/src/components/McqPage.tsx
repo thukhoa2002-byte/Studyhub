@@ -509,10 +509,10 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     </div>;
   }
 
-  if (error) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><p className="rounded-2xl border border-rose-200 bg-white p-5 text-sm font-semibold text-rose-700">{error}</p></section>;
+  if (error) return <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8"><p className="rounded-2xl border border-rose-200 bg-white p-5 text-sm font-semibold text-rose-700">{error}</p></section>;
 
   if (previewDeck) return (
-    <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-preview-title">
+    <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8" aria-labelledby="mcq-preview-title">
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/75 p-5 sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -532,7 +532,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   );
 
   if (!opened) return (
-    <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
+    <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8" aria-labelledby="mcq-title">
       {isOwner && userId && <div className="mb-5 rounded-[1.75rem] border border-teal-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-100 text-teal-700"><ShieldCheck size={21} /></span><div><p className="text-xs font-black uppercase tracking-wider text-teal-700">Quyền Xưởng MCQ</p><p className="text-sm text-slate-500">Chỉ những email trong danh sách mới thấy và sử dụng khu vực tạo MCQ.</p></div></div><div className="flex min-w-0 gap-2"><input type="email" value={newAdminEmail} onChange={(event) => setNewAdminEmail(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void grantMcqAccess(); } }} placeholder="email@gmail.com" className="min-w-0 flex-1 rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm outline-none focus:border-teal-500" /><button type="button" disabled={accessBusy || !newAdminEmail.trim()} onClick={() => void grantMcqAccess()} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-teal-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-40"><UserPlus size={16} />Thêm</button></div></div>
         {mcqAdmins.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{mcqAdmins.map((admin) => <span key={admin.email} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">{admin.email}{admin.is_owner ? <em className="not-italic text-teal-600">Chủ sở hữu</em> : <button type="button" disabled={accessBusy} aria-label={`Thu hồi quyền ${admin.email}`} title="Thu hồi quyền" onClick={() => void revokeMcqAccess(admin.email)} className="text-rose-500 hover:text-rose-700"><UserMinus size={15} /></button>}</span>)}</div>}
@@ -552,14 +552,14 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     </section>
   );
 
-  if (!bank || !question || !progressReady) return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8"><div className="glass-panel rounded-3xl p-8 text-center text-sm font-semibold text-slate-500">Đang nạp bộ MCQ…</div></section>;
+  if (!bank || !question || !progressReady) return <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8"><div className="glass-panel rounded-3xl p-8 text-center text-sm font-semibold text-slate-500">Đang nạp bộ MCQ…</div></section>;
 
   const isCorrect = selected === question.correct_answer;
   const isLast = index === bank.questions.length - 1;
   const completed = completedCount === bank.questions.length;
 
   return (
-    <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8" aria-labelledby="mcq-title">
+    <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8" aria-labelledby="mcq-title">
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
         <div className="mb-6"><button type="button" onClick={returnToDeckList} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50"><ArrowLeft size={17} />Danh sách bộ MCQ</button></div>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">

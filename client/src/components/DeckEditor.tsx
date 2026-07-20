@@ -199,7 +199,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
   }
 
   return (
-    <section className="mx-auto max-w-5xl px-5 py-8">
+    <section className="mx-auto w-full max-w-[1600px] px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div><p className="text-sm font-semibold text-rose-500">Chỉnh sửa</p><h1 className="text-3xl font-bold text-rose-950">Sửa bộ thẻ</h1></div>
         <button onClick={onCancel} className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-white px-4 py-2 text-sm font-semibold text-slate-600"><X size={17} /> Hủy</button>

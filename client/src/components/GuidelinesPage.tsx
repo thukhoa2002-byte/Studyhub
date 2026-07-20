@@ -397,7 +397,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   }
 
   if (!user) {
-    return <section className="mode-panel mx-auto w-full max-w-5xl px-5 py-8">
+    return <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8">
       <div className="glass-panel border border-rose-100/80 bg-white/70 p-10 text-center">
         <ShieldCheck className="mx-auto text-teal-500" size={42} />
         <h1 className="mt-4 text-2xl font-extrabold text-rose-950">Kho guideline riêng tư</h1>
