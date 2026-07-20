@@ -17,6 +17,7 @@ import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import DrugsPage from "./components/DrugsPage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import McqPage from "./components/McqPage";
+import TestPage from "./components/TestPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
 import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, encodeCardCategory, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
@@ -796,6 +797,10 @@ export default function App() {
 
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
           <McqPage userId={user?.id} userEmail={user?.email} onAiCallsRemaining={setAiCallsRemaining} />
+        </div>
+
+        <div className={workspaceTab === "test" ? "block" : "hidden"} aria-hidden={workspaceTab !== "test"}>
+          <TestPage />
         </div>
 
         {workspaceTab === "drugs" ? (
