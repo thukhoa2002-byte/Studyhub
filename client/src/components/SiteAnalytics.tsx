@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Clock3, Eye, MoreHorizontal, Users, X } from "lucide-react";
+import { Activity, ChevronUp, Clock3, Eye, MoreHorizontal, Users, X } from "lucide-react";
 import {
   getSiteAnalytics,
   getSiteAnalyticsDetails,
@@ -43,6 +43,7 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
   const [activePanel, setActivePanel] = useState<DetailPanel | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const [analyticsRefreshVersion, setAnalyticsRefreshVersion] = useState(0);
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     const client = supabase;
@@ -132,6 +133,23 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
 
   if (!visible) return null;
 
+  if (collapsed) {
+    return (
+      <section className="site-analytics site-analytics--collapsed mx-auto mb-6 flex max-w-5xl justify-end px-5" aria-label="Bảng điều khiển riêng">
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          aria-label="Mở bảng điều khiển riêng"
+          aria-expanded={false}
+          title="Mở bảng điều khiển riêng"
+          className="glass-card flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/60 text-teal-600 shadow-sm hover:text-teal-700"
+        >
+          <Activity size={20} />
+        </button>
+      </section>
+    );
+  }
+
   const metrics: Array<{ id: DetailPanel; label: string; value: number; icon: typeof Eye; color: string; background: string }> = [
     { id: "visits", label: "Tổng lượt truy cập", value: summary.totalVisits, icon: Eye, color: "text-rose-500", background: "bg-rose-100/80" },
     { id: "visitors", label: "Số người truy cập", value: summary.uniqueVisitors, icon: Users, color: "text-violet-500", background: "bg-violet-100/80" },
@@ -149,9 +167,12 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-rose-500">Bảng điều khiển riêng</p>
           <h2 className="mt-1 text-lg font-bold text-rose-950">Thống kê trang web</h2>
         </div>
-        <span className="flex items-center gap-2 rounded-full border border-teal-100 bg-white/75 px-3 py-1.5 text-xs font-semibold text-teal-700">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-teal-400" /> Trực tiếp · 10s
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-2 rounded-full border border-teal-100 bg-white/75 px-3 py-1.5 text-xs font-semibold text-teal-700">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-teal-400" /> Trực tiếp · 10s
+          </span>
+          <button type="button" onClick={() => setCollapsed(true)} aria-label="Thu gọn bảng điều khiển riêng" title="Thu gọn bảng điều khiển riêng" className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-teal-600"><ChevronUp size={17} /></button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
