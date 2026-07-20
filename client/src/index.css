@@ -232,6 +232,16 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-tabs--sidebar .workspace-tabs__glider--mcq { transform: translateY(calc(100% + .5rem)); }
   .workspace-tabs--sidebar .workspace-tabs__glider--guidelines { transform: translateY(calc(200% + 1rem)); }
   .workspace-tabs--sidebar .workspace-tabs__glider--drugs { transform: translateY(calc(300% + 1.5rem)); }
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-sidebar__brand { justify-content: flex-start; }
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-sidebar__brand-copy,
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-tabs__label,
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-settings__label,
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-sidebar__account-copy { max-width: 14rem; opacity: 1; visibility: visible; }
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-tabs { padding: 0; }
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-tabs__button,
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-settings > button,
+  .workspace-sidebar.workspace-sidebar--panel-pinned .site-analytics--sidebar > button { justify-content: flex-start; gap: .65rem; padding-inline: 1rem; }
+  .workspace-sidebar.workspace-sidebar--panel-pinned .workspace-tabs--sidebar .workspace-tabs__glider { top: 0; left: 0; width: 100%; height: calc((100% - 1.5rem) / 4); }
   .workspace-sidebar .workspace-tabs__button,
   .workspace-sidebar .workspace-settings > button { justify-content: flex-start; padding-inline: 1rem; transition: transform 360ms cubic-bezier(.22,1,.36,1), color 240ms ease, background-color 240ms ease; }
   .workspace-tabs__label { max-width: 14rem; overflow: hidden; white-space: nowrap; opacity: 1; transition: max-width 360ms cubic-bezier(.22,1,.36,1), opacity 180ms ease, visibility 180ms ease; }
