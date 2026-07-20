@@ -17,7 +17,6 @@ import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import DrugsPage from "./components/DrugsPage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import McqPage from "./components/McqPage";
-import TestPage from "./components/TestPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
 import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, encodeCardCategory, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
@@ -67,9 +66,9 @@ export default function App() {
   const [loginRequiredOpen, setLoginRequiredOpen] = useState(false);
   const [welcomeClosing, setWelcomeClosing] = useState(false);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
-  const [theme, setTheme] = useState<"color" | "basic" | "anki">(() => {
+  const [theme, setTheme] = useState<"color" | "basic" | "anki" | "test">(() => {
     const savedTheme = localStorage.getItem("hocbai-theme");
-    return savedTheme === "basic" || savedTheme === "anki" ? savedTheme : "color";
+    return savedTheme === "basic" || savedTheme === "anki" || savedTheme === "test" ? savedTheme : "color";
   });
   const [sharedDeckNotificationsEnabled, setSharedDeckNotificationsEnabled] = useState(true);
   const [deckActivityNotifications, setDeckActivityNotifications] = useState<DeckActivityNotification[]>([]);
@@ -797,10 +796,6 @@ export default function App() {
 
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
           <McqPage userId={user?.id} userEmail={user?.email} onAiCallsRemaining={setAiCallsRemaining} />
-        </div>
-
-        <div className={workspaceTab === "test" ? "block" : "hidden"} aria-hidden={workspaceTab !== "test"}>
-          <TestPage />
         </div>
 
         {workspaceTab === "drugs" ? (
