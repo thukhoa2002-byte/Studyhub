@@ -372,7 +372,9 @@ html[data-theme="test-light"] [class*="text-slate-700"],
 html[data-theme="test-light"] [class*="text-slate-800"] { color: #1c1c1e !important; }
 html[data-theme="test-light"] [class*="bg-white"] { background-color: rgba(255,255,255,.62) !important; color: #1c1c1e; }
 html[data-theme="test-light"] [class*="bg-slate-50"] { background-color: rgba(255,255,255,.42) !important; }
-html[data-theme="test-light"] button[class*="bg-violet-"] { background-color: #8b5cf6 !important; color: #fff !important; }
+html[data-theme="test-light"] button[class~="bg-violet-400"],
+html[data-theme="test-light"] button[class~="bg-violet-500"],
+html[data-theme="test-light"] button[class~="bg-violet-600"] { background-color: #8090a2 !important; color: #fff !important; }
 html[data-theme="test-light"] button[class*="bg-rose-"],
 html[data-theme="test-light"] button[class*="bg-teal-"] { color: #fff !important; }
 html[data-theme="test-light"] button:disabled { opacity: .52 !important; }
@@ -393,8 +395,12 @@ html[data-theme="test-light"] [class*="border-fuchsia-"] { border-color: rgba(10
 html[data-theme="test-light"] [class*="border-indigo-"],
 html[data-theme="test-light"] [class*="border-blue-"],
 html[data-theme="test-light"] [class*="border-sky-"] { border-color: rgba(13,148,136,.28) !important; }
-html[data-theme="test-light"] button[class*="bg-violet-"],
-html[data-theme="test-light"] button[class*="bg-fuchsia-"] { background-color: #64748b !important; color: #fff !important; }
+html[data-theme="test-light"] button[class~="bg-violet-400"],
+html[data-theme="test-light"] button[class~="bg-violet-500"],
+html[data-theme="test-light"] button[class~="bg-violet-600"],
+html[data-theme="test-light"] button[class~="bg-fuchsia-400"],
+html[data-theme="test-light"] button[class~="bg-fuchsia-500"],
+html[data-theme="test-light"] button[class~="bg-fuchsia-600"] { background-color: #8090a2 !important; color: #fff !important; }
 html[data-theme="test-light"] button[aria-label*="Xóa"] svg,
 html[data-theme="test-light"] button[title*="Xóa"] svg,
 html[data-theme="test-light"] button[aria-label*="Thu hồi"] svg { color: #c2415b !important; }
