@@ -201,7 +201,7 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-sidebar:hover,
   .workspace-sidebar:focus-within { width: 18rem; }
   .workspace-sidebar:has(.site-analytics--sidebar-open) { width: 18rem; }
-  .site-analytics--sidebar-open { position: fixed; top: 6rem; left: 18rem; z-index: 55; width: 24rem !important; max-height: calc(100vh - 7rem); margin-top: 0 !important; overflow-y: auto; }
+  .site-analytics--sidebar-open { position: fixed; top: 6rem; left: 18rem; z-index: 55; width: 20rem !important; max-height: calc(100vh - 7rem); margin-top: 0 !important; overflow-y: auto; }
   .workspace-sidebar:hover .workspace-sidebar__brand,
   .workspace-sidebar:focus-within .workspace-sidebar__brand { justify-content: flex-start; }
   .workspace-sidebar:not(:hover):not(:focus-within) .workspace-sidebar__brand { width: 100%; justify-content: center; gap: 0; }
