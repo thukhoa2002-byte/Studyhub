@@ -770,7 +770,7 @@ export default function App() {
 
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
-        <div className="relative min-h-[calc(100vh-4rem)] pb-8 lg:pl-16">
+        <div className="relative min-h-[calc(100vh-4rem)] pb-8 lg:pl-20">
           <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
           <div className="min-w-0 flex-1">
 
