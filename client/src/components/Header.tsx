@@ -14,11 +14,11 @@ export default function Header({ onHome, onUserChange, specialUser = false, them
   return (
     <header className="glass-header sticky top-0 z-50 border-b border-rose-100 bg-white/65 backdrop-blur-xl">
 
-      <div className="mx-auto flex h-16 max-w-[1900px] items-center justify-between px-5 sm:px-6 xl:px-8">
+      <div className="mx-auto flex h-16 max-w-[1900px] items-center justify-between px-5 sm:px-6 xl:px-8 lg:pl-72">
 
         {/* Logo */}
 
-        <button type="button" onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="flex cursor-pointer items-center gap-5 rounded-xl text-left outline-none transition hover:bg-rose-50/70 focus-visible:ring-2 focus-visible:ring-rose-300">
+        <button type="button" onClick={onHome} title="Về màn hình chính" aria-label="Về màn hình chính" className="flex cursor-pointer items-center gap-5 rounded-xl text-left outline-none transition hover:bg-rose-50/70 focus-visible:ring-2 focus-visible:ring-rose-300 lg:hidden">
 
           <img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" className="h-16 w-16 rounded-xl object-contain" />
 
