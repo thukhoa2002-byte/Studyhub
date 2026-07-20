@@ -1,5 +1,5 @@
 import { BookOpen, BookOpenCheck, Pill } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
 import McqIcon from "./McqIcon";
@@ -18,6 +18,7 @@ interface Props {
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
   analyticsAdmin: boolean;
+  onAnalyticsExpanded: (expanded: boolean) => void;
 }
 
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
@@ -27,8 +28,12 @@ const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?
   { id: "drugs", label: "Drugs", icon: Pill },
 ];
 
-export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin }: Props) {
+export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded }: Props) {
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
+
+  useEffect(() => {
+    if (!analyticsAdmin) onAnalyticsExpanded(false);
+  }, [analyticsAdmin, onAnalyticsExpanded]);
 
   return (
     <div className="workspace-sidebar flex w-full flex-col px-5 pt-5 lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-[60] lg:w-20 lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:bg-white/80 lg:px-2 lg:py-6 lg:shadow-[8px_0_30px_rgba(15,23,42,.04)]">
@@ -67,7 +72,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
           );
         })}
       </nav>
-      {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" />}
+      {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={onAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
       <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-100 bg-teal-50 text-teal-700">

@@ -14,6 +14,7 @@ interface SiteAnalyticsProps {
   userId?: string | null;
   visible: boolean;
   placement?: "content" | "sidebar";
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 interface OnlineVisitor {
@@ -37,7 +38,7 @@ function formatDateTime(value: string) {
   return Number.isNaN(date.getTime()) ? "—" : dateTimeFormatter.format(date);
 }
 
-export default function SiteAnalytics({ userId, visible, placement = "content" }: SiteAnalyticsProps) {
+export default function SiteAnalytics({ userId, visible, placement = "content", onExpandedChange }: SiteAnalyticsProps) {
   const [summary, setSummary] = useState<SiteAnalyticsSummary>({ totalVisits: 0, uniqueVisitors: 0 });
   const [details, setDetails] = useState<SiteAnalyticsDetails>({ visitors: [], visits: [] });
   const [onlineVisitors, setOnlineVisitors] = useState<OnlineVisitor[]>([]);
@@ -139,7 +140,7 @@ export default function SiteAnalytics({ userId, visible, placement = "content" }
       <section className={placement === "sidebar" ? "site-analytics site-analytics--sidebar mt-3 w-full" : "site-analytics site-analytics--collapsed mx-auto mb-6 flex w-full max-w-[1600px] justify-end px-5"} aria-label="Bảng điều khiển riêng">
         <button
           type="button"
-          onClick={() => setCollapsed(false)}
+          onClick={() => { setCollapsed(false); onExpandedChange?.(true); }}
           aria-label="Mở bảng điều khiển riêng"
           aria-expanded={false}
           title="Mở bảng điều khiển riêng"
@@ -173,7 +174,7 @@ export default function SiteAnalytics({ userId, visible, placement = "content" }
           <span className="flex items-center gap-2 rounded-full border border-teal-100 bg-white/75 px-3 py-1.5 text-xs font-semibold text-teal-700">
             <span className="h-2 w-2 animate-pulse rounded-full bg-teal-400" /> Trực tiếp · 10s
           </span>
-          <button type="button" onClick={() => setCollapsed(true)} aria-label="Thu gọn bảng điều khiển riêng" title="Thu gọn bảng điều khiển riêng" className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-teal-600"><ChevronUp size={17} /></button>
+          <button type="button" onClick={() => { setCollapsed(true); setActivePanel(null); onExpandedChange?.(false); }} aria-label="Thu gọn bảng điều khiển riêng" title="Thu gọn bảng điều khiển riêng" className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-teal-600"><ChevronUp size={17} /></button>
         </div>
       </div>
 

@@ -70,6 +70,7 @@ export default function App() {
     return savedTheme === "basic" || savedTheme === "test" || savedTheme === "test-light" ? savedTheme : "color";
   });
   const [sharedDeckNotificationsEnabled, setSharedDeckNotificationsEnabled] = useState(true);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [deckActivityNotifications, setDeckActivityNotifications] = useState<DeckActivityNotification[]>([]);
   const specialUser = isSpecialUser(user?.email);
   const analyticsAdmin = isAnalyticsAdmin(user?.email);
@@ -769,8 +770,8 @@ export default function App() {
 
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
-        <div className="relative min-h-[calc(100vh-4rem)] pb-8 lg:pl-20">
-          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} />
+        <div className={`relative min-h-[calc(100vh-4rem)] pb-8 ${analyticsOpen ? "lg:pl-[43rem]" : "lg:pl-20"}`}>
+          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} />
           <div className="min-w-0 flex-1">
 
         {workspaceTab === "flashcards" && questions.length > 0 && (
