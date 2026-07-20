@@ -505,7 +505,7 @@ export default function DeckSetup({
 
   return (
     <section className="mx-auto w-full max-w-[1600px] px-5 py-8 sm:py-12">
-      <div className={`setup-mode-tabs setup-mode-tabs--${mode} mb-6 grid gap-2 rounded-lg border border-rose-100 bg-white/70 p-1 shadow-sm sm:grid-cols-3`}>
+      <div className={`setup-mode-tabs setup-mode-tabs--${mode} mb-6 grid gap-2 rounded-3xl border border-rose-100 bg-white/70 p-1 shadow-sm sm:grid-cols-3`}>
         <span className="setup-mode-tabs__glider" aria-hidden="true" />
         <button
           onClick={() => selectMode("import")}
