@@ -44,11 +44,12 @@ import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
 import { DEFAULT_SUBDECK, listSubdeckSuggestions, normalizeSubdeck } from "../utils/subdeck";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
 import RichTextEditor from "./RichTextEditor";
+import FileDropZone from "./FileDropZone";
 
 interface Props {
   preview: string;
   loading: boolean;
-  onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onImageFileChange: (file: File) => void;
   onGenerate: () => void;
   onGenerateMcq: () => void;
   onGenerateClinicalCase: () => void;
@@ -235,7 +236,7 @@ function DeckIconBadge({ title, value, size = 18 }: { title: string; value: stri
 export default function DeckSetup({
   preview,
   loading,
-  onImageChange,
+  onImageFileChange,
   onGenerate,
   onGenerateMcq,
   onGenerateClinicalCase,
@@ -664,9 +665,12 @@ export default function DeckSetup({
 
       {mode === "import" && (
         <div className="glass-panel mode-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
-          <label
-            htmlFor="anki-file"
+          <FileDropZone
+            id="anki-file"
+            accept=".apkg,.txt,.csv,.tsv,text/plain,text/csv"
+            disabled={!authenticated}
             onClick={(event) => { if (!authenticated) { event.preventDefault(); onRequireLogin(); } }}
+            onFiles={(files) => { if (files[0]) void onImportDeck(files[0]); }}
             className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"
           >
             <UploadCloud size={42} className="text-rose-400" />
@@ -680,19 +684,7 @@ export default function DeckSetup({
             <span className="mt-5 rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm">
               .apkg .txt .csv .tsv
             </span>
-          </label>
-          <input
-            id="anki-file"
-            hidden
-            type="file"
-            accept=".apkg,.txt,.csv,.tsv,text/plain,text/csv"
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              if (!file) return;
-              await onImportDeck(file);
-              event.target.value = "";
-            }}
-          />
+          </FileDropZone>
         </div>
       )}
 
@@ -766,9 +758,12 @@ export default function DeckSetup({
 
       {mode === "ai" && (
         <div className="glass-panel rounded-lg border border-rose-100 bg-white/85 p-6 shadow-sm sm:p-8">
-          <label
-            htmlFor="upload"
+          <FileDropZone
+            id="upload"
+            accept="image/*"
+            disabled={!authenticated}
             onClick={(event) => { if (!authenticated) { event.preventDefault(); onRequireLogin(); } }}
+            onFiles={(files) => { if (files[0]) onImageFileChange(files[0]); }}
             className="flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/60 px-6 text-center hover:border-teal-300 hover:bg-teal-50/60"
           >
             {preview ? (
@@ -788,15 +783,7 @@ export default function DeckSetup({
                 </p>
               </>
             )}
-          </label>
-
-          <input
-            id="upload"
-            hidden
-            type="file"
-            accept="image/*"
-            onChange={onImageChange}
-          />
+          </FileDropZone>
 
           <div className="mt-5 grid gap-2 sm:grid-cols-3">
             <button disabled={!preview || loading} onClick={onGenerate} className="flex items-center justify-center gap-2 rounded-lg bg-teal-400 px-5 py-4 font-bold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "AI đang tạo..." : "Tạo Cloze"}{!loading && <ArrowRight size={18} />}</button>

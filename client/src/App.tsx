@@ -217,14 +217,8 @@ export default function App() {
     window.dispatchEvent(new Event("hocbai:google-sign-in"));
   }
 
-  function onImageChange(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-    if (!requireLogin()) { event.target.value = ""; return; }
-    const file = event.target.files?.[0];
-
-    if (!file) return;
-
+  function onImageFileChange(file: File) {
+    if (!requireLogin()) return;
     setImage(file);
     setPreview(URL.createObjectURL(file));
   }
@@ -806,7 +800,7 @@ export default function App() {
           <DeckSetup
             preview={preview}
             loading={loading}
-            onImageChange={onImageChange}
+            onImageFileChange={onImageFileChange}
             onGenerate={onGenerate}
             onGenerateMcq={onGenerateMcq}
             onGenerateClinicalCase={onGenerateClinicalCase}

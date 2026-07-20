@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import GuidelinesPage from "./GuidelinesPage";
+import FileDropZone from "./FileDropZone";
 import { createReferenceBook, createReferenceBookFolder, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookDetails, updateReferenceBookLayout, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookDiagramCrop, type ReferenceBookExtraction, type ReferenceBookPage } from "../services/referenceBooks";
 
 type ReferenceSection = "guidelines" | "books";
@@ -334,7 +335,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining }: { use
           <input value={author} onChange={(event) => setAuthor(event.target.value)} placeholder="Tác giả (AI sẽ tự điền)" className="rounded-xl border border-teal-100 bg-white px-3 py-2.5" />
           <input type="number" value={publicationYear} onChange={(event) => setPublicationYear(event.target.value)} placeholder="Năm" className="rounded-xl border border-teal-100 bg-white px-3 py-2.5" />
           <select value={parentId || ""} onChange={(event) => setParentId(event.target.value || null)} className="rounded-xl border border-teal-100 bg-white px-3 py-2.5"><option value="">Thư mục gốc</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.title}</option>)}</select>
-          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-sm font-bold text-teal-700"><FileUp size={17} />{file ? file.name : "Chọn PDF"}<input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
+          <FileDropZone id="reference-book-pdf" accept="application/pdf,.pdf" onFiles={(files) => setFile(files[0] || null)} className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-sm font-bold text-teal-700"><FileUp size={17} />{file ? file.name : "Chọn PDF"}</FileDropZone>
           <button disabled={busy || !file} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:col-span-5">{busy && <Loader2 className="animate-spin" size={17} />}{busy ? (extractionProgress || "Gemini đang đọc tài liệu ở chế độ nền...") : extraction ? "Lưu sách riêng tư" : "Đọc bằng Gemini"}</button>
         </form> : <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">Kho tải sách dành riêng cho chủ sở hữu. Bạn có thể xem các sách đã được đăng công khai bên dưới.</div>}
 

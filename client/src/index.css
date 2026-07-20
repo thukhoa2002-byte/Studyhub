@@ -84,6 +84,7 @@ button:active { transform: translateY(0) scale(.97); }
 .deck-library-panel:has([role="menu"]) { z-index: 90; }
 .deck-library-card:has([role="menu"]) { z-index: 75; }
 input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box-shadow: 0 0 0 3px rgba(244,114,182,.13), 0 8px 22px rgba(244,114,182,.08); }
+.file-drop-zone--active { border-color: #14b8a6 !important; background-color: rgba(20,184,166,.1) !important; box-shadow: 0 0 0 3px rgba(20,184,166,.12), inset 0 1px 0 rgba(255,255,255,.8); }
 
 .study-runner { position: absolute; z-index: 2; top: 50%; left: 0; font-size: 2rem; line-height: 1; transform: translateY(-50%); animation: study-runner 700ms ease-in forwards; }
 .study-box-exit { animation: study-box-exit 700ms ease-in forwards; }
