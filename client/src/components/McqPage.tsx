@@ -110,25 +110,27 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   }
   const refreshLibrary = useCallback(async () => {
     if (!userId) { setLibraryBanks([]); setBankStates([]); return; }
-    try {
-      // The bank list is the source of truth for drafts. A missing/old status
-      // RPC must not hide a bank that was already saved successfully.
-      const [banks, folders, states] = await Promise.all([
-        listMcqBanks(),
-        listMcqFolders(),
-        listMcqBankStates().catch((stateError) => {
-          console.warn("Không thể tải trạng thái MCQ, vẫn hiển thị bản nháp đã lưu.", stateError);
-          return [] as McqBankState[];
-        }),
-      ]);
-      setLibraryBanks(banks);
-      setLibraryFolders(folders);
-      setBankStates(states);
-    }
-    catch (loadError) {
-      console.warn("Không thể tải thư viện MCQ", loadError);
-      setError(mcqLibraryErrorMessage(loadError, "Không thể tải danh sách bộ MCQ."));
-    }
+    // Render folders as soon as their small query returns. Do not make them
+    // wait for the much larger questions JSON stored in mcq_banks.
+    const folderLoad = listMcqFolders()
+      .then(setLibraryFolders)
+      .catch((loadError) => {
+        console.warn("Không thể tải thư mục MCQ", loadError);
+        setError(mcqLibraryErrorMessage(loadError, "Không thể tải danh sách thư mục MCQ."));
+      });
+    const bankLoad = listMcqBanks()
+      .then(setLibraryBanks)
+      .catch((loadError) => {
+        console.warn("Không thể tải bộ MCQ", loadError);
+        setError(mcqLibraryErrorMessage(loadError, "Không thể tải danh sách bộ MCQ."));
+      });
+    const stateLoad = listMcqBankStates()
+      .then(setBankStates)
+      .catch((stateError) => {
+        console.warn("Không thể tải trạng thái MCQ, vẫn hiển thị bản nháp đã lưu.", stateError);
+        setBankStates([] as McqBankState[]);
+      });
+    await Promise.all([folderLoad, bankLoad, stateLoad]);
   }, [userId]);
   useEffect(() => { void refreshLibrary(); }, [refreshLibrary]);
   const decks = useMemo<DeckDefinition[]>(() => [
