@@ -70,7 +70,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-100 bg-teal-50 text-teal-700">
           {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? <img src={(user.user_metadata.avatar_url || user.user_metadata.picture) as string} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : <span className="text-sm font-black">{user ? (user.email?.[0] || "U").toUpperCase() : "?"}</span>}
         </span>
-        <div className="workspace-sidebar__account-copy min-w-0"><p className="truncate text-sm font-bold text-slate-800">{user?.user_metadata?.full_name || user?.email || "Khách"}</p><p className="truncate text-xs text-slate-400">{user ? "Tài khoản StudyHub" : "Đăng nhập để đồng bộ"}</p></div>
+        <div className="workspace-sidebar__account-copy min-w-0"><p className="truncate text-sm font-bold text-slate-800">{user?.user_metadata?.full_name || user?.email || "Khách"}</p></div>
       </div>
     </div>
   );
