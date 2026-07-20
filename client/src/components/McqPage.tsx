@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Eye, Folder, FolderPlus, Globe2, LockKeyhole, Pencil, Play, RotateCcw, Settings2, ShieldCheck, Trash2, Trophy, UserMinus, UserPlus, X, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Eye, Folder, FolderInput, FolderPlus, Globe2, LockKeyhole, Pencil, Play, RotateCcw, Settings2, ShieldCheck, Trash2, Trophy, UserMinus, UserPlus, X, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
 import McqIcon from "./McqIcon";
@@ -54,7 +54,6 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [accessNotice, setAccessNotice] = useState("");
   const [accessBusy, setAccessBusy] = useState(false);
-  const [openFolderMenuId, setOpenFolderMenuId] = useState<string | null>(null);
   const [openDeckMenuId, setOpenDeckMenuId] = useState<string | null>(null);
   const [folderComposer, setFolderComposer] = useState<"parent" | "child" | null>(null);
   const [folderTitle, setFolderTitle] = useState("");
@@ -309,7 +308,6 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     setFolderComposer(mode);
     setFolderTitle("");
     setFolderParentId(parentId);
-    setOpenFolderMenuId(null);
   }
 
   async function submitFolder() {
@@ -346,7 +344,6 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     setEditingFolderId(folder.id);
     setEditingFolderTitle(folder.title);
     setEditingFolderParentId(folder.parent_id);
-    setOpenFolderMenuId(null);
   }
 
   async function saveFolderEdit(folder: McqFolder) {
@@ -383,6 +380,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     const previousFolders = libraryFolders;
     const previousBanks = libraryBanks;
     setFolderActionBusy(folder.id);
+    setActiveFolderId((current) => current === folder.id ? folder.parent_id : current);
     setLibraryFolders((items) => items.filter((item) => item.id !== folder.id).map((item) => item.parent_id === folder.id ? { ...item, parent_id: null } : item));
     setLibraryBanks((items) => items.map((item) => item.folder_id === folder.id ? { ...item, folder_id: null } : item));
     try {
@@ -483,7 +481,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     const parentOptions = libraryFolders.filter((item) => item.id !== folder.id && !descendants.has(item.id));
     return <div key={folder.id} className="space-y-3" style={{ marginLeft: depth ? `${Math.min(depth, 4) * 1.25}rem` : undefined }}>
       <div className="relative rounded-2xl border border-amber-200 bg-amber-50/55 px-4 py-3 shadow-sm">
-        <div className="flex items-center justify-between gap-3"><button type="button" onClick={() => { setActiveFolderId(folder.id); setOpenFolderMenuId(null); setOpenDeckMenuId(null); }} className="flex min-w-0 items-center gap-3 text-left"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Folder size={20} /></span><span className="min-w-0"><span className="block truncate text-base font-extrabold text-slate-800">{folder.title}</span><span className="block text-xs font-semibold text-slate-500">{folderDecks.length} bộ MCQ · {folder.status === "published" ? "Công khai" : "Riêng tư"}</span></span></button>{isAdmin && <div className="relative"><button type="button" disabled={folderActionBusy === folder.id} aria-label={`Cài đặt thư mục ${folder.title}`} title="Cài đặt thư mục" onClick={() => setOpenFolderMenuId((current) => current === folder.id ? null : folder.id)} className="rounded-xl p-2 text-slate-600 hover:bg-amber-100 disabled:opacity-45"><Settings2 size={18} /></button>{openFolderMenuId === folder.id && <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,.2)]"><button type="button" disabled={folderActionBusy === folder.id} onClick={() => beginEditFolder(folder)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-45"><Pencil size={15} />Sửa và di chuyển thư mục</button><button type="button" disabled={folderActionBusy === folder.id} onClick={() => void toggleFolderVisibility(folder)} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-45">{folder.status === "published" ? <LockKeyhole size={15} /> : <Globe2 size={15} />}{folder.status === "published" ? "Chuyển riêng tư" : "Công khai thư mục"}</button><button type="button" disabled={folderActionBusy === folder.id} onClick={() => void removeFolder(folder)} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-45"><Trash2 size={15} />Xóa thư mục</button></div>}</div>}</div>
+        <div className="flex items-center justify-between gap-3"><button type="button" onClick={() => { setActiveFolderId(folder.id); setOpenDeckMenuId(null); }} className="flex min-w-0 items-center gap-3 text-left"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Folder size={20} /></span><span className="min-w-0"><span className="block truncate text-base font-extrabold text-slate-800">{folder.title}</span><span className="block text-xs font-semibold text-slate-500">{folderDecks.length} bộ MCQ · {folder.status === "published" ? "Công khai" : "Riêng tư"}</span></span></button>{isAdmin && <div className="flex shrink-0 items-center gap-1"><button type="button" disabled={folderActionBusy === folder.id} aria-label={`Đổi tên thư mục ${folder.title}`} title="Đổi tên thư mục" onClick={() => beginEditFolder(folder)} className="rounded-xl p-2 text-violet-700 hover:bg-violet-100 disabled:opacity-45"><Pencil size={17} /></button><button type="button" disabled={folderActionBusy === folder.id} aria-label={`Di chuyển thư mục ${folder.title}`} title="Di chuyển thư mục" onClick={() => beginEditFolder(folder)} className="rounded-xl p-2 text-amber-700 hover:bg-amber-100 disabled:opacity-45"><FolderInput size={17} /></button><button type="button" disabled={folderActionBusy === folder.id} aria-label={folder.status === "published" ? `Chuyển ${folder.title} thành riêng tư` : `Công khai ${folder.title}`} title={folder.status === "published" ? "Chuyển riêng tư" : "Công khai thư mục"} onClick={() => void toggleFolderVisibility(folder)} className="rounded-xl p-2 text-teal-700 hover:bg-teal-100 disabled:opacity-45">{folder.status === "published" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" disabled={folderActionBusy === folder.id} aria-label={`Xóa thư mục ${folder.title}`} title="Xóa thư mục" onClick={() => void removeFolder(folder)} className="rounded-xl p-2 text-rose-600 hover:bg-rose-100 disabled:opacity-45"><Trash2 size={17} /></button></div>}</div>
         {editingFolderId === folder.id && <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_220px_auto_auto]"><input value={editingFolderTitle} onChange={(event) => setEditingFolderTitle(event.target.value)} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold" placeholder="Tên thư mục" /><select value={editingFolderParentId || ""} onChange={(event) => setEditingFolderParentId(event.target.value || null)} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold"><option value="">Thư mục gốc</option>{parentOptions.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button type="button" disabled={folderActionBusy === folder.id} onClick={() => void saveFolderEdit(folder)} className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-45">Lưu</button><button type="button" onClick={() => setEditingFolderId(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600"><X size={16} /></button></div>}
       </div>
     </div>;
@@ -522,7 +520,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
       <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><McqIcon size={34} strokeWidth={1.8} /></div>
-            <div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Khu vực luyện tập</p><h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1><p className="mt-1 text-sm text-slate-500">Chọn một bộ đề để bắt đầu làm trắc nghiệm.</p></div>
+            <div><h1 id="mcq-title" className="text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1></div>
           </div>
           {isAdmin && <button type="button" onClick={() => beginCreateFolder(activeFolderId ? "child" : "parent", activeFolderId)} title={activeFolderId ? "Tạo thư mục con trong thư mục hiện tại" : "Tạo thư mục mẹ"} aria-label={activeFolderId ? "Tạo thư mục con" : "Tạo thư mục mẹ"} className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-white text-amber-700 shadow-sm hover:bg-amber-50"><FolderPlus size={19} /></button>}
         </div>
