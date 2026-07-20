@@ -113,11 +113,9 @@ export async function createMcqFolder(ownerId: string, title: string, parentId: 
   const client = requireSupabase();
   const normalizedTitle = title.trim();
   if (!normalizedTitle) throw new Error("Tên thư mục không được để trống.");
-  const { data: { user } } = await client.auth.getUser();
-  if (!user?.id) throw new Error("Phiên đăng nhập không hợp lệ.");
   const { data, error } = await client
     .from("mcq_folders")
-    .insert({ owner_id: user.id || ownerId, title: normalizedTitle, parent_id: parentId, status: "draft", published_at: null })
+    .insert({ owner_id: ownerId, title: normalizedTitle, parent_id: parentId, status: "draft", published_at: null })
     .select("*")
     .single();
   if (error) throw error;

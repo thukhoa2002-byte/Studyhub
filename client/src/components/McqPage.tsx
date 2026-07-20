@@ -62,6 +62,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderTitle, setEditingFolderTitle] = useState("");
   const [editingFolderParentId, setEditingFolderParentId] = useState<string | null>(null);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const isOwner = userEmail?.trim().toLowerCase() === "thukhoa2002@gmail.com";
 
   const refreshMcqAdmins = useCallback(async () => {
@@ -112,15 +113,17 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     try {
       // The bank list is the source of truth for drafts. A missing/old status
       // RPC must not hide a bank that was already saved successfully.
-      const banks = await listMcqBanks();
+      const [banks, folders, states] = await Promise.all([
+        listMcqBanks(),
+        listMcqFolders(),
+        listMcqBankStates().catch((stateError) => {
+          console.warn("Không thể tải trạng thái MCQ, vẫn hiển thị bản nháp đã lưu.", stateError);
+          return [] as McqBankState[];
+        }),
+      ]);
       setLibraryBanks(banks);
-      setLibraryFolders(await listMcqFolders());
-      try {
-        setBankStates(await listMcqBankStates());
-      } catch (stateError) {
-        console.warn("Không thể tải trạng thái MCQ, vẫn hiển thị bản nháp đã lưu.", stateError);
-        setBankStates([]);
-      }
+      setLibraryFolders(folders);
+      setBankStates(states);
     }
     catch (loadError) {
       console.warn("Không thể tải thư viện MCQ", loadError);
@@ -310,11 +313,11 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     if (!isAdmin || !userId || !folderTitle.trim()) return;
     try {
       setError("");
-      await createMcqFolder(userId, folderTitle, folderComposer === "child" ? folderParentId : null);
+      const created = await createMcqFolder(userId, folderTitle, folderComposer === "child" ? folderParentId : null);
+      setLibraryFolders((items) => [...items, created]);
       setFolderComposer(null);
       setFolderTitle("");
       setFolderParentId(null);
-      await refreshLibrary();
     } catch (folderError) {
       setError(mcqLibraryErrorMessage(folderError, "Không thể tạo thư mục MCQ."));
     }
@@ -344,9 +347,9 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     if (!isAdmin || !editingFolderTitle.trim()) return;
     try {
       setError("");
-      await updateMcqFolder(folder.id, { title: editingFolderTitle, parentId: editingFolderParentId });
+      const updated = await updateMcqFolder(folder.id, { title: editingFolderTitle, parentId: editingFolderParentId });
+      setLibraryFolders((items) => items.map((item) => item.id === updated.id ? updated : item));
       setEditingFolderId(null);
-      await refreshLibrary();
     } catch (folderError) {
       setError(mcqLibraryErrorMessage(folderError, "Không thể sửa thư mục MCQ."));
     }
@@ -356,8 +359,8 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     if (!isAdmin) return;
     try {
       setError("");
-      await updateMcqFolder(folder.id, { status: folder.status === "published" ? "draft" : "published" });
-      await refreshLibrary();
+      const updated = await updateMcqFolder(folder.id, { status: folder.status === "published" ? "draft" : "published" });
+      setLibraryFolders((items) => items.map((item) => item.id === updated.id ? updated : item));
     } catch (folderError) {
       setError(mcqLibraryErrorMessage(folderError, "Không thể thay đổi quyền xem thư mục."));
     }
@@ -368,8 +371,9 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     try {
       setError("");
       await deleteMcqFolder(folder.id);
+      setLibraryFolders((items) => items.filter((item) => item.id !== folder.id).map((item) => item.parent_id === folder.id ? { ...item, parent_id: null } : item));
+      setLibraryBanks((items) => items.map((item) => item.folder_id === folder.id ? { ...item, folder_id: null } : item));
       if (editingFolderId === folder.id) setEditingFolderId(null);
-      await refreshLibrary();
     } catch (folderError) {
       setError(mcqLibraryErrorMessage(folderError, "Không thể xóa thư mục MCQ."));
     }
@@ -381,9 +385,9 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
     if (!bankId) return;
     try {
       setError("");
-      await moveMcqBank(bankId, folderId);
+      const updated = await moveMcqBank(bankId, folderId);
+      setLibraryBanks((items) => items.some((item) => item.id === updated.id) ? items.map((item) => item.id === updated.id ? updated : item) : [...items, updated]);
       setOpenDeckMenuId(null);
-      await refreshLibrary();
     } catch (moveError) {
       setError(mcqLibraryErrorMessage(moveError, "Không thể di chuyển bộ MCQ."));
     }
@@ -426,6 +430,11 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
 
   const visibleFolders = isAdmin ? libraryFolders : libraryFolders.filter((folder) => folder.status === "published");
   const visibleFolderIds = new Set(visibleFolders.map((folder) => folder.id));
+  const currentFolder = activeFolderId ? visibleFolders.find((folder) => folder.id === activeFolderId) || null : null;
+  const currentFolders = visibleFolders.filter((folder) => (folder.parent_id || null) === activeFolderId);
+  const currentDecks = activeFolderId
+    ? decks.filter((deck) => deck.folderId === activeFolderId)
+    : decks.filter((deck) => !deck.folderId || !visibleFolderIds.has(deck.folderId));
 
   function renderDeckCard(deck: DeckDefinition): ReactNode {
     return <article key={deck.key} className="group relative flex min-h-48 flex-col rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md sm:p-5">
@@ -450,17 +459,14 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
   }
 
   function renderFolder(folder: McqFolder, depth = 0): ReactNode {
-    const children = visibleFolders.filter((item) => item.parent_id === folder.id);
     const folderDecks = decks.filter((deck) => deck.folderId === folder.id);
     const descendants = folderDescendantIds(folder.id);
     const parentOptions = libraryFolders.filter((item) => item.id !== folder.id && !descendants.has(item.id));
     return <div key={folder.id} className="space-y-3" style={{ marginLeft: depth ? `${Math.min(depth, 4) * 1.25}rem` : undefined }}>
       <div className="relative rounded-2xl border border-amber-200 bg-amber-50/55 px-4 py-3 shadow-sm">
-        <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Folder size={20} /></span><div className="min-w-0"><p className="truncate text-base font-extrabold text-slate-800">{folder.title}</p><p className="text-xs font-semibold text-slate-500">{folderDecks.length} bộ MCQ · {folder.status === "published" ? "Công khai" : "Riêng tư"}</p></div></div>{isAdmin && <div className="relative"><button type="button" aria-label={`Cài đặt thư mục ${folder.title}`} title="Cài đặt thư mục" onClick={() => setOpenFolderMenuId((current) => current === folder.id ? null : folder.id)} className="rounded-xl p-2 text-slate-600 hover:bg-amber-100"><Settings2 size={18} /></button>{openFolderMenuId === folder.id && <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,.2)]"><button type="button" onClick={() => beginEditFolder(folder)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"><Pencil size={15} />Sửa và di chuyển thư mục</button><button type="button" onClick={() => beginCreateFolder("child", folder.id)} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50"><FolderPlus size={15} />Tạo thư mục con</button><button type="button" onClick={() => void toggleFolderVisibility(folder)} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50">{folder.status === "published" ? <LockKeyhole size={15} /> : <Globe2 size={15} />}{folder.status === "published" ? "Chuyển riêng tư" : "Công khai thư mục"}</button><button type="button" onClick={() => void removeFolder(folder)} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><Trash2 size={15} />Xóa thư mục</button></div>}</div>}</div>
+        <div className="flex items-center justify-between gap-3"><button type="button" onClick={() => { setActiveFolderId(folder.id); setOpenFolderMenuId(null); setOpenDeckMenuId(null); }} className="flex min-w-0 items-center gap-3 text-left"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Folder size={20} /></span><span className="min-w-0"><span className="block truncate text-base font-extrabold text-slate-800">{folder.title}</span><span className="block text-xs font-semibold text-slate-500">{folderDecks.length} bộ MCQ · {folder.status === "published" ? "Công khai" : "Riêng tư"}</span></span></button>{isAdmin && <div className="relative"><button type="button" aria-label={`Cài đặt thư mục ${folder.title}`} title="Cài đặt thư mục" onClick={() => setOpenFolderMenuId((current) => current === folder.id ? null : folder.id)} className="rounded-xl p-2 text-slate-600 hover:bg-amber-100"><Settings2 size={18} /></button>{openFolderMenuId === folder.id && <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,.2)]"><button type="button" onClick={() => beginEditFolder(folder)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"><Pencil size={15} />Sửa và di chuyển thư mục</button><button type="button" onClick={() => void toggleFolderVisibility(folder)} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50">{folder.status === "published" ? <LockKeyhole size={15} /> : <Globe2 size={15} />}{folder.status === "published" ? "Chuyển riêng tư" : "Công khai thư mục"}</button><button type="button" onClick={() => void removeFolder(folder)} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><Trash2 size={15} />Xóa thư mục</button></div>}</div>}</div>
         {editingFolderId === folder.id && <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_220px_auto_auto]"><input value={editingFolderTitle} onChange={(event) => setEditingFolderTitle(event.target.value)} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold" placeholder="Tên thư mục" /><select value={editingFolderParentId || ""} onChange={(event) => setEditingFolderParentId(event.target.value || null)} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold"><option value="">Thư mục gốc</option>{parentOptions.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button type="button" onClick={() => void saveFolderEdit(folder)} className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-white">Lưu</button><button type="button" onClick={() => setEditingFolderId(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600"><X size={16} /></button></div>}
       </div>
-      {folderDecks.map(renderDeckCard)}
-      {children.map((child) => renderFolder(child, depth + 1))}
     </div>;
   }
 
@@ -500,11 +506,11 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining }: Props
           <div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Khu vực luyện tập</p><h1 id="mcq-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">MCQ</h1><p className="mt-1 text-sm text-slate-500">Chọn một bộ đề để bắt đầu làm trắc nghiệm.</p></div>
         </div>
         {isAdmin && <div className="mt-7 rounded-2xl border border-dashed border-amber-200 bg-amber-50/45 p-3">
-          <div className="flex flex-wrap items-center gap-2"><p className="mr-2 text-xs font-extrabold uppercase tracking-[.14em] text-amber-800">Kho thư mục MCQ</p><button type="button" onClick={() => beginCreateFolder("parent")} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-50"><FolderPlus size={15} />Tạo thư mục mẹ</button><button type="button" disabled={libraryFolders.length === 0} onClick={() => beginCreateFolder("child", libraryFolders[0]?.id || null)} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-45"><FolderPlus size={15} />Tạo thư mục con</button></div>
-          {folderComposer && <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_220px_auto_auto]"><input autoFocus value={folderTitle} onChange={(event) => setFolderTitle(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void submitFolder(); } }} placeholder={folderComposer === "parent" ? "Tên thư mục mẹ" : "Tên thư mục con"} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold" />{folderComposer === "child" ? <select value={folderParentId || ""} onChange={(event) => setFolderParentId(event.target.value || null)} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold">{libraryFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.title}</option>)}</select> : <span />}</div>}
-          {folderComposer && <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => { setFolderComposer(null); setFolderTitle(""); }} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">Hủy</button><button type="button" disabled={!folderTitle.trim() || (folderComposer === "child" && !folderParentId)} onClick={() => void submitFolder()} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-45">Lưu thư mục</button></div>}
+          <div className="flex flex-wrap items-center gap-2"><p className="mr-2 text-xs font-extrabold uppercase tracking-[.14em] text-amber-800">Kho thư mục MCQ</p><button type="button" onClick={() => beginCreateFolder(activeFolderId ? "child" : "parent", activeFolderId)} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-50"><FolderPlus size={15} />Tạo thư mục</button></div>
+          {folderComposer && <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]"><input autoFocus value={folderTitle} onChange={(event) => setFolderTitle(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void submitFolder(); } }} placeholder={folderComposer === "child" ? "Tên thư mục con" : "Tên thư mục"} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold" /><button type="button" onClick={() => { setFolderComposer(null); setFolderTitle(""); }} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">Hủy</button><button type="button" disabled={!folderTitle.trim()} onClick={() => void submitFolder()} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-45">Lưu</button></div>}
         </div>}
-        <div className="mt-8 grid grid-cols-1 gap-4">{visibleFolders.filter((folder) => !folder.parent_id).map((folder) => renderFolder(folder))}{decks.filter((deck) => !deck.folderId || !visibleFolderIds.has(deck.folderId)).map(renderDeckCard)}</div>
+        <div className="mt-8 flex items-center gap-2 text-sm font-bold"><button type="button" onClick={() => setActiveFolderId(null)} className={`rounded-lg px-2 py-1 ${activeFolderId ? "text-amber-700 hover:bg-amber-50" : "text-slate-800"}`}>Kho MCQ</button>{currentFolder && <><ChevronRight size={15} className="text-slate-400" /><span className="truncate text-slate-800">{currentFolder.title}</span></>}</div>
+        <div className="mt-3 grid grid-cols-1 gap-4">{currentFolders.map((folder) => renderFolder(folder))}{currentDecks.map(renderDeckCard)}</div>
       </div>
     </section>
   );
