@@ -196,9 +196,10 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
         {metrics.map(({ id, label, value, icon: Icon, color, background }) => (
           <article key={id} className={`relative rounded-2xl border bg-white/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_8px_24px_rgba(148,163,184,.1)] backdrop-blur-xl transition ${activePanel === id ? "border-teal-200 ring-2 ring-teal-100" : "border-white/80"}`}>
             <button type="button" onClick={() => setActivePanel((current) => current === id ? null : id)} aria-label={`Xem ${label.toLowerCase()}`} title={`Xem ${label.toLowerCase()}`} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-teal-600"><MoreHorizontal size={19} /></button>
-            <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-2xl ${background}`}><Icon className={`h-5 w-5 ${color}`} /></div>
-            <p className="text-2xl font-extrabold tabular-nums text-slate-800">{unavailable && id !== "online" ? "—" : value.toLocaleString("vi-VN")}</p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">{label}</p>
+            <div className="flex items-center gap-3 pr-8">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${background}`}><Icon className={`h-5 w-5 ${color}`} /></div>
+              <div className="min-w-0"><p className="text-2xl font-extrabold leading-none tabular-nums text-slate-800">{unavailable && id !== "online" ? "—" : value.toLocaleString("vi-VN")}</p><p className="mt-1 truncate text-xs font-semibold text-slate-500">{label}</p></div>
+            </div>
           </article>
         ))}
       </div>
