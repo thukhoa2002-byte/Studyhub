@@ -395,6 +395,12 @@ html[data-theme="test-light"] [class*="border-blue-"],
 html[data-theme="test-light"] [class*="border-sky-"] { border-color: rgba(13,148,136,.28) !important; }
 html[data-theme="test-light"] button[class*="bg-violet-"],
 html[data-theme="test-light"] button[class*="bg-fuchsia-"] { background-color: #64748b !important; color: #fff !important; }
+html[data-theme="test-light"] button[aria-label*="Xóa"] svg,
+html[data-theme="test-light"] button[title*="Xóa"] svg,
+html[data-theme="test-light"] button[aria-label*="Thu hồi"] svg { color: #c2415b !important; }
+html[data-theme="test-light"] button[aria-label*="Xóa"]:hover,
+html[data-theme="test-light"] button[title*="Xóa"]:hover,
+html[data-theme="test-light"] button[aria-label*="Thu hồi"]:hover { background-color: rgba(194,65,91,.1) !important; }
 html[data-theme="test-light"] [class*="from-violet-"],
 html[data-theme="test-light"] [class*="from-fuchsia-"] { --tw-gradient-from: #e8edf2 var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(232 237 242 / 0) var(--tw-gradient-to-position) !important; }
 html[data-theme="test-light"] [class*="to-sky-"],
