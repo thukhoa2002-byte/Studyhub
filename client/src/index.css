@@ -355,6 +355,29 @@ html[data-theme="test-light"] button[class*="bg-violet-"] { background-color: #8
 html[data-theme="test-light"] button[class*="bg-rose-"],
 html[data-theme="test-light"] button[class*="bg-teal-"] { color: #fff !important; }
 html[data-theme="test-light"] button:disabled { opacity: .52 !important; }
+/* Warm Test Light accents: replace the default violet/blue utilities without
+   changing the shared component palette used by the other themes. */
+html[data-theme="test-light"] [class*="text-violet-"],
+html[data-theme="test-light"] [class*="text-fuchsia-"] { color: #e11d48 !important; }
+html[data-theme="test-light"] [class*="text-indigo-"],
+html[data-theme="test-light"] [class*="text-blue-"],
+html[data-theme="test-light"] [class*="text-sky-"] { color: #0f766e !important; }
+html[data-theme="test-light"] [class*="bg-violet-"],
+html[data-theme="test-light"] [class*="bg-fuchsia-"] { background-color: rgba(225,29,72,.12) !important; }
+html[data-theme="test-light"] [class*="bg-indigo-"],
+html[data-theme="test-light"] [class*="bg-blue-"],
+html[data-theme="test-light"] [class*="bg-sky-"] { background-color: rgba(13,148,136,.13) !important; }
+html[data-theme="test-light"] [class*="border-violet-"],
+html[data-theme="test-light"] [class*="border-fuchsia-"] { border-color: rgba(225,29,72,.26) !important; }
+html[data-theme="test-light"] [class*="border-indigo-"],
+html[data-theme="test-light"] [class*="border-blue-"],
+html[data-theme="test-light"] [class*="border-sky-"] { border-color: rgba(13,148,136,.28) !important; }
+html[data-theme="test-light"] button[class*="bg-violet-"],
+html[data-theme="test-light"] button[class*="bg-fuchsia-"] { background-color: #e11d48 !important; color: #fff !important; }
+html[data-theme="test-light"] [class*="from-violet-"],
+html[data-theme="test-light"] [class*="from-fuchsia-"] { --tw-gradient-from: #ffe4e6 var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(255 228 230 / 0) var(--tw-gradient-to-position) !important; }
+html[data-theme="test-light"] [class*="to-sky-"],
+html[data-theme="test-light"] [class*="to-blue-"] { --tw-gradient-to: #ccfbf1 var(--tw-gradient-to-position) !important; }
 html[data-theme="test-light"] .glass-header button:hover { background-color: rgba(255,255,255,.42) !important; }
 html[data-theme="test-light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.2); }
 html[data-theme="test-light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.32); }

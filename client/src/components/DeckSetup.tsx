@@ -504,13 +504,6 @@ export default function DeckSetup({
 
   return (
     <section className="mx-auto max-w-5xl px-5 py-8 sm:py-12">
-      <div className="mb-7">
-        <h1 className="mt-2 flex items-center gap-3 text-3xl font-bold tracking-tight text-rose-950 sm:text-4xl">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-fuchsia-100 p-1"><img src="/brain-learning-icon.png" alt="Não bộ" className="h-full w-full object-contain" /></span>
-          Nạp kiến thức vào bộ nhớ
-        </h1>
-      </div>
-
       <div className={`setup-mode-tabs setup-mode-tabs--${mode} mb-6 grid gap-2 rounded-lg border border-rose-100 bg-white/70 p-1 shadow-sm sm:grid-cols-3`}>
         <span className="setup-mode-tabs__glider" aria-hidden="true" />
         <button
