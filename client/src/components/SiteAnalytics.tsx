@@ -179,17 +179,17 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
         </button>
       </section>}
       <section className={placement === "sidebar" ? "site-analytics site-analytics--sidebar site-analytics--sidebar-open glass-panel mt-3 w-full rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm" : "site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5"} aria-label="Thống kê truy cập">
-      <div className="mb-4 flex items-center justify-between gap-3 px-1">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-rose-500">Bảng điều khiển riêng</p>
-          <h2 className="mt-1 text-lg font-bold text-rose-950">Thống kê trang web</h2>
+      <div className="mb-4 flex flex-col gap-2 px-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.12em] text-rose-500">Bảng điều khiển riêng</p>
+            <h2 className="mt-1 whitespace-nowrap text-lg font-bold text-rose-950">Thống kê trang web</h2>
+          </div>
+          <button type="button" onClick={() => { setCollapsed(true); setActivePanel(null); onExpandedChange?.(false); }} aria-label="Thu gọn bảng điều khiển riêng" title="Thu gọn bảng điều khiển riêng" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-teal-600"><ChevronUp size={17} /></button>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-2 rounded-full border border-teal-100 bg-white/75 px-3 py-1.5 text-xs font-semibold text-teal-700">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-teal-400" /> Trực tiếp · 10s
-          </span>
-          <button type="button" onClick={() => { setCollapsed(true); setActivePanel(null); onExpandedChange?.(false); }} aria-label="Thu gọn bảng điều khiển riêng" title="Thu gọn bảng điều khiển riêng" className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-teal-600"><ChevronUp size={17} /></button>
-        </div>
+        <span className="flex w-fit items-center gap-1 rounded-full border border-teal-100 bg-white/75 px-2 py-1 text-[11px] font-semibold leading-4 whitespace-nowrap text-teal-700">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-400" /> Trực tiếp · 10s
+        </span>
       </div>
 
       <div className={`grid gap-3 ${placement === "sidebar" ? "grid-cols-1" : "sm:grid-cols-3"}`}>
