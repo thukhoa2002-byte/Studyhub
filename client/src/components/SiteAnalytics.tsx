@@ -13,6 +13,7 @@ import { supabase } from "../services/supabase";
 interface SiteAnalyticsProps {
   userId?: string | null;
   visible: boolean;
+  placement?: "content" | "sidebar";
 }
 
 interface OnlineVisitor {
@@ -36,7 +37,7 @@ function formatDateTime(value: string) {
   return Number.isNaN(date.getTime()) ? "—" : dateTimeFormatter.format(date);
 }
 
-export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
+export default function SiteAnalytics({ userId, visible, placement = "content" }: SiteAnalyticsProps) {
   const [summary, setSummary] = useState<SiteAnalyticsSummary>({ totalVisits: 0, uniqueVisitors: 0 });
   const [details, setDetails] = useState<SiteAnalyticsDetails>({ visitors: [], visits: [] });
   const [onlineVisitors, setOnlineVisitors] = useState<OnlineVisitor[]>([]);
@@ -135,16 +136,17 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
 
   if (collapsed) {
     return (
-      <section className="site-analytics site-analytics--collapsed mx-auto mb-6 flex w-full max-w-[1600px] justify-end px-5" aria-label="Bảng điều khiển riêng">
+      <section className={placement === "sidebar" ? "site-analytics site-analytics--sidebar mt-3 w-full" : "site-analytics site-analytics--collapsed mx-auto mb-6 flex w-full max-w-[1600px] justify-end px-5"} aria-label="Bảng điều khiển riêng">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
           aria-label="Mở bảng điều khiển riêng"
           aria-expanded={false}
           title="Mở bảng điều khiển riêng"
-          className="glass-card flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/60 text-teal-600 shadow-sm hover:text-teal-700"
+          className={placement === "sidebar" ? "flex h-11 w-full items-center justify-start gap-3 rounded-xl border border-white/80 bg-white/80 px-3 text-slate-600 shadow-sm hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700" : "glass-card flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/60 text-teal-600 shadow-sm hover:text-teal-700"}
         >
           <Activity size={20} />
+          {placement === "sidebar" && <span className="workspace-tabs__label text-sm font-bold">Bảng điều khiển</span>}
         </button>
       </section>
     );
@@ -161,7 +163,7 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
     ?? (visitorKey.startsWith("guest:") ? `Khách • ${visitorKey.slice(-4).toUpperCase()}` : "Thành viên");
 
   return (
-    <section className="site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5" aria-label="Thống kê truy cập">
+    <section className={placement === "sidebar" ? "site-analytics site-analytics--sidebar site-analytics--sidebar-open glass-panel mt-3 w-full rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm" : "site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5"} aria-label="Thống kê truy cập">
       <div className="mb-4 flex items-center justify-between gap-3 px-1">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-rose-500">Bảng điều khiển riêng</p>
@@ -175,7 +177,7 @@ export default function SiteAnalytics({ userId, visible }: SiteAnalyticsProps) {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className={`grid gap-3 ${placement === "sidebar" ? "grid-cols-1" : "sm:grid-cols-3"}`}>
         {metrics.map(({ id, label, value, icon: Icon, color, background }) => (
           <article key={id} className={`relative rounded-2xl border bg-white/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_8px_24px_rgba(148,163,184,.1)] backdrop-blur-xl transition ${activePanel === id ? "border-teal-200 ring-2 ring-teal-100" : "border-white/80"}`}>
             <button type="button" onClick={() => setActivePanel((current) => current === id ? null : id)} aria-label={`Xem ${label.toLowerCase()}`} title={`Xem ${label.toLowerCase()}`} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-teal-600"><MoreHorizontal size={19} /></button>

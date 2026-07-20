@@ -11,7 +11,6 @@ import DeckEditor from "./components/DeckEditor";
 import ShareDeckDialog from "./components/ShareDeckDialog";
 import LoadingOverlay from "./components/LoadingOverlay";
 import PandaAssistant from "./components/PandaAssistant";
-import SiteAnalytics from "./components/SiteAnalytics";
 import SharedDeckNotification from "./components/SharedDeckNotification";
 import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import DrugsPage from "./components/DrugsPage";
@@ -771,7 +770,7 @@ export default function App() {
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
         <div className="relative min-h-[calc(100vh-4rem)] pb-8 lg:pl-20">
-          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
+          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} />
           <div className="min-w-0 flex-1">
 
         {workspaceTab === "flashcards" && questions.length > 0 && (
@@ -783,8 +782,6 @@ export default function App() {
             onEdit={editCurrentCard}
           />
         )}
-
-        <SiteAnalytics userId={user?.id} visible={workspaceTab === "flashcards" && analyticsAdmin && !editing && questions.length === 0} />
 
         <div className={workspaceTab === "guidelines" ? "block" : "hidden"} aria-hidden={workspaceTab !== "guidelines"}>
           <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} />

@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
 import McqIcon from "./McqIcon";
+import SiteAnalytics from "./SiteAnalytics";
 import WorkspaceSettings from "./WorkspaceSettings";
 
 export type WorkspaceTab = "flashcards" | "mcq" | "guidelines" | "drugs";
@@ -16,6 +17,7 @@ interface Props {
   onThemeChange: (theme: "color" | "basic" | "test" | "test-light") => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
+  analyticsAdmin: boolean;
 }
 
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
@@ -25,7 +27,7 @@ const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?
   { id: "drugs", label: "Drugs", icon: Pill },
 ];
 
-export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange }: Props) {
+export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin }: Props) {
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
 
   return (
@@ -65,6 +67,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
           );
         })}
       </nav>
+      {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
       <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-100 bg-teal-50 text-teal-700">
