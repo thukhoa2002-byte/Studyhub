@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, Camera, LogOut, Moon, Sun, UserRound } from "lucide-react";
+import { flushSync } from "react-dom";
 import { supabase } from "../services/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -26,6 +27,46 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
+  const testThemeToggle = useRef<HTMLButtonElement>(null);
+
+  const toggleTestTheme = useCallback(async () => {
+    const button = testThemeToggle.current;
+    if (!button) return;
+
+    const nextTheme = theme === "test" ? "test-light" : "test";
+    const applyTheme = () => {
+      document.documentElement.dataset.theme = nextTheme;
+      localStorage.setItem("hocbai-theme", nextTheme);
+      flushSync(() => onThemeChange(nextTheme));
+    };
+    const startViewTransition = (document as Document & {
+      startViewTransition?: (update: () => void) => { ready: Promise<void> };
+    }).startViewTransition;
+
+    if (!startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      applyTheme();
+      return;
+    }
+
+    const { left, top, width, height } = button.getBoundingClientRect();
+    const x = left + width / 2;
+    const y = top + height / 2;
+    const radius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    );
+    const transition = startViewTransition.call(document, applyTheme);
+
+    await transition.ready;
+    document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+      {
+        duration: 560,
+        easing: "cubic-bezier(.22, 1, .36, 1)",
+        pseudoElement: "::view-transition-new(root)",
+      } as KeyframeAnimationOptions & { pseudoElement: string },
+    );
+  }, [onThemeChange, theme]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -109,7 +150,7 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
               <button type="button" onClick={() => onThemeChange("basic")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button>
               <button type="button" onClick={() => onThemeChange("test")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "test" ? "bg-slate-900 text-cyan-200 shadow-sm" : theme === "test-light" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Test</button>
             </div>
-            {(theme === "test" || theme === "test-light") && <button type="button" onClick={() => onThemeChange(theme === "test" ? "test-light" : "test")} className="mt-2 flex w-full items-center justify-between rounded-xl border border-slate-200/70 px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50" aria-label={theme === "test" ? "Chuyển Test sang chế độ sáng" : "Chuyển Test sang chế độ tối"}>
+            {(theme === "test" || theme === "test-light") && <button ref={testThemeToggle} type="button" onClick={() => void toggleTestTheme()} className="mt-2 flex w-full items-center justify-between rounded-xl border border-slate-200/70 px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50" aria-label={theme === "test" ? "Chuyển Test sang chế độ sáng" : "Chuyển Test sang chế độ tối"}>
               <span className="flex items-center gap-2">{theme === "test" ? <Sun size={15} /> : <Moon size={15} />} Test {theme === "test" ? "sáng" : "tối"}</span>
               <span className="text-[10px] text-slate-400">Đổi</span>
             </button>}
