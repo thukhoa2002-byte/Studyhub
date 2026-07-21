@@ -40,6 +40,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
   const [mcqPanelTimer, setMcqPanelTimer] = useState<number | null>(null);
   const [referencePanelOpen, setReferencePanelOpen] = useState(false);
   const [referencePanelTimer, setReferencePanelTimer] = useState<number | null>(null);
+  const [analyticsPanelOpen, setAnalyticsPanelOpen] = useState(false);
 
   function keepMcqPanelOpen() {
     if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
@@ -93,8 +94,16 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
     onReferenceSectionChange(section);
   }
 
+  function handleAnalyticsExpanded(expanded: boolean) {
+    setAnalyticsPanelOpen(expanded);
+    onAnalyticsExpanded(expanded);
+  }
+
   useEffect(() => {
-    if (!analyticsAdmin) onAnalyticsExpanded(false);
+    if (!analyticsAdmin) {
+      setAnalyticsPanelOpen(false);
+      onAnalyticsExpanded(false);
+    }
   }, [analyticsAdmin, onAnalyticsExpanded]);
 
   const visualTab = hoveredTab || (mcqPanelOpen ? "mcq" : referencePanelOpen ? "guidelines" : activeTab);
@@ -111,11 +120,11 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
         aria-label="Khu vực học tập"
       >
         <span
-          className={`workspace-tabs__glider ${visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
+          className={`workspace-tabs__glider ${analyticsPanelOpen ? "workspace-tabs__glider--hidden" : visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
           aria-hidden="true"
         />
         {tabs.map(({ id, label, icon: Icon }, tabIndex) => {
-          const active = activeTab === id;
+          const active = !analyticsPanelOpen && visualTab === id;
           const distance = hoveredTab ? Math.abs(tabs.findIndex((tab) => tab.id === hoveredTab) - tabIndex) : 99;
           const dockClass = hoveredTab === id ? "workspace-tabs__button--dock-hover" : distance === 1 ? "workspace-tabs__button--dock-neighbor" : "";
           return (
@@ -138,7 +147,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
       </nav>
       <McqSectionsPanel section={mcqSection} onChange={handleMcqSectionChange} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
       <ReferenceSectionsPanel section={referenceSection} onChange={handleReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
-      {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={onAnalyticsExpanded} />}
+      {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={handleAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
       <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-100 bg-teal-50 text-teal-700">
