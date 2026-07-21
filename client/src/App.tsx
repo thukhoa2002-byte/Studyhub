@@ -126,8 +126,8 @@ export default function App() {
   }
 
   useEffect(() => {
-    const closeTimer = window.setTimeout(() => setWelcomeClosing(true), 4500);
-    const removeTimer = window.setTimeout(() => setShowWelcome(false), 5100);
+    const closeTimer = window.setTimeout(() => setWelcomeClosing(true), 2400);
+    const removeTimer = window.setTimeout(() => setShowWelcome(false), 3000);
     return () => {
       window.clearTimeout(closeTimer);
       window.clearTimeout(removeTimer);

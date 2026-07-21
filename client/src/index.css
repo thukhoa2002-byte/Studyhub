@@ -159,7 +159,7 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 .welcome-quote p { margin: 0; color: #6b1839; font-size: .88rem; font-style: italic; line-height: 1.5; }
 .welcome-quote cite { display: block; margin-top: .3rem; color: #64748b; font-size: .72rem; font-style: italic; }
 .welcome-progress { width: min(100%, 20rem); height: .42rem; margin: 1.15rem auto .45rem; overflow: hidden; border-radius: 999px; background: rgba(226,232,240,.85); }
-.welcome-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #fb7185, #d946ef 52%, #2dd4bf); animation: welcome-progress-fill 4.8s linear forwards; }
+.welcome-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #fb7185, #d946ef 52%, #2dd4bf); animation: welcome-progress-fill 2.4s linear forwards; }
 .welcome-loading-label { margin: 0; color: #94a3b8; font-size: .74rem; }
 .welcome-dots { display: flex; justify-content: center; gap: .35rem; margin-top: 1.4rem; }
 .welcome-dots span { width: .45rem; height: .45rem; border-radius: 999px; background: #2dd4bf; animation: welcome-dot 900ms ease-in-out infinite; }
