@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Activity, ChevronUp, Clock3, Eye, MoreHorizontal, Users, X } from "lucide-react";
 import {
   getSiteAnalytics,
@@ -46,6 +46,34 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
   const [unavailable, setUnavailable] = useState(false);
   const [analyticsRefreshVersion, setAnalyticsRefreshVersion] = useState(0);
   const [collapsed, setCollapsed] = useState(true);
+  const collapseTimer = useRef<number | null>(null);
+
+  function clearCollapseTimer() {
+    if (collapseTimer.current !== null) {
+      window.clearTimeout(collapseTimer.current);
+      collapseTimer.current = null;
+    }
+  }
+
+  function openAnalyticsPanel() {
+    clearCollapseTimer();
+    setCollapsed(false);
+    onExpandedChange?.(true);
+  }
+
+  function closeAnalyticsPanel() {
+    clearCollapseTimer();
+    setCollapsed(true);
+    setActivePanel(null);
+    onExpandedChange?.(false);
+  }
+
+  function scheduleAnalyticsClose() {
+    clearCollapseTimer();
+    collapseTimer.current = window.setTimeout(closeAnalyticsPanel, 700);
+  }
+
+  useEffect(() => () => clearCollapseTimer(), []);
 
   useEffect(() => {
     const client = supabase;
@@ -137,10 +165,10 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
 
   if (collapsed) {
     return (
-      <section className={placement === "sidebar" ? "site-analytics site-analytics--sidebar mt-3 w-full" : "site-analytics site-analytics--collapsed mx-auto mb-6 flex w-full max-w-[1600px] justify-end px-5"} aria-label="Bảng điều khiển riêng">
+      <section onMouseEnter={openAnalyticsPanel} onMouseLeave={scheduleAnalyticsClose} className={placement === "sidebar" ? "site-analytics site-analytics--sidebar mt-3 w-full" : "site-analytics site-analytics--collapsed mx-auto mb-6 flex w-full max-w-[1600px] justify-end px-5"} aria-label="Bảng điều khiển riêng">
         <button
           type="button"
-          onClick={() => { setCollapsed(false); onExpandedChange?.(true); }}
+          onClick={openAnalyticsPanel}
           aria-label="Mở bảng điều khiển riêng"
           aria-expanded={false}
           title="Mở bảng điều khiển riêng"
@@ -165,10 +193,10 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
 
   return (
     <>
-      {placement === "sidebar" && <section className="site-analytics site-analytics--sidebar mt-3 w-full" aria-label="Bảng điều khiển riêng">
+      {placement === "sidebar" && <section onMouseEnter={openAnalyticsPanel} onMouseLeave={scheduleAnalyticsClose} className="site-analytics site-analytics--sidebar mt-3 w-full" aria-label="Bảng điều khiển riêng">
         <button
           type="button"
-          onClick={() => { setCollapsed(true); setActivePanel(null); onExpandedChange?.(false); }}
+          onClick={closeAnalyticsPanel}
           aria-label="Thu gọn bảng điều khiển riêng"
           aria-expanded={true}
           title="Thu gọn bảng điều khiển riêng"
@@ -178,14 +206,14 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
           <span className="workspace-tabs__label text-sm font-bold">Bảng điều khiển</span>
         </button>
       </section>}
-      <section className={placement === "sidebar" ? "site-analytics site-analytics--sidebar site-analytics--sidebar-open glass-panel mt-3 w-full rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm" : "site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5"} aria-label="Thống kê truy cập">
+      <section onMouseEnter={openAnalyticsPanel} onMouseLeave={scheduleAnalyticsClose} className={placement === "sidebar" ? "site-analytics site-analytics--sidebar site-analytics--sidebar-open glass-panel mt-3 w-full rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm" : "site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5"} aria-label="Thống kê truy cập">
       <div className="mb-4 flex flex-col gap-2 px-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.12em] text-rose-500">Bảng điều khiển riêng</p>
             <h2 className="mt-1 whitespace-nowrap text-lg font-bold text-rose-950">Thống kê trang web</h2>
           </div>
-          <button type="button" onClick={() => { setCollapsed(true); setActivePanel(null); onExpandedChange?.(false); }} aria-label="Thu gọn bảng điều khiển riêng" title="Thu gọn bảng điều khiển riêng" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-teal-600"><ChevronUp size={17} /></button>
+          <button type="button" onClick={closeAnalyticsPanel} aria-label="Thu gọn bảng điều khiển riêng" title="Thu gọn bảng điều khiển riêng" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-teal-600"><ChevronUp size={17} /></button>
         </div>
         <span className="flex w-fit items-center gap-1 rounded-full border border-teal-100 bg-white/75 px-2 py-1 text-[11px] font-semibold leading-4 whitespace-nowrap text-teal-700">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-400" /> Trực tiếp · 10s
