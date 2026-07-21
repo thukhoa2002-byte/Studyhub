@@ -8,7 +8,7 @@ import McqIcon from "./McqIcon";
 import type { McqSection } from "./McqSectionsPanel";
 import RippleButton from "./RippleButton";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
-import { archiveMcqBank, createMcqFolder, deleteMcqBank, deleteMcqFolder, hasMcqAdminAccess, listMcqBanks, listMcqBankStates, listMcqFolders, mcqLibraryErrorMessage, moveMcqBank, saveMcqBank, updateMcqFolder, type McqBankState, type McqFolder, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
+import { archiveMcqBank, createMcqFolder, deleteMcqBank, deleteMcqFolder, getMcqBank, hasMcqAdminAccess, listMcqBanks, listMcqBankStates, listMcqFolders, mcqLibraryErrorMessage, moveMcqBank, saveMcqBank, updateMcqFolder, type McqBankState, type McqFolder, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
 
 type Option = { id: string; text: string };
 type QuizQuestion = {
@@ -25,7 +25,7 @@ type QuizQuestion = {
 };
 type QuizBank = { title: string; questions: QuizQuestion[] };
 type Props = { userId?: string; userEmail?: string; onAiCallsRemaining?: (remaining: number) => void; section: McqSection };
-type DeckDefinition = { key: string; title: string; description: string; questionCount: number; dataUrl?: string; bank?: QuizBank; libraryBank?: McqLibraryBank; managedBankId?: string; folderId?: string | null; visibility: "draft" | "published" };
+type DeckDefinition = { key: string; title: string; description: string; questionCount?: number; dataUrl?: string; bank?: QuizBank; libraryBank?: McqLibraryBank; managedBankId?: string; folderId?: string | null; visibility: "draft" | "published" };
 
 const staticDecks: DeckDefinition[] = [
   { key: "bo-mcq-kho-khe", managedBankId: "b0000000-0000-4000-8000-000000000130", title: "Bộ MCQ - Khò khè", description: "Tiếp cận khò khè, viêm tiểu phế quản và hen.", questionCount: 130, dataUrl: "/mcq/bo-mcq-kho-khe.json", visibility: "published" },
@@ -130,8 +130,8 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
         ...deck,
         title: managedBank.title,
         description: managedBank.description,
-        questionCount: managedBank.questions.length,
-        bank: { title: managedBank.title, questions: managedBank.questions },
+        questionCount: managedBank.question_count ?? (managedBank.questions.length || undefined),
+        bank: managedBank.questions.length > 0 ? { title: managedBank.title, questions: managedBank.questions } : undefined,
         libraryBank: managedBank,
         folderId: managedBank.folder_id || null,
         visibility: managedBank.status === "published" ? "published" as const : "draft" as const,
@@ -141,8 +141,8 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
       key: `mcq-bank-${item.id}`,
       title: item.title,
       description: item.description || "",
-      questionCount: item.questions.length,
-      bank: { title: item.title, questions: item.questions },
+      questionCount: item.question_count ?? (item.questions.length || undefined),
+      bank: item.questions.length > 0 ? { title: item.title, questions: item.questions } : undefined,
       libraryBank: item,
       folderId: item.folder_id || null,
       visibility: item.status === "published" ? "published" as const : "draft" as const,
@@ -151,6 +151,13 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
 
   useEffect(() => {
     if (!activeDeck) { setBank(null); setError(""); return; }
+    if (activeDeck.libraryBank && (!activeDeck.bank || activeDeck.bank.questions.length === 0)) {
+      let active = true;
+      void getMcqBank(activeDeck.libraryBank.id)
+        .then((fullBank) => { if (active) setBank({ title: fullBank.title, questions: fullBank.questions }); })
+        .catch((loadError: unknown) => { if (active) setError(mcqLibraryErrorMessage(loadError, "Không thể tải bộ MCQ.")); });
+      return () => { active = false; };
+    }
     if (activeDeck.bank) { setBank(activeDeck.bank); return; }
     if (!activeDeck.dataUrl) { setError("Bộ MCQ chưa có dữ liệu."); return; }
     void fetch(activeDeck.dataUrl)
@@ -214,6 +221,10 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
     try {
       let source: QuizBank;
       if (deck.bank) source = deck.bank;
+      else if (deck.libraryBank) {
+        const fullBank = await getMcqBank(deck.libraryBank.id);
+        source = { title: fullBank.title, questions: fullBank.questions };
+      }
       else {
         if (!deck.dataUrl) throw new Error("Bộ MCQ chưa có dữ liệu để xem trước.");
         const response = await fetch(deck.dataUrl);
@@ -235,7 +246,9 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
 
   async function editableBankFor(deck: DeckDefinition): Promise<McqLibraryBank> {
     if (!userId) throw new Error("Bạn cần đăng nhập để sửa bộ MCQ.");
-    if (deck.libraryBank) return deck.libraryBank;
+    if (deck.libraryBank) {
+      return deck.libraryBank.questions.length > 0 ? deck.libraryBank : await getMcqBank(deck.libraryBank.id);
+    }
     if (!deck.dataUrl || !deck.managedBankId) throw new Error("Bộ MCQ này chưa có nguồn dữ liệu để sửa.");
     const response = await fetch(deck.dataUrl);
     if (!response.ok) throw new Error("Không thể tải nội dung bộ MCQ để sửa.");
@@ -442,7 +455,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
     return <article key={deck.key} className="group relative flex min-h-48 flex-col rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md sm:p-5">
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><McqIcon size={26} /></div><h2 className="min-w-0 text-xl font-extrabold text-rose-950">{deck.title}</h2></div>
-        <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span>
+        <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-700 shadow-sm">{deck.questionCount ? `${deck.questionCount} câu` : "Mở để xem"}</span>
       </div>
       <p className="mt-3 text-sm leading-5 text-slate-500">{deck.description}</p>
       <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">

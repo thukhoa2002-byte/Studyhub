@@ -27,6 +27,7 @@ export interface McqLibraryBank {
   created_at: string;
   updated_at: string;
   published_at: string | null;
+  question_count?: number;
 }
 
 export interface McqFolder {
@@ -94,11 +95,23 @@ export async function removeMcqAdmin(email: string): Promise<void> {
 export async function listMcqBanks(): Promise<McqLibraryBank[]> {
   const { data, error } = await requireSupabase()
     .from("mcq_banks")
-    .select("*")
+    // Avoid downloading the potentially very large questions JSON for every
+    // bank while opening the library. Load a full bank only when needed.
+    .select("id, owner_id, title, description, folder_id, status, created_at, updated_at, published_at")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as McqLibraryBank[];
+  return (data ?? []).map((bank) => ({ ...bank, questions: [] })) as McqLibraryBank[];
+}
+
+export async function getMcqBank(bankId: string): Promise<McqLibraryBank> {
+  const { data, error } = await requireSupabase()
+    .from("mcq_banks")
+    .select("*")
+    .eq("id", bankId)
+    .single();
+  if (error) throw error;
+  return data as McqLibraryBank;
 }
 
 export async function listMcqFolders(): Promise<McqFolder[]> {
