@@ -233,8 +233,8 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [reviewed, setReviewed] = useState(false);
   const [visibility, setVisibility] = useState<"draft" | "published">("draft");
+  const [, setReviewed] = useState(false);
   const [cropEditor, setCropEditor] = useState<CropEditor | null>(null);
   const [recentBanks, setRecentBanks] = useState<McqLibraryBank[]>([]);
   const cropStageRef = useRef<HTMLDivElement | null>(null);
@@ -247,7 +247,6 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     setDescription(requestedBank.description);
     setQuestions(requestedBank.questions);
     setVisibility(requestedBank.status === "published" ? "published" : "draft");
-    setReviewed(false);
     setError("");
     setNotice("Đang chỉnh sửa bộ MCQ đã chọn. Chỉ tài khoản của bạn có quyền lưu thay đổi.");
   }, [requestedBank]);
@@ -256,7 +255,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
   async function extract() {
     if (!files.length) return;
-    setBusy(true); setError(""); setNotice(""); setReviewed(false);
+    setBusy(true); setError(""); setNotice("");
     try {
       if (files.length === 1 && isJsonFile(files[0])) {
         const payload = JSON.parse(await files[0].text()) as unknown;
@@ -299,7 +298,6 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
   function editQuestion(index: number, patch: Partial<McqLibraryQuestion>) {
     setQuestions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
-    setReviewed(false);
   }
 
   function editOption(questionIndex: number, optionIndex: number, text: string) {
@@ -446,34 +444,19 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   }
 
   async function persist(status: "draft" | "published") {
-    if (!title.trim() || !questions.length) {
-      setError("Hãy điền tên bộ và ít nhất một câu hỏi.");
-      return;
-    }
-    if (status === "published") {
-      if (invalidCount) {
-        setError("Không thể đăng công khai khi còn câu thiếu nội dung hoặc lựa chọn A/B/C/D.");
-        return;
-      }
-      if (!reviewed) {
-        setError("Bạn cần xác nhận đã kiểm tra toàn bộ trước khi đăng công khai.");
-        return;
-      }
-    }
+    const saveStatus = status === "published" && invalidCount > 0 ? "draft" : status;
     setBusy(true); setError(""); setNotice("");
     try {
-      const saved = await saveMcqBank(userId, { title, description, questions, status }, bankId);
+      const saved = await saveMcqBank(userId, { title, description, questions, status: saveStatus }, bankId);
       setBankId(saved.id);
       setQuestions(saved.questions);
       setVisibility(saved.status === "published" ? "published" : "draft");
       setRecentBanks((items) => [saved, ...items.filter((item) => item.id !== saved.id)]);
-      setNotice(status === "published"
+      setNotice(saveStatus === "published"
         ? "Đã đăng công khai vào thư viện MCQ."
-        : visibility === "published"
+        : status === "published"
           ? "Đã lưu bản nháp riêng tư. Hãy kiểm tra lại rồi đăng công khai khi sẵn sàng."
-          : invalidCount
-            ? "Đã lưu bản nháp riêng tư. Một số câu còn thiếu dữ liệu và cần sửa trước khi đăng."
-            : "Đã lưu bản nháp riêng tư.");
+          : "Đã lưu bản nháp riêng tư.");
       await onChanged();
     } catch (saveError) {
       setError(mcqLibraryErrorMessage(saveError, "Không thể lưu bộ MCQ."));
@@ -481,11 +464,11 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   }
 
   function loadDraft(bank: McqLibraryBank) {
-    setBankId(bank.id); setTitle(bank.title); setDescription(bank.description); setQuestions(bank.questions); setVisibility(bank.status === "published" ? "published" : "draft"); setReviewed(false); setError(""); setNotice("");
+    setBankId(bank.id); setTitle(bank.title); setDescription(bank.description); setQuestions(bank.questions); setVisibility(bank.status === "published" ? "published" : "draft"); setError(""); setNotice("");
   }
 
   const visibleDrafts = [...recentBanks, ...drafts.filter((draft) => !recentBanks.some((recent) => recent.id === draft.id))];
-  const publishBlocked = visibility === "published" && (!reviewed || invalidCount > 0);
+  const publishBlocked = visibility === "published" && invalidCount > 0;
 
   return <section className="mb-8 overflow-visible rounded-[2rem] border border-violet-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl sm:p-7">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -523,13 +506,12 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         {question.review_note && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Cần kiểm tra: {question.review_note}</p>}
       </article>)}</div>
       <button type="button" onClick={() => { setQuestions((items) => [...items, { id: crypto.randomUUID(), source_number: items.length + 1, question: "", options: requiredOptionIds.map((id) => ({ id, text: "" })) }]); setReviewed(false); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700"><Plus size={17} />Thêm câu thủ công</button>
-      <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-teal-200 bg-teal-50/70 p-4 text-sm font-semibold text-teal-900"><input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-600" /><span><strong className="block">Tôi đã kiểm tra toàn bộ {questions.length} câu</strong>Đáp án, lời giải, câu hỏi, lựa chọn A/B/C/D/E và ảnh kèm theo đã được rà soát.</span></label>
       <p className="mt-4 text-right text-xs font-semibold text-slate-500">Bản Word gồm toàn bộ câu hỏi trong một file, chỉ tải về máy của bạn và không xuất hiện trong thư viện MCQ.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
-        <button type="button" disabled={busy || !reviewed || !title.trim() || invalidCount > 0} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
+        <button type="button" disabled={busy || !title.trim() || invalidCount > 0} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
         <button type="button" disabled={busy || !title.trim() || !questions.length} onClick={() => exportJson(title, description, questions)} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold text-sky-700 disabled:opacity-40"><FileText size={17} />Xuất JSON chuẩn</button>
         <span className={`inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold ${visibility === "published" ? "border-teal-200 bg-teal-50 text-teal-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{visibility === "published" ? <Globe2 size={17} /> : <LockKeyhole size={17} />}{visibility === "published" ? "Mọi người sẽ thấy" : "Chỉ mình bạn thấy"}</span>
-        <button type="button" disabled={busy || !title.trim() || !questions.length} onClick={() => void persist(publishBlocked ? "draft" : visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? (publishBlocked ? "Lưu bản nháp" : "Lưu thay đổi") : "Lưu bộ MCQ"}</button>
+        <button type="button" disabled={busy} onClick={() => void persist(visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? (publishBlocked ? "Lưu bản nháp" : "Lưu thay đổi") : "Lưu bộ MCQ"}</button>
       </div>
     </div>}
     {cropEditor && <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Cắt hình câu hỏi"><div className="flex min-h-full items-center justify-center"><div className="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-violet-600">Chỉnh hình câu hỏi</p><h3 className="mt-1 text-lg font-black text-slate-900">Cắt phần cần giữ lại</h3></div><button type="button" title="Đóng" aria-label="Đóng trình cắt hình" onClick={() => setCropEditor(null)} className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"><X size={19} /></button></div><div className="mt-5 flex justify-center"><div ref={cropStageRef} onPointerDown={handleCropPointerDown} onPointerMove={handleCropPointerMove} onPointerUp={handleCropPointerUp} onPointerCancel={handleCropPointerUp} className="relative inline-block max-w-full touch-none select-none overflow-hidden rounded-2xl bg-slate-100 shadow-inner"><img src={cropEditor.source} alt="Xem trước hình cần cắt" draggable={false} className="block max-h-[68vh] max-w-[min(90vw,900px)] object-contain" /><div className="absolute border-2 border-white bg-transparent shadow-[0_0_0_9999px_rgba(15,23,42,0.5)]" style={{ left: `${cropEditor.x}%`, top: `${cropEditor.y}%`, width: `${cropEditor.width}%`, height: `${cropEditor.height}%` }}><span data-crop-handle="nw" className={`pointer-events-auto absolute h-4 w-4 rounded-sm border-2 border-white bg-violet-600 shadow ${cropHandleClasses.nw}`} /><span data-crop-handle="ne" className={`pointer-events-auto absolute h-4 w-4 rounded-sm border-2 border-white bg-violet-600 shadow ${cropHandleClasses.ne}`} /><span data-crop-handle="sw" className={`pointer-events-auto absolute h-4 w-4 rounded-sm border-2 border-white bg-violet-600 shadow ${cropHandleClasses.sw}`} /><span data-crop-handle="se" className={`pointer-events-auto absolute h-4 w-4 rounded-sm border-2 border-white bg-violet-600 shadow ${cropHandleClasses.se}`} /></div></div></div><p className="mt-3 text-center text-xs font-semibold text-slate-500">Kéo trực tiếp trên ảnh để tạo hoặc di chuyển vùng cắt. Kéo các góc để chỉnh kích thước.</p><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCropEditor(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600">Hủy</button><button type="button" disabled={busy} onClick={() => void applyImageCrop()} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"><Check size={17} />Áp dụng</button></div></div></div></div>}
