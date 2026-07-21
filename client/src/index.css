@@ -254,8 +254,8 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .mcq-sections-popover,
   .reference-sections-popover { display: none; }
 }
-.mode-panel { animation: mode-panel-in 560ms cubic-bezier(.22,1,.36,1) both; transform-origin: 50% 0; will-change: opacity, transform, filter; }
-@keyframes mode-panel-in { from { opacity: 0; filter: blur(4px); transform: translateY(12px) scale(.985); } 70% { filter: blur(0); transform: translateY(-1px) scale(1.002); } to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } }
+.mode-panel { animation: mode-panel-in 560ms cubic-bezier(.22,1,.36,1) both; transform-origin: 50% 0; will-change: opacity, filter; }
+@keyframes mode-panel-in { from { opacity: 0; filter: blur(4px); transform: translateY(12px) scale(.985); } 70% { filter: blur(0); transform: translateY(-1px) scale(1.002); } to { opacity: 1; filter: blur(0); transform: none; } }
 @keyframes liquid-glass-sheen { 0%, 38% { transform: translateX(-120%); } 68%, 100% { transform: translateX(120%); } }
 @keyframes liquid-glider-shine { 0%, 35% { transform: translateX(-120%); opacity: 0; } 52% { opacity: 1; } 70%, 100% { transform: translateX(120%); opacity: 0; } }
 .special-note { position: relative; color: #be185d; font-size: .68rem; font-weight: 800; line-height: 1.25; letter-spacing: .01em; }
