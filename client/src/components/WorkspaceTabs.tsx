@@ -114,8 +114,8 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
               type="button"
               onClick={() => handleTabClick(id)}
               onMouseLeave={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
-              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") keepMcqPanelOpen(); if (id === "guidelines") keepReferencePanelOpen(); }}
-              onFocus={() => { setHoveredTab(id); if (id === "mcq") keepMcqPanelOpen(); if (id === "guidelines") keepReferencePanelOpen(); }}
+              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); setReferencePanelPinned(false); keepMcqPanelOpen(); } if (id === "guidelines") { setMcqPanelOpen(false); setMcqPanelPinned(false); keepReferencePanelOpen(); } }}
+              onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); setReferencePanelPinned(false); keepMcqPanelOpen(); } if (id === "guidelines") { setMcqPanelOpen(false); setMcqPanelPinned(false); keepReferencePanelOpen(); } }}
               onBlur={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
