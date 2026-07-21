@@ -75,11 +75,21 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
     }
   }
 
+  function handleMcqSectionChange(section: McqSection) {
+    onChange("mcq");
+    onMcqSectionChange(section);
+  }
+
+  function handleReferenceSectionChange(section: ReferenceSection) {
+    onChange("guidelines");
+    onReferenceSectionChange(section);
+  }
+
   useEffect(() => {
     if (!analyticsAdmin) onAnalyticsExpanded(false);
   }, [analyticsAdmin, onAnalyticsExpanded]);
 
-  const visualTab = hoveredTab || activeTab;
+  const visualTab = hoveredTab || (mcqPanelOpen ? "mcq" : referencePanelOpen ? "guidelines" : activeTab);
 
   return (
     <div className={`workspace-sidebar flex w-full flex-col px-5 pt-5 lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-[60] lg:w-20 lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:bg-white/80 lg:px-2 lg:py-6 lg:shadow-[8px_0_30px_rgba(15,23,42,.04)] ${mcqPanelOpen || referencePanelOpen ? "workspace-sidebar--panel-open" : ""}`}>
@@ -118,8 +128,8 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
           );
         })}
       </nav>
-      <McqSectionsPanel section={mcqSection} onChange={onMcqSectionChange} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
-      <ReferenceSectionsPanel section={referenceSection} onChange={onReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
+      <McqSectionsPanel section={mcqSection} onChange={handleMcqSectionChange} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
+      <ReferenceSectionsPanel section={referenceSection} onChange={handleReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
       {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={onAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
       <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">
