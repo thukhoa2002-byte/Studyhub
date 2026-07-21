@@ -21,7 +21,7 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const clientDistPath = join(__dirname, "..", "client", "dist");
-const canonicalHost = "studyhub.onrender.com";
+const canonicalHost = process.env.CANONICAL_HOST || "studyhub-ib8g.onrender.com";
 const legacyHost = "hocbaithoii.onrender.com";
 
 app.set("trust proxy", true);
