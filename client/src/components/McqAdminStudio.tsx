@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { PointerEvent } from "react";
+import type { KeyboardEvent, PointerEvent } from "react";
 import { Check, ClipboardPaste, Crop, Download, FileSearch, FileText, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { extractMcqFiles } from "../services/api";
 import { deleteMcqBank, mcqLibraryErrorMessage, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
@@ -463,6 +463,12 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     } finally { setBusy(false); }
   }
 
+  function handleSaveShortcut(event: KeyboardEvent<HTMLElement>) {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
+    event.preventDefault();
+    if (!busy) void persist(visibility);
+  }
+
   function loadDraft(bank: McqLibraryBank) {
     setBankId(bank.id); setTitle(bank.title); setDescription(bank.description); setQuestions(bank.questions); setVisibility(bank.status === "published" ? "published" : "draft"); setError(""); setNotice("");
   }
@@ -470,7 +476,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   const visibleDrafts = [...recentBanks, ...drafts.filter((draft) => !recentBanks.some((recent) => recent.id === draft.id))];
   const publishBlocked = visibility === "published" && invalidCount > 0;
 
-  return <section className="mb-8 overflow-visible rounded-[2rem] border border-violet-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl sm:p-7">
+  return <section onKeyDown={handleSaveShortcut} className="mb-8 overflow-visible rounded-[2rem] border border-violet-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl sm:p-7">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><FileSearch size={23} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.15em] text-rose-500">Xưởng MCQ riêng</p><h2 className="mt-1 text-2xl font-black text-rose-950">Tạo ngân hàng câu hỏi từ tài liệu</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">Tải PDF hoặc ảnh, duyệt lại nội dung rồi xuất Word và/hoặc đăng thành bộ MCQ trên web.</p></div></div>
       <span className="w-fit rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">Chỉ bạn được đổi tên và sửa nội dung</span>
