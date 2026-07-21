@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
 import McqIcon from "./McqIcon";
-import McqAccessPanel from "./McqAccessPanel";
+import McqSectionsPanel, { type McqSection } from "./McqSectionsPanel";
 import ReferenceSectionsPanel, { type ReferenceSection } from "./ReferenceSectionsPanel";
 import SiteAnalytics from "./SiteAnalytics";
 import WorkspaceSettings from "./WorkspaceSettings";
@@ -23,6 +23,8 @@ interface Props {
   onAnalyticsExpanded: (expanded: boolean) => void;
   referenceSection: ReferenceSection;
   onReferenceSectionChange: (section: ReferenceSection) => void;
+  mcqSection: McqSection;
+  onMcqSectionChange: (section: McqSection) => void;
 }
 
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
@@ -32,7 +34,7 @@ const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?
   { id: "drugs", label: "Drugs", icon: Pill },
 ];
 
-export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded, referenceSection, onReferenceSectionChange }: Props) {
+export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded, referenceSection, onReferenceSectionChange, mcqSection, onMcqSectionChange }: Props) {
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
   const [mcqPanelOpen, setMcqPanelOpen] = useState(false);
   const [mcqPanelTimer, setMcqPanelTimer] = useState<number | null>(null);
@@ -126,7 +128,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
           );
         })}
       </nav>
-      <McqAccessPanel userEmail={user?.email} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
+      <McqSectionsPanel section={mcqSection} onChange={onMcqSectionChange} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
       <ReferenceSectionsPanel section={referenceSection} onChange={onReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
       {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={onAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />

@@ -11,6 +11,7 @@ type Props = {
   onChanged: () => Promise<void> | void;
   onAiCallsRemaining?: (remaining: number) => void;
   requestedBank?: McqLibraryBank | null;
+  showDrafts?: boolean;
 };
 
 const requiredOptionIds = ["A", "B", "C", "D"] as const;
@@ -222,7 +223,7 @@ async function exportWord(title: string, questions: McqLibraryQuestion[]) {
   downloadBlob(await Packer.toBlob(document), `${safeFilename(title)}.docx`);
 }
 
-export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRemaining, requestedBank }: Props) {
+export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRemaining, requestedBank, showDrafts = true }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [bankId, setBankId] = useState<string | undefined>();
   const [title, setTitle] = useState("");
@@ -501,7 +502,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     {error && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
     {notice && <p className="mt-4 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{notice}</p>}
 
-    {visibleDrafts.some((draft) => draft.status !== "archived") && <div className="mt-6"><p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Bộ MCQ của bạn</p><div className="mt-2 flex flex-wrap gap-2">{visibleDrafts.filter((draft) => draft.status !== "archived").map((draft) => <span key={draft.id} className="inline-flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white"><button type="button" onClick={() => loadDraft(draft)} className="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">{draft.title} · {draft.status === "draft" ? "Riêng tư" : "Công khai"}</button><button type="button" aria-label={`Xóa bộ ${draft.title}`} title="Xóa cả bộ MCQ" onClick={async () => { if (!confirm(`Xóa toàn bộ “${draft.title}”? Hành động này không thể hoàn tác.`)) return; await deleteMcqBank(draft.id); setRecentBanks((items) => items.filter((item) => item.id !== draft.id)); if (bankId === draft.id) { setBankId(undefined); setQuestions([]); setTitle(""); } await onChanged(); }} className="border-l border-slate-200 p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={15} /></button></span>)}</div></div>}
+    {showDrafts && visibleDrafts.some((draft) => draft.status !== "archived") && <div className="mt-6"><p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Bộ MCQ của bạn</p><div className="mt-2 flex flex-wrap gap-2">{visibleDrafts.filter((draft) => draft.status !== "archived").map((draft) => <span key={draft.id} className="inline-flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white"><button type="button" onClick={() => loadDraft(draft)} className="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">{draft.title} · {draft.status === "draft" ? "Riêng tư" : "Công khai"}</button><button type="button" aria-label={`Xóa bộ ${draft.title}`} title="Xóa cả bộ MCQ" onClick={async () => { if (!confirm(`Xóa toàn bộ “${draft.title}”? Hành động này không thể hoàn tác.`)) return; await deleteMcqBank(draft.id); setRecentBanks((items) => items.filter((item) => item.id !== draft.id)); if (bankId === draft.id) { setBankId(undefined); setQuestions([]); setTitle(""); } await onChanged(); }} className="border-l border-slate-200 p-2 text-rose-500 hover:bg-rose-50"><Trash2 size={15} /></button></span>)}</div></div>}
 
     {questions.length > 0 && <div className="mt-7 border-t border-violet-100 pt-6">
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"><label className="text-sm font-bold text-slate-700">Tên bộ MCQ<input value={title} onChange={(event) => { setTitle(event.target.value); setReviewed(false); }} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Mô tả ngắn<input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Chủ đề, nguồn hoặc phạm vi câu hỏi" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Quyền xem<select value={visibility} onChange={(event) => setVisibility(event.target.value as "draft" | "published")} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400"><option value="draft">Riêng tư</option><option value="published">Công khai</option></select></label></div>

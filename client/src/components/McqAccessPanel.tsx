@@ -1,17 +1,15 @@
-import { FolderTree, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
+import { ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { addMcqAdmin, listMcqAdmins, mcqLibraryErrorMessage, removeMcqAdmin, type McqAdminAccess } from "../services/mcqLibrary";
 
 interface Props {
   userEmail?: string;
-  open: boolean;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
+  visible?: boolean;
 }
 
 const ownerEmail = "thukhoa2002@gmail.com";
 
-export default function McqAccessPanel({ userEmail, open, onMouseEnter, onMouseLeave }: Props) {
+export default function McqAccessPanel({ userEmail, visible = true }: Props) {
   const [admins, setAdmins] = useState<McqAdminAccess[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [notice, setNotice] = useState("");
@@ -28,8 +26,8 @@ export default function McqAccessPanel({ userEmail, open, onMouseEnter, onMouseL
   }, [isOwner]);
 
   useEffect(() => {
-    if (open) void refreshAdmins();
-  }, [open, refreshAdmins]);
+    if (visible) void refreshAdmins();
+  }, [refreshAdmins, visible]);
 
   async function grantAccess() {
     const email = newEmail.trim().toLowerCase();
@@ -62,11 +60,11 @@ export default function McqAccessPanel({ userEmail, open, onMouseEnter, onMouseL
     }
   }
 
-  if (!isOwner) return null;
+  if (!isOwner || !visible) return null;
 
   return (
-    <aside className={`mcq-access-popover fixed z-[70] ${open ? "" : "pointer-events-none invisible opacity-0"}`} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} aria-label="Quyền MCQ">
-      <div className="mcq-access-popover__card rounded-3xl border border-teal-200/80 bg-white/90 p-4 shadow-[0_18px_50px_rgba(15,118,110,.14)] backdrop-blur-xl">
+    <section className="mb-5 rounded-3xl border border-teal-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl" aria-label="Quyền MCQ">
+      <div className="rounded-2xl border border-teal-100 bg-white/75 p-4">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-teal-100 text-teal-700"><ShieldCheck size={21} /></span>
           <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[.14em] text-teal-700">Quyền MCQ</p><p className="mt-1 text-sm font-bold text-slate-700">Email được cấp quyền</p></div>
@@ -79,11 +77,6 @@ export default function McqAccessPanel({ userEmail, open, onMouseEnter, onMouseL
           <button type="button" disabled={busy || !newEmail.trim()} onClick={() => void grantAccess()} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-teal-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-40"><UserPlus size={16} />Thêm</button>
         </div>
       </div>
-
-      <div className="mcq-access-popover__card relative mt-3 rounded-3xl border border-amber-200/80 bg-white/90 p-4 shadow-[0_18px_50px_rgba(180,83,9,.12)] backdrop-blur-xl">
-        <div className="flex items-center"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"><FolderTree size={21} /></span><div id="mcq-folder-create-slot" className="ml-auto" /></div>
-        <div id="mcq-folder-panel-slot" className="mt-3 max-h-[min(38vh,25rem)] space-y-3 overflow-y-auto" />
-      </div>
-    </aside>
+    </section>
   );
 }

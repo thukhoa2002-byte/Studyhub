@@ -13,6 +13,7 @@ import LoadingOverlay from "./components/LoadingOverlay";
 import PandaAssistant from "./components/PandaAssistant";
 import SharedDeckNotification from "./components/SharedDeckNotification";
 import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
+import type { McqSection } from "./components/McqSectionsPanel";
 import DrugsPage from "./components/DrugsPage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import type { ReferenceSection } from "./components/ReferenceSectionsPanel";
@@ -35,6 +36,7 @@ import {
 export default function App() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("flashcards");
   const [referenceSection, setReferenceSection] = useState<ReferenceSection>("guidelines");
+  const [mcqSection, setMcqSection] = useState<McqSection>("banks");
   const [mode, setMode] = useState<"study" | "review">("study");
   const [studyCurrentId, setStudyCurrentId] = useState<string | null>(null);
 
@@ -773,7 +775,7 @@ export default function App() {
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
         <div className={`relative min-h-[calc(100vh-4rem)] pb-8 ${analyticsOpen ? "lg:pl-[34rem]" : "lg:pl-20"}`}>
-          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} referenceSection={referenceSection} onReferenceSectionChange={setReferenceSection} />
+          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} referenceSection={referenceSection} onReferenceSectionChange={setReferenceSection} mcqSection={mcqSection} onMcqSectionChange={setMcqSection} />
           <div className="min-w-0 flex-1">
 
         {workspaceTab === "flashcards" && questions.length > 0 && (
@@ -791,7 +793,7 @@ export default function App() {
         </div>
 
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
-          <McqPage userId={user?.id} userEmail={user?.email} onAiCallsRemaining={setAiCallsRemaining} />
+          <McqPage userId={user?.id} userEmail={user?.email} onAiCallsRemaining={setAiCallsRemaining} section={mcqSection} />
         </div>
 
         {workspaceTab === "drugs" ? (
