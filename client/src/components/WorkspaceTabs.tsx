@@ -1,4 +1,4 @@
-import { BookOpen, BookOpenCheck, Pill } from "lucide-react";
+import { BookOpen, BookOpenCheck, LogOut, Pill } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -7,6 +7,7 @@ import McqSectionsPanel, { type McqSection } from "./McqSectionsPanel";
 import ReferenceSectionsPanel, { type ReferenceSection } from "./ReferenceSectionsPanel";
 import SiteAnalytics from "./SiteAnalytics";
 import WorkspaceSettings from "./WorkspaceSettings";
+import { supabase } from "../services/supabase";
 
 export type WorkspaceTab = "flashcards" | "mcq" | "guidelines" | "drugs";
 
@@ -149,11 +150,11 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
       <ReferenceSectionsPanel section={referenceSection} onChange={handleReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
       {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={handleAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
-      <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-center lg:gap-3">
+      <div className="workspace-sidebar__account mt-auto hidden border-t border-slate-200/80 pt-5 lg:flex lg:items-start lg:gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-100 bg-teal-50 text-teal-700">
           {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? <img src={(user.user_metadata.avatar_url || user.user_metadata.picture) as string} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : <span className="text-sm font-black">{user ? (user.email?.[0] || "U").toUpperCase() : "?"}</span>}
         </span>
-        <div className="workspace-sidebar__account-copy min-w-0"><p className="truncate text-sm font-bold text-slate-800">{user?.user_metadata?.full_name || user?.email || "Khách"}</p></div>
+        <div className="workspace-sidebar__account-copy min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-800">{user?.user_metadata?.full_name || user?.email || "Khách"}</p>{user && <button type="button" onClick={() => { void supabase?.auth.signOut(); onUserChange(null); }} className="workspace-sidebar__logout mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700" title="Đăng xuất" aria-label="Đăng xuất"><LogOut size={14} /><span className="workspace-sidebar__logout-label">Đăng xuất</span></button>}</div>
       </div>
     </div>
   );
