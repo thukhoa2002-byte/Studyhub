@@ -38,10 +38,8 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
   const [mcqPanelOpen, setMcqPanelOpen] = useState(false);
   const [mcqPanelTimer, setMcqPanelTimer] = useState<number | null>(null);
-  const [mcqPanelPinned, setMcqPanelPinned] = useState(false);
   const [referencePanelOpen, setReferencePanelOpen] = useState(false);
   const [referencePanelTimer, setReferencePanelTimer] = useState<number | null>(null);
-  const [referencePanelPinned, setReferencePanelPinned] = useState(false);
 
   function keepMcqPanelOpen() {
     if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
@@ -49,8 +47,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
   }
 
   function scheduleMcqPanelClose() {
-    if (mcqPanelPinned) return;
-    const timer = window.setTimeout(() => setMcqPanelOpen(false), 180);
+    const timer = window.setTimeout(() => { setMcqPanelOpen(false); setMcqPanelTimer(null); }, 700);
     setMcqPanelTimer(timer);
   }
 
@@ -60,29 +57,20 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
   }
 
   function scheduleReferencePanelClose() {
-    if (referencePanelPinned) return;
-    const timer = window.setTimeout(() => setReferencePanelOpen(false), 180);
+    const timer = window.setTimeout(() => { setReferencePanelOpen(false); setReferencePanelTimer(null); }, 700);
     setReferencePanelTimer(timer);
   }
 
   function handleTabClick(id: WorkspaceTab) {
     onChange(id);
     if (id === "mcq") {
-      const nextPinned = !mcqPanelPinned;
-      setMcqPanelPinned(nextPinned);
-      setMcqPanelOpen(nextPinned);
-      setReferencePanelPinned(false);
+      setMcqPanelOpen(true);
       setReferencePanelOpen(false);
     } else if (id === "guidelines") {
-      const nextPinned = !referencePanelPinned;
-      setReferencePanelPinned(nextPinned);
-      setReferencePanelOpen(nextPinned);
-      setMcqPanelPinned(false);
+      setReferencePanelOpen(true);
       setMcqPanelOpen(false);
     } else {
-      setMcqPanelPinned(false);
       setMcqPanelOpen(false);
-      setReferencePanelPinned(false);
       setReferencePanelOpen(false);
     }
   }
@@ -91,8 +79,10 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
     if (!analyticsAdmin) onAnalyticsExpanded(false);
   }, [analyticsAdmin, onAnalyticsExpanded]);
 
+  const visualTab = hoveredTab || activeTab;
+
   return (
-    <div className={`workspace-sidebar flex w-full flex-col px-5 pt-5 lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-[60] lg:w-20 lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:bg-white/80 lg:px-2 lg:py-6 lg:shadow-[8px_0_30px_rgba(15,23,42,.04)] ${mcqPanelPinned || referencePanelPinned ? "workspace-sidebar--panel-pinned" : ""}`}>
+    <div className={`workspace-sidebar flex w-full flex-col px-5 pt-5 lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-[60] lg:w-20 lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:bg-white/80 lg:px-2 lg:py-6 lg:shadow-[8px_0_30px_rgba(15,23,42,.04)] ${mcqPanelOpen || referencePanelOpen ? "workspace-sidebar--panel-open" : ""}`}>
       <div className="workspace-sidebar__brand hidden items-center gap-3 lg:flex">
         <img src="/hoc-bai-icon.png" alt="StudyHub" className="h-11 w-11 rounded-xl object-contain" />
         <div className="workspace-sidebar__brand-copy min-w-0"><p className="truncate text-lg font-extrabold tracking-tight text-rose-950">StudyHub</p><p className="text-xs font-medium text-rose-400">Học đều, nhớ lâu</p></div>
@@ -103,7 +93,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
         aria-label="Khu vực học tập"
       >
         <span
-          className={`workspace-tabs__glider ${activeTab === "mcq" ? "workspace-tabs__glider--mcq" : activeTab === "guidelines" ? "workspace-tabs__glider--guidelines" : activeTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
+          className={`workspace-tabs__glider ${visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
           aria-hidden="true"
         />
         {tabs.map(({ id, label, icon: Icon }, tabIndex) => {
@@ -116,8 +106,8 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
               type="button"
               onClick={() => handleTabClick(id)}
               onMouseLeave={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
-              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); setReferencePanelPinned(false); keepMcqPanelOpen(); } if (id === "guidelines") { setMcqPanelOpen(false); setMcqPanelPinned(false); keepReferencePanelOpen(); } }}
-              onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); setReferencePanelPinned(false); keepMcqPanelOpen(); } if (id === "guidelines") { setMcqPanelOpen(false); setMcqPanelPinned(false); keepReferencePanelOpen(); } }}
+              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); keepMcqPanelOpen(); } if (id === "guidelines") { setMcqPanelOpen(false); keepReferencePanelOpen(); } }}
+              onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); keepMcqPanelOpen(); } if (id === "guidelines") { setMcqPanelOpen(false); keepReferencePanelOpen(); } }}
               onBlur={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
