@@ -1,6 +1,8 @@
-import { AlignCenter, AlignLeft, AlignRight, Bold, CaseUpper, ChevronDown, ClipboardPaste, Image as ImageIcon, Italic, List, ListOrdered, PenLine, TextCursorInput, Underline } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Bold, CaseUpper, ChevronDown, ClipboardPaste, Crop, Image as ImageIcon, Italic, List, ListOrdered, PenLine, TextCursorInput, Underline } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
+import ImageCropDialog from "./ImageCropDialog";
 
 interface Props { value: string; onChange: (value: string) => void; placeholder: string; capitalizeFirst?: boolean; }
 
@@ -21,10 +23,13 @@ export default function RichTextEditor({ value, onChange, placeholder, capitaliz
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const selectionRef = useRef<Range | null>(null);
+  const selectedImageRef = useRef<HTMLImageElement | null>(null);
   const lastEmittedValueRef = useRef<string | null>(null);
   const initializedRef = useRef(false);
   const [showHighlightPalette, setShowHighlightPalette] = useState(false);
   const [showTextPalette, setShowTextPalette] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+  const [cropSource, setCropSource] = useState<string | null>(null);
   useEffect(() => {
     const closeOtherPalettes = () => {
       setShowHighlightPalette(false);
@@ -67,6 +72,24 @@ export default function RichTextEditor({ value, onChange, placeholder, capitaliz
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || !editorRef.current?.contains(selection.anchorNode)) return;
     selectionRef.current = selection.getRangeAt(0).cloneRange();
+  }
+  function selectEditorImage(event: MouseEvent<HTMLDivElement>) {
+    const image = event.target instanceof HTMLImageElement ? event.target : null;
+    selectedImageRef.current?.classList.remove("rich-editor__selected-image");
+    selectedImageRef.current = image;
+    setSelectedImage(image);
+    image?.classList.add("rich-editor__selected-image");
+  }
+  function openSelectedImageCrop() {
+    const image = selectedImageRef.current;
+    if (image) setCropSource(image.currentSrc || image.src);
+  }
+  function applySelectedImageCrop(source: string) {
+    const image = selectedImageRef.current;
+    if (!image || !editorRef.current) return;
+    image.src = source;
+    emitChange(editorRef.current.innerHTML);
+    setCropSource(null);
   }
   function command(name: string) {
     editorRef.current?.focus();
@@ -211,8 +234,10 @@ export default function RichTextEditor({ value, onChange, placeholder, capitaliz
       <button type="button" title="Điền khuyết" aria-label="Điền khuyết" onMouseDown={(event) => { event.preventDefault(); insertCloze(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><TextCursorInput size={16} /></button>
       <button type="button" title="Chèn hình ảnh" aria-label="Chèn hình ảnh" onMouseDown={(event) => { event.preventDefault(); imageInputRef.current?.click(); }} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><ImageIcon size={16} /></button>
       <button type="button" title="Dán ảnh từ clipboard" aria-label="Dán ảnh từ clipboard" onMouseDown={(event) => event.preventDefault()} onClick={pasteImageFromClipboard} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600"><ClipboardPaste size={16} /></button>
+      <button type="button" title="Cắt hình đang chọn" aria-label="Cắt hình đang chọn" disabled={!selectedImage} onMouseDown={(event) => event.preventDefault()} onClick={openSelectedImageCrop} className="rounded p-1.5 text-slate-500 hover:bg-white hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"><Crop size={16} /></button>
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) insertImage(file); event.target.value = ""; }} />
     </div>
-    <div ref={editorRef} contentEditable suppressContentEditableWarning role="textbox" aria-label={placeholder} data-placeholder={placeholder} onBlur={(event) => { emitChange(event.currentTarget.innerHTML); }} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onKeyDown={handleKeyDown} onPaste={handlePaste} onInput={() => { rememberSelection(); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
+    <div ref={editorRef} contentEditable suppressContentEditableWarning role="textbox" aria-label={placeholder} data-placeholder={placeholder} onClick={selectEditorImage} onBlur={(event) => { emitChange(event.currentTarget.innerHTML); }} onSelect={rememberSelection} onMouseUp={rememberSelection} onKeyUp={rememberSelection} onKeyDown={handleKeyDown} onPaste={handlePaste} onInput={() => { rememberSelection(); }} className="rich-editor min-h-24 px-3 py-3 text-sm outline-none" />
+    {cropSource && <ImageCropDialog source={cropSource} onClose={() => setCropSource(null)} onApply={applySelectedImageCrop} />}
   </div>;
 }
