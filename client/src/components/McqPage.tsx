@@ -7,6 +7,7 @@ import McqAccessPanel from "./McqAccessPanel";
 import McqIcon from "./McqIcon";
 import type { McqSection } from "./McqSectionsPanel";
 import RippleButton from "./RippleButton";
+import { sanitizeHtml, toEditorHtml } from "../utils/richText";
 import { archiveMcqBank, createMcqFolder, deleteMcqBank, deleteMcqFolder, hasMcqAdminAccess, listMcqBanks, listMcqBankStates, listMcqFolders, mcqLibraryErrorMessage, moveMcqBank, saveMcqBank, updateMcqFolder, type McqBankState, type McqFolder, type McqLibraryBank, type McqLibraryQuestion, type McqOption } from "../services/mcqLibrary";
 
 type Option = { id: string; text: string };
@@ -565,7 +566,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
             {!question.correct_answer || isCorrect ? <CheckCircle2 className="mt-0.5 shrink-0" size={20} /> : <XCircle className="mt-0.5 shrink-0" size={20} />}
             <p>{!question.correct_answer ? "Đã ghi nhận lựa chọn. Tài liệu chưa có đáp án chắc chắn cho câu này." : isCorrect ? "Chính xác!" : `Chưa đúng. Đáp án là ${question.correct_answer}.`}{question.review_required ? " Đáp án này được giữ theo ghi chú nguồn và nên được rà soát lại." : ""}</p>
           </div>}
-          {isChecked && question.explanation && <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-4 text-sm leading-7 text-slate-700 whitespace-pre-wrap"><p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-violet-600">Giải thích</p>{question.explanation}</div>}
+          {isChecked && question.explanation && <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-4 text-sm leading-7 text-slate-700"><p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-violet-600">Giải thích</p><div className="rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(toEditorHtml(question.explanation)) }} /></div>}
         </article>
 
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
