@@ -73,16 +73,25 @@ export default function RichTextEditor({ value, onChange, placeholder, capitaliz
     if (!selection || selection.rangeCount === 0 || !editorRef.current?.contains(selection.anchorNode)) return;
     selectionRef.current = selection.getRangeAt(0).cloneRange();
   }
-  function selectEditorImage(event: MouseEvent<HTMLDivElement>) {
-    const image = event.target instanceof HTMLImageElement ? event.target : null;
+  function selectImageElement(image: HTMLImageElement | null, scrollToImage = false) {
     selectedImageRef.current?.classList.remove("rich-editor__selected-image");
     selectedImageRef.current = image;
     setSelectedImage(image);
     image?.classList.add("rich-editor__selected-image");
+    if (image && scrollToImage) {
+      requestAnimationFrame(() => image.scrollIntoView({ behavior: "smooth", block: "center" }));
+    }
+  }
+  function selectEditorImage(event: MouseEvent<HTMLDivElement>) {
+    const image = event.target instanceof HTMLImageElement ? event.target : null;
+    selectImageElement(image);
   }
   function openSelectedImageCrop() {
     const image = selectedImageRef.current;
-    if (image) setCropSource(image.currentSrc || image.src);
+    if (image) {
+      image.scrollIntoView({ behavior: "smooth", block: "center" });
+      setCropSource(image.currentSrc || image.src);
+    }
   }
   function applySelectedImageCrop(source: string) {
     const image = selectedImageRef.current;
@@ -127,7 +136,22 @@ export default function RichTextEditor({ value, onChange, placeholder, capitaliz
       const selection = window.getSelection();
       selection?.removeAllRanges();
       if (selectionRef.current) selection?.addRange(selectionRef.current);
-      document.execCommand("insertHTML", false, `<img src="${src}" alt="Ảnh thẻ" />`);
+      const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : document.createRange();
+      if (!range.startContainer || !editorRef.current.contains(range.startContainer)) {
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+      }
+      const image = document.createElement("img");
+      image.src = src;
+      image.alt = "Ảnh thẻ";
+      image.onload = () => image.scrollIntoView({ behavior: "smooth", block: "center" });
+      range.deleteContents();
+      range.insertNode(image);
+      range.setStartAfter(image);
+      range.collapse(true);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      selectImageElement(image, true);
       rememberSelection();
       emitChange(editorRef.current.innerHTML);
     };
