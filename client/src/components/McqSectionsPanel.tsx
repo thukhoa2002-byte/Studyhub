@@ -17,11 +17,11 @@ export default function McqSectionsPanel({ section, onChange, open, onMouseEnter
         <div className="grid gap-2">
           <button type="button" onClick={() => onChange("create")} className={`sidebar-hover-panel__item flex items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${section === "create" ? "border-violet-200 bg-violet-50 text-violet-700 shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-violet-200 hover:bg-violet-50/60"}`}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><FilePlus2 size={20} /></span>
-            <span><strong className="block text-sm font-extrabold">Tạo MCQ</strong><small className="mt-0.5 block text-xs font-semibold text-slate-400">Quyền chia sẻ và Xưởng MCQ</small></span>
+            <span><strong className="block text-sm font-extrabold">Tạo trắc nghiệm</strong><small className="mt-0.5 block text-xs font-semibold text-slate-400">Quyền chia sẻ và Xưởng trắc nghiệm</small></span>
           </button>
           <button type="button" onClick={() => onChange("banks")} className={`sidebar-hover-panel__item flex items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${section === "banks" ? "border-teal-200 bg-teal-50 text-teal-700 shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-teal-50/60"}`}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-700"><LibraryBig size={20} /></span>
-            <span><strong className="block text-sm font-extrabold">Bộ MCQ</strong></span>
+            <span><strong className="block text-sm font-extrabold">Bộ trắc nghiệm</strong></span>
           </button>
         </div>
       </div>

@@ -10,7 +10,7 @@ export default function DrugsPage() {
           </div>
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Góc dược lý</p>
-            <h1 id="drugs-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">Drugs</h1>
+            <h1 id="drugs-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">Thuốc</h1>
             <p className="mt-1 text-sm text-slate-500">Khu vực này đang tạm dừng để không sử dụng token AI.</p>
           </div>
         </div>

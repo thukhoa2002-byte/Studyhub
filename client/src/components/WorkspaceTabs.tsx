@@ -28,10 +28,10 @@ interface Props {
 }
 
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
-  { id: "flashcards", label: "Flashcard", icon: BookOpen },
-  { id: "mcq", label: "MCQ", icon: McqIcon },
+  { id: "flashcards", label: "Thẻ học", icon: BookOpen },
+  { id: "mcq", label: "Trắc nghiệm", icon: McqIcon },
   { id: "guidelines", label: "Tài liệu tham khảo", icon: BookOpenCheck },
-  { id: "drugs", label: "Drugs", icon: Pill },
+  { id: "drugs", label: "Thuốc", icon: Pill },
 ];
 
 export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded, referenceSection, onReferenceSectionChange, mcqSection, onMcqSectionChange }: Props) {
