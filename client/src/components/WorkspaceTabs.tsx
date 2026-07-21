@@ -15,8 +15,8 @@ interface Props {
   onChange: (tab: WorkspaceTab) => void;
   user: User | null;
   onUserChange: (user: User | null) => void;
-  theme: "color" | "basic" | "test" | "test-light";
-  onThemeChange: (theme: "color" | "basic" | "test" | "test-light") => void;
+  theme: "color" | "basic" | "test" | "test-light" | "green";
+  onThemeChange: (theme: "color" | "basic" | "test" | "test-light" | "green") => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
   analyticsAdmin: boolean;

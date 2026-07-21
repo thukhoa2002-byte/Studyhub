@@ -6,8 +6,8 @@ import { supabase } from "../services/supabase";
 interface Props {
   user: User | null;
   onUserChange: (user: User | null) => void;
-  theme: "color" | "basic" | "test" | "test-light";
-  onThemeChange: (theme: "color" | "basic" | "test" | "test-light") => void;
+  theme: "color" | "basic" | "test" | "test-light" | "green";
+  onThemeChange: (theme: "color" | "basic" | "test" | "test-light" | "green") => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
 }
@@ -73,10 +73,11 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
 
         <div className="mt-2 border-t border-slate-100 pt-2">
           <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Giao diện</p>
-          <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-50 p-1">
+          <div className="grid grid-cols-4 gap-1 rounded-xl bg-slate-50 p-1">
             <button type="button" onClick={() => onThemeChange("color")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "color" ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>Color</button>
             <button type="button" onClick={() => onThemeChange("basic")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button>
             <button type="button" onClick={() => onThemeChange("test")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "test" ? "bg-slate-900 text-cyan-200 shadow-sm" : theme === "test-light" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Test</button>
+            <button type="button" onClick={() => onThemeChange("green")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "green" ? "bg-[#064E3B] text-[#F8E7C9] shadow-sm" : "text-slate-500"}`}>Green</button>
           </div>
           {(theme === "test" || theme === "test-light") && <button type="button" onClick={() => onThemeChange(theme === "test" ? "test-light" : "test")} className="mt-2 flex w-full items-center justify-between rounded-xl border border-slate-200/70 px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50" aria-label={theme === "test" ? "Chuyển Test sang chế độ sáng" : "Chuyển Test sang chế độ tối"}>
             <span className="flex items-center gap-2">{theme === "test" ? <Sun size={15} /> : <Moon size={15} />}Test {theme === "test" ? "sáng" : "tối"}</span>
