@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ai-cloze-generator
+    name: studyhub
     env: node
     plan: free
     buildCommand: npm install --prefix client && npm install --prefix server && npm run build --prefix client

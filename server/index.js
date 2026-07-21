@@ -21,9 +21,20 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const clientDistPath = join(__dirname, "..", "client", "dist");
+const canonicalHost = "studyhub.onrender.com";
+const legacyHost = "hocbaithoii.onrender.com";
 
+app.set("trust proxy", true);
 app.use(cors());
 app.use(express.json());
+
+app.use((req, res, next) => {
+  if (req.hostname.toLowerCase() === legacyHost) {
+    res.redirect(308, `https://${canonicalHost}${req.originalUrl}`);
+    return;
+  }
+  next();
+});
 
 // Health Check
 app.get("/api/health", (req, res) => {
