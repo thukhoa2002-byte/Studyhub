@@ -206,7 +206,7 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
           <span className="workspace-tabs__label text-sm font-bold">Bảng điều khiển</span>
         </button>
       </section>}
-      <section onMouseEnter={openAnalyticsPanel} onMouseLeave={scheduleAnalyticsClose} className={placement === "sidebar" ? "site-analytics site-analytics--sidebar site-analytics--sidebar-open glass-panel mt-3 w-full rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm" : "site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5"} aria-label="Thống kê truy cập">
+      <section onMouseEnter={openAnalyticsPanel} onMouseLeave={scheduleAnalyticsClose} className={`sidebar-hover-panel sidebar-hover-panel--open ${placement === "sidebar" ? "site-analytics site-analytics--sidebar site-analytics--sidebar-open glass-panel mt-3 w-full rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm" : "site-analytics glass-panel mx-auto mb-6 w-full max-w-[1600px] rounded-3xl border border-white/70 bg-white/55 p-4 shadow-sm sm:p-5"}`} aria-label="Thống kê truy cập">
       <div className="mb-4 flex flex-col gap-2 px-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -222,7 +222,7 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
 
       <div className={`grid gap-3 ${placement === "sidebar" ? "grid-cols-1" : "sm:grid-cols-3"}`}>
         {metrics.map(({ id, label, value, icon: Icon, color, background }) => (
-          <article key={id} className={`relative rounded-2xl border bg-white/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_8px_24px_rgba(148,163,184,.1)] backdrop-blur-xl transition ${activePanel === id ? "border-teal-200 ring-2 ring-teal-100" : "border-white/80"}`}>
+          <article key={id} className={`sidebar-hover-panel__item relative rounded-2xl border bg-white/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_8px_24px_rgba(148,163,184,.1)] backdrop-blur-xl transition ${activePanel === id ? "border-teal-200 ring-2 ring-teal-100" : "border-white/80"}`}>
             <button type="button" onClick={() => setActivePanel((current) => current === id ? null : id)} aria-label={`Xem ${label.toLowerCase()}`} title={`Xem ${label.toLowerCase()}`} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-teal-600"><MoreHorizontal size={19} /></button>
             <div className="flex items-center gap-3 pr-8">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${background}`}><Icon className={`h-5 w-5 ${color}`} /></div>
