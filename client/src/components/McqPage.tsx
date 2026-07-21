@@ -140,7 +140,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
     ...libraryBanks.filter((item) => item.status !== "archived" && (item.status === "published" || canManage) && !staticBankIds.has(item.id)).map((item) => ({
       key: `mcq-bank-${item.id}`,
       title: item.title,
-      description: item.description || "Bộ câu hỏi đã được quản trị viên kiểm tra và công khai.",
+      description: item.description || "",
       questionCount: item.questions.length,
       bank: { title: item.title, questions: item.questions },
       libraryBank: item,
@@ -506,7 +506,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
       {section === "banks" && <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-teal-100 text-violet-700 shadow-sm"><McqIcon size={34} strokeWidth={1.8} /></div>
-            <div><h1 id="mcq-title" className="text-3xl font-extrabold tracking-tight text-rose-950">Bộ MCQ</h1><p className="mt-1 text-sm font-semibold text-slate-500">Cây thư mục và các bộ câu hỏi</p></div>
+            <div><h1 id="mcq-title" className="text-3xl font-extrabold tracking-tight text-rose-950">Bộ MCQ</h1></div>
           </div>
           {canManage && <button type="button" onClick={() => beginCreateFolder(activeFolderId ? "child" : "parent", activeFolderId)} title={activeFolderId ? "Tạo thư mục con" : "Tạo thư mục"} aria-label={activeFolderId ? "Tạo thư mục con" : "Tạo thư mục"} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"><FolderPlus size={19} /></button>}
         </div>

@@ -21,7 +21,7 @@ export default function McqSectionsPanel({ section, onChange, open, onMouseEnter
           </button>
           <button type="button" onClick={() => onChange("banks")} className={`flex items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${section === "banks" ? "border-teal-200 bg-teal-50 text-teal-700 shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-teal-50/60"}`}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-700"><LibraryBig size={20} /></span>
-            <span><strong className="block text-sm font-extrabold">Bộ MCQ</strong><small className="mt-0.5 block text-xs font-semibold text-slate-400">Cây thư mục và các bộ câu hỏi</small></span>
+            <span><strong className="block text-sm font-extrabold">Bộ MCQ</strong></span>
           </button>
         </div>
       </div>
