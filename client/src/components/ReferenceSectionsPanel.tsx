@@ -1,4 +1,4 @@
-import { BookOpenCheck, Calculator, LibraryBig } from "lucide-react";
+import { BookOpenCheck, LibraryBig } from "lucide-react";
 
 export type ReferenceSection = "guidelines" | "books" | "tools";
 
@@ -22,10 +22,6 @@ export default function ReferenceSectionsPanel({ section, onChange, open, onMous
           <button type="button" onClick={() => onChange("books")} className={`sidebar-hover-panel__item flex items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${section === "books" ? "border-rose-200 bg-rose-50 text-rose-700 shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50/60"}`}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700"><LibraryBig size={20} /></span>
             <span><strong className="block text-sm font-extrabold">Sách</strong><small className="mt-0.5 block text-xs font-semibold text-slate-400">Kho sách tham khảo</small></span>
-          </button>
-          <button type="button" onClick={() => onChange("tools")} className={`sidebar-hover-panel__item flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${section === "tools" ? "border-violet-200 bg-violet-50 text-violet-700 shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-violet-200 hover:bg-violet-50/60"}`}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><Calculator size={18} /></span>
-            <span className="min-w-0"><strong className="block whitespace-nowrap text-[13px] font-extrabold">Công cụ &amp; Bảng tra</strong><small className="mt-0.5 block whitespace-nowrap text-[11px] font-semibold text-slate-400">Công thức &amp; thang điểm</small></span>
           </button>
         </div>
       </div>
