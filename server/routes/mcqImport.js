@@ -16,7 +16,7 @@ const MAX_TOTAL_BYTES = 120 * 1024 * 1024;
 const INLINE_FILE_THRESHOLD_BYTES = 14 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 6;
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-const DOCX_CHARS_PER_PASS = 24_000;
+const DOCX_CHARS_PER_PASS = 8_000;
 const execFileAsync = promisify(execFile);
 const upload = multer({
   // Large PDFs must not occupy the Render process heap while Gemini is reading them.
@@ -375,7 +375,7 @@ async function generateChunkWithFallback(chunk) {
 
 function promptForFilePart(file, startPage, endPage, totalPages) {
   const isDocx = isDocxFile(file);
-  const docxInstructions = isDocx ? `\n\nQUY TẮC RIÊNG CHO FILE WORD: Phân biệt rõ phần thân câu hỏi với phần “Đáp án”, “Đáp án đúng”, “Giải thích” hoặc bảng đáp án. Gắn đáp án gần nhất vào câu tương ứng; nếu file không có đáp án thì để correct_answer là chuỗi rỗng. Không biến dòng “Đáp án: A” thành một câu hỏi mới. Nếu câu hỏi và lựa chọn bị dính trên cùng một đoạn, tách lại theo ký hiệu a., b., c., d. hoặc A., B., C., D.` : "";
+  const docxInstructions = isDocx ? `\n\nQUY TẮC RIÊNG CHO FILE WORD: Đây chỉ là MỘT PHẦN của file Word lớn. Phải trích xuất TẤT CẢ câu hỏi xuất hiện trong phần này, không dừng sau 10 câu và không bỏ các câu ở cuối phần. Phân biệt rõ phần thân câu hỏi với phần “Đáp án”, “Đáp án đúng”, “Giải thích” hoặc bảng đáp án. Gắn đáp án gần nhất vào câu tương ứng; nếu file không có đáp án thì để correct_answer là chuỗi rỗng. Không biến dòng “Đáp án: A” thành một câu hỏi mới. Nếu câu hỏi và lựa chọn bị dính trên cùng một đoạn, tách lại theo ký hiệu a., b., c., d. hoặc A., B., C., D.` : "";
   if (!endPage) return `${prompt}${docxInstructions}`;
   return `${prompt}\n\nPHẠM VI XỬ LÝ HIỆN TẠI: Đây là trang PDF ${startPage}-${endPage} trên tổng ${totalPages} trang của file ${file.originalname}. Chỉ trích các câu hỏi nhìn thấy trong cụm này. Giữ nguyên thứ tự trong cụm; đáp án hoặc lời giải không xuất hiện trong cụm thì để trống, không đoán.`;
 }
