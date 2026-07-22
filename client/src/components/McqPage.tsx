@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { DragEvent, ReactNode } from "react";
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Eye, Folder, FolderInput, FolderPlus, Globe2, LockKeyhole, Pencil, Play, RotateCcw, Settings2, Trash2, Trophy, X, XCircle } from "lucide-react";
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
@@ -26,6 +26,7 @@ type QuizQuestion = {
 type QuizBank = { title: string; questions: QuizQuestion[] };
 type Props = { userId?: string; userEmail?: string; onAiCallsRemaining?: (remaining: number) => void; section: McqSection };
 type DeckDefinition = { key: string; title: string; description: string; questionCount?: number; dataUrl?: string; bank?: QuizBank; libraryBank?: McqLibraryBank; managedBankId?: string; folderId?: string | null; visibility: "draft" | "published" };
+type McqDragItem = { kind: "bank" | "folder"; id: string };
 
 const staticDecks: DeckDefinition[] = [
   { key: "bo-mcq-kho-khe", managedBankId: "b0000000-0000-4000-8000-000000000130", title: "Bộ trắc nghiệm - Khò khè", description: "Tiếp cận khò khè, viêm tiểu phế quản và hen.", questionCount: 130, dataUrl: "/mcq/bo-mcq-kho-khe.json", visibility: "published" },
@@ -53,7 +54,8 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   const [requestedEditBank, setRequestedEditBank] = useState<McqLibraryBank | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminAccessReady, setAdminAccessReady] = useState(false);
-  const [openDeckFolderMenuId, setOpenDeckFolderMenuId] = useState<string | null>(null);
+  const [draggedMcqItem, setDraggedMcqItem] = useState<McqDragItem | null>(null);
+  const [dropFolderId, setDropFolderId] = useState<string | null>(null);
   const [openDeckMenuId, setOpenDeckMenuId] = useState<string | null>(null);
   const [folderComposer, setFolderComposer] = useState<"parent" | "child" | null>(null);
   const [folderTitle, setFolderTitle] = useState("");
@@ -409,10 +411,53 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
       setError("");
       const updated = await moveMcqBank(bankId, folderId);
       setLibraryBanks((items) => items.some((item) => item.id === updated.id) ? items.map((item) => item.id === updated.id ? updated : item) : [...items, updated]);
-      setOpenDeckFolderMenuId(null);
       setOpenDeckMenuId(null);
     } catch (moveError) {
       setError(mcqLibraryErrorMessage(moveError, "Không thể di chuyển bộ MCQ."));
+    }
+  }
+
+  function readMcqDragItem(event: DragEvent<HTMLElement>): McqDragItem | null {
+    const raw = event.dataTransfer.getData("application/x-studyhub-mcq-item") || event.dataTransfer.getData("text/plain");
+    try {
+      const parsed = JSON.parse(raw) as Partial<McqDragItem>;
+      if ((parsed.kind !== "bank" && parsed.kind !== "folder") || typeof parsed.id !== "string") return null;
+      return { kind: parsed.kind, id: parsed.id };
+    } catch {
+      return null;
+    }
+  }
+
+  function startMcqDrag(event: DragEvent<HTMLElement>, item: McqDragItem) {
+    if (!canManage) return;
+    const payload = JSON.stringify(item);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-studyhub-mcq-item", payload);
+    event.dataTransfer.setData("text/plain", payload);
+    setDraggedMcqItem(item);
+  }
+
+  async function dropMcqOnFolder(event: DragEvent<HTMLElement>, folder: McqFolder) {
+    event.preventDefault();
+    const dragged = readMcqDragItem(event) || draggedMcqItem;
+    setDropFolderId(null);
+    if (!canManage || !dragged || dragged.id === folder.id && dragged.kind === "folder") return;
+    if (dragged.kind === "folder" && folderIdsInTree(dragged.id).has(folder.id)) return;
+    setFolderActionBusy("drag");
+    try {
+      setError("");
+      if (dragged.kind === "bank") {
+        const deck = decks.find((item) => item.key === dragged.id);
+        if (deck) await moveDeckToFolder(deck, folder.id);
+      } else {
+        const updated = await updateMcqFolder(dragged.id, { parentId: folder.id });
+        setLibraryFolders((items) => items.map((item) => item.id === updated.id ? updated : item));
+      }
+    } catch (dropError) {
+      setError(mcqLibraryErrorMessage(dropError, "Không thể thả mục vào thư mục."));
+    } finally {
+      setFolderActionBusy(null);
+      setDraggedMcqItem(null);
     }
   }
 
@@ -481,8 +526,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
       <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
         {canManage && <div className="relative ml-auto flex items-center gap-1">
           <button type="button" aria-label={"Sửa nội dung " + deck.title} title="Sửa nội dung bộ trắc nghiệm" onClick={() => void requestDeckEdit(deck)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-violet-100 bg-white/95 text-violet-700 shadow-sm transition hover:bg-violet-50"><Pencil size={17} /></button>
-          <button type="button" aria-label={"Chuyển " + deck.title + " vào thư mục"} title="Chuyển vào thư mục" onClick={() => setOpenDeckFolderMenuId((current) => current === deck.key ? null : deck.key)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-amber-100 bg-white/95 text-amber-700 shadow-sm transition hover:bg-amber-50"><FolderInput size={17} /></button>
-          {openDeckFolderMenuId === deck.key && <div className="absolute bottom-full right-0 z-50 mb-2 w-56 rounded-2xl border border-amber-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,.2)]"><label className="sr-only" htmlFor={"deck-folder-" + deck.key}>Chọn thư mục</label><select id={"deck-folder-" + deck.key} autoFocus value={deck.folderId || ""} onChange={(event) => void moveDeckToFolder(deck, event.target.value || null)} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"><option value="">Thư mục gốc</option>{libraryFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.parent_id ? "↳ " : ""}{folder.title}</option>)}</select></div>}
+          <button type="button" draggable={canManage} aria-label={"Kéo " + deck.title + " vào thư mục"} title="Kéo vào thư mục" onDragStart={(event) => startMcqDrag(event, { kind: "bank", id: deck.key })} onDragEnd={() => { setDraggedMcqItem(null); setDropFolderId(null); }} className="inline-flex h-10 w-10 cursor-grab items-center justify-center rounded-xl border border-amber-100 bg-white/95 text-amber-700 shadow-sm transition hover:bg-amber-50 active:cursor-grabbing"><FolderInput size={17} /></button>
           <button type="button" aria-label={deck.visibility === "published" ? "Chuyển thành riêng tư" : "Công khai bộ trắc nghiệm"} title={deck.visibility === "published" ? "Chuyển riêng tư" : "Công khai bộ trắc nghiệm"} onClick={() => void changeDeckVisibility(deck, deck.visibility === "published" ? "draft" : "published")} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-teal-100 bg-white/95 text-teal-700 shadow-sm transition hover:bg-teal-50">{deck.visibility === "published" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button>
           <button type="button" aria-label={"Xóa " + deck.title} title="Xóa bộ trắc nghiệm" onClick={() => void removeDeck(deck)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-100 bg-white/95 text-rose-600 shadow-sm transition hover:bg-rose-50"><Trash2 size={17} /></button>
         </div>}
@@ -509,8 +553,22 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
     const panelFolder = childFolders.find((item) => item.id === panelFolderId);
     const panelDecks = panelFolder ? decks.filter((deck) => deck.folderId && folderIdsInTree(panelFolder.id).has(deck.folderId)) : [];
     const parentOptions = libraryFolders.filter((item) => item.parent_id === null && item.id !== folder.id);
-    return <div key={folder.id} onMouseEnter={() => { if (depth > 0) setHoveredFolderId(folder.id); }} className={depth === 0 ? "min-w-0" : "min-w-0 rounded-2xl border border-amber-200/80 bg-white/70 p-3 transition duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md"}>
-      <div className="relative rounded-2xl border border-amber-200 bg-amber-50/55 px-4 py-3 shadow-sm transition duration-200 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md">
+    return <div key={folder.id} onMouseEnter={() => { if (depth > 0) setHoveredFolderId(folder.id); }} className={depth === 0 ? "mcq-folder-tree min-w-0" : "min-w-0 rounded-2xl border border-amber-200/80 bg-white/70 p-3 transition duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md"}>
+      <div
+        draggable={canManage}
+        onDragStart={(event) => startMcqDrag(event, { kind: "folder", id: folder.id })}
+        onDragOver={(event) => {
+          const dragged = readMcqDragItem(event);
+          if (!canManage || !dragged || (dragged.kind === "folder" && (dragged.id === folder.id || folderIdsInTree(dragged.id).has(folder.id)))) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          setDropFolderId(folder.id);
+        }}
+        onDragLeave={() => setDropFolderId((current) => current === folder.id ? null : current)}
+        onDrop={(event) => { void dropMcqOnFolder(event, folder); }}
+        onDragEnd={() => { setDraggedMcqItem(null); setDropFolderId(null); }}
+        className={`relative rounded-2xl border border-amber-200 bg-amber-50/55 px-4 py-3 shadow-sm transition duration-200 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md ${dropFolderId === folder.id ? "ring-2 ring-teal-300 bg-teal-50" : ""}`}
+      >
         <div className="flex items-center justify-between gap-3"><button type="button" onMouseEnter={() => setHoveredFolderId(folder.id)} onClick={() => { setActiveFolderId(folder.id); setHoveredFolderId(folder.id); setOpenDeckMenuId(null); }} className={`flex min-w-0 items-center gap-3 text-left ${panelFolderId === folder.id ? "text-amber-900" : ""}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Folder size={20} /></span><span className="min-w-0"><span className="block truncate text-base font-extrabold text-slate-800">{folder.title}</span><span className="block text-xs font-semibold text-slate-500">{folderDecks.length} bộ trắc nghiệm</span></span></button>{canManage && <div className="flex shrink-0 items-center gap-1"><button type="button" disabled={folderActionBusy === folder.id} aria-label={`Đổi tên thư mục ${folder.title}`} title="Đổi tên thư mục" onClick={() => beginEditFolder(folder)} className="rounded-xl p-2 text-violet-700 hover:bg-violet-100 disabled:opacity-45"><Pencil size={17} /></button><button type="button" disabled={folderActionBusy === folder.id} aria-label={`Di chuyển thư mục ${folder.title}`} title="Di chuyển thư mục" onClick={() => beginEditFolder(folder)} className="rounded-xl p-2 text-amber-700 hover:bg-amber-100 disabled:opacity-45"><FolderInput size={17} /></button><button type="button" disabled={folderActionBusy === folder.id} aria-label={folder.status === "published" ? `Chuyển ${folder.title} thành riêng tư` : `Công khai ${folder.title}`} title={folder.status === "published" ? "Chuyển riêng tư" : "Công khai thư mục"} onClick={() => void toggleFolderVisibility(folder)} className="rounded-xl p-2 text-teal-700 hover:bg-teal-100 disabled:opacity-45">{folder.status === "published" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button><button type="button" disabled={folderActionBusy === folder.id} aria-label={`Xóa thư mục ${folder.title}`} title="Xóa thư mục" onClick={() => void removeFolder(folder)} className="rounded-xl p-2 text-rose-600 hover:bg-rose-100 disabled:opacity-45"><Trash2 size={17} /></button></div>}</div>
         {editingFolderId === folder.id && <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_220px_auto_auto]"><input value={editingFolderTitle} onChange={(event) => setEditingFolderTitle(event.target.value)} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold" placeholder="Tên thư mục" /><select value={editingFolderParentId || ""} onChange={(event) => setEditingFolderParentId(event.target.value || null)} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold"><option value="">Thư mục gốc</option>{parentOptions.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button type="button" disabled={folderActionBusy === folder.id} onClick={() => void saveFolderEdit(folder)} className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-45">Lưu</button><button type="button" onClick={() => setEditingFolderId(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600"><X size={16} /></button></div>}
       </div>

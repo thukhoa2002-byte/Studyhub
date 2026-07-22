@@ -257,6 +257,7 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 }
 .mode-panel { animation: mode-panel-in 560ms cubic-bezier(.22,1,.36,1) both; transform-origin: 50% 0; will-change: opacity, filter; }
 .mcq-folder-panel__deck { animation: mcq-folder-deck-pop 420ms cubic-bezier(.22,1,.36,1) both; transform-origin: left center; }
+.mcq-folder-tree [title="Di chuyển thư mục"] { display: none !important; }
 .sidebar-hover-panel--open > .sidebar-hover-panel__surface,
 .sidebar-hover-panel--open.sidebar-hover-panel__surface { animation: sidebar-panel-surface-pop 420ms cubic-bezier(.22,1,.36,1) both; transform-origin: left center; }
 .sidebar-hover-panel--open .sidebar-hover-panel__item { animation: mcq-folder-deck-pop 420ms cubic-bezier(.22,1,.36,1) both; transform-origin: left center; }
