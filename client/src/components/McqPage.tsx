@@ -625,7 +625,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   if (!opened) return (
     <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8" aria-labelledby="mcq-title">
       {section === "create" && <>
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+        <div className="grid items-start gap-5 lg:grid-cols-2">
           <McqAccessPanel userEmail={userEmail} visible={Boolean(userId)} />
           {renderEditableDecks()}
         </div>
