@@ -113,6 +113,20 @@ export interface McqImportResponse {
   aiCallsRemaining?: number;
 }
 
+async function startMcqImportJob(files: File[], accessToken: string): Promise<string> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+  const response = await fetch(`${API_URL}/api/mcq-import/jobs`, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + accessToken },
+    body: formData,
+  });
+  if (!response.ok) throw new Error(await apiErrorMessage(response, "Không thể bắt đầu trích xuất bộ MCQ."));
+  const started = (await response.json()) as { jobId?: string };
+  if (!started.jobId) throw new Error("Máy chủ không tạo được phiên trích xuất MCQ.");
+  return started.jobId;
+}
+
 async function apiErrorMessage(response: Response, fallback: string) {
   const body = await response.text().catch(() => "");
   try {
@@ -126,28 +140,25 @@ async function apiErrorMessage(response: Response, fallback: string) {
 }
 
 export async function extractMcqFiles(files: File[]): Promise<McqImportResponse> {
-  const formData = new FormData();
-  files.forEach((file) => formData.append("files", file));
   const { supabase } = await import("./supabase");
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Bạn cần đăng nhập bằng tài khoản quản trị MCQ.");
-  const response = await fetch(`${API_URL}/api/mcq-import/jobs`, {
-    method: "POST",
-    headers: { Authorization: "Bearer " + session.access_token },
-    body: formData,
-  });
-  if (!response.ok) throw new Error(await apiErrorMessage(response, "Không thể bắt đầu trích xuất bộ MCQ."));
-  const started = (await response.json()) as { jobId?: string };
-  if (!started.jobId) throw new Error("Máy chủ không tạo được phiên trích xuất MCQ.");
+  let jobId = await startMcqImportJob(files, session.access_token);
+  let restartedAfterMissingJob = false;
   while (true) {
     await new Promise((resolve) => window.setTimeout(resolve, 1200));
-    const progressResponse = await fetch(`${API_URL}/api/mcq-import/jobs/${started.jobId}`, {
+    const progressResponse = await fetch(`${API_URL}/api/mcq-import/jobs/${jobId}`, {
       headers: { Authorization: "Bearer " + session.access_token },
     });
     if (!progressResponse.ok) {
       if (progressResponse.status >= 500) continue;
       if (progressResponse.status === 404) {
+        if (!restartedAfterMissingJob) {
+          restartedAfterMissingJob = true;
+          jobId = await startMcqImportJob(files, session.access_token);
+          continue;
+        }
         throw new Error("Phiên trích xuất đã hết trên máy chủ. Hãy bấm lại nút đọc file để bắt đầu phiên mới.");
       }
       throw new Error(await apiErrorMessage(progressResponse, "Không thể lấy kết quả trích xuất MCQ."));
