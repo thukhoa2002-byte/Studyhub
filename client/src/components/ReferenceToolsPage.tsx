@@ -335,7 +335,7 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   }
 
   return <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8" aria-labelledby="reference-tools-title">
-    <div className="glass-panel border border-violet-100 bg-white/75 p-5 sm:p-7">
+    <div className="glass-panel reference-tools-panel border border-violet-100 bg-white/75 p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><Calculator size={25} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Tài liệu tham khảo</p><h1 id="reference-tools-title" className="mt-1 text-2xl font-black text-rose-950">Công cụ &amp; Bảng tra</h1><p className="mt-1 text-sm text-slate-500">Công thức, bảng dữ liệu và công cụ hỗ trợ tính toán, đánh giá.</p></div></div>{isOwner && <button type="button" onClick={openNewFormula} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-violet-700"><FilePlus2 size={17} />Thêm công thức</button>}</div>
 
       {isOwner && <div className="mt-6 rounded-2xl border border-violet-200 bg-violet-50/35 p-4">
