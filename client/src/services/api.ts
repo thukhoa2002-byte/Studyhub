@@ -147,6 +147,9 @@ export async function extractMcqFiles(files: File[]): Promise<McqImportResponse>
     });
     if (!progressResponse.ok) {
       if (progressResponse.status >= 500) continue;
+      if (progressResponse.status === 404) {
+        throw new Error("Phiên trích xuất đã hết trên máy chủ. Hãy bấm lại nút đọc file để bắt đầu phiên mới.");
+      }
       throw new Error(await apiErrorMessage(progressResponse, "Không thể lấy kết quả trích xuất MCQ."));
     }
     const progress = (await progressResponse.json()) as { status?: "running" | "complete"; success?: boolean; data?: McqImportResponse["data"]; aiCallsRemaining?: number; message?: string };

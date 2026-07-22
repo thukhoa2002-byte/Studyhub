@@ -224,6 +224,7 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-tabs__button,
   .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-settings > button,
   .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .site-analytics--sidebar > button { justify-content: center; gap: 0; padding-inline: 0; }
+  .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-settings__chevron { display: none; }
   .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-tabs--sidebar .workspace-tabs__glider { top: 0; left: 50%; width: 3.65rem; height: 3.65rem; margin-left: -1.825rem; }
   .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-sidebar__account { width: 100%; justify-content: center; gap: 0; }
   .workspace-tabs__glider { top: .5rem; bottom: auto; left: .5rem; width: calc(100% - 1rem); height: calc((100% - 2.5rem) / 4); }

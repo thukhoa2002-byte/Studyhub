@@ -297,6 +297,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       if (typeof result.aiCallsRemaining === "number") onAiCallsRemaining?.(result.aiCallsRemaining);
       setNotice("Gemini đã trích xong. Hãy kiểm tra và sửa trước khi xuất Word hoặc đăng.");
     } catch (extractError) {
+      setNotice("");
       setError(extractError instanceof Error ? extractError.message : "Không thể đọc file.");
     } finally { setBusy(false); }
   }
