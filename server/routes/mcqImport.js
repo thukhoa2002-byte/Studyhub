@@ -226,6 +226,32 @@ async function attachPdfPageImages(questions, files) {
   return questions;
 }
 
+function attachDocxImages(questions, files) {
+  const imageMap = new Map();
+  for (const file of files) {
+    for (const image of file.embeddedImages || []) {
+      imageMap.set(image.originalname, image);
+    }
+  }
+  const markerPattern = /\[HÌNH WORD:\s*([^\]]+)\]/iu;
+  for (const question of questions) {
+    const sourceText = question.question + " " + question.explanation;
+    const markerName = sourceText.match(markerPattern)?.[1]?.trim() || "";
+    const imageName = question.image_source_name?.trim() || markerName;
+    const image = imageMap.get(imageName) || imageMap.get(imageName.split("/").pop());
+    const stripMarkers = (value) => value.replace(/\s*\[HÌNH WORD:\s*[^\]]+\]\s*/giu, " ").replace(/\s{2,}/g, " ").trim();
+    question.question = stripMarkers(question.question);
+    question.explanation = stripMarkers(question.explanation);
+    if (!image) continue;
+    question.has_image = true;
+    question.image_source_name = image.originalname;
+    question.image_url = "data:" + image.mimetype + ";base64," + image.buffer.toString("base64");
+    question.image_alt = question.image_alt || "Hình minh họa trong file Word";
+    question.review_note = [question.review_note, "Đã gắn ảnh nhúng trong file Word ngay dưới câu hỏi để đối chiếu."].filter(Boolean).join(" ");
+  }
+  return questions;
+}
+
 async function splitPdfPart(part, pagesPerPass) {
   const sourceBytes = part.file.buffer || await readFile(part.file.path);
   const source = await PDFDocument.load(sourceBytes, { ignoreEncryption: true });
@@ -280,15 +306,78 @@ function decodeXmlEntities(value) {
     .replace(/&apos;/g, "'");
 }
 
-async function extractDocxText(file) {
+function xmlAttribute(attributes, name) {
+  const escapedName = name.replace(/[.*+?^()|[\]\\]/g, "\\$&");
+  return attributes.match(new RegExp("(^|\\s)" + escapedName + "=\"([^\"]*)\"", "i"))?.[2] || "";
+}
+
+function docxEntryPath(target) {
+  const decodedTarget = decodeXmlEntities(target).replace(/^\/+/, "");
+  if (decodedTarget.startsWith("../")) return "word/" + decodedTarget.replace(/^(\.\.\/)+/, "");
+  if (decodedTarget.startsWith("word/")) return decodedTarget;
+  return "word/" + decodedTarget;
+}
+
+function docxImageMimeType(filename) {
+  const extension = filename.toLowerCase().split(".").pop();
+  return { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", bmp: "image/bmp" }[extension] || "application/octet-stream";
+}
+
+async function extractDocxContent(file) {
   if (!file?.path) throw new Error("Không thể đọc file Word tạm thời.");
-  let xml;
+  let documentXml;
   try {
-    ({ stdout: xml } = await execFileAsync("unzip", ["-p", file.path, "word/document.xml"], { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 }));
+    ({ stdout: documentXml } = await execFileAsync("unzip", ["-p", file.path, "word/document.xml"], { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 }));
   } catch {
     throw new Error("Không thể đọc nội dung file Word. Hãy thử lưu lại file dưới dạng .docx rồi tải lên lại.");
   }
-  const text = String(xml)
+  let relationshipsXml = "";
+  try {
+    ({ stdout: relationshipsXml } = await execFileAsync("unzip", ["-p", file.path, "word/_rels/document.xml.rels"], { encoding: "utf8", maxBuffer: 5 * 1024 * 1024 }));
+  } catch {
+    relationshipsXml = "";
+  }
+  const relationships = new Map();
+  for (const match of String(relationshipsXml).matchAll(/<Relationship\b([^>]+?)(?:\/>|>)/g)) {
+    const relationshipId = xmlAttribute(match[1], "Id");
+    const target = xmlAttribute(match[1], "Target");
+    if (relationshipId && target) relationships.set(relationshipId, docxEntryPath(target));
+  }
+  const referencedImages = new Map();
+  const xml = String(documentXml)
+    .replace(/<w:drawing\b[\s\S]*?<\/w:drawing>/g, (drawing) => {
+      const relationshipId = drawing.match(/r:embed="([^"]+)"/)?.[1] || "";
+      const entry = relationships.get(relationshipId);
+      if (!entry) return "";
+      const filename = entry.split("/").pop() || entry;
+      referencedImages.set(entry, filename);
+      return "\n<w:t>[HÌNH WORD: " + filename + "]</w:t>\n";
+    })
+    .replace(/<w:pict\b[\s\S]*?<\/w:pict>/g, (picture) => {
+      const relationshipId = picture.match(/r:id="([^"]+)"/)?.[1] || "";
+      const entry = relationships.get(relationshipId);
+      if (!entry) return "";
+      const filename = entry.split("/").pop() || entry;
+      referencedImages.set(entry, filename);
+      return "\n<w:t>[HÌNH WORD: " + filename + "]</w:t>\n";
+    });
+  const images = (await Promise.all([...referencedImages.entries()].map(async ([entry, filename]) => {
+    try {
+      const { stdout } = await execFileAsync("unzip", ["-p", file.path, entry], { encoding: "buffer", maxBuffer: 20 * 1024 * 1024 });
+      const buffer = Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout);
+      return {
+        originalname: filename,
+        mimetype: docxImageMimeType(filename),
+        sourceFormat: "docx-image",
+        buffer,
+        size: buffer.length,
+        path: undefined,
+      };
+    } catch {
+      return null;
+    }
+  }))).filter(Boolean);
+  const text = xml
     .replace(/<w:tab\b[^>]*\/>/g, "\t")
     .replace(/<w:(?:br|cr)\b[^>]*\/>/g, "\n")
     .replace(/<\/w:tc>/g, "\n")
@@ -300,12 +389,12 @@ async function extractDocxText(file) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   if (!text) throw new Error("File Word không có phần văn bản để trích xuất.");
-  return text;
+  return { text, images };
 }
 
 async function prepareMcqFile(file) {
   if (!isDocxFile(file)) return file;
-  const text = await extractDocxText(file);
+  const { text, images } = await extractDocxContent(file);
   return {
     ...file,
     sourceFormat: "docx",
@@ -313,6 +402,7 @@ async function prepareMcqFile(file) {
     buffer: Buffer.from(text, "utf8"),
     path: undefined,
     size: Buffer.byteLength(text, "utf8"),
+    embeddedImages: images,
   };
 }
 
@@ -333,8 +423,9 @@ function splitDocxText(file, maxChars = DOCX_CHARS_PER_PASS, maxQuestions = DOCX
     const end = questionBoundary || nextQuestion || target;
     const chunkText = text.slice(start, end).trim();
     if (chunkText) {
+      const embeddedImages = (file.embeddedImages || []).filter((image) => chunkText.includes("[HÌNH WORD: " + image.originalname + "]"));
       chunks.push({
-        file: { ...file, buffer: Buffer.from(chunkText, "utf8"), size: Buffer.byteLength(chunkText, "utf8"), originalname: `${file.originalname.replace(/\.docx$/i, "")}-part-${chunks.length + 1}.docx` },
+        file: { ...file, embeddedImages, buffer: Buffer.from(chunkText, "utf8"), size: Buffer.byteLength(chunkText, "utf8"), originalname: file.originalname.replace(/\.docx$/i, "") + "-part-" + (chunks.length + 1) + ".docx" },
         startPage: 1,
         endPage: 0,
         totalPages: 0,
@@ -354,6 +445,7 @@ async function generateChunkWithFallback(chunk) {
   try {
     return [await generateStructuredFromFile({
       file: chunk.file,
+      files: [chunk.file, ...(chunk.file.embeddedImages || [])],
       schema,
       prompt: promptForFilePart(chunk.file, chunk.startPage, chunk.endPage, chunk.totalPages),
       maxOutputTokens: 8192,
@@ -378,7 +470,7 @@ async function generateChunkWithFallback(chunk) {
 
 function promptForFilePart(file, startPage, endPage, totalPages) {
   const isDocx = isDocxFile(file);
-  const docxInstructions = isDocx ? `\n\nQUY TẮC RIÊNG CHO FILE WORD: Đây chỉ là MỘT PHẦN của file Word lớn. Phải trích xuất TẤT CẢ câu hỏi xuất hiện trong phần này, không dừng sau 10 câu và không bỏ các câu ở cuối phần. Phân biệt rõ phần thân câu hỏi với phần “Đáp án”, “Đáp án đúng”, “Giải thích” hoặc bảng đáp án. Gắn đáp án gần nhất vào câu tương ứng; nếu file không có đáp án thì để correct_answer là chuỗi rỗng. Không biến dòng “Đáp án: A” thành một câu hỏi mới. Nếu câu hỏi và lựa chọn bị dính trên cùng một đoạn, tách lại theo ký hiệu a., b., c., d. hoặc A., B., C., D.` : "";
+  const docxInstructions = isDocx ? `\n\nQUY TẮC RIÊNG CHO FILE WORD: Đây chỉ là MỘT PHẦN của file Word lớn. Phải trích xuất TẤT CẢ câu hỏi xuất hiện trong phần này, không dừng sau 10 câu và không bỏ các câu ở cuối phần. Các marker [HÌNH WORD: ten-file] trong văn bản là ảnh nhúng thật được gửi kèm cùng phần này. Ảnh nằm sau nội dung câu nào thì thuộc câu đó; đặt has_image=true, giữ chính xác tên file vào image_source_name và đặt image_alt là mô tả trung tính. Không biến marker ảnh thành câu hỏi mới, không bỏ ảnh, và phải đặt ảnh ngay dưới câu hỏi tương ứng trong cùng thẻ MCQ. Phân biệt rõ phần thân câu hỏi với phần “Đáp án”, “Đáp án đúng”, “Giải thích” hoặc bảng đáp án. Gắn đáp án gần nhất vào câu tương ứng; nếu file không có đáp án thì để correct_answer là chuỗi rỗng. Không biến dòng “Đáp án: A” thành một câu hỏi mới. Nếu câu hỏi và lựa chọn bị dính trên cùng một đoạn, tách lại theo ký hiệu a., b., c., d. hoặc A., B., C., D.` : "";
   if (!endPage) return `${prompt}${docxInstructions}`;
   return `${prompt}\n\nPHẠM VI XỬ LÝ HIỆN TẠI: Đây là trang PDF ${startPage}-${endPage} trên tổng ${totalPages} trang của file ${file.originalname}. Chỉ trích các câu hỏi nhìn thấy trong cụm này. Giữ nguyên thứ tự trong cụm; đáp án hoặc lời giải không xuất hiện trong cụm thì để trống, không đoán.`;
 }
@@ -423,6 +515,7 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
     const results = [];
     for (const chunk of chunks) results.push(...await generateChunkWithFallback(chunk));
     const questions = normalizeQuestions(mergeChunkQuestions(results.flatMap((result) => result.questions || [])));
+    attachDocxImages(questions, preparedFiles);
     await attachPdfPageImages(questions, files);
     if (!questions.length) {
       return res.status(422).json({
