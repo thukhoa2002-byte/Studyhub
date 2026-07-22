@@ -498,6 +498,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
 
   const visibleFolders = canManage ? libraryFolders : libraryFolders.filter((folder) => folder.status === "published");
   const rootFolders = visibleFolders.filter((folder) => !folder.parent_id);
+  const editableDecks = decks.filter((deck) => Boolean(deck.libraryBank || deck.managedBankId));
 
   function folderIdsInTree(folderId: string): Set<string> {
     const result = new Set<string>();
@@ -579,6 +580,26 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
     </div>;
   }
 
+  function renderEditableDecks(): ReactNode {
+    if (!canManage) return null;
+    return <aside className="rounded-3xl border border-violet-200/80 bg-white/75 p-4 shadow-sm backdrop-blur-xl sm:p-5" aria-label="Bộ trắc nghiệm cần sửa">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Bộ trắc nghiệm</p>
+          <h2 className="mt-1 text-lg font-black text-rose-950">Chỉnh sửa bộ MCQ</h2>
+        </div>
+        <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-extrabold text-violet-700">{editableDecks.length}</span>
+      </div>
+      {editableDecks.length > 0 ? <div className="mt-4 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-1">
+        {editableDecks.map((deck) => <div key={deck.key} className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 transition hover:border-violet-300 hover:bg-violet-50/40">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><McqIcon size={19} /></span>
+          <div className="min-w-0 flex-1"><p className="truncate text-sm font-extrabold text-slate-800">{deck.title}</p><p className="text-xs font-semibold text-slate-400">{deck.questionCount || 0} câu</p></div>
+          <button type="button" onClick={() => void requestDeckEdit(deck)} aria-label={`Sửa ${deck.title}`} title={`Sửa ${deck.title}`} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-200 bg-white text-violet-700 transition hover:bg-violet-100"><Pencil size={16} /></button>
+        </div>)}
+      </div> : <p className="mt-4 rounded-2xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm font-semibold text-slate-400">Chưa có bộ MCQ để sửa.</p>}
+    </aside>;
+  }
+
   if (error) return <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8"><p className="rounded-2xl border border-rose-200 bg-white p-5 text-sm font-semibold text-rose-700">{error}</p></section>;
 
   if (previewDeck) return (
@@ -604,7 +625,10 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   if (!opened) return (
     <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8" aria-labelledby="mcq-title">
       {section === "create" && <>
-        <McqAccessPanel userEmail={userEmail} visible={Boolean(userId)} />
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+          <McqAccessPanel userEmail={userEmail} visible={Boolean(userId)} />
+          {renderEditableDecks()}
+        </div>
         {(adminAccessReady || isOwner) && canManage && userId && <div id="mcq-admin-studio"><McqAdminStudio userId={userId} drafts={libraryBanks} requestedBank={requestedEditBank} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} showDrafts={false} /></div>}
       </>}
       {section === "banks" && <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
@@ -615,7 +639,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
           {canManage && <button type="button" onClick={() => beginCreateFolder(activeFolderId ? "child" : "parent", activeFolderId)} title={activeFolderId ? "Tạo thư mục con" : "Tạo thư mục"} aria-label={activeFolderId ? "Tạo thư mục con" : "Tạo thư mục"} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"><FolderPlus size={19} /></button>}
         </div>
         {canManage && folderComposer && <div className="mt-4 grid gap-2 rounded-xl border border-dashed border-amber-200 bg-amber-50/35 p-3 sm:grid-cols-[1fr_auto_auto]"><input autoFocus value={folderTitle} onChange={(event) => setFolderTitle(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void submitFolder(); } }} placeholder={folderComposer === "child" ? "Tên thư mục con" : "Tên thư mục"} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold" /><button type="button" disabled={folderActionBusy === "create"} onClick={() => { setFolderComposer(null); setFolderTitle(""); }} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-45">Hủy</button><button type="button" disabled={!folderTitle.trim() || folderActionBusy === "create"} onClick={() => void submitFolder()} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-45">{folderActionBusy === "create" ? "Đang lưu..." : "Lưu"}</button></div>}
-        <div className="mt-5 space-y-5">{rootFolders.length > 0 ? <div className="grid gap-4 xl:grid-cols-2">{rootFolders.map((folder) => renderFolder(folder))}</div> : <p className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/35 px-4 py-8 text-center text-sm font-semibold text-slate-400">Chưa có thư mục mẹ.</p>}{decks.length > 0 && <div className="grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">{decks.filter((deck) => !deck.folderId || !visibleFolders.some((folder) => folder.id === deck.folderId)).map((deck) => renderDeckCard(deck))}</div>}</div>
+        <div className="mt-5 space-y-5">{rootFolders.length > 0 ? <div className="grid gap-4 xl:grid-cols-2">{rootFolders.map((folder) => renderFolder(folder))}</div> : <p className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/35 px-4 py-8 text-center text-sm font-semibold text-slate-400">Chưa có thư mục mẹ.</p>}</div>
       </div>}
     </section>
   );
