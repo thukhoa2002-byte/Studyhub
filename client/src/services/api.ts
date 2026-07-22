@@ -142,21 +142,42 @@ async function apiErrorMessage(response: Response, fallback: string) {
 export async function extractMcqFiles(files: File[]): Promise<McqImportResponse> {
   const { supabase } = await import("./supabase");
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error("Bạn cần đăng nhập bằng tài khoản quản trị MCQ.");
-  let jobId = await startMcqImportJob(files, session.access_token);
+  const supabaseClient = supabase;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  let accessToken = session?.access_token || "";
+  let authRefreshCount = 0;
+  async function refreshMcqSession() {
+    if (authRefreshCount >= 2) throw new Error("Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để tiếp tục.");
+    const refreshed = await supabaseClient.auth.refreshSession();
+    if (refreshed.error || !refreshed.data.session?.access_token) throw new Error("Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để tiếp tục.");
+    accessToken = refreshed.data.session.access_token;
+    authRefreshCount += 1;
+  }
+  if (!accessToken || (session?.expires_at && session.expires_at * 1000 <= Date.now() + 60_000)) await refreshMcqSession();
+  let jobId: string;
+  try {
+    jobId = await startMcqImportJob(files, accessToken);
+  } catch (startError) {
+    if (!/phiên đăng nhập|đăng nhập không hợp lệ/i.test(startError instanceof Error ? startError.message : String(startError))) throw startError;
+    await refreshMcqSession();
+    jobId = await startMcqImportJob(files, accessToken);
+  }
   let restartedAfterMissingJob = false;
   while (true) {
     await new Promise((resolve) => window.setTimeout(resolve, 1200));
     const progressResponse = await fetch(`${API_URL}/api/mcq-import/jobs/${jobId}`, {
-      headers: { Authorization: "Bearer " + session.access_token },
+      headers: { Authorization: "Bearer " + accessToken },
     });
     if (!progressResponse.ok) {
+      if (progressResponse.status === 401 && authRefreshCount < 2) {
+        await refreshMcqSession();
+        continue;
+      }
       if (progressResponse.status >= 500) continue;
       if (progressResponse.status === 404) {
         if (!restartedAfterMissingJob) {
           restartedAfterMissingJob = true;
-          jobId = await startMcqImportJob(files, session.access_token);
+          jobId = await startMcqImportJob(files, accessToken);
           continue;
         }
         throw new Error("Phiên trích xuất đã hết trên máy chủ. Hãy bấm lại nút đọc file để bắt đầu phiên mới.");
