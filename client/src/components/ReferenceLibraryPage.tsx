@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import GuidelinesPage from "./GuidelinesPage";
+import ReferenceToolsPage from "./ReferenceToolsPage";
 import FileDropZone from "./FileDropZone";
 import type { ReferenceSection } from "./ReferenceSectionsPanel";
 import { createReferenceBook, createReferenceBookFolder, deleteReferenceBook, extractReferenceBook, generateReferenceBookTextPdf, getReferenceBookUrl, listReferenceBooks, updateReferenceBookDetails, updateReferenceBookLayout, updateReferenceBookStatus, type ReferenceBook, type ReferenceBookBlock, type ReferenceBookDiagramCrop, type ReferenceBookExtraction, type ReferenceBookPage } from "../services/referenceBooks";
@@ -312,7 +313,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining, section
   }
 
   return <>
-    {section === "guidelines" ? <GuidelinesPage user={user} onAiCallsRemaining={onAiCallsRemaining} /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
+    {section === "guidelines" ? <GuidelinesPage user={user} onAiCallsRemaining={onAiCallsRemaining} /> : section === "tools" ? <ReferenceToolsPage /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
       <div className="glass-panel border border-rose-100 bg-white/75 p-5">
         <div className="flex items-center gap-3"><LibraryBig className="text-rose-500" size={28} /><div><h1 className="text-xl font-extrabold text-rose-950">Sách tham khảo</h1><p className="text-sm text-slate-500">Sách đã đăng công khai mới hiển thị cho mọi tài khoản.</p></div></div>
 

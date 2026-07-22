@@ -93,15 +93,28 @@ export async function removeMcqAdmin(email: string): Promise<void> {
 }
 
 export async function listMcqBanks(): Promise<McqLibraryBank[]> {
-  const { data, error } = await requireSupabase()
+  const client = requireSupabase();
+  // Avoid downloading the potentially very large questions JSON for every
+  // bank while opening the library. Load a full bank only when needed.
+  const counted = await client
     .from("mcq_banks")
-    // Avoid downloading the potentially very large questions JSON for every
-    // bank while opening the library. Load a full bank only when needed.
-    .select("id, owner_id, title, description, folder_id, status, created_at, updated_at, published_at")
+    .select("id, owner_id, title, description, folder_id, status, created_at, updated_at, published_at, question_count")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
+  let data: unknown = counted.data;
+  let error: { message: string } | null = counted.error;
+  if (error && /question_count|schema cache/i.test(error.message)) {
+    const fallback = await client
+      .from("mcq_banks")
+      .select("id, owner_id, title, description, folder_id, status, created_at, updated_at, published_at")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) throw error;
-  return (data ?? []).map((bank) => ({ ...bank, questions: [] })) as McqLibraryBank[];
+  const banks = Array.isArray(data) ? data as Array<Record<string, unknown>> : [];
+  return banks.map((bank) => ({ ...bank, questions: [] })) as unknown as McqLibraryBank[];
 }
 
 export async function getMcqBank(bankId: string): Promise<McqLibraryBank> {

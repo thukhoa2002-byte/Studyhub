@@ -73,6 +73,15 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
           <button type="button" onClick={() => setMenuView("theme")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><Palette size={17} /><span className="flex-1">Giao diện background</span><ChevronRight size={16} className="text-slate-400" /></button>
           <button type="button" onClick={() => setMenuView("help")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><CircleHelp size={17} /><span className="flex-1">Help center</span><ChevronRight size={16} className="text-slate-400" /></button>
           <button type="button" onClick={() => setMenuView("profile")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><UserRound size={17} /><span className="flex-1">My Profile</span><ChevronRight size={16} className="text-slate-400" /></button>
+          {user && <>
+            <div className="my-1 border-t border-slate-100" />
+            <button type="button" role="switch" aria-checked={sharedDeckNotificationsEnabled} onClick={() => onSharedDeckNotificationsChange(!sharedDeckNotificationsEnabled)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50">
+              {sharedDeckNotificationsEnabled ? <Bell size={17} className="text-teal-600" /> : <BellOff size={17} className="text-slate-400" />}
+              <span className="flex-1">Thông báo bộ thẻ</span>
+              <span className={`relative h-5 w-9 rounded-full transition ${sharedDeckNotificationsEnabled ? "bg-teal-400" : "bg-slate-200"}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${sharedDeckNotificationsEnabled ? "translate-x-[18px]" : "translate-x-0.5"}`} /></span>
+            </button>
+            <button type="button" onClick={() => { setOpen(false); setMenuView("root"); void supabase?.auth.signOut(); onUserChange(null); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"><LogOut size={17} /><span>Đăng xuất</span></button>
+          </>}
         </div>}
 
         {menuView !== "root" && <>
@@ -97,12 +106,6 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
               <p className="truncate px-2 pb-2 text-xs font-semibold text-slate-500">{user.email}</p>
               <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={(event) => void updateAvatar(event)} />
               <button type="button" disabled={busy} onClick={() => avatarInput.current?.click()} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50 disabled:opacity-50"><Camera size={16} />Đổi ảnh đại diện</button>
-              <button type="button" role="switch" aria-checked={sharedDeckNotificationsEnabled} onClick={() => onSharedDeckNotificationsChange(!sharedDeckNotificationsEnabled)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50">
-                {sharedDeckNotificationsEnabled ? <Bell size={16} className="text-teal-600" /> : <BellOff size={16} className="text-slate-400" />}
-                <span className="flex-1">Thông báo bộ thẻ</span>
-                <span className={`relative h-5 w-9 rounded-full transition ${sharedDeckNotificationsEnabled ? "bg-teal-400" : "bg-slate-200"}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${sharedDeckNotificationsEnabled ? "translate-x-[18px]" : "translate-x-0.5"}`} /></span>
-              </button>
-              <button type="button" onClick={() => { setOpen(false); setMenuView("root"); void supabase?.auth.signOut(); onUserChange(null); }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"><LogOut size={16} />Đăng xuất</button>
             </> : <div className="flex items-center gap-2 px-2 pb-2 text-xs font-semibold text-slate-500"><UserRound size={16} />Chế độ khách</div>}
           </div>}
         </>}
