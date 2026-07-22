@@ -53,6 +53,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   const [requestedEditBank, setRequestedEditBank] = useState<McqLibraryBank | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminAccessReady, setAdminAccessReady] = useState(false);
+  const [openDeckFolderMenuId, setOpenDeckFolderMenuId] = useState<string | null>(null);
   const [openDeckMenuId, setOpenDeckMenuId] = useState<string | null>(null);
   const [folderComposer, setFolderComposer] = useState<"parent" | "child" | null>(null);
   const [folderTitle, setFolderTitle] = useState("");
@@ -408,6 +409,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
       setError("");
       const updated = await moveMcqBank(bankId, folderId);
       setLibraryBanks((items) => items.some((item) => item.id === updated.id) ? items.map((item) => item.id === updated.id ? updated : item) : [...items, updated]);
+      setOpenDeckFolderMenuId(null);
       setOpenDeckMenuId(null);
     } catch (moveError) {
       setError(mcqLibraryErrorMessage(moveError, "Không thể di chuyển bộ MCQ."));
@@ -477,7 +479,14 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
       </div>
       <p className="mt-3 text-sm leading-5 text-slate-500">{deck.description}</p>
       <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
-        {canManage ? <div className="relative">
+        {canManage && <div className="relative ml-auto flex items-center gap-1">
+          <button type="button" aria-label={"Sửa nội dung " + deck.title} title="Sửa nội dung bộ trắc nghiệm" onClick={() => void requestDeckEdit(deck)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-violet-100 bg-white/95 text-violet-700 shadow-sm transition hover:bg-violet-50"><Pencil size={17} /></button>
+          <button type="button" aria-label={"Chuyển " + deck.title + " vào thư mục"} title="Chuyển vào thư mục" onClick={() => setOpenDeckFolderMenuId((current) => current === deck.key ? null : deck.key)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-amber-100 bg-white/95 text-amber-700 shadow-sm transition hover:bg-amber-50"><FolderInput size={17} /></button>
+          {openDeckFolderMenuId === deck.key && <div className="absolute bottom-full right-0 z-50 mb-2 w-56 rounded-2xl border border-amber-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,.2)]"><label className="sr-only" htmlFor={"deck-folder-" + deck.key}>Chọn thư mục</label><select id={"deck-folder-" + deck.key} autoFocus value={deck.folderId || ""} onChange={(event) => void moveDeckToFolder(deck, event.target.value || null)} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"><option value="">Thư mục gốc</option>{libraryFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.parent_id ? "↳ " : ""}{folder.title}</option>)}</select></div>}
+          <button type="button" aria-label={deck.visibility === "published" ? "Chuyển thành riêng tư" : "Công khai bộ trắc nghiệm"} title={deck.visibility === "published" ? "Chuyển riêng tư" : "Công khai bộ trắc nghiệm"} onClick={() => void changeDeckVisibility(deck, deck.visibility === "published" ? "draft" : "published")} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-teal-100 bg-white/95 text-teal-700 shadow-sm transition hover:bg-teal-50">{deck.visibility === "published" ? <LockKeyhole size={17} /> : <Globe2 size={17} />}</button>
+          <button type="button" aria-label={"Xóa " + deck.title} title="Xóa bộ trắc nghiệm" onClick={() => void removeDeck(deck)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-100 bg-white/95 text-rose-600 shadow-sm transition hover:bg-rose-50"><Trash2 size={17} /></button>
+        </div>}
+        {canManage ? <div className="relative hidden">
           <button type="button" aria-label={`Cài đặt ${deck.title}`} title="Cài đặt bộ trắc nghiệm" onClick={() => setOpenDeckMenuId((current) => current === deck.key ? null : deck.key)} className="inline-flex items-center justify-center rounded-2xl border border-violet-100 bg-white/95 p-2.5 text-slate-600 shadow-sm hover:bg-violet-50"><Settings2 size={17} /></button>
           {openDeckMenuId === deck.key && <div className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 text-left shadow-[0_18px_40px_rgba(15,23,42,.2)]">
             <button type="button" onClick={() => { setOpenDeckMenuId(null); void requestDeckEdit(deck); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"><Pencil size={15} />Sửa nội dung bộ trắc nghiệm</button>
