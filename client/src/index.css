@@ -134,6 +134,14 @@ button:active { transform: translateY(0) scale(.97); }
 .deck-library-card:has([role="menu"]) { z-index: 75; }
 input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box-shadow: 0 0 0 3px rgba(244,114,182,.13), 0 8px 22px rgba(244,114,182,.08); }
 .file-drop-zone--active { border-color: #14b8a6 !important; background-color: rgba(20,184,166,.1) !important; box-shadow: 0 0 0 3px rgba(20,184,166,.12), inset 0 1px 0 rgba(255,255,255,.8); }
+.formula-editor,
+.formula-preview { font-family: "Times New Roman", Georgia, serif; }
+.formula-editor:empty::before { content: "Nhập công thức hoặc dùng các nút định dạng ở trên"; color: #94a3b8; font-family: ui-sans-serif, system-ui, sans-serif; font-size: .875rem; }
+.formula-fraction { display: inline-flex; min-width: 1.5em; flex-direction: column; align-items: stretch; vertical-align: middle; margin: 0 .18em; line-height: 1.05; text-align: center; }
+.formula-numerator { border-bottom: 1px solid currentColor; padding: 0 .16em .06em; }
+.formula-denominator { padding: .06em .16em 0; }
+.formula-root { display: inline-flex; align-items: flex-start; vertical-align: middle; margin: 0 .12em; }
+.formula-root-value { border-top: 1px solid currentColor; padding: .02em .14em 0 .08em; line-height: 1; }
 
 .study-runner { position: absolute; z-index: 2; top: 50%; left: 0; font-size: 2rem; line-height: 1; transform: translateY(-50%); animation: study-runner 700ms ease-in forwards; }
 .study-box-exit { animation: study-box-exit 700ms ease-in forwards; }

@@ -1,4 +1,11 @@
-import { Calculator, ClipboardList, FunctionSquare, Table2 } from "lucide-react";
+import { Calculator, ClipboardList, Edit3, FilePlus2, FunctionSquare, Save, Table2, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { deleteReferenceFormula, listReferenceFormulas, saveReferenceFormula, type ReferenceFormula } from "../services/referenceTools";
+
+const OWNER_EMAIL = "thukhoa2002@gmail.com";
+type FormulaDraft = { title: string; usage: string; formula_html: string; status: "private" | "shared" };
+const emptyFormula: FormulaDraft = { title: "", usage: "", formula_html: "", status: "shared" };
 
 const toolGroups = [
   { title: "Công thức", description: "Công thức y khoa và quy đổi thường dùng.", icon: FunctionSquare, className: "border-violet-200 bg-violet-50/60 text-violet-700" },
@@ -7,16 +14,120 @@ const toolGroups = [
   { title: "Máy tính y khoa", description: "Công cụ tính toán theo dữ liệu nhập vào.", icon: Calculator, className: "border-rose-200 bg-rose-50/60 text-rose-700" },
 ];
 
-export default function ReferenceToolsPage() {
+function sanitizeFormulaHtml(value: string) {
+  if (typeof document === "undefined") return value;
+  const template = document.createElement("template");
+  template.innerHTML = value;
+  const allowed = new Set(["BR", "EM", "I", "STRONG", "B", "SUB", "SUP", "SPAN"]);
+  template.content.querySelectorAll("*").forEach((element) => {
+    if (!allowed.has(element.tagName)) {
+      element.replaceWith(document.createTextNode(element.textContent || ""));
+      return;
+    }
+    [...element.attributes].forEach((attribute) => {
+      if (attribute.name !== "class" || !/^formula-(fraction|numerator|denominator|root|root-value)$/.test(attribute.value)) element.removeAttribute(attribute.name);
+    });
+  });
+  return template.innerHTML;
+}
+
+function FormulaPreview({ html }: { html: string }) {
+  return <div className="formula-preview min-h-14 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xl text-slate-800" dangerouslySetInnerHTML={{ __html: sanitizeFormulaHtml(html) || "Chưa có công thức" }} />;
+}
+
+export default function ReferenceToolsPage({ user }: { user: User | null }) {
+  const [formulas, setFormulas] = useState<ReferenceFormula[]>([]);
+  const [form, setForm] = useState(emptyFormula);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const editorRef = useRef<HTMLDivElement>(null);
+  const isOwner = user?.email?.trim().toLowerCase() === OWNER_EMAIL;
+
+  useEffect(() => {
+    let active = true;
+    void listReferenceFormulas().then((items) => { if (active) setFormulas(items); }).catch((loadError) => { if (active) setError(loadError instanceof Error ? loadError.message : "Không thể tải danh sách công thức."); });
+    return () => { active = false; };
+  }, []);
+
+  function syncFormula() {
+    setForm((current) => ({ ...current, formula_html: sanitizeFormulaHtml(editorRef.current?.innerHTML || "") }));
+  }
+
+  function openNewFormula() {
+    setEditingId(null);
+    setForm(emptyFormula);
+    setFormOpen(true);
+  }
+
+  function openEditFormula(formula: ReferenceFormula) {
+    setEditingId(formula.id);
+    setForm({ title: formula.title, usage: formula.usage, formula_html: formula.formula_html, status: formula.status });
+    setFormOpen(true);
+  }
+
+  function useEditorCommand(command: "superscript" | "subscript") {
+    editorRef.current?.focus();
+    document.execCommand(command);
+    syncFormula();
+  }
+
+  function insertFormulaPart(kind: "fraction" | "root") {
+    editorRef.current?.focus();
+    const html = kind === "fraction"
+      ? "<span class=\"formula-fraction\"><span class=\"formula-numerator\" contenteditable=\"true\">a</span><span class=\"formula-denominator\" contenteditable=\"true\">b</span></span>"
+      : "<span class=\"formula-root\">√<span class=\"formula-root-value\" contenteditable=\"true\">x</span></span>";
+    document.execCommand("insertHTML", false, html);
+    syncFormula();
+  }
+
+  async function saveFormula(event: React.FormEvent) {
+    event.preventDefault();
+    if (!isOwner || !user || !form.title.trim()) return;
+    syncFormula();
+    const formulaHtml = sanitizeFormulaHtml(editorRef.current?.innerHTML || form.formula_html);
+    setBusy(true);
+    setError("");
+    try {
+      const saved = await saveReferenceFormula(user.id, { ...form, formula_html: formulaHtml }, editingId || undefined);
+      setFormulas((items) => editingId ? items.map((item) => item.id === saved.id ? saved : item) : [saved, ...items]);
+      setFormOpen(false);
+      setEditingId(null);
+      setForm(emptyFormula);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Không thể lưu công thức.");
+    } finally { setBusy(false); }
+  }
+
+  async function removeFormula(formula: ReferenceFormula) {
+    if (!isOwner || !confirm(`Xóa công thức “${formula.title}”?`)) return;
+    try {
+      await deleteReferenceFormula(formula.id);
+      setFormulas((items) => items.filter((item) => item.id !== formula.id));
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Không thể xóa công thức.");
+    }
+  }
+
   return <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8" aria-labelledby="reference-tools-title">
     <div className="glass-panel border border-violet-100 bg-white/75 p-5 sm:p-7">
-      <div className="flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><Calculator size={25} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Tài liệu tham khảo</p><h1 id="reference-tools-title" className="mt-1 text-2xl font-black text-rose-950">Công cụ &amp; Bảng tra</h1><p className="mt-1 text-sm text-slate-500">Công thức, bảng dữ liệu và công cụ hỗ trợ tính toán, đánh giá.</p></div></div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        {toolGroups.map(({ title, description, icon: Icon, className }) => <button key={title} type="button" className={`flex min-h-28 items-start gap-3 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className}`}>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80"><Icon size={21} /></span>
-          <span><strong className="block text-sm font-extrabold text-slate-800">{title}</strong><small className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{description}</small></span>
-        </button>)}
-      </div>
+      <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><Calculator size={25} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Tài liệu tham khảo</p><h1 id="reference-tools-title" className="mt-1 text-2xl font-black text-rose-950">Công cụ &amp; Bảng tra</h1><p className="mt-1 text-sm text-slate-500">Công thức, bảng dữ liệu và công cụ hỗ trợ tính toán, đánh giá.</p></div></div>{isOwner && <button type="button" onClick={openNewFormula} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-violet-700"><FilePlus2 size={17} />Thêm công thức</button>}</div>
+
+      {isOwner && <div className="mt-6 rounded-2xl border border-violet-200 bg-violet-50/35 p-4">
+        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Khu vực chủ web</p><h2 className="mt-1 text-lg font-black text-slate-800">Quản lý công thức</h2></div><span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-violet-700">{formulas.length}</span></div>
+        {formOpen && <form onSubmit={(event) => void saveFormula(event)} className="mt-4 space-y-3 rounded-2xl border border-white bg-white/80 p-4">
+          <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-bold text-slate-700">Tên công thức<input required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" placeholder="Ví dụ: Độ lọc cầu thận eGFR" /></label><label className="text-sm font-bold text-slate-700">Cách dùng<textarea value={form.usage} onChange={(event) => setForm((current) => ({ ...current, usage: event.target.value }))} rows={2} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" placeholder="Nhập dữ liệu nào, đọc kết quả ra sao..." /></label></div>
+          <div><div className="mb-1.5 flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-bold text-slate-700">Công thức</span><div className="flex flex-wrap gap-1"><button type="button" title="Số mũ" onClick={() => useEditorCommand("superscript")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">x<sup>2</sup></button><button type="button" title="Chỉ số dưới" onClick={() => useEditorCommand("subscript")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">x<sub>i</sub></button><button type="button" title="Chèn phân số" onClick={() => insertFormulaPart("fraction")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">a⁄b</button><button type="button" title="Chèn dấu căn" onClick={() => insertFormulaPart("root")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">√x</button></div></div><div ref={editorRef} contentEditable suppressContentEditableWarning onInput={syncFormula} className="formula-editor min-h-16 rounded-xl border border-violet-200 bg-white px-4 py-3 text-xl text-slate-800 outline-none focus:border-violet-400" dangerouslySetInnerHTML={{ __html: sanitizeFormulaHtml(form.formula_html) }} /></div>
+          <div><p className="mb-1.5 text-xs font-bold text-slate-500">Xem trước</p><FormulaPreview html={form.formula_html} /></div>
+          <div className="flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setFormOpen(false); setEditingId(null); }} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600"><X size={16} />Hủy</button><button type="submit" disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"><Save size={16} />{busy ? "Đang lưu..." : "Lưu công thức"}</button></div>
+        </form>}
+        {error && <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{error}</p>}
+        {formulas.length > 0 && <div className="mt-4 grid gap-3 lg:grid-cols-2">{formulas.map((formula) => <article key={formula.id} className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-base font-extrabold text-slate-800">{formula.title}</h3><p className="mt-1 text-xs leading-5 text-slate-500">{formula.usage}</p></div><div className="flex shrink-0 items-center gap-1"><button type="button" title="Sửa công thức" onClick={() => openEditFormula(formula)} className="rounded-lg p-2 text-violet-700 hover:bg-violet-50"><Edit3 size={16} /></button><button type="button" title="Xóa công thức" onClick={() => void removeFormula(formula)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={16} /></button></div></div><div className="mt-3"><FormulaPreview html={formula.formula_html} /></div></article>)}</div>}
+      </div>}
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">{toolGroups.map(({ title, description, icon: Icon, className }) => <button key={title} type="button" className={`flex min-h-28 items-start gap-3 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80"><Icon size={21} /></span><span><strong className="block text-sm font-extrabold text-slate-800">{title}</strong><small className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{description}</small></span></button>)}</div>
+      {!isOwner && formulas.length > 0 && <div className="mt-6 grid gap-3 lg:grid-cols-2">{formulas.map((formula) => <article key={formula.id} className="rounded-2xl border border-slate-200 bg-white p-4"><h2 className="text-base font-extrabold text-slate-800">{formula.title}</h2><p className="mt-1 text-xs leading-5 text-slate-500">{formula.usage}</p><div className="mt-3"><FormulaPreview html={formula.formula_html} /></div></article>)}</div>}
     </div>
   </section>;
 }
