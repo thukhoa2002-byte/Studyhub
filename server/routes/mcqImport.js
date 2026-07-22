@@ -18,6 +18,8 @@ const PDF_PAGES_PER_PASS = 6;
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const DOCX_CHARS_PER_PASS = 8_000;
 const DOCX_QUESTIONS_PER_PASS = 5;
+const MCQ_CHUNK_CONCURRENCY = 3;
+const MCQ_REQUEST_INTERVAL_MS = 3_200;
 const mcqImportJobs = new Map();
 const MCQ_JOB_TTL_MS = 60 * 60 * 1000;
 const execFileAsync = promisify(execFile);
@@ -508,8 +510,22 @@ function validateMcqFiles(files) {
 async function processMcqImport(files, aiCallsRemaining) {
   const preparedFiles = await Promise.all(files.map(prepareMcqFile));
   const chunks = (await Promise.all(preparedFiles.map(splitLargePdf))).flat();
-  const results = [];
-  for (const chunk of chunks) results.push(...await generateChunkWithFallback(chunk));
+  const chunkResults = Array.from({ length: chunks.length });
+  let nextChunkIndex = 0;
+  let nextRequestAt = 0;
+  async function processNextChunk() {
+    while (nextChunkIndex < chunks.length) {
+      const chunkIndex = nextChunkIndex;
+      nextChunkIndex += 1;
+      const now = Date.now();
+      const waitMs = Math.max(0, nextRequestAt - now);
+      nextRequestAt = Math.max(now, nextRequestAt) + MCQ_REQUEST_INTERVAL_MS;
+      if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+      chunkResults[chunkIndex] = await generateChunkWithFallback(chunks[chunkIndex]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(MCQ_CHUNK_CONCURRENCY, chunks.length) }, () => processNextChunk()));
+  const results = chunkResults.flat();
   const questions = normalizeQuestions(mergeChunkQuestions(results.flatMap((result) => result.questions || [])));
   attachDocxImages(questions, preparedFiles);
   await attachPdfPageImages(questions, files);
