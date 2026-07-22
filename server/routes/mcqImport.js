@@ -17,6 +17,7 @@ const INLINE_FILE_THRESHOLD_BYTES = 14 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 6;
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const DOCX_CHARS_PER_PASS = 8_000;
+const DOCX_QUESTIONS_PER_PASS = 5;
 const execFileAsync = promisify(execFile);
 const upload = multer({
   // Large PDFs must not occupy the Render process heap while Gemini is reading them.
@@ -315,19 +316,21 @@ async function prepareMcqFile(file) {
   };
 }
 
-function splitDocxText(file, maxChars = DOCX_CHARS_PER_PASS) {
+function splitDocxText(file, maxChars = DOCX_CHARS_PER_PASS, maxQuestions = DOCX_QUESTIONS_PER_PASS) {
   const text = file.buffer?.toString("utf8") || "";
-  if (!text || text.length <= maxChars) return [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
+  if (!text) return [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
   const questionStarts = [...text.matchAll(/(?:^|\n)\s*(?:(?:câu|question)\s*)?\d+\s*[.)\-:]/giu)]
     .map((match) => match.index ?? 0)
     .filter((index, position, indexes) => position === 0 || index > indexes[position - 1]);
+  if (text.length <= maxChars && questionStarts.length <= maxQuestions) return [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
   const chunks = [];
   let start = 0;
   while (start < text.length) {
+    const firstQuestionIndex = questionStarts.findIndex((index) => index >= start);
+    const questionBoundary = firstQuestionIndex >= 0 ? questionStarts[firstQuestionIndex + maxQuestions] : undefined;
     const target = Math.min(text.length, start + maxChars);
-    const questionBeforeTarget = questionStarts.filter((index) => index > start && index <= target).at(-1);
     const nextQuestion = questionStarts.find((index) => index > target);
-    const end = questionBeforeTarget || nextQuestion || target;
+    const end = questionBoundary || nextQuestion || target;
     const chunkText = text.slice(start, end).trim();
     if (chunkText) {
       chunks.push({
@@ -360,7 +363,7 @@ async function generateChunkWithFallback(chunk) {
     const pageCount = chunk.endPage ? chunk.endPage - chunk.startPage + 1 : chunk.totalPages;
     if (!isOutputLimitError(error)) throw error;
     const smallerChunks = isDocxFile(chunk.file)
-      ? splitDocxText(chunk.file, Math.max(8_000, Math.floor((chunk.file.buffer?.length || 0) / 2)))
+      ? splitDocxText(chunk.file, Math.max(4_000, Math.floor((chunk.file.buffer?.length || 0) / 2)), 3)
       : pageCount > 1
         ? await splitPdfPart(chunk, Math.max(1, Math.ceil(pageCount / 2)))
         : [];
