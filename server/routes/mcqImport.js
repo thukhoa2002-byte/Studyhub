@@ -18,6 +18,8 @@ const PDF_PAGES_PER_PASS = 6;
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const DOCX_CHARS_PER_PASS = 8_000;
 const DOCX_QUESTIONS_PER_PASS = 5;
+const mcqImportJobs = new Map();
+const MCQ_JOB_TTL_MS = 60 * 60 * 1000;
 const execFileAsync = promisify(execFile);
 const upload = multer({
   // Large PDFs must not occupy the Render process heap while Gemini is reading them.
@@ -493,6 +495,87 @@ async function cleanupUploadedFiles(files) {
   await Promise.allSettled((files || []).filter((file) => file.path).map((file) => unlink(file.path)));
 }
 
+function validateMcqFiles(files) {
+  if (!files.length) return { status: 400, message: "Chưa chọn file câu hỏi." };
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalBytes > MAX_TOTAL_BYTES) return { status: 413, message: "Tổng dung lượng file không được vượt quá 120 MB." };
+  const supportedImages = new Set(["image/png", "image/jpeg"]);
+  const unsupported = files.find((file) => !supportedImages.has(file.mimetype) && file.mimetype !== "application/pdf" && file.mimetype !== DOCX_MIME && !/\.docx$/i.test(file.originalname || ""));
+  if (unsupported) return { status: 415, message: "File " + unsupported.originalname + " chưa được hỗ trợ. Hãy dùng PDF, Word hoặc ảnh." };
+  return null;
+}
+
+async function processMcqImport(files, aiCallsRemaining) {
+  const preparedFiles = await Promise.all(files.map(prepareMcqFile));
+  const chunks = (await Promise.all(preparedFiles.map(splitLargePdf))).flat();
+  const results = [];
+  for (const chunk of chunks) results.push(...await generateChunkWithFallback(chunk));
+  const questions = normalizeQuestions(mergeChunkQuestions(results.flatMap((result) => result.questions || [])));
+  attachDocxImages(questions, preparedFiles);
+  await attachPdfPageImages(questions, files);
+  if (!questions.length) {
+    const error = new Error("Gemini chưa tìm thấy khối câu hỏi nào trong tài liệu. Hãy kiểm tra lại file nguồn hoặc thử chia nhỏ tài liệu.");
+    error.status = 422;
+    throw error;
+  }
+  return {
+    success: true,
+    data: {
+      title: results.find((result) => result.title?.trim())?.title || "Bộ MCQ mới",
+      questions,
+    },
+    aiCallsRemaining,
+  };
+}
+
+function startMcqImportJob(files, ownerId, aiCallsRemaining) {
+  const job = { id: randomUUID(), ownerId, status: "running", result: null, error: null };
+  mcqImportJobs.set(job.id, job);
+  void processMcqImport(files, aiCallsRemaining)
+    .then((result) => { job.result = result; job.status = "complete"; })
+    .catch((error) => {
+      console.error("MCQ background import failed", error);
+      job.error = { status: error?.status || 500, message: error?.message || "Không thể trích xuất bộ MCQ." };
+      job.status = "error";
+    })
+    .finally(() => { void cleanupUploadedFiles(files); });
+  setTimeout(() => mcqImportJobs.delete(job.id), MCQ_JOB_TTL_MS).unref();
+  return job;
+}
+
+function findMcqImportJob(req, res) {
+  const job = mcqImportJobs.get(req.params.jobId);
+  if (!job || job.ownerId !== req.mcqAdmin?.id) {
+    res.status(404).json({ success: false, message: "Phiên trích xuất không còn trên máy chủ. Hãy bắt đầu lại." });
+    return null;
+  }
+  return job;
+}
+
+router.post("/jobs", requireMcqAdmin, uploadFiles, (req, res) => {
+  const files = req.files || [];
+  const validation = validateMcqFiles(files);
+  if (validation) {
+    void cleanupUploadedFiles(files);
+    return res.status(validation.status).json({ success: false, message: validation.message });
+  }
+  const aiCallsRemaining = consumeAiCall();
+  if (aiCallsRemaining === null) {
+    void cleanupUploadedFiles(files);
+    return res.status(429).json({ success: false, message: "Đã hết lượt AI dùng chung.", aiCallsRemaining: 0 });
+  }
+  const job = startMcqImportJob(files, req.mcqAdmin.id, aiCallsRemaining);
+  return res.status(202).json({ success: true, jobId: job.id });
+});
+
+router.get("/jobs/:jobId", requireMcqAdmin, (req, res) => {
+  const job = findMcqImportJob(req, res);
+  if (!job) return;
+  if (job.status === "complete") return res.json(job.result);
+  if (job.status === "error") return res.status(job.error?.status || 500).json({ success: false, message: job.error?.message || "Không thể trích xuất bộ MCQ." });
+  return res.json({ success: true, status: "running" });
+});
+
 router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
   const files = req.files || [];
   try {
@@ -510,27 +593,7 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
     if (aiCallsRemaining === null) {
       return res.status(429).json({ success: false, message: "Đã hết lượt AI dùng chung.", aiCallsRemaining: 0 });
     }
-    const preparedFiles = await Promise.all(files.map(prepareMcqFile));
-    const chunks = (await Promise.all(preparedFiles.map(splitLargePdf))).flat();
-    const results = [];
-    for (const chunk of chunks) results.push(...await generateChunkWithFallback(chunk));
-    const questions = normalizeQuestions(mergeChunkQuestions(results.flatMap((result) => result.questions || [])));
-    attachDocxImages(questions, preparedFiles);
-    await attachPdfPageImages(questions, files);
-    if (!questions.length) {
-      return res.status(422).json({
-        success: false,
-        message: "Gemini chưa tìm thấy khối câu hỏi nào trong tài liệu. Hãy kiểm tra lại file nguồn hoặc thử chia nhỏ tài liệu.",
-      });
-    }
-    return res.json({
-      success: true,
-      data: {
-        title: results.find((result) => result.title?.trim())?.title || "Bộ MCQ mới",
-        questions,
-      },
-      aiCallsRemaining,
-    });
+    return res.json(await processMcqImport(files, aiCallsRemaining));
   } catch (error) {
     console.error("MCQ import failed", error);
     const status = error?.status === 429 ? 429 : 500;

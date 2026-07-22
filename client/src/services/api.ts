@@ -113,6 +113,18 @@ export interface McqImportResponse {
   aiCallsRemaining?: number;
 }
 
+async function apiErrorMessage(response: Response, fallback: string) {
+  const body = await response.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(body) as { message?: string; error?: string };
+    if (parsed.message || parsed.error) return parsed.message || parsed.error || fallback;
+  } catch {
+    // Render may return an HTML error page instead of JSON.
+  }
+  if (body.trim().startsWith("<")) return fallback + " (HTTP " + response.status + "). Máy chủ đã đóng kết nối trước khi xử lý xong.";
+  return body.trim() || fallback + " (HTTP " + response.status + ").";
+}
+
 export async function extractMcqFiles(files: File[]): Promise<McqImportResponse> {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
@@ -120,18 +132,27 @@ export async function extractMcqFiles(files: File[]): Promise<McqImportResponse>
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Bạn cần đăng nhập bằng tài khoản quản trị MCQ.");
-  const response = await fetch(`${API_URL}/api/mcq-import/extract`, {
+  const response = await fetch(`${API_URL}/api/mcq-import/jobs`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${session.access_token}` },
+    headers: { Authorization: "Bearer " + session.access_token },
     body: formData,
   });
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    let error: { message?: string; error?: string } | null = null;
-    try { error = JSON.parse(body) as { message?: string; error?: string }; } catch { /* proxy may return plain text */ }
-    throw new Error(error?.message || error?.error || body.trim() || `Không thể trích xuất bộ MCQ (HTTP ${response.status}).`);
+  if (!response.ok) throw new Error(await apiErrorMessage(response, "Không thể bắt đầu trích xuất bộ MCQ."));
+  const started = (await response.json()) as { jobId?: string };
+  if (!started.jobId) throw new Error("Máy chủ không tạo được phiên trích xuất MCQ.");
+  while (true) {
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    const progressResponse = await fetch(`${API_URL}/api/mcq-import/jobs/${started.jobId}`, {
+      headers: { Authorization: "Bearer " + session.access_token },
+    });
+    if (!progressResponse.ok) {
+      if (progressResponse.status >= 500) continue;
+      throw new Error(await apiErrorMessage(progressResponse, "Không thể lấy kết quả trích xuất MCQ."));
+    }
+    const progress = (await progressResponse.json()) as { status?: "running" | "complete"; success?: boolean; data?: McqImportResponse["data"]; aiCallsRemaining?: number; message?: string };
+    if (progress.status === "complete" && progress.data) return { success: true, data: progress.data, aiCallsRemaining: progress.aiCallsRemaining };
+    if (progress.success === false) throw new Error(progress.message || "Không thể trích xuất bộ MCQ.");
   }
-  return (await response.json()) as McqImportResponse;
 }
 
 export interface ExtractedGuidelineEntry {

@@ -260,7 +260,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
   async function extract(sourceFiles = files) {
     if (!sourceFiles.length) return;
-    setBusy(true); setError(""); setNotice("");
+    setBusy(true); setError(""); setNotice("Đang xử lý ở chế độ nền. Bạn có thể chuyển tab, kết quả sẽ được giữ lại.");
     try {
       if (sourceFiles.length === 1 && isJsonFile(sourceFiles[0])) {
         const payload = JSON.parse(await sourceFiles[0].text()) as unknown;
