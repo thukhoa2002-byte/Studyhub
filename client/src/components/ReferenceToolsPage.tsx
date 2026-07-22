@@ -1,11 +1,23 @@
-import { Calculator, ClipboardList, Edit3, FilePlus2, FunctionSquare, Save, Table2, Trash2, X } from "lucide-react";
+import { ArrowLeft, Calculator, ClipboardList, Edit3, FilePlus2, FunctionSquare, Save, Table2, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { deleteReferenceFormula, listReferenceFormulas, saveReferenceFormula, type ReferenceFormula } from "../services/referenceTools";
 
 const OWNER_EMAIL = "thukhoa2002@gmail.com";
 type FormulaDraft = { title: string; usage: string; formula_html: string; status: "private" | "shared" };
+type ToolView = "overview" | "calculator";
+type UnitOption = { id: string; label: string; factor: number };
 const emptyFormula: FormulaDraft = { title: "", usage: "", formula_html: "", status: "shared" };
+
+const weightUnits: UnitOption[] = [
+  { id: "kg", label: "kg", factor: 1 },
+  { id: "lb", label: "lb", factor: 0.45359237 },
+];
+const heightUnits: UnitOption[] = [
+  { id: "cm", label: "cm", factor: 0.01 },
+  { id: "m", label: "m", factor: 1 },
+  { id: "in", label: "in", factor: 0.0254 },
+];
 
 const toolGroups = [
   { title: "Công thức", description: "Công thức y khoa và quy đổi thường dùng.", icon: FunctionSquare, className: "border-violet-200 bg-violet-50/60 text-violet-700" },
@@ -35,6 +47,18 @@ function FormulaPreview({ html }: { html: string }) {
   return <div className="formula-preview min-h-14 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xl text-slate-800" dangerouslySetInnerHTML={{ __html: sanitizeFormulaHtml(html) || "Chưa có công thức" }} />;
 }
 
+function UnitValueField({ label, value, unit, units, onValueChange, onUnitChange }: { label: string; value: string; unit: string; units: UnitOption[]; onValueChange: (value: string) => void; onUnitChange: (unit: string) => void }) {
+  return <label className="block text-sm font-bold text-slate-700">
+    {label}
+    <span className="mt-1.5 flex overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-teal-400">
+      <input type="number" inputMode="decimal" min="0" step="any" value={value} onChange={(event) => onValueChange(event.target.value)} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-base font-semibold outline-none" placeholder="Nhập giá trị" />
+      <select value={unit} onChange={(event) => onUnitChange(event.target.value)} className="border-l border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-teal-700 outline-none">
+        {units.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+      </select>
+    </span>
+  </label>;
+}
+
 export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [formulas, setFormulas] = useState<ReferenceFormula[]>([]);
   const [form, setForm] = useState(emptyFormula);
@@ -42,8 +66,30 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [formOpen, setFormOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [activeTool, setActiveTool] = useState<ToolView>("overview");
+  const [weight, setWeight] = useState("70");
+  const [weightUnit, setWeightUnit] = useState("kg");
+  const [height, setHeight] = useState("175");
+  const [heightUnit, setHeightUnit] = useState("cm");
   const editorRef = useRef<HTMLDivElement>(null);
   const isOwner = user?.email?.trim().toLowerCase() === OWNER_EMAIL;
+
+  const selectedWeightUnit = weightUnits.find((option) => option.id === weightUnit) || weightUnits[0];
+  const selectedHeightUnit = heightUnits.find((option) => option.id === heightUnit) || heightUnits[0];
+  const weightKg = Number(weight) * selectedWeightUnit.factor;
+  const heightM = Number(height) * selectedHeightUnit.factor;
+  const bmi = Number.isFinite(weightKg) && Number.isFinite(heightM) && weightKg > 0 && heightM > 0 ? weightKg / (heightM * heightM) : null;
+
+  function changeUnit(value: string, currentUnit: string, nextUnit: string, units: UnitOption[], onChange: (value: string) => void, setUnit: (unit: string) => void) {
+    const numericValue = Number(value);
+    const current = units.find((option) => option.id === currentUnit);
+    const next = units.find((option) => option.id === nextUnit);
+    if (value.trim() && Number.isFinite(numericValue) && current && next) {
+      const converted = (numericValue * current.factor) / next.factor;
+      onChange(String(Number(converted.toFixed(4))));
+    }
+    setUnit(nextUnit);
+  }
 
   useEffect(() => {
     let active = true;
@@ -126,7 +172,21 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
         {formulas.length > 0 && <div className="mt-4 grid gap-3 lg:grid-cols-2">{formulas.map((formula) => <article key={formula.id} className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-base font-extrabold text-slate-800">{formula.title}</h3><p className="mt-1 text-xs leading-5 text-slate-500">{formula.usage}</p></div><div className="flex shrink-0 items-center gap-1"><button type="button" title="Sửa công thức" onClick={() => openEditFormula(formula)} className="rounded-lg p-2 text-violet-700 hover:bg-violet-50"><Edit3 size={16} /></button><button type="button" title="Xóa công thức" onClick={() => void removeFormula(formula)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={16} /></button></div></div><div className="mt-3"><FormulaPreview html={formula.formula_html} /></div></article>)}</div>}
       </div>}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">{toolGroups.map(({ title, description, icon: Icon, className }) => <button key={title} type="button" className={`flex min-h-28 items-start gap-3 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80"><Icon size={21} /></span><span><strong className="block text-sm font-extrabold text-slate-800">{title}</strong><small className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{description}</small></span></button>)}</div>
+      {activeTool === "calculator" && <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50/35 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Máy tính y khoa</p><h2 className="mt-1 text-xl font-black text-slate-800">Chỉ số khối cơ thể (BMI)</h2></div>
+          <button type="button" onClick={() => setActiveTool("overview")} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:border-teal-300 hover:text-teal-700"><ArrowLeft size={16} /> Danh sách công cụ</button>
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} />
+          <UnitValueField label="Chiều cao" value={height} unit={heightUnit} units={heightUnits} onValueChange={setHeight} onUnitChange={(nextUnit) => changeUnit(height, heightUnit, nextUnit, heightUnits, setHeight, setHeightUnit)} />
+        </div>
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white bg-white/85 p-4">
+          <div><p className="text-sm font-bold text-slate-500">Kết quả BMI</p><p className="mt-1 text-4xl font-black text-teal-800">{bmi === null ? "—" : bmi.toFixed(1)}</p></div>
+          <p className="max-w-sm text-sm font-semibold leading-6 text-slate-500">{bmi === null ? "Nhập cân nặng và chiều cao để tính." : bmi < 18.5 ? "Thiếu cân" : bmi < 25 ? "Bình thường" : bmi < 30 ? "Thừa cân" : "Béo phì"}</p>
+        </div>
+      </div>}
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">{toolGroups.map(({ title, description, icon: Icon, className }) => <button key={title} type="button" onClick={() => { if (title === "Máy tính y khoa") setActiveTool("calculator"); }} aria-pressed={title === "Máy tính y khoa" && activeTool === "calculator"} className={`flex min-h-28 items-start gap-3 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className} ${title === "Máy tính y khoa" && activeTool === "calculator" ? "ring-2 ring-teal-300" : ""}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80"><Icon size={21} /></span><span><strong className="block text-sm font-extrabold text-slate-800">{title}</strong><small className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{description}</small></span></button>)}</div>
       {!isOwner && formulas.length > 0 && <div className="mt-6 grid gap-3 lg:grid-cols-2">{formulas.map((formula) => <article key={formula.id} className="rounded-2xl border border-slate-200 bg-white p-4"><h2 className="text-base font-extrabold text-slate-800">{formula.title}</h2><p className="mt-1 text-xs leading-5 text-slate-500">{formula.usage}</p><div className="mt-3"><FormulaPreview html={formula.formula_html} /></div></article>)}</div>}
     </div>
   </section>;
