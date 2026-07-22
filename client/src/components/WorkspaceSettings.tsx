@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Bell, BellOff, Camera, LogOut, Moon, Settings, Sun, UserRound } from "lucide-react";
+import { Bell, BellOff, Camera, LogOut, Moon, Sun, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../services/supabase";
 
@@ -16,6 +16,8 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
+  const avatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const displayName = user?.user_metadata?.full_name || user?.email || "Khách";
 
   async function updateAvatar(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -43,25 +45,25 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
   }
 
   return (
-    <div className="workspace-settings mt-3 lg:mt-5">
+    <div className="workspace-settings relative mt-3 lg:mt-auto lg:border-t lg:border-slate-200/80 lg:pt-4">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label="Mở cài đặt tài khoản"
         aria-expanded={open}
-        title="Cài đặt tài khoản và giao diện"
-        className={`flex h-11 w-full items-center justify-start gap-3 rounded-xl border bg-white/80 px-3 text-slate-600 shadow-sm transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 ${open ? "border-teal-200 bg-teal-50 text-teal-700" : "border-white/80"}`}
+        title="Tài khoản và chế độ giao diện"
+        className={`flex h-12 w-full items-center justify-start gap-3 rounded-xl border bg-white/80 px-2.5 text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 ${open ? "border-teal-200 bg-teal-50 text-teal-700" : "border-white/80"}`}
       >
-        <Settings size={21} />
-        <span className="workspace-settings__label text-sm font-bold">Cài đặt</span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-100 bg-teal-50 text-teal-700">{avatar ? <img src={avatar as string} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : user ? <span className="text-xs font-black">{(user.email?.[0] || "U").toUpperCase()}</span> : <UserRound size={18} />}</span>
+        <span className="workspace-settings__label min-w-0 text-left"><span className="block truncate text-sm font-bold">{displayName}</span><span className="block truncate text-[11px] font-medium text-slate-400">{user ? "Tài khoản StudyHub" : "Chế độ khách"}</span></span>
       </button>
 
-      {open && <div className="glass-dialog mt-3 rounded-2xl border border-rose-100 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.15)]">
+      {open && <div className="glass-dialog absolute bottom-[calc(100%+.75rem)] left-0 z-[100] w-72 rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.18)] backdrop-blur-xl">
         {user ? <>
           <p className="truncate px-2 pb-2 text-xs font-semibold text-slate-500">{user.email}</p>
           <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={(event) => void updateAvatar(event)} />
           <button type="button" disabled={busy} onClick={() => avatarInput.current?.click()} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-rose-50 disabled:opacity-50"><Camera size={16} />Đổi ảnh đại diện</button>
-          <button type="button" onClick={() => { setOpen(false); void supabase?.auth.signOut(); }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"><LogOut size={16} />Đăng xuất</button>
+          <button type="button" onClick={() => { setOpen(false); void supabase?.auth.signOut(); onUserChange(null); }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"><LogOut size={16} />Đăng xuất</button>
           <div className="mt-2 border-t border-slate-100 pt-2">
             <button type="button" role="switch" aria-checked={sharedDeckNotificationsEnabled} onClick={() => onSharedDeckNotificationsChange(!sharedDeckNotificationsEnabled)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-teal-50">
               {sharedDeckNotificationsEnabled ? <Bell size={16} className="text-teal-600" /> : <BellOff size={16} className="text-slate-400" />}
@@ -72,7 +74,7 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
         </> : <div className="flex items-center gap-2 px-2 pb-2 text-xs font-semibold text-slate-500"><UserRound size={16} />Chế độ khách</div>}
 
         <div className="mt-2 border-t border-slate-100 pt-2">
-          <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Giao diện</p>
+          <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Chế độ giao diện</p>
           <div className="grid grid-cols-4 gap-1 rounded-xl bg-slate-50 p-1">
             <button type="button" onClick={() => onThemeChange("color")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "color" ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>Color</button>
             <button type="button" onClick={() => onThemeChange("basic")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button>
