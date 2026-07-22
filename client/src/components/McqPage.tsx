@@ -517,10 +517,10 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   }
 
   function renderDeckCard(deck: DeckDefinition, panelIndex?: number, animateIn = false): ReactNode {
-    return <article key={deck.key} style={animateIn ? { animationDelay: `${(panelIndex || 0) * 50}ms` } : undefined} className={`group relative flex min-h-36 flex-col rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-3 text-left shadow-sm transition hover:border-violet-300 hover:shadow-md sm:p-4 ${animateIn ? "mcq-folder-panel__deck" : ""}`}>
+    return <article key={deck.key} draggable={canManage} onDragStart={(event) => startMcqDrag(event, { kind: "bank", id: deck.key })} onDragEnd={() => { setDraggedMcqItem(null); setDropFolderId(null); }} style={animateIn ? { animationDelay: `${(panelIndex || 0) * 50}ms` } : undefined} className={`group relative flex min-h-36 flex-col rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/90 via-white to-teal-50/80 p-3 text-left shadow-sm transition hover:border-violet-300 hover:shadow-md sm:p-4 ${animateIn ? "mcq-folder-panel__deck" : ""}`}>
         <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2"><div draggable={canManage} onDragStart={(event) => startMcqDrag(event, { kind: "bank", id: deck.key })} onDragEnd={() => { setDraggedMcqItem(null); setDropFolderId(null); }} title={canManage ? "Kéo bộ MCQ vào thư mục" : undefined} className="flex h-10 w-10 shrink-0 cursor-grab items-center justify-center rounded-xl bg-violet-100 text-violet-700 active:cursor-grabbing"><McqIcon size={22} /></div><h2 className="min-w-0 text-lg font-extrabold leading-6 text-rose-950">{deck.title}</h2></div>
-        <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-extrabold text-teal-700 shadow-sm">{deck.questionCount ? `${deck.questionCount} câu` : "Mở để xem"}</span>
+        {deck.questionCount ? <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-extrabold text-teal-700 shadow-sm">{deck.questionCount} câu</span> : null}
       </div>
       <p className="mt-2 text-xs leading-4 text-slate-500">{deck.description}</p>
       <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
@@ -555,7 +555,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
         draggable={canManage}
         onDragStart={(event) => startMcqDrag(event, { kind: "folder", id: folder.id })}
         onDragOver={(event) => {
-          const dragged = readMcqDragItem(event);
+          const dragged = readMcqDragItem(event) || draggedMcqItem;
           if (!canManage || !dragged || (dragged.kind === "folder" && (dragged.id === folder.id || folderIdsInTree(dragged.id).has(folder.id)))) return;
           event.preventDefault();
           event.dataTransfer.dropEffect = "move";
