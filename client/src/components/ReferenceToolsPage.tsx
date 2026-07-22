@@ -1,11 +1,11 @@
-import { ArrowLeft, Calculator, ClipboardList, Edit3, FilePlus2, FunctionSquare, Save, Table2, Trash2, X } from "lucide-react";
+import { ArrowLeft, Calculator, ClipboardList, Edit3, FilePlus2, FileUp, FunctionSquare, Plus, Save, Table2, Trash2, UploadCloud, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { deleteReferenceFormula, listReferenceFormulas, saveReferenceFormula, type ReferenceFormula } from "../services/referenceTools";
 
 const OWNER_EMAIL = "thukhoa2002@gmail.com";
 type FormulaDraft = { title: string; usage: string; formula_html: string; status: "private" | "shared" };
-type ToolView = "overview" | "calculator";
+type ToolView = "overview" | "calculator" | "data-table" | "score";
 type UnitOption = { id: string; label: string; factor: number };
 const emptyFormula: FormulaDraft = { title: "", usage: "", formula_html: "", status: "shared" };
 
@@ -20,10 +20,10 @@ const heightUnits: UnitOption[] = [
 ];
 
 const toolGroups = [
-  { title: "Công thức", description: "Công thức y khoa và quy đổi thường dùng.", icon: FunctionSquare, className: "border-violet-200 bg-violet-50/60 text-violet-700" },
-  { title: "Bảng dữ liệu", description: "Bảng tra nhanh theo chỉ số, đơn vị và ngưỡng.", icon: Table2, className: "border-teal-200 bg-teal-50/60 text-teal-700" },
-  { title: "Thang điểm & đánh giá", description: "Các thang điểm hỗ trợ đánh giá lâm sàng.", icon: ClipboardList, className: "border-amber-200 bg-amber-50/60 text-amber-700" },
-  { title: "Máy tính y khoa", description: "Công cụ tính toán theo dữ liệu nhập vào.", icon: Calculator, className: "border-rose-200 bg-rose-50/60 text-rose-700" },
+  { id: "formulas", title: "Công thức", description: "Công thức y khoa và quy đổi thường dùng.", icon: FunctionSquare, className: "border-violet-200 bg-violet-50/60 text-violet-700" },
+  { id: "data-table", title: "Bảng dữ liệu", description: "Bảng tra nhanh theo chỉ số, đơn vị và ngưỡng.", icon: Table2, className: "border-teal-200 bg-teal-50/60 text-teal-700" },
+  { id: "scores", title: "Thang điểm & đánh giá", description: "Các thang điểm hỗ trợ đánh giá lâm sàng.", icon: ClipboardList, className: "border-amber-200 bg-amber-50/60 text-amber-700" },
+  { id: "calculator", title: "Máy tính y khoa", description: "Công cụ tính toán theo dữ liệu nhập vào.", icon: Calculator, className: "border-rose-200 bg-rose-50/60 text-rose-700" },
 ];
 
 function sanitizeFormulaHtml(value: string) {
@@ -74,6 +74,12 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableColumns, setTableColumns] = useState(3);
+  const [dataTableName, setDataTableName] = useState("");
+  const [dataTableFile, setDataTableFile] = useState<File | null>(null);
+  const [dataTableCreated, setDataTableCreated] = useState(false);
+  const [scoreName, setScoreName] = useState("");
+  const [scoreDescription, setScoreDescription] = useState("");
+  const [scoreCreated, setScoreCreated] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const isOwner = user?.email?.trim().toLowerCase() === OWNER_EMAIL;
 
@@ -141,6 +147,39 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
     setTablePickerOpen(false);
   }
 
+  function openToolCreator(toolId: string) {
+    if (toolId === "formulas") {
+      if (isOwner) openNewFormula();
+      else setError("Chỉ chủ web mới có thể tạo công thức.");
+      return;
+    }
+    if (toolId === "data-table") {
+      setActiveTool("data-table");
+      setDataTableCreated(false);
+      setError("");
+      return;
+    }
+    if (toolId === "scores") {
+      setActiveTool("score");
+      setScoreCreated(false);
+      setError("");
+      return;
+    }
+    if (toolId === "calculator") setActiveTool("calculator");
+  }
+
+  function createDataTable(event: React.FormEvent) {
+    event.preventDefault();
+    if (!dataTableName.trim() || !dataTableFile) return;
+    setDataTableCreated(true);
+  }
+
+  function createScore(event: React.FormEvent) {
+    event.preventDefault();
+    if (!scoreName.trim()) return;
+    setScoreCreated(true);
+  }
+
   async function saveFormula(event: React.FormEvent) {
     event.preventDefault();
     if (!isOwner || !user || !form.title.trim()) return;
@@ -199,7 +238,19 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
           <p className="max-w-sm text-sm font-semibold leading-6 text-slate-500">{bmi === null ? "Nhập cân nặng và chiều cao để tính." : bmi < 18.5 ? "Thiếu cân" : bmi < 25 ? "Bình thường" : bmi < 30 ? "Thừa cân" : "Béo phì"}</p>
         </div>
       </div>}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">{toolGroups.map(({ title, description, icon: Icon, className }) => <button key={title} type="button" onClick={() => { if (title === "Máy tính y khoa") setActiveTool("calculator"); }} aria-pressed={title === "Máy tính y khoa" && activeTool === "calculator"} className={`flex min-h-28 items-start gap-3 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className} ${title === "Máy tính y khoa" && activeTool === "calculator" ? "ring-2 ring-teal-300" : ""}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80"><Icon size={21} /></span><span><strong className="block text-sm font-extrabold text-slate-800">{title}</strong><small className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{description}</small></span></button>)}</div>
+      {activeTool === "data-table" && <form onSubmit={createDataTable} className="mt-6 rounded-2xl border border-teal-200 bg-teal-50/35 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Tạo bảng dữ liệu</p><h2 className="mt-1 text-xl font-black text-slate-800">Nhập tài liệu để làm bảng tra</h2></div><button type="button" onClick={() => setActiveTool("overview")} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:border-teal-300 hover:text-teal-700"><ArrowLeft size={16} /> Danh sách công cụ</button></div>
+        <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]"><label className="block text-sm font-bold text-slate-700">Tên bảng<input required value={dataTableName} onChange={(event) => { setDataTableName(event.target.value); setDataTableCreated(false); }} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-teal-400" placeholder="Ví dụ: Bảng quy đổi eGFR" /></label><label className="block text-sm font-bold text-slate-700">File PDF<input required type="file" accept="application/pdf,.pdf" onChange={(event) => { setDataTableFile(event.target.files?.[0] || null); setDataTableCreated(false); }} className="sr-only" /><span className="mt-1.5 flex min-h-[49px] cursor-pointer items-center gap-2 rounded-xl border border-dashed border-teal-300 bg-white px-3 text-sm font-semibold text-slate-500 hover:bg-teal-50"><UploadCloud size={18} className="shrink-0 text-teal-600" />{dataTableFile ? <span className="truncate text-teal-700">{dataTableFile.name}</span> : "Chọn PDF để nhập bảng dữ liệu"}</span></label></div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-semibold text-slate-500">PDF sẽ được dùng làm nguồn cho bước trích xuất bảng dữ liệu.</p><button type="submit" disabled={!dataTableName.trim() || !dataTableFile} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"><FileUp size={17} />Tạo bảng</button></div>
+        {dataTableCreated && <p className="mt-3 rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-700">Bản nháp “{dataTableName.trim()}” đã sẵn sàng với file {dataTableFile?.name}.</p>}
+      </form>}
+      {activeTool === "score" && <form onSubmit={createScore} className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/35 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-amber-700">Tạo thang điểm</p><h2 className="mt-1 text-xl font-black text-slate-800">Thang điểm &amp; đánh giá</h2></div><button type="button" onClick={() => setActiveTool("overview")} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:border-amber-300 hover:text-amber-700"><ArrowLeft size={16} /> Danh sách công cụ</button></div>
+        <div className="mt-5 grid gap-4 md:grid-cols-2"><label className="block text-sm font-bold text-slate-700">Tên thang điểm<input required value={scoreName} onChange={(event) => { setScoreName(event.target.value); setScoreCreated(false); }} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-amber-400" placeholder="Ví dụ: CURB-65" /></label><label className="block text-sm font-bold text-slate-700">Mô tả cách dùng<textarea value={scoreDescription} onChange={(event) => { setScoreDescription(event.target.value); setScoreCreated(false); }} rows={1} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-amber-400" placeholder="Nhập mục đích và cách đọc kết quả..." /></label></div>
+        <div className="mt-4 flex justify-end"><button type="submit" disabled={!scoreName.trim()} className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"><FilePlus2 size={17} />Tạo thang điểm</button></div>
+        {scoreCreated && <p className="mt-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-800">Bản nháp “{scoreName.trim()}” đã sẵn sàng để bổ sung các tiêu chí đánh giá.</p>}
+      </form>}
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">{toolGroups.map(({ id, title, description, icon: Icon, className }) => <div key={id} className={`relative flex min-h-28 items-start gap-3 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className} ${((id === "calculator" && activeTool === "calculator") || (id === "data-table" && activeTool === "data-table") || (id === "scores" && activeTool === "score")) ? "ring-2 ring-teal-300" : ""}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80"><Icon size={21} /></span><span className="min-w-0 pr-8"><strong className="block text-sm font-extrabold text-slate-800">{title}</strong><small className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{description}</small></span><button type="button" title={`Tạo ${title.toLowerCase()}`} aria-label={`Tạo ${title.toLowerCase()}`} onClick={() => openToolCreator(id)} className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/85 text-slate-600 shadow-sm transition hover:bg-white hover:text-teal-700"><Plus size={17} /></button></div>)}</div>
       {!isOwner && formulas.length > 0 && <div className="mt-6 grid gap-3 lg:grid-cols-2">{formulas.map((formula) => <article key={formula.id} className="rounded-2xl border border-slate-200 bg-white p-4"><h2 className="text-base font-extrabold text-slate-800">{formula.title}</h2><p className="mt-1 text-xs leading-5 text-slate-500">{formula.usage}</p><div className="mt-3"><FormulaPreview html={formula.formula_html} /></div></article>)}</div>}
     </div>
   </section>;
