@@ -18,7 +18,7 @@ function getApiKey() {
 function extractResponseText(payload) {
   const finishReason = payload?.candidates?.[0]?.finishReason;
   if (finishReason === "MAX_TOKENS") {
-    throw new Error("Tài liệu quá dài nên đầu ra AI đã chạm giới hạn. Hãy chia PDF thành các phần nhỏ hơn theo chương.");
+    throw new Error("Tài liệu quá dài nên đầu ra AI đã chạm giới hạn. Hãy chia tài liệu thành các phần nhỏ hơn.");
   }
   const parts = payload?.candidates?.[0]?.content?.parts ?? [];
   const text = parts.map((part) => part?.text ?? "").join("").trim();

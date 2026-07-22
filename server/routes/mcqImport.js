@@ -16,6 +16,7 @@ const MAX_TOTAL_BYTES = 120 * 1024 * 1024;
 const INLINE_FILE_THRESHOLD_BYTES = 14 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 6;
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const DOCX_CHARS_PER_PASS = 24_000;
 const execFileAsync = promisify(execFile);
 const upload = multer({
   // Large PDFs must not occupy the Render process heap while Gemini is reading them.
@@ -258,6 +259,7 @@ async function splitPdfPart(part, pagesPerPass) {
 }
 
 async function splitLargePdf(file) {
+  if (isDocxFile(file)) return splitDocxText(file);
   if (file.mimetype !== "application/pdf" || file.size <= INLINE_FILE_THRESHOLD_BYTES) return [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
   return splitPdfPart({ file, startPage: 1, endPage: 0, totalPages: 0 }, PDF_PAGES_PER_PASS);
 }
@@ -313,6 +315,34 @@ async function prepareMcqFile(file) {
   };
 }
 
+function splitDocxText(file, maxChars = DOCX_CHARS_PER_PASS) {
+  const text = file.buffer?.toString("utf8") || "";
+  if (!text || text.length <= maxChars) return [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
+  const questionStarts = [...text.matchAll(/(?:^|\n)\s*(?:(?:câu|question)\s*)?\d+\s*[.)\-:]/giu)]
+    .map((match) => match.index ?? 0)
+    .filter((index, position, indexes) => position === 0 || index > indexes[position - 1]);
+  const chunks = [];
+  let start = 0;
+  while (start < text.length) {
+    const target = Math.min(text.length, start + maxChars);
+    const questionBeforeTarget = questionStarts.filter((index) => index > start && index <= target).at(-1);
+    const nextQuestion = questionStarts.find((index) => index > target);
+    const end = questionBeforeTarget || nextQuestion || target;
+    const chunkText = text.slice(start, end).trim();
+    if (chunkText) {
+      chunks.push({
+        file: { ...file, buffer: Buffer.from(chunkText, "utf8"), size: Buffer.byteLength(chunkText, "utf8"), originalname: `${file.originalname.replace(/\.docx$/i, "")}-part-${chunks.length + 1}.docx` },
+        startPage: 1,
+        endPage: 0,
+        totalPages: 0,
+      });
+    }
+    if (end <= start) break;
+    start = end;
+  }
+  return chunks.length > 0 ? chunks : [{ file, startPage: 1, endPage: 0, totalPages: 0 }];
+}
+
 function isOutputLimitError(error) {
   return /MAX_TOKENS|đầu ra AI đã chạm giới hạn|tài liệu quá dài/i.test(error instanceof Error ? error.message : String(error));
 }
@@ -328,10 +358,15 @@ async function generateChunkWithFallback(chunk) {
     })];
   } catch (error) {
     const pageCount = chunk.endPage ? chunk.endPage - chunk.startPage + 1 : chunk.totalPages;
-    if (!isOutputLimitError(error) || pageCount <= 1) throw error;
-    const smallerChunks = await splitPdfPart(chunk, Math.max(1, Math.ceil(pageCount / 2)));
-    if (!smallerChunks.length) throw error;
-    console.warn(`MCQ chunk pages ${chunk.startPage}-${chunk.endPage || chunk.totalPages} hit MAX_TOKENS; retrying as ${smallerChunks.length} smaller chunks.`);
+    if (!isOutputLimitError(error)) throw error;
+    const smallerChunks = isDocxFile(chunk.file)
+      ? splitDocxText(chunk.file, Math.max(8_000, Math.floor((chunk.file.buffer?.length || 0) / 2)))
+      : pageCount > 1
+        ? await splitPdfPart(chunk, Math.max(1, Math.ceil(pageCount / 2)))
+        : [];
+    const sameSingleChunk = smallerChunks.length === 1 && smallerChunks[0].file.buffer?.length === chunk.file.buffer?.length;
+    if (!smallerChunks.length || sameSingleChunk) throw error;
+    console.warn(`MCQ chunk ${chunk.file.originalname} hit MAX_TOKENS; retrying as ${smallerChunks.length} smaller chunks.`);
     const results = [];
     for (const smallerChunk of smallerChunks) results.push(...await generateChunkWithFallback(smallerChunk));
     return results;
@@ -389,7 +424,7 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
     if (!questions.length) {
       return res.status(422).json({
         success: false,
-        message: "Gemini chưa tìm thấy khối câu hỏi nào trong PDF. Hãy kiểm tra lại file nguồn hoặc thử chia theo chương.",
+        message: "Gemini chưa tìm thấy khối câu hỏi nào trong tài liệu. Hãy kiểm tra lại file nguồn hoặc thử chia nhỏ tài liệu.",
       });
     }
     return res.json({
