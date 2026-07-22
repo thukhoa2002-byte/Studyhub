@@ -6,7 +6,7 @@ import { deleteReferenceFormula, listReferenceFormulas, saveReferenceFormula, ty
 const OWNER_EMAIL = "thukhoa2002@gmail.com";
 type FormulaDraft = { title: string; usage: string; formula_html: string; status: "private" | "shared" };
 type ToolView = "overview" | "calculator" | "data-table" | "score";
-type CalculatorType = "bmi" | "egfr" | "crcl" | "holliday-segar";
+type CalculatorType = "bmi" | "egfr" | "crcl" | "holliday-segar" | "bsa" | "wells-pe" | "cha2ds2-vasc" | "child-pugh" | "timi" | "has-bled" | "centor" | "sirs" | "grace-acs" | "anion-gap" | "psi-port" | "curb-65" | "apache-ii";
 type EgfrFormula = "creatinine" | "cystatin" | "combined" | "mdrd";
 type CrclFormula = "standard" | "adjusted-weight" | "bsa-normalized";
 type UnitOption = { id: string; label: string; factor: number };
@@ -36,11 +36,24 @@ const toolGroups = [
   { id: "scores", title: "Thang điểm & đánh giá", description: "Các thang điểm hỗ trợ đánh giá lâm sàng.", icon: ClipboardList, className: "border-amber-200 bg-amber-50/60 text-amber-700" },
   { id: "calculator", title: "Máy tính y khoa", description: "Công cụ tính toán theo dữ liệu nhập vào.", icon: Calculator, className: "border-rose-200 bg-rose-50/60 text-rose-700" },
 ];
-const calculatorOptions: Array<{ id: CalculatorType; label: string; description: string }> = [
-  { id: "bmi", label: "BMI · Body Mass Index", description: "Chỉ số khối cơ thể" },
-  { id: "egfr", label: "eGFR · Estimated Glomerular Filtration Rate", description: "Độ lọc cầu thận ước tính" },
-  { id: "crcl", label: "CrCl · Creatinine Clearance", description: "Độ thanh thải creatinine" },
-  { id: "holliday-segar", label: "Holliday-Segar", description: "Dịch duy trì theo cân nặng" },
+const calculatorOptions: Array<{ id: CalculatorType; label: string; description: string; interactive?: boolean }> = [
+  { id: "bmi", label: "BMI · Body Mass Index", description: "Chỉ số khối cơ thể", interactive: true },
+  { id: "egfr", label: "eGFR · Estimated Glomerular Filtration Rate", description: "Độ lọc cầu thận ước tính", interactive: true },
+  { id: "crcl", label: "CrCl · Creatinine Clearance", description: "Độ thanh thải creatinine", interactive: true },
+  { id: "holliday-segar", label: "Holliday-Segar", description: "Dịch duy trì theo cân nặng", interactive: true },
+  { id: "bsa", label: "BSA · Body Surface Area", description: "Diện tích da cơ thể", interactive: false },
+  { id: "wells-pe", label: "Wells' Score · Pulmonary Embolism", description: "Thang điểm Wells đánh giá khả năng thuyên tắc phổi", interactive: false },
+  { id: "cha2ds2-vasc", label: "CHA₂DS₂-VASc Score", description: "Nguy cơ đột quỵ ở rung nhĩ", interactive: false },
+  { id: "child-pugh", label: "Child-Pugh Score", description: "Mức độ nặng bệnh gan mạn", interactive: false },
+  { id: "timi", label: "TIMI Risk Score", description: "Nguy cơ hội chứng vành cấp", interactive: false },
+  { id: "has-bled", label: "HAS-BLED Score", description: "Nguy cơ chảy máu ở rung nhĩ", interactive: false },
+  { id: "centor", label: "Centor / McIsaac Score", description: "Khả năng viêm họng do liên cầu", interactive: false },
+  { id: "sirs", label: "SIRS Criteria", description: "Tiêu chuẩn đáp ứng viêm hệ thống", interactive: false },
+  { id: "grace-acs", label: "GRACE ACS Score", description: "Nguy cơ tử vong/hồi máu cơ tim trong ACS", interactive: false },
+  { id: "anion-gap", label: "Anion Gap", description: "Khoảng trống anion", interactive: false },
+  { id: "psi-port", label: "PSI / PORT Score", description: "Tiên lượng viêm phổi cộng đồng", interactive: false },
+  { id: "curb-65", label: "CURB-65 Score", description: "Đánh giá mức độ nặng viêm phổi", interactive: false },
+  { id: "apache-ii", label: "APACHE II Score", description: "Đánh giá mức độ nặng bệnh nhân hồi sức", interactive: false },
 ];
 
 const formulaSources = {
@@ -48,6 +61,113 @@ const formulaSources = {
   kdigo: "https://kdigo.org/wp-content/uploads/2017/02/KDIGO_2012_CKD_GL.pdf",
   cockcroftGault: "https://pubmed.ncbi.nlm.nih.gov/4830801/",
   hollidaySegar: "https://pubmed.ncbi.nlm.nih.gov/13431307/",
+};
+
+const referenceOnlyFormulaDefinitions: Partial<Record<CalculatorType, { title: string; description: string; formula: string; variables: string; source: string; sourceLabel: string }>> = {
+  bsa: {
+    title: "BSA · Body Surface Area",
+    description: "Diện tích da cơ thể theo công thức Mosteller",
+    formula: "BSA (m<sup>2</sup>) = √[(Chiều cao (cm) × Cân nặng (kg)) / 3600]",
+    variables: "Dùng chiều cao theo cm và cân nặng theo kg.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=Mosteller+body+surface+area+formula",
+    sourceLabel: "Mosteller · PubMed",
+  },
+  "wells-pe": {
+    title: "Wells' Score · Pulmonary Embolism",
+    description: "Thang điểm Wells đánh giá khả năng thuyên tắc phổi",
+    formula: "Dấu hiệu DVT 3 điểm; PE có khả năng nhất 3; nhịp tim >100 1.5; bất động/phẫu thuật 4 tuần 1.5; tiền sử DVT/PE 1.5; ho ra máu 1; ung thư 1.<br />Tổng điểm ≤4: PE unlikely; >4: PE likely.",
+    variables: "Đây là phiên bản Wells cho PE; cần kết hợp xác suất trước xét nghiệm và hướng dẫn chẩn đoán.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=Wells+clinical+model+pulmonary+embolism",
+    sourceLabel: "Wells PE · PubMed",
+  },
+  "cha2ds2-vasc": {
+    title: "CHA₂DS₂-VASc Score",
+    description: "Nguy cơ đột quỵ ở bệnh nhân rung nhĩ",
+    formula: "C: suy tim 1; H: tăng huyết áp 1; A<sub>2</sub>: tuổi ≥75 là 2; D: đái tháo đường 1; S<sub>2</sub>: đột quỵ/TIA/thuyên tắc 2; V: bệnh mạch máu 1; A: tuổi 65–74 là 1; Sc: nữ 1.",
+    variables: "Tổng điểm dùng để phân tầng nguy cơ và quyết định điều trị theo hướng dẫn rung nhĩ.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=CHA2DS2-VASc+score+atrial+fibrillation",
+    sourceLabel: "CHA₂DS₂-VASc · PubMed",
+  },
+  "child-pugh": {
+    title: "Child-Pugh Score",
+    description: "Đánh giá mức độ nặng bệnh gan mạn",
+    formula: "5 tiêu chí, mỗi tiêu chí 1–3 điểm: bilirubin, albumin, INR/thời gian prothrombin, cổ trướng và bệnh não gan.<br />A: 5–6; B: 7–9; C: 10–15 điểm.",
+    variables: "Ngưỡng bilirubin có thể khác trong bệnh ứ mật; cần dùng bảng tiêu chuẩn của chuyên ngành gan mật.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=Child-Pugh+score+cirrhosis",
+    sourceLabel: "Child-Pugh · PubMed",
+  },
+  timi: {
+    title: "TIMI Risk Score · UA/NSTEMI",
+    description: "Nguy cơ biến cố tim mạch trong hội chứng vành cấp",
+    formula: "7 yếu tố, mỗi yếu tố 1 điểm: tuổi ≥65; ≥3 yếu tố nguy cơ CAD; CAD đã biết ≥50%; dùng aspirin trong 7 ngày; ≥2 cơn đau ngực trong 24 giờ; ST chênh ≥0.5 mm; biomarker tim tăng.",
+    variables: "Tổng điểm 0–7; đây là phiên bản TIMI cho UA/NSTEMI, không phải TIMI STEMI.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=TIMI+risk+score+unstable+angina+non-ST-segment",
+    sourceLabel: "TIMI · PubMed",
+  },
+  "has-bled": {
+    title: "HAS-BLED Score",
+    description: "Nguy cơ chảy máu ở bệnh nhân rung nhĩ",
+    formula: "H: tăng huyết áp 1; A: bất thường thận 1 + gan 1; S: tiền sử đột quỵ 1; B: chảy máu 1; L: INR không ổn định 1; E: tuổi >65 1; D: thuốc 1 + rượu 1.",
+    variables: "Điểm tối đa 9; điểm cao là tín hiệu cần rà soát yếu tố nguy cơ, không tự động chống chỉ định chống đông.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=HAS-BLED+score+atrial+fibrillation",
+    sourceLabel: "HAS-BLED · PubMed",
+  },
+  centor: {
+    title: "Centor / McIsaac Score",
+    description: "Khả năng viêm họng do liên cầu nhóm A",
+    formula: "Không ho 1; hạch cổ trước đau 1; sốt 1; amidan xuất tiết/sưng 1; tuổi 3–14 cộng 1; tuổi 15–44 cộng 0; tuổi ≥45 trừ 1.",
+    variables: "Điểm dùng để hỗ trợ quyết định xét nghiệm liên cầu, không thay thế thăm khám.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=McIsaac+modified+Centor+score",
+    sourceLabel: "Centor/McIsaac · PubMed",
+  },
+  sirs: {
+    title: "SIRS Criteria",
+    description: "Tiêu chuẩn đáp ứng viêm hệ thống",
+    formula: "Nhiệt độ >38°C hoặc <36°C; nhịp tim >90/phút; nhịp thở >20/phút hoặc PaCO₂ <32 mmHg; bạch cầu >12.000 hoặc <4.000/mm<sup>3</sup> hoặc band >10%.<br />SIRS ≥2 tiêu chí.",
+    variables: "SIRS không đồng nghĩa với sepsis; cần đánh giá theo định nghĩa và hướng dẫn hiện hành.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=ACCP+SCCM+SIRS+criteria+1992",
+    sourceLabel: "ACCP/SCCM · PubMed",
+  },
+  "grace-acs": {
+    title: "GRACE ACS Score",
+    description: "Nguy cơ tử vong hoặc nhồi máu cơ tim trong ACS",
+    formula: "Điểm GRACE là mô hình đa biến gồm: tuổi, nhịp tim, huyết áp tâm thu, creatinine, Killip class, ngừng tim lúc nhập viện, ST chênh và biomarker tim.",
+    variables: "Cần dùng bảng điểm/ứng dụng GRACE chuẩn; không nên tự cộng điểm tuyến tính vì mỗi biến có trọng số riêng.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=GRACE+score+acute+coronary+syndrome",
+    sourceLabel: "GRACE · PubMed",
+  },
+  "anion-gap": {
+    title: "Anion Gap",
+    description: "Khoảng trống anion trong huyết thanh",
+    formula: "AG = Na<sup>+</sup> − (Cl<sup>−</sup> + HCO<sub>3</sub><sup>−</sup>)<br />AG hiệu chỉnh albumin = AG + 2.5 × (4 − Albumin g/dL).",
+    variables: "Có thể dùng công thức không gồm kali; cần thống nhất với labo và đơn vị xét nghiệm.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=anion+gap+albumin+correction",
+    sourceLabel: "Anion gap · PubMed",
+  },
+  "psi-port": {
+    title: "PSI / PORT Score",
+    description: "Tiên lượng viêm phổi mắc phải cộng đồng",
+    formula: "PSI cộng điểm theo 20 biến: nhân khẩu học, bệnh đồng mắc, triệu chứng khám, xét nghiệm và X-quang; sau đó phân lớp I–V.",
+    variables: "PSI là bảng điểm có trọng số, không phải một phương trình ngắn; cần bảng PORT chuẩn để tránh sai điểm.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=Fine+PSI+PORT+score+pneumonia",
+    sourceLabel: "PSI/PORT · PubMed",
+  },
+  "curb-65": {
+    title: "CURB-65 Score",
+    description: "Đánh giá mức độ nặng viêm phổi cộng đồng",
+    formula: "C: lú lẫn 1; U: ure >7 mmol/L 1; R: nhịp thở ≥30 1; B: HA tâm thu <90 hoặc tâm trương ≤60 mmHg 1; 65: tuổi ≥65 1.",
+    variables: "Tổng điểm 0–5; diễn giải theo hướng dẫn địa phương và tình trạng lâm sàng.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=CURB-65+score+pneumonia",
+    sourceLabel: "CURB-65 · PubMed",
+  },
+  "apache-ii": {
+    title: "APACHE II Score",
+    description: "Đánh giá mức độ nặng bệnh nhân hồi sức",
+    formula: "APACHE II = Acute Physiology Score (12 biến sinh lý) + điểm tuổi + điểm bệnh mạn nặng/suy giảm miễn dịch.",
+    variables: "12 biến gồm dấu hiệu sinh tồn, oxygenation, pH động mạch, Na, K, creatinine, hematocrit, WBC và GCS; lấy giá trị xấu nhất trong 24 giờ đầu ICU.",
+    source: "https://pubmed.ncbi.nlm.nih.gov/?term=APACHE+II+Knaus+1985",
+    sourceLabel: "APACHE II · PubMed",
+  },
 };
 
 function sanitizeFormulaHtml(value: string) {
@@ -67,8 +187,8 @@ function sanitizeFormulaHtml(value: string) {
   return template.innerHTML;
 }
 
-function FormulaPreview({ html }: { html: string }) {
-  return <div className="formula-preview min-h-14 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xl text-slate-800" dangerouslySetInnerHTML={{ __html: sanitizeFormulaHtml(html) || "Chưa có công thức" }} />;
+function FormulaPreview({ html, className = "" }: { html: string; className?: string }) {
+  return <div className={`formula-preview min-h-14 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xl text-slate-800 ${className}`} dangerouslySetInnerHTML={{ __html: sanitizeFormulaHtml(html) || "Chưa có công thức" }} />;
 }
 
 function UnitValueField({ label, value, unit, units, onValueChange, onUnitChange }: { label: string; value: string; unit: string; units: UnitOption[]; onValueChange: (value: string) => void; onUnitChange: (unit: string) => void }) {
@@ -114,7 +234,7 @@ function AnimatedDropdown({ label, value, options, onChange, compact = false }: 
   </div>;
 }
 
-function CalculatorSearch({ options, onSelect }: { options: Array<{ id: CalculatorType; label: string; description: string }>; onSelect: (option: { id: CalculatorType; label: string; description: string }) => void }) {
+function CalculatorSearch({ options, onSelect }: { options: Array<{ id: CalculatorType; label: string; description: string; interactive?: boolean }>; onSelect: (option: { id: CalculatorType; label: string; description: string; interactive?: boolean }) => void }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -200,10 +320,17 @@ function CalculatorFormulaReference({ calculatorType, egfrFormula, crclFormula }
     sourceLabel = "Holliday-Segar · PubMed";
   }
 
-  return <div className="mt-5 rounded-2xl border border-white bg-white/85 p-4 sm:p-5">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Công thức cụ thể</p><h3 className="mt-1 text-lg font-black text-slate-800">{title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{description}</p></div><a href={source} target="_blank" rel="noreferrer" className="text-xs font-extrabold text-teal-700 underline hover:text-teal-900">{sourceLabel}</a></div>
-    <div className="mt-4"><FormulaPreview html={formula} /></div>
-    <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">{variables}</p>
+  let parameterContent = <p className="formula-evidence__variables"><strong>Biến số:</strong> {variables}</p>;
+  if (calculatorType === "egfr" && egfrFormula === "creatinine") {
+    parameterContent = <table className="formula-evidence__table"><thead><tr><th></th><th>Nữ</th><th>Nam</th></tr></thead><tbody><tr><th>Scr ≤ κ</th><td>A = 0.7<br />B = −0.241</td><td>A = 0.9<br />B = −0.302</td></tr><tr><th>Scr &gt; κ</th><td>A = 0.7<br />B = −1.2</td><td>A = 0.9<br />B = −1.2</td></tr></tbody></table>;
+  } else if (calculatorType === "egfr" && egfrFormula === "combined") {
+    parameterContent = <div className="formula-evidence__split"><div><h4>Nữ</h4><p>κ = 0.7<br />α = −0.248<br />C = 0.8<br />D = −0.711</p></div><div><h4>Nam</h4><p>κ = 0.9<br />α = −0.207<br />C = 0.8<br />D = −0.711</p></div></div>;
+  }
+
+  return <div className="formula-evidence mt-5 rounded-2xl border border-white bg-white/85 p-4 sm:p-6">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="formula-evidence__eyebrow">Formula</p><h3 className="mt-1 text-2xl font-black text-slate-700">{title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{description}</p></div><a href={source} target="_blank" rel="noreferrer" className="text-xs font-extrabold text-teal-700 underline hover:text-teal-900">{sourceLabel}</a></div>
+    <div className="mt-5"><FormulaPreview html={formula} className="formula-evidence__equation" /></div>
+    <div className="mt-5">{parameterContent}</div>
   </div>;
 }
 
@@ -418,7 +545,7 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
       </div>}
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{toolGroups.map(({ id, title, description, icon: Icon, className }) => <div key={id} role="button" tabIndex={0} onClick={() => openToolCreator(id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openToolCreator(id); } }} className={`relative flex min-h-0 cursor-pointer items-center gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className} ${((id === "calculator" && activeTool === "calculator") || (id === "data-table" && activeTool === "data-table") || (id === "scores" && activeTool === "score")) ? "ring-2 ring-teal-300" : ""}`}><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80"><Icon size={19} /></span><span className="min-w-0"><strong className="block text-sm font-extrabold leading-5 text-slate-800">{title}</strong><small className="mt-0.5 block text-xs font-semibold leading-4 text-slate-500">{description}</small></span></div>)}</div>
-      <CalculatorSearch options={calculatorOptions} onSelect={(option) => { setCalculatorType(option.id); setActiveTool("calculator"); }} />
+      <CalculatorSearch options={calculatorOptions} onSelect={(option) => { setCalculatorType(option.id); setCalculatorPanelTab(option.interactive === false ? "formula" : "calculator"); setActiveTool("calculator"); }} />
 
       {activeTool === "calculator" && <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50/35 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
