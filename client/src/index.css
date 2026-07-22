@@ -13,6 +13,8 @@
 .rich-content ol { list-style: decimal; padding-left: 1.5rem; text-align: left; }
 .rich-content p, .rich-content div { margin: 0.25rem 0; }
 .daily-quote { text-wrap: balance; }
+.daily-quote--shiny { color: transparent; background-image: linear-gradient(90deg, #6b1839 0%, #6b1839 38%, #fb7185 50%, #f9a8d4 56%, #6b1839 68%, #6b1839 100%); background-position: 100% 0; background-size: 220% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: daily-quote-shine 4.5s linear infinite; }
+@keyframes daily-quote-shine { from { background-position: 100% 0; } to { background-position: -120% 0; } }
 
 html {
   scroll-behavior: smooth;
@@ -803,6 +805,7 @@ html[data-theme="test-light"] [class~="text-amber-700"] { color: #a86b00 !import
   .welcome-progress span,
   .welcome-dots span { animation: none !important; }
   .shared-deck-toast { animation: none !important; }
+  .daily-quote--shiny { animation: none !important; background-position: 50% 0; }
   .ripple-btn__circle { display: none; transition: none !important; }
   .setup-mode-tabs::after,
   .setup-mode-tabs__glider,
