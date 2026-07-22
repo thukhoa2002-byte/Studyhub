@@ -19,7 +19,8 @@ const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingm
 const DOCX_CHARS_PER_PASS = 8_000;
 const DOCX_QUESTIONS_PER_PASS = 5;
 const MCQ_CHUNK_CONCURRENCY = 3;
-const MCQ_REQUEST_INTERVAL_MS = 3_200;
+const MCQ_REQUEST_INTERVAL_MS = 4_200;
+let nextMcqGeminiRequestAt = 0;
 const mcqImportJobs = new Map();
 const MCQ_JOB_TTL_MS = 60 * 60 * 1000;
 const execFileAsync = promisify(execFile);
@@ -445,7 +446,15 @@ function isOutputLimitError(error) {
   return /MAX_TOKENS|đầu ra AI đã chạm giới hạn|tài liệu quá dài/i.test(error instanceof Error ? error.message : String(error));
 }
 
+async function waitForMcqGeminiSlot() {
+  const now = Date.now();
+  const waitMs = Math.max(0, nextMcqGeminiRequestAt - now);
+  nextMcqGeminiRequestAt = Math.max(now, nextMcqGeminiRequestAt) + MCQ_REQUEST_INTERVAL_MS;
+  if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+}
+
 async function generateChunkWithFallback(chunk) {
+  await waitForMcqGeminiSlot();
   try {
     return [await generateStructuredFromFile({
       file: chunk.file,
@@ -512,15 +521,10 @@ async function processMcqImport(files, aiCallsRemaining) {
   const chunks = (await Promise.all(preparedFiles.map(splitLargePdf))).flat();
   const chunkResults = Array.from({ length: chunks.length });
   let nextChunkIndex = 0;
-  let nextRequestAt = 0;
   async function processNextChunk() {
     while (nextChunkIndex < chunks.length) {
       const chunkIndex = nextChunkIndex;
       nextChunkIndex += 1;
-      const now = Date.now();
-      const waitMs = Math.max(0, nextRequestAt - now);
-      nextRequestAt = Math.max(now, nextRequestAt) + MCQ_REQUEST_INTERVAL_MS;
-      if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
       chunkResults[chunkIndex] = await generateChunkWithFallback(chunks[chunkIndex]);
     }
   }
