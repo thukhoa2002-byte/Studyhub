@@ -127,6 +127,7 @@ button:active { transform: translateY(0) scale(.97); }
 .glass-dialog::before { position: absolute; inset: 0; z-index: -1; pointer-events: none; content: ""; background: linear-gradient(125deg, rgba(255,255,255,.28), transparent 34%, rgba(255,255,255,.12)); }
 .glass-card:hover { box-shadow: 0 20px 46px rgba(148,163,184,.18), 0 2px 8px rgba(255,255,255,.4), inset 0 1px 0 rgba(255,255,255,.9); transform: translateY(-2px) scale(1.005); }
 .glass-dialog { box-shadow: 0 26px 70px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.82); }
+.workspace-settings > .glass-dialog { position: absolute; }
 .deck-library-panel,
 .deck-library-card { overflow: visible; }
 .deck-library-panel:has([role="menu"]) { z-index: 90; }
