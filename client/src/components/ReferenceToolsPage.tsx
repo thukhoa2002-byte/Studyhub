@@ -30,14 +30,14 @@ function sanitizeFormulaHtml(value: string) {
   if (typeof document === "undefined") return value;
   const template = document.createElement("template");
   template.innerHTML = value;
-  const allowed = new Set(["BR", "EM", "I", "STRONG", "B", "SUB", "SUP", "SPAN"]);
+  const allowed = new Set(["BR", "EM", "I", "STRONG", "B", "SUB", "SUP", "SPAN", "TABLE", "TBODY", "TR", "TH", "TD"]);
   template.content.querySelectorAll("*").forEach((element) => {
     if (!allowed.has(element.tagName)) {
       element.replaceWith(document.createTextNode(element.textContent || ""));
       return;
     }
     [...element.attributes].forEach((attribute) => {
-      if (attribute.name !== "class" || !/^formula-(fraction|numerator|denominator|root|root-value)$/.test(attribute.value)) element.removeAttribute(attribute.name);
+      if (attribute.name !== "class" || !/^formula-(fraction|numerator|denominator|root|root-value|table|table-cell|table-header)$/.test(attribute.value)) element.removeAttribute(attribute.name);
     });
   });
   return template.innerHTML;
@@ -71,6 +71,9 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [weightUnit, setWeightUnit] = useState("kg");
   const [height, setHeight] = useState("175");
   const [heightUnit, setHeightUnit] = useState("cm");
+  const [tablePickerOpen, setTablePickerOpen] = useState(false);
+  const [tableRows, setTableRows] = useState(3);
+  const [tableColumns, setTableColumns] = useState(3);
   const editorRef = useRef<HTMLDivElement>(null);
   const isOwner = user?.email?.trim().toLowerCase() === OWNER_EMAIL;
 
@@ -128,6 +131,16 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
     syncFormula();
   }
 
+  function insertFormulaTable() {
+    const rows = Math.min(8, Math.max(1, tableRows));
+    const columns = Math.min(8, Math.max(1, tableColumns));
+    const html = `<table class="formula-table"><tbody>${Array.from({ length: rows }, (_, rowIndex) => `<tr>${Array.from({ length: columns }, (_, columnIndex) => rowIndex === 0 ? `<th class="formula-table-header">${columnIndex === 0 ? "Tên / chỉ số" : `Cột ${columnIndex + 1}`}</th>` : `<td class="formula-table-cell">Ô ${rowIndex + 1}.${columnIndex + 1}</td>`).join("")}</tr>`).join("")}</tbody></table><br>`;
+    editorRef.current?.focus();
+    document.execCommand("insertHTML", false, html);
+    syncFormula();
+    setTablePickerOpen(false);
+  }
+
   async function saveFormula(event: React.FormEvent) {
     event.preventDefault();
     if (!isOwner || !user || !form.title.trim()) return;
@@ -164,7 +177,7 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
         <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Khu vực chủ web</p><h2 className="mt-1 text-lg font-black text-slate-800">Quản lý công thức</h2></div><span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-violet-700">{formulas.length}</span></div>
         {formOpen && <form onSubmit={(event) => void saveFormula(event)} className="mt-4 space-y-3 rounded-2xl border border-white bg-white/80 p-4">
           <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-bold text-slate-700">Tên công thức<input required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" placeholder="Ví dụ: Độ lọc cầu thận eGFR" /></label><label className="text-sm font-bold text-slate-700">Cách dùng<textarea value={form.usage} onChange={(event) => setForm((current) => ({ ...current, usage: event.target.value }))} rows={2} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" placeholder="Nhập dữ liệu nào, đọc kết quả ra sao..." /></label></div>
-          <div><div className="mb-1.5 flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-bold text-slate-700">Công thức</span><div className="flex flex-wrap gap-1"><button type="button" title="Số mũ" onClick={() => useEditorCommand("superscript")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">x<sup>2</sup></button><button type="button" title="Chỉ số dưới" onClick={() => useEditorCommand("subscript")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">x<sub>i</sub></button><button type="button" title="Chèn phân số" onClick={() => insertFormulaPart("fraction")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">a⁄b</button><button type="button" title="Chèn dấu căn" onClick={() => insertFormulaPart("root")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">√x</button></div></div><div ref={editorRef} contentEditable suppressContentEditableWarning onInput={syncFormula} className="formula-editor min-h-16 rounded-xl border border-violet-200 bg-white px-4 py-3 text-xl text-slate-800 outline-none focus:border-violet-400" dangerouslySetInnerHTML={{ __html: sanitizeFormulaHtml(form.formula_html) }} /></div>
+          <div><div className="mb-1.5 flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-bold text-slate-700">Công thức</span><div className="flex flex-wrap gap-1"><button type="button" title="Số mũ" onClick={() => useEditorCommand("superscript")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">x<sup>2</sup></button><button type="button" title="Chỉ số dưới" onClick={() => useEditorCommand("subscript")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">x<sub>i</sub></button><button type="button" title="Chèn phân số" onClick={() => insertFormulaPart("fraction")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">a⁄b</button><button type="button" title="Chèn dấu căn" onClick={() => insertFormulaPart("root")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">√x</button><span className="relative"><button type="button" title="Chèn bảng" onClick={() => setTablePickerOpen((open) => !open)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50"><Table2 size={15} />Bảng</button>{tablePickerOpen && <span className="absolute right-0 top-full z-20 mt-2 flex items-end gap-2 rounded-xl border border-violet-100 bg-white p-3 text-xs font-bold text-slate-600 shadow-lg"><label>Hàng<input type="number" min="1" max="8" value={tableRows} onChange={(event) => setTableRows(Number(event.target.value) || 1)} className="mt-1 block w-14 rounded-lg border border-slate-200 px-2 py-1.5 text-center outline-none focus:border-violet-400" /></label><label>Cột<input type="number" min="1" max="8" value={tableColumns} onChange={(event) => setTableColumns(Number(event.target.value) || 1)} className="mt-1 block w-14 rounded-lg border border-slate-200 px-2 py-1.5 text-center outline-none focus:border-violet-400" /></label><button type="button" onClick={insertFormulaTable} className="rounded-lg bg-violet-600 px-2.5 py-2 text-white hover:bg-violet-700">Chèn</button></span>}</span></div></div><div ref={editorRef} contentEditable suppressContentEditableWarning onInput={syncFormula} className="formula-editor min-h-16 rounded-xl border border-violet-200 bg-white px-4 py-3 text-xl text-slate-800 outline-none focus:border-violet-400" dangerouslySetInnerHTML={{ __html: sanitizeFormulaHtml(form.formula_html) }} /></div>
           <div><p className="mb-1.5 text-xs font-bold text-slate-500">Xem trước</p><FormulaPreview html={form.formula_html} /></div>
           <div className="flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setFormOpen(false); setEditingId(null); }} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600"><X size={16} />Hủy</button><button type="submit" disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"><Save size={16} />{busy ? "Đang lưu..." : "Lưu công thức"}</button></div>
         </form>}

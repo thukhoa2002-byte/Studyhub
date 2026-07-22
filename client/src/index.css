@@ -142,6 +142,15 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 .formula-denominator { padding: .06em .16em 0; }
 .formula-root { display: inline-flex; align-items: flex-start; vertical-align: middle; margin: 0 .12em; }
 .formula-root-value { border-top: 1px solid currentColor; padding: .02em .14em 0 .08em; line-height: 1; }
+.formula-table { border-collapse: collapse; margin: .6em 0; min-width: 18rem; font-family: ui-sans-serif, system-ui, sans-serif; font-size: .78em; line-height: 1.35; }
+.formula-table-header,
+.formula-table-cell { min-width: 5rem; border: 1px solid #cbd5e1; padding: .45em .65em; text-align: left; }
+.formula-table-header { background: #f5f3ff; color: #4c1d95; font-weight: 800; }
+.formula-table-cell { background: #fff; }
+.formula-editor .formula-table-header,
+.formula-editor .formula-table-cell { outline: none; }
+.formula-editor .formula-table-header:focus,
+.formula-editor .formula-table-cell:focus { box-shadow: inset 0 0 0 2px #c4b5fd; }
 
 .study-runner { position: absolute; z-index: 2; top: 50%; left: 0; font-size: 2rem; line-height: 1; transform: translateY(-50%); animation: study-runner 700ms ease-in forwards; }
 .study-box-exit { animation: study-box-exit 700ms ease-in forwards; }
