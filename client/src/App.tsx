@@ -792,6 +792,10 @@ export default function App() {
           <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section={referenceSection} />
         </div>
 
+        <div className={workspaceTab === "tools" ? "block" : "hidden"} aria-hidden={workspaceTab !== "tools"}>
+          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section="tools" />
+        </div>
+
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
           <McqPage userId={user?.id} userEmail={user?.email} onAiCallsRemaining={setAiCallsRemaining} section={mcqSection} />
         </div>

@@ -194,16 +194,18 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 .setup-mode-tab:hover { transform: translateY(-1px) scale(1.01); }
 .setup-mode-tab--active { color: #4c0519; }
 .workspace-tabs { position: relative; isolation: isolate; overflow: hidden; border-radius: 1.35rem !important; }
-.workspace-tabs__glider { position: absolute; z-index: 0; top: .5rem; bottom: .5rem; left: .5rem; width: calc((100% - 2.5rem) / 4); border: 1px solid rgba(251,113,133,.34); border-radius: .95rem; background: linear-gradient(135deg, rgba(255,228,239,.96), rgba(204,251,241,.88)); box-shadow: 0 9px 24px rgba(244,114,182,.13), inset 0 1px 0 rgba(255,255,255,.9); transition: transform 620ms cubic-bezier(.16,1.12,.3,1), box-shadow 320ms ease; }
+.workspace-tabs__glider { position: absolute; z-index: 0; top: .5rem; bottom: .5rem; left: .5rem; width: calc((100% - 3rem) / 5); border: 1px solid rgba(251,113,133,.34); border-radius: .95rem; background: linear-gradient(135deg, rgba(255,228,239,.96), rgba(204,251,241,.88)); box-shadow: 0 9px 24px rgba(244,114,182,.13), inset 0 1px 0 rgba(255,255,255,.9); transition: transform 620ms cubic-bezier(.16,1.12,.3,1), box-shadow 320ms ease; }
 .workspace-tabs__glider--hidden { opacity: 0; pointer-events: none; }
 .workspace-tabs__glider--mcq { transform: translateX(calc(100% + .5rem)); }
-.workspace-tabs__glider--guidelines { transform: translateX(calc(200% + 1rem)); }
-.workspace-tabs__glider--drugs { transform: translateX(calc(300% + 1.5rem)); }
+.workspace-tabs__glider--tools { transform: translateX(calc(200% + 1rem)); }
+.workspace-tabs__glider--guidelines { transform: translateX(calc(300% + 1.5rem)); }
+.workspace-tabs__glider--drugs { transform: translateX(calc(400% + 2rem)); }
 @media (max-width: 639px) {
-  .workspace-tabs__glider { width: calc((100% - 1.5rem) / 2); height: calc((100% - 1.5rem) / 2); bottom: auto; }
+  .workspace-tabs__glider { width: calc((100% - 1.5rem) / 2); height: calc((100% - 2rem) / 3); bottom: auto; }
   .workspace-tabs__glider--mcq { transform: translateX(calc(100% + .5rem)); }
-  .workspace-tabs__glider--guidelines { transform: translateY(calc(100% + .5rem)); }
-  .workspace-tabs__glider--drugs { transform: translate(calc(100% + .5rem), calc(100% + .5rem)); }
+  .workspace-tabs__glider--tools { transform: translateY(calc(100% + .5rem)); }
+  .workspace-tabs__glider--guidelines { transform: translate(calc(100% + .5rem), calc(100% + .5rem)); }
+  .workspace-tabs__glider--drugs { transform: translateY(calc(200% + 1rem)); }
 }
 .workspace-tabs__button { position: relative; z-index: 1; display: inline-flex; min-height: 3.65rem; align-items: center; justify-content: center; gap: .65rem; border-radius: .95rem; color: #64748b; font-size: .95rem; font-weight: 800; letter-spacing: -.01em; }
 .workspace-tabs__button--active { color: #881337; }
@@ -236,16 +238,18 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-settings__chevron { display: none; }
   .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-tabs--sidebar .workspace-tabs__glider { top: 0; left: 50%; width: 3.65rem; height: 3.65rem; margin-left: -1.825rem; }
   .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-sidebar__account { width: 100%; justify-content: center; gap: 0; }
-  .workspace-tabs__glider { top: .5rem; bottom: auto; left: .5rem; width: calc(100% - 1rem); height: calc((100% - 2.5rem) / 4); }
+  .workspace-tabs__glider { top: .5rem; bottom: auto; left: .5rem; width: calc(100% - 1rem); height: calc((100% - 2rem) / 5); }
   .workspace-tabs__glider--mcq { transform: translateY(calc(100% + .5rem)); }
-  .workspace-tabs__glider--guidelines { transform: translateY(calc(200% + 1rem)); }
-  .workspace-tabs__glider--drugs { transform: translateY(calc(300% + 1.5rem)); }
+  .workspace-tabs__glider--tools { transform: translateY(calc(200% + 1rem)); }
+  .workspace-tabs__glider--guidelines { transform: translateY(calc(300% + 1.5rem)); }
+  .workspace-tabs__glider--drugs { transform: translateY(calc(400% + 2rem)); }
   .workspace-tabs--sidebar { grid-auto-rows: 3.65rem; overflow: visible; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .workspace-tabs--sidebar::before { display: none; }
-  .workspace-tabs--sidebar .workspace-tabs__glider { top: 0; bottom: auto; left: 0; width: 100%; height: calc((100% - 1.5rem) / 4); border-radius: .5rem; }
+  .workspace-tabs--sidebar .workspace-tabs__glider { top: 0; bottom: auto; left: 0; width: 100%; height: calc((100% - 2rem) / 5); border-radius: .5rem; }
   .workspace-tabs--sidebar .workspace-tabs__glider--mcq { transform: translateY(calc(100% + .5rem)); }
-  .workspace-tabs--sidebar .workspace-tabs__glider--guidelines { transform: translateY(calc(200% + 1rem)); }
-  .workspace-tabs--sidebar .workspace-tabs__glider--drugs { transform: translateY(calc(300% + 1.5rem)); }
+  .workspace-tabs--sidebar .workspace-tabs__glider--tools { transform: translateY(calc(200% + 1rem)); }
+  .workspace-tabs--sidebar .workspace-tabs__glider--guidelines { transform: translateY(calc(300% + 1.5rem)); }
+  .workspace-tabs--sidebar .workspace-tabs__glider--drugs { transform: translateY(calc(400% + 2rem)); }
   .workspace-sidebar.workspace-sidebar--panel-open .workspace-sidebar__brand { justify-content: flex-start; }
   .workspace-sidebar.workspace-sidebar--panel-open .workspace-sidebar__brand-copy,
   .workspace-sidebar.workspace-sidebar--panel-open .workspace-tabs__label,
@@ -255,7 +259,7 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-sidebar.workspace-sidebar--panel-open .workspace-tabs__button,
   .workspace-sidebar.workspace-sidebar--panel-open .workspace-settings > button,
   .workspace-sidebar.workspace-sidebar--panel-open .site-analytics--sidebar > button { justify-content: flex-start; gap: .65rem; padding-inline: 1rem; }
-  .workspace-sidebar.workspace-sidebar--panel-open .workspace-tabs--sidebar .workspace-tabs__glider { top: 0; left: 0; width: 100%; height: calc((100% - 1.5rem) / 4); }
+  .workspace-sidebar.workspace-sidebar--panel-open .workspace-tabs--sidebar .workspace-tabs__glider { top: 0; left: 0; width: 100%; height: calc((100% - 2rem) / 5); }
   .workspace-sidebar .workspace-tabs__button,
   .workspace-sidebar .workspace-settings > button { justify-content: flex-start; padding-inline: 1rem; transition: transform 360ms cubic-bezier(.22,1,.36,1), color 240ms ease, background-color 240ms ease; }
   .workspace-tabs__label { max-width: 14rem; overflow: hidden; white-space: nowrap; opacity: 1; transition: max-width 360ms cubic-bezier(.22,1,.36,1), opacity 180ms ease, visibility 180ms ease; }

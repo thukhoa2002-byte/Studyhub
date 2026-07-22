@@ -40,7 +40,10 @@ function parseGeneratedJson(payload) {
 
 function createApiError(response, payload, fallback) {
   const apiMessage = String(payload?.error?.message || `Gemini API lỗi ${response.status}.`);
-  const message = /high demand|temporarily unavailable|overloaded|resource exhausted/i.test(apiMessage)
+  const dailyQuota = /generate_content_free_tier_requests|limit:\s*500|requests per day|quota.*day/i.test(apiMessage);
+  const message = dailyQuota
+    ? "Gemini đã hết quota 500 lượt/ngày của gói hiện tại. Hãy chờ quota reset hoặc nâng gói/bật billing trên Google AI Studio."
+    : /high demand|temporarily unavailable|overloaded|resource exhausted/i.test(apiMessage)
     ? "Gemini đang quá tải tạm thời sau khi đã tự thử lại. Vui lòng thử lại sau ít phút."
     : fallback ? `${fallback} ${apiMessage}` : apiMessage;
   const error = new Error(message);
@@ -95,6 +98,7 @@ async function requestGeneration({ model, apiKey, signal, prompt, mediaParts, sc
 function shouldRetryGeneration(response, payload) {
   if (![429, 500, 502, 503].includes(response.status)) return false;
   const message = String(payload?.error?.message || "");
+  if (/generate_content_free_tier_requests|limit:\s*500|requests per day|quota.*day/i.test(message)) return false;
   return /high demand|temporarily unavailable|overloaded|resource exhausted|internal error|unavailable/i.test(message) || response.status !== 429;
 }
 

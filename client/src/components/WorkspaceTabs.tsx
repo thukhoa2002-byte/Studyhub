@@ -1,4 +1,4 @@
-import { BookOpen, BookOpenCheck, Pill } from "lucide-react";
+import { BookOpen, BookOpenCheck, Calculator, Pill } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -8,7 +8,7 @@ import ReferenceSectionsPanel, { type ReferenceSection } from "./ReferenceSectio
 import SiteAnalytics from "./SiteAnalytics";
 import WorkspaceSettings from "./WorkspaceSettings";
 
-export type WorkspaceTab = "flashcards" | "mcq" | "guidelines" | "drugs";
+export type WorkspaceTab = "flashcards" | "mcq" | "tools" | "guidelines" | "drugs";
 
 interface Props {
   activeTab: WorkspaceTab;
@@ -30,6 +30,7 @@ interface Props {
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
   { id: "flashcards", label: "Thẻ học", icon: BookOpen },
   { id: "mcq", label: "Trắc nghiệm", icon: McqIcon },
+  { id: "tools", label: "Công cụ & Bảng tra", icon: Calculator },
   { id: "guidelines", label: "Tài liệu tham khảo", icon: BookOpenCheck },
   { id: "drugs", label: "Thuốc", icon: Pill },
 ];
@@ -116,11 +117,11 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
       </div>
       <div className="workspace-sidebar__divider my-6 hidden border-t border-slate-200/80 lg:block" />
       <nav
-        className="workspace-tabs workspace-tabs--sidebar glass-panel grid grid-cols-2 gap-2 border border-white/70 bg-white/58 p-2 sm:grid-cols-4 lg:mt-0 lg:grid-cols-1 lg:border-0 lg:bg-transparent lg:p-0"
+        className="workspace-tabs workspace-tabs--sidebar glass-panel grid grid-cols-2 gap-2 border border-white/70 bg-white/58 p-2 sm:grid-cols-5 lg:mt-0 lg:grid-cols-1 lg:border-0 lg:bg-transparent lg:p-0"
         aria-label="Khu vực học tập"
       >
         <span
-          className={`workspace-tabs__glider ${analyticsPanelOpen ? "workspace-tabs__glider--hidden" : visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
+          className={`workspace-tabs__glider ${analyticsPanelOpen ? "workspace-tabs__glider--hidden" : visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "tools" ? "workspace-tabs__glider--tools" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
           aria-hidden="true"
         />
         {tabs.map(({ id, label, icon: Icon }, tabIndex) => {
