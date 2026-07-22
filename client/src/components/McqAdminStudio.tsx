@@ -487,17 +487,23 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <span className="w-fit rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">Chỉ bạn được đổi tên và sửa nội dung</span>
     </div>
 
-    <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto]">
-      <FileDropZone id="mcq-source-files" multiple accept="application/pdf,image/png,image/jpeg,application/json,.json" onFiles={setFiles} className="flex min-h-32 items-center justify-center rounded-3xl border border-dashed border-violet-300 bg-violet-50/50 px-5 text-center transition hover:bg-violet-50">
-        <span><Upload className="mx-auto text-violet-600" /><strong className="mt-2 block text-slate-800">Chọn PDF, ảnh hoặc JSON trắc nghiệm</strong><small className="mt-1 block text-slate-500">PDF/ảnh sẽ gọi Gemini. JSON chuẩn trắc nghiệm được nạp trực tiếp, không phụ thuộc máy chủ AI.</small></span>
-      </FileDropZone>
-      <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : isJsonFile(files[0]) ? <FileText /> : <FileSearch />}{isJsonFile(files[0]) ? "Nạp JSON chuẩn" : "Trích bằng Gemini"}</button>
-    </div>
-    <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]">
-      <FileDropZone id="mcq-word-source-file" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onFiles={(selected) => { const selectedFile = selected[0]; if (!isDocxFile(selectedFile)) { setWordFile(null); setError("Ô Đọc Word chỉ nhận file .docx. File PDF hãy đưa vào ô PDF phía trên."); return; } setError(""); setWordFile(selectedFile); }} className="flex min-h-28 items-center justify-center rounded-3xl border border-dashed border-emerald-300 bg-emerald-50/45 px-5 text-center transition hover:bg-emerald-50">
-        <span><FileText className="mx-auto text-emerald-700" /><strong className="mt-2 block text-slate-800">Đưa file Word câu hỏi vào đây</strong><small className="mt-1 block text-slate-500">Gemini sẽ tách câu hỏi, lựa chọn và dòng đáp án trong file .docx.</small>{wordFile && <small className="mt-2 block truncate font-semibold text-emerald-700">{wordFile.name}</small>}</span>
-      </FileDropZone>
-      <button type="button" disabled={!wordFile || busy} onClick={() => wordFile && void extract([wordFile])} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Đọc Word bằng Gemini</button>
+    <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200/80 bg-white/70 shadow-sm">
+      <div className="grid lg:grid-cols-2">
+        <div className="p-4 sm:p-5">
+          <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><Upload size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">PDF, ảnh hoặc JSON</p><p className="text-xs font-medium text-slate-500">Trích câu hỏi bằng Gemini</p></div></div>
+          <FileDropZone id="mcq-source-files" multiple accept="application/pdf,image/png,image/jpeg,application/json,.json" onFiles={setFiles} className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-violet-300 bg-violet-50/50 px-5 text-center transition hover:bg-violet-50">
+            <span><strong className="block text-sm text-slate-800">Chọn file nguồn</strong><small className="mt-1 block text-xs text-slate-500">PDF, ảnh hoặc JSON chuẩn trắc nghiệm</small></span>
+          </FileDropZone>
+          <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : isJsonFile(files[0]) ? <FileText /> : <FileSearch />}{isJsonFile(files[0]) ? "Nạp JSON chuẩn" : "Trích bằng Gemini"}</button>
+        </div>
+        <div className="border-t border-slate-200/80 p-4 sm:p-5 lg:border-l lg:border-t-0">
+          <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><FileText size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">File Word câu hỏi</p><p className="text-xs font-medium text-slate-500">Tách câu hỏi và đáp án bằng Gemini</p></div></div>
+          <FileDropZone id="mcq-word-source-file" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onFiles={(selected) => { const selectedFile = selected[0]; if (!isDocxFile(selectedFile)) { setWordFile(null); setError("Ô Đọc Word chỉ nhận file .docx. File PDF hãy đưa vào ngăn PDF phía bên trái."); return; } setError(""); setWordFile(selectedFile); }} className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/45 px-5 text-center transition hover:bg-emerald-50">
+            <span><strong className="block text-sm text-slate-800">Chọn file .docx</strong><small className="mt-1 block text-xs text-slate-500">Word có thể chứa câu hỏi, đáp án và hình minh họa</small>{wordFile && <small className="mt-2 block truncate text-xs font-semibold text-emerald-700">{wordFile.name}</small>}</span>
+          </FileDropZone>
+          <button type="button" disabled={!wordFile || busy} onClick={() => wordFile && void extract([wordFile])} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Đọc Word bằng Gemini</button>
+        </div>
+      </div>
     </div>
     {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={`${file.name}-${file.size}`} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{file.type.startsWith("image/") && <ImageIcon size={13} />}{file.name}</span>)}</div>}
     {error && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
