@@ -158,6 +158,12 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 .medical-dropdown__menu { animation: medical-dropdown-in .18s ease-out both; transform-origin: top center; }
 .medical-dropdown__option--selected { background: #ccfbf1; color: #0f766e; }
 @keyframes medical-dropdown-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.medical-search__control { transition: border-color .2s ease, box-shadow .2s ease; }
+.medical-search__control:focus-within,
+.medical-search__control--open { border-color: #2dd4bf; box-shadow: 0 0 0 3px rgba(45,212,191,.14); }
+.medical-search__menu { animation: medical-search-in .18s ease-out both; transform-origin: top center; }
+.medical-search__option { min-height: 3.25rem; }
+@keyframes medical-search-in { from { opacity: 0; transform: translateY(-6px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 .study-runner { position: absolute; z-index: 2; top: 50%; left: 0; font-size: 2rem; line-height: 1; transform: translateY(-50%); animation: study-runner 700ms ease-in forwards; }
 .study-box-exit { animation: study-box-exit 700ms ease-in forwards; }
