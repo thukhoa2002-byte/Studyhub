@@ -246,6 +246,10 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   const cropDragRef = useRef<CropDrag | null>(null);
 
   useEffect(() => {
+    if (error) setNotice("");
+  }, [error]);
+
+  useEffect(() => {
     if (!requestedBank) return;
     setBankId(requestedBank.id);
     setTitle(requestedBank.title);
