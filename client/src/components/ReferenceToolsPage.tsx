@@ -6,6 +6,7 @@ import { deleteReferenceFormula, listReferenceFormulas, saveReferenceFormula, ty
 const OWNER_EMAIL = "thukhoa2002@gmail.com";
 type FormulaDraft = { title: string; usage: string; formula_html: string; status: "private" | "shared" };
 type ToolView = "overview" | "calculator" | "data-table" | "score";
+type CalculatorType = "bmi" | "egfr" | "crcl";
 type UnitOption = { id: string; label: string; factor: number };
 const emptyFormula: FormulaDraft = { title: "", usage: "", formula_html: "", status: "shared" };
 
@@ -18,12 +19,21 @@ const heightUnits: UnitOption[] = [
   { id: "m", label: "m", factor: 1 },
   { id: "in", label: "in", factor: 0.0254 },
 ];
+const creatinineUnits: UnitOption[] = [
+  { id: "mg-dl", label: "mg/dL", factor: 1 },
+  { id: "umol-l", label: "µmol/L", factor: 1 / 88.4 },
+];
 
 const toolGroups = [
   { id: "formulas", title: "Công thức", description: "Công thức y khoa và quy đổi thường dùng.", icon: FunctionSquare, className: "border-violet-200 bg-violet-50/60 text-violet-700" },
   { id: "data-table", title: "Bảng dữ liệu", description: "Bảng tra nhanh theo chỉ số, đơn vị và ngưỡng.", icon: Table2, className: "border-teal-200 bg-teal-50/60 text-teal-700" },
   { id: "scores", title: "Thang điểm & đánh giá", description: "Các thang điểm hỗ trợ đánh giá lâm sàng.", icon: ClipboardList, className: "border-amber-200 bg-amber-50/60 text-amber-700" },
   { id: "calculator", title: "Máy tính y khoa", description: "Công cụ tính toán theo dữ liệu nhập vào.", icon: Calculator, className: "border-rose-200 bg-rose-50/60 text-rose-700" },
+];
+const calculatorOptions: Array<{ id: CalculatorType; label: string; description: string }> = [
+  { id: "bmi", label: "BMI", description: "Khối cơ thể" },
+  { id: "egfr", label: "eGFR", description: "CKD-EPI 2021" },
+  { id: "crcl", label: "CrCl", description: "Cockcroft-Gault" },
 ];
 
 function sanitizeFormulaHtml(value: string) {
@@ -71,6 +81,11 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [weightUnit, setWeightUnit] = useState("kg");
   const [height, setHeight] = useState("175");
   const [heightUnit, setHeightUnit] = useState("cm");
+  const [calculatorType, setCalculatorType] = useState<CalculatorType>("bmi");
+  const [age, setAge] = useState("45");
+  const [sex, setSex] = useState<"male" | "female">("male");
+  const [creatinine, setCreatinine] = useState("1");
+  const [creatinineUnit, setCreatinineUnit] = useState("mg-dl");
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableColumns, setTableColumns] = useState(3);
@@ -88,6 +103,17 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const weightKg = Number(weight) * selectedWeightUnit.factor;
   const heightM = Number(height) * selectedHeightUnit.factor;
   const bmi = Number.isFinite(weightKg) && Number.isFinite(heightM) && weightKg > 0 && heightM > 0 ? weightKg / (heightM * heightM) : null;
+  const selectedCreatinineUnit = creatinineUnits.find((option) => option.id === creatinineUnit) || creatinineUnits[0];
+  const ageYears = Number(age);
+  const creatinineMgDl = Number(creatinine) * selectedCreatinineUnit.factor;
+  const egfrK = sex === "female" ? 0.7 : 0.9;
+  const egfrAlpha = sex === "female" ? -0.241 : -0.302;
+  const egfr = ageYears > 0 && Number.isFinite(ageYears) && creatinineMgDl > 0 && Number.isFinite(creatinineMgDl)
+    ? 142 * Math.pow(Math.min(creatinineMgDl / egfrK, 1), egfrAlpha) * Math.pow(Math.max(creatinineMgDl / egfrK, 1), -1.2) * Math.pow(0.9938, ageYears) * (sex === "female" ? 1.012 : 1)
+    : null;
+  const crcl = ageYears > 0 && ageYears < 140 && Number.isFinite(ageYears) && weightKg > 0 && creatinineMgDl > 0 && Number.isFinite(creatinineMgDl)
+    ? ((140 - ageYears) * weightKg) / (72 * creatinineMgDl) * (sex === "female" ? 0.85 : 1)
+    : null;
 
   function changeUnit(value: string, currentUnit: string, nextUnit: string, units: UnitOption[], onChange: (value: string) => void, setUnit: (unit: string) => void) {
     const numericValue = Number(value);
@@ -226,17 +252,12 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
 
       {activeTool === "calculator" && <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50/35 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Máy tính y khoa</p><h2 className="mt-1 text-xl font-black text-slate-800">Chỉ số khối cơ thể (BMI)</h2></div>
+          <div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Máy tính y khoa</p><h2 className="mt-1 text-xl font-black text-slate-800">Tính chỉ số theo công thức</h2></div>
           <button type="button" onClick={() => setActiveTool("overview")} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:border-teal-300 hover:text-teal-700"><ArrowLeft size={16} /> Danh sách công cụ</button>
         </div>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} />
-          <UnitValueField label="Chiều cao" value={height} unit={heightUnit} units={heightUnits} onValueChange={setHeight} onUnitChange={(nextUnit) => changeUnit(height, heightUnit, nextUnit, heightUnits, setHeight, setHeightUnit)} />
-        </div>
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white bg-white/85 p-4">
-          <div><p className="text-sm font-bold text-slate-500">Kết quả BMI</p><p className="mt-1 text-4xl font-black text-teal-800">{bmi === null ? "—" : bmi.toFixed(1)}</p></div>
-          <p className="max-w-sm text-sm font-semibold leading-6 text-slate-500">{bmi === null ? "Nhập cân nặng và chiều cao để tính." : bmi < 18.5 ? "Thiếu cân" : bmi < 25 ? "Bình thường" : bmi < 30 ? "Thừa cân" : "Béo phì"}</p>
-        </div>
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">{calculatorOptions.map((option) => <button key={option.id} type="button" onClick={() => setCalculatorType(option.id)} className={`rounded-xl border px-3 py-2.5 text-left transition ${calculatorType === option.id ? "border-teal-300 bg-white text-teal-800 shadow-sm" : "border-white bg-white/55 text-slate-600 hover:border-teal-200"}`}><strong className="block text-sm font-extrabold">{option.label}</strong><small className="mt-0.5 block text-xs font-semibold text-slate-400">{option.description}</small></button>)}</div>
+        {calculatorType === "bmi" && <div className="mt-5"><div className="grid gap-4 md:grid-cols-2"><UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} /><UnitValueField label="Chiều cao" value={height} unit={heightUnit} units={heightUnits} onValueChange={setHeight} onUnitChange={(nextUnit) => changeUnit(height, heightUnit, nextUnit, heightUnits, setHeight, setHeightUnit)} /></div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white bg-white/85 p-4"><div><p className="text-sm font-bold text-slate-500">Kết quả BMI</p><p className="mt-1 text-4xl font-black text-teal-800">{bmi === null ? "—" : bmi.toFixed(1)}</p></div><p className="max-w-sm text-sm font-semibold leading-6 text-slate-500">{bmi === null ? "Nhập cân nặng và chiều cao để tính." : bmi < 18.5 ? "Thiếu cân" : bmi < 25 ? "Bình thường" : bmi < 30 ? "Thừa cân" : "Béo phì"}</p></div></div>}
+        {(calculatorType === "egfr" || calculatorType === "crcl") && <div className="mt-5"><div className="grid gap-4 md:grid-cols-3"><label className="block text-sm font-bold text-slate-700">Tuổi (năm)<input type="number" min="1" max="120" step="1" value={age} onChange={(event) => setAge(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-teal-400" /></label><label className="block text-sm font-bold text-slate-700">Giới tính sinh học<select value={sex} onChange={(event) => setSex(event.target.value as "male" | "female")} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-teal-400"><option value="male">Nam</option><option value="female">Nữ</option></select></label><UnitValueField label="Creatinine huyết thanh" value={creatinine} unit={creatinineUnit} units={creatinineUnits} onValueChange={setCreatinine} onUnitChange={(nextUnit) => changeUnit(creatinine, creatinineUnit, nextUnit, creatinineUnits, setCreatinine, setCreatinineUnit)} />{calculatorType === "crcl" && <UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} />}</div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white bg-white/85 p-4"><div><p className="text-sm font-bold text-slate-500">{calculatorType === "egfr" ? "eGFR · CKD-EPI 2021" : "CrCl · Cockcroft-Gault"}</p><p className="mt-1 text-4xl font-black text-teal-800">{calculatorType === "egfr" ? (egfr === null ? "—" : egfr.toFixed(1)) : (crcl === null ? "—" : crcl.toFixed(1))}</p></div><p className="text-sm font-semibold text-slate-500">mL/min{calculatorType === "egfr" ? "/1,73 m²" : ""}</p></div><p className="mt-3 text-xs font-semibold leading-5 text-slate-500">Kết quả chỉ mang tính tham khảo lâm sàng; cần đối chiếu tình trạng người bệnh và hướng dẫn chuyên môn.</p></div>}
       </div>}
       {activeTool === "data-table" && <form onSubmit={createDataTable} className="mt-6 rounded-2xl border border-teal-200 bg-teal-50/35 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Tạo bảng dữ liệu</p><h2 className="mt-1 text-xl font-black text-slate-800">Nhập tài liệu để làm bảng tra</h2></div><button type="button" onClick={() => setActiveTool("overview")} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:border-teal-300 hover:text-teal-700"><ArrowLeft size={16} /> Danh sách công cụ</button></div>
