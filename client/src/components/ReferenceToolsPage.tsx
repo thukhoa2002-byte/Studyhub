@@ -141,6 +141,72 @@ function CalculatorSearch({ options, onSelect }: { options: Array<{ id: Calculat
   </div>;
 }
 
+function CalculatorFormulaReference({ calculatorType, egfrFormula, crclFormula }: { calculatorType: CalculatorType; egfrFormula: EgfrFormula; crclFormula: CrclFormula }) {
+  let title = "BMI · Body Mass Index";
+  let description = "Chỉ số khối cơ thể";
+  let formula = "BMI = Cân nặng (kg) / [Chiều cao (m)]<sup>2</sup>";
+  let variables = "Cân nặng đổi về kg; chiều cao đổi về mét.";
+  let source = formulaSources.niddk;
+  let sourceLabel = "NIDDK · công cụ lâm sàng";
+
+  if (calculatorType === "egfr") {
+    if (egfrFormula === "cystatin") {
+      title = "CKD-EPI Cystatin C 2012";
+      description = "Độ lọc cầu thận ước tính theo cystatin C";
+      formula = "eGFR = 133 × min(Scys/0.8, 1)<sup>-0.499</sup> × max(Scys/0.8, 1)<sup>-1.328</sup> × 0.996<sup>Tuổi</sup> × (0.932 nếu nữ)";
+      variables = "Scys: cystatin C (mg/L). Kết quả: mL/min/1,73 m².";
+    } else if (egfrFormula === "combined") {
+      title = "CKD-EPI Creatinine-Cystatin C 2012";
+      description = "Độ lọc cầu thận ước tính theo creatinine và cystatin C";
+      formula = "eGFR = 135 × min(Scr/κ, 1)<sup>α</sup> × max(Scr/κ, 1)<sup>-0.601</sup> × min(Scys/0.8, 1)<sup>-0.375</sup> × max(Scys/0.8, 1)<sup>-0.711</sup> × 0.995<sup>Tuổi</sup> × (0.969 nếu nữ)";
+      variables = "Scr: creatinine mg/dL; Scys: cystatin C mg/L; κ=0.9 nam/0.7 nữ; α=-0.207 nam/-0.248 nữ.";
+    } else if (egfrFormula === "mdrd") {
+      title = "MDRD · Modification of Diet in Renal Disease";
+      description = "Độ lọc cầu thận ước tính theo MDRD 4 biến";
+      formula = "eGFR = 175 × Scr<sup>-1.154</sup> × Tuổi<sup>-0.203</sup> × (0.742 nếu nữ)";
+      variables = "Scr: creatinine mg/dL. Kết quả: mL/min/1,73 m².";
+    } else {
+      title = "CKD-EPI Creatinine 2021";
+      description = "Độ lọc cầu thận ước tính theo creatinine";
+      formula = "eGFR = 142 × min(Scr/κ, 1)<sup>α</sup> × max(Scr/κ, 1)<sup>-1.200</sup> × 0.9938<sup>Tuổi</sup> × (1.012 nếu nữ)";
+      variables = "Scr: creatinine mg/dL; κ=0.9 nam/0.7 nữ; α=-0.302 nam/-0.241 nữ. Kết quả: mL/min/1,73 m².";
+    }
+    sourceLabel = "NIDDK · CKD-EPI & MDRD";
+  } else if (calculatorType === "crcl") {
+    if (crclFormula === "adjusted-weight") {
+      title = "Cockcroft-Gault · Adjusted Body Weight";
+      description = "Độ thanh thải creatinine với cân nặng hiệu chỉnh";
+      formula = "CrCl = [(140 − Tuổi) × W / (72 × Scr)] × (0.85 nếu nữ)<br>AdjBW = IBW + 0.4 × (TBW − IBW)";
+      variables = "IBW nam=50+2.3×(inch−60); IBW nữ=45.5+2.3×(inch−60); Scr: mg/dL.";
+    } else if (crclFormula === "bsa-normalized") {
+      title = "Creatinine Clearance · BSA-normalized";
+      description = "Độ thanh thải creatinine chuẩn hóa theo diện tích da";
+      formula = "CrCl<sub>1.73</sub> = CrCl × 1.73 / BSA<br>BSA = √[(Chiều cao cm × Cân nặng kg) / 3600]";
+      variables = "Kết quả: mL/min/1,73 m²; dùng để chuẩn hóa so sánh, không thay thế CrCl dùng chỉnh liều.";
+    } else {
+      title = "Cockcroft-Gault · Creatinine Clearance";
+      description = "Độ thanh thải creatinine";
+      formula = "CrCl = [(140 − Tuổi) × Cân nặng / (72 × Scr)] × (0.85 nếu nữ)";
+      variables = "Cân nặng kg; Scr: creatinine mg/dL. Kết quả: mL/min.";
+    }
+    source = formulaSources.cockcroftGault;
+    sourceLabel = "Cockcroft-Gault · PubMed";
+  } else if (calculatorType === "holliday-segar") {
+    title = "Holliday-Segar · Maintenance Fluid";
+    description = "Dịch duy trì theo cân nặng";
+    formula = "Theo giờ: 4 mL/kg cho 10 kg đầu + 2 mL/kg cho 10 kg tiếp theo + 1 mL/kg cho phần còn lại<br>Theo ngày: 100 mL/kg cho 10 kg đầu + 50 mL/kg cho 10 kg tiếp theo + 20 mL/kg cho phần còn lại";
+    variables = "Dùng để ước tính dịch duy trì ban đầu; cần điều chỉnh theo bệnh cảnh.";
+    source = formulaSources.hollidaySegar;
+    sourceLabel = "Holliday-Segar · PubMed";
+  }
+
+  return <div className="mt-5 rounded-2xl border border-white bg-white/85 p-4 sm:p-5">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Công thức cụ thể</p><h3 className="mt-1 text-lg font-black text-slate-800">{title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{description}</p></div><a href={source} target="_blank" rel="noreferrer" className="text-xs font-extrabold text-teal-700 underline hover:text-teal-900">{sourceLabel}</a></div>
+    <div className="mt-4"><FormulaPreview html={formula} /></div>
+    <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">{variables}</p>
+  </div>;
+}
+
 export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [formulas, setFormulas] = useState<ReferenceFormula[]>([]);
   const [form, setForm] = useState(emptyFormula);
@@ -154,6 +220,7 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [height, setHeight] = useState("");
   const [heightUnit, setHeightUnit] = useState("cm");
   const [calculatorType, setCalculatorType] = useState<CalculatorType>("bmi");
+  const [calculatorPanelTab, setCalculatorPanelTab] = useState<"calculator" | "formula">("calculator");
   const [egfrFormula, setEgfrFormula] = useState<EgfrFormula>("creatinine");
   const [crclFormula, setCrclFormula] = useState<CrclFormula>("standard");
   const [age, setAge] = useState("");
@@ -357,9 +424,13 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Máy tính y khoa</p></div>
         </div>
+        <div className="medical-panel-tabs mt-4 flex w-full gap-1 rounded-xl border border-teal-100 bg-white/70 p-1" role="tablist" aria-label="Nội dung công cụ"><button type="button" role="tab" aria-selected={calculatorPanelTab === "calculator"} onClick={() => setCalculatorPanelTab("calculator")} className={`medical-panel-tab flex-1 rounded-lg px-3 py-2 text-sm font-extrabold transition ${calculatorPanelTab === "calculator" ? "medical-panel-tab--active" : "text-slate-500 hover:bg-teal-50 hover:text-teal-700"}`}>Máy tính</button><button type="button" role="tab" aria-selected={calculatorPanelTab === "formula"} onClick={() => setCalculatorPanelTab("formula")} className={`medical-panel-tab flex-1 rounded-lg px-3 py-2 text-sm font-extrabold transition ${calculatorPanelTab === "formula" ? "medical-panel-tab--active" : "text-slate-500 hover:bg-teal-50 hover:text-teal-700"}`}>Công thức</button></div>
+        {calculatorPanelTab === "calculator" && <div>
         {calculatorType === "bmi" && <div className="mt-5"><div className="grid gap-4 md:grid-cols-2"><UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} /><UnitValueField label="Chiều cao" value={height} unit={heightUnit} units={heightUnits} onValueChange={setHeight} onUnitChange={(nextUnit) => changeUnit(height, heightUnit, nextUnit, heightUnits, setHeight, setHeightUnit)} /></div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white bg-white/85 p-4"><div><p className="text-sm font-bold text-slate-500">Kết quả BMI</p><p className="mt-1 text-4xl font-black text-teal-800">{bmi === null ? "—" : bmi.toFixed(1)}</p></div><p className="max-w-sm text-sm font-semibold leading-6 text-slate-500">{bmi === null ? "Nhập cân nặng và chiều cao để tính." : bmi < 18.5 ? "Thiếu cân" : bmi < 25 ? "Bình thường" : bmi < 30 ? "Thừa cân" : "Béo phì"}</p></div></div>}
         {calculatorType === "holliday-segar" && <div className="mt-5"><UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} /><div className="mt-5 grid gap-4 md:grid-cols-2"><div className="rounded-2xl border border-white bg-white/85 p-4"><p className="text-sm font-bold text-slate-500">Dịch duy trì mỗi giờ · 4-2-1</p><p className="mt-1 text-3xl font-black text-teal-800">{hollidayHourly === null ? "—" : hollidayHourly.toFixed(1)} <span className="text-base font-extrabold">mL/giờ</span></p></div><div className="rounded-2xl border border-white bg-white/85 p-4"><p className="text-sm font-bold text-slate-500">Dịch duy trì mỗi ngày · 100-50-20</p><p className="mt-1 text-3xl font-black text-teal-800">{hollidayDaily === null ? "—" : hollidayDaily.toFixed(1)} <span className="text-base font-extrabold">mL/ngày</span></p></div></div><div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-slate-500"><span>Nguồn:</span><a href={formulaSources.hollidaySegar} target="_blank" rel="noreferrer" className="text-teal-700 underline hover:text-teal-900">Holliday-Segar · PubMed</a></div><p className="mt-3 text-xs font-semibold leading-5 text-slate-500">Chỉ là ước tính dịch duy trì ban đầu; cần điều chỉnh theo tuổi, bệnh cảnh, điện giải và đánh giá lâm sàng.</p></div>}
         {(calculatorType === "egfr" || calculatorType === "crcl") && <div className="mt-5">{calculatorType === "egfr" && <AnimatedDropdown label="Công thức eGFR" value={egfrFormula} onChange={(value) => setEgfrFormula(value as EgfrFormula)} options={[{ value: "creatinine", label: "CKD-EPI Creatinine 2021" }, { value: "cystatin", label: "CKD-EPI Cystatin C 2012" }, { value: "combined", label: "CKD-EPI Creatinine-Cystatin C 2012" }, { value: "mdrd", label: "MDRD 4 biến chuẩn hóa" }]} />}{calculatorType === "crcl" && <AnimatedDropdown label="Công thức CrCl" value={crclFormula} onChange={(value) => setCrclFormula(value as CrclFormula)} options={[{ value: "standard", label: "Cockcroft-Gault chuẩn" }, { value: "adjusted-weight", label: "Cockcroft-Gault + cân nặng hiệu chỉnh (IBW/AdjBW)" }, { value: "bsa-normalized", label: "CrCl chuẩn hóa theo BSA" }]} />}<div className="mt-4 grid gap-4 md:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]"><label className="block min-w-0 text-sm font-bold text-slate-700">Tuổi (năm)<input type="number" min="1" max="120" step="1" value={age} onChange={(event) => setAge(event.target.value)} className="medical-value-input mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-teal-400" /></label><AnimatedDropdown label="Giới tính sinh học" value={sex} onChange={(value) => setSex(value as "male" | "female")} options={[{ value: "male", label: "Nam" }, { value: "female", label: "Nữ" }]} />{(calculatorType !== "egfr" || egfrFormula !== "cystatin") && <UnitValueField label="Creatinine huyết thanh" value={creatinine} unit={creatinineUnit} units={creatinineUnits} onValueChange={setCreatinine} onUnitChange={(nextUnit) => changeUnit(creatinine, creatinineUnit, nextUnit, creatinineUnits, setCreatinine, setCreatinineUnit)} />}{calculatorType === "egfr" && (egfrFormula === "cystatin" || egfrFormula === "combined") && <UnitValueField label="Cystatin C" value={cystatinC} unit={cystatinCUnit} units={cystatinCUnits} onValueChange={setCystatinC} onUnitChange={(nextUnit) => changeUnit(cystatinC, cystatinCUnit, nextUnit, cystatinCUnits, setCystatinC, setCystatinCUnit)} />}{calculatorType === "crcl" && <UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} />}{calculatorType === "crcl" && crclFormula !== "standard" && <UnitValueField label="Chiều cao" value={height} unit={heightUnit} units={heightUnits} onValueChange={setHeight} onUnitChange={(nextUnit) => changeUnit(height, heightUnit, nextUnit, heightUnits, setHeight, setHeightUnit)} />}</div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white bg-white/85 p-4"><div><p className="text-sm font-bold text-slate-500">{calculatorType === "egfr" ? egfrFormula === "creatinine" ? "eGFR · CKD-EPI Creatinine 2021" : egfrFormula === "cystatin" ? "eGFR · CKD-EPI Cystatin C 2012" : egfrFormula === "combined" ? "eGFR · CKD-EPI Creatinine-Cystatin C 2012" : "eGFR · MDRD 4 biến" : crclLabel}</p><p className="mt-1 text-4xl font-black text-teal-800">{calculatorType === "egfr" ? (selectedEgfr === null ? "—" : selectedEgfr.toFixed(1)) : (crcl === null ? "—" : crcl.toFixed(1))}</p></div><p className="text-sm font-semibold text-slate-500">{calculatorType === "egfr" ? "mL/min/1,73 m²" : crclUnitLabel}</p></div><div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-slate-500"><span>Nguồn:</span><a href={formulaSources.niddk} target="_blank" rel="noreferrer" className="text-teal-700 underline hover:text-teal-900">NIDDK · CKD-EPI &amp; MDRD</a><a href={formulaSources.kdigo} target="_blank" rel="noreferrer" className="text-teal-700 underline hover:text-teal-900">KDIGO · CKD guideline</a>{calculatorType === "crcl" && <a href={formulaSources.cockcroftGault} target="_blank" rel="noreferrer" className="text-teal-700 underline hover:text-teal-900">Cockcroft-Gault · PubMed</a>}</div><p className="mt-3 text-xs font-semibold leading-5 text-slate-500">Kết quả chỉ mang tính tham khảo lâm sàng; cần đối chiếu tình trạng người bệnh và hướng dẫn chuyên môn.</p></div>}
+        </div>}
+        {calculatorPanelTab === "formula" && <CalculatorFormulaReference calculatorType={calculatorType} egfrFormula={egfrFormula} crclFormula={crclFormula} />}
       </div>}
       {activeTool === "data-table" && <form onSubmit={createDataTable} className="mt-6 rounded-2xl border border-teal-200 bg-teal-50/35 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-teal-700">Tạo bảng dữ liệu</p><h2 className="mt-1 text-xl font-black text-slate-800">Nhập tài liệu để làm bảng tra</h2></div></div>

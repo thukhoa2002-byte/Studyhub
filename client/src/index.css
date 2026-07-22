@@ -165,6 +165,7 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 .medical-search__menu { animation: medical-search-in .18s ease-out both; transform-origin: top center; }
 .medical-search__option { min-height: 3.25rem; }
 .reference-tools-panel .text-4xl.font-black + p { font-weight: 800; }
+.medical-panel-tab--active { background: #ffffff; color: #0f766e; box-shadow: 0 4px 12px rgba(15,118,110,.12); }
 @keyframes medical-search-in { from { opacity: 0; transform: translateY(-6px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 .study-runner { position: absolute; z-index: 2; top: 50%; left: 0; font-size: 2rem; line-height: 1; transform: translateY(-50%); animation: study-runner 700ms ease-in forwards; }
