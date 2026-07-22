@@ -61,7 +61,7 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
         <ChevronDown className="workspace-settings__chevron ml-auto shrink-0" size={17} aria-hidden="true" />
       </button>
 
-      {open && <div className="glass-dialog absolute bottom-[calc(100%+.75rem)] left-0 z-[100] w-72 rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.18)] backdrop-blur-xl">
+      {open && <div className="glass-dialog absolute bottom-[calc(100%+.75rem)] left-0 z-[100] w-full rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.18)] backdrop-blur-xl">
         {menuView === "root" && <div className="space-y-1">
           <button type="button" onClick={() => setMenuView("theme")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><Palette size={17} /><span className="flex-1">Giao diện background</span><ChevronRight size={16} className="text-slate-400" /></button>
           <button type="button" onClick={() => setMenuView("help")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><CircleHelp size={17} /><span className="flex-1">Help center</span><ChevronRight size={16} className="text-slate-400" /></button>
