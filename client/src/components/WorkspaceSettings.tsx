@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Bell, BellOff, Camera, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, LogOut, Moon, Palette, Sun, UserRound } from "lucide-react";
+import { Bell, BellOff, Camera, ChevronLeft, ChevronRight, CircleHelp, LogOut, Moon, Palette, Sun, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../services/supabase";
 
@@ -10,6 +10,13 @@ interface Props {
   onThemeChange: (theme: "color" | "basic" | "test" | "test-light" | "green") => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
+}
+
+function AccountMenuArrow({ open }: { open: boolean }) {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`workspace-settings__arrow transition-transform duration-300 ${open ? "rotate-[270deg]" : "rotate-90"}`}>
+    <path d="M12 22.75C6.07 22.75 1.25 17.93 1.25 12C1.25 6.07 6.07 1.25 12 1.25C17.93 1.25 22.75 6.07 22.75 12C22.75 17.93 17.93 22.75 12 22.75ZM12 2.75C6.9 2.75 2.75 6.9 2.75 12C2.75 17.1 6.9 21.25 12 21.25C17.1 21.25 21.25 17.1 21.25 12C21.25 6.9 17.1 2.75 12 2.75Z" fill="currentColor" />
+    <path d="M10.7399 16.2802C10.5499 16.2802 10.3599 16.2102 10.2099 16.0602C9.91993 15.7702 9.91993 15.2902 10.2099 15.0002L13.2099 12.0002L10.2099 9.00016C9.91993 8.71016 9.91993 8.23016 10.2099 7.94016C10.4999 7.65016 10.9799 7.65016 11.2699 7.94016L14.7999 11.4702C15.0899 11.7602 15.0899 12.2402 14.7999 12.5302L11.2699 16.0602C11.1199 16.2102 10.9299 16.2802 10.7399 16.2802Z" fill="currentColor" />
+  </svg>;
 }
 
 export default function WorkspaceSettings({ user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange }: Props) {
@@ -58,7 +65,7 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-100 bg-teal-50 text-teal-700">{avatar ? <img src={avatar as string} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : user ? <span className="text-xs font-black">{(user.email?.[0] || "U").toUpperCase()}</span> : <UserRound size={18} />}</span>
         <span className="workspace-settings__label min-w-0 text-left"><span className="block truncate text-sm font-bold">{displayName}</span><span className="block truncate text-[11px] font-medium text-slate-400">{user ? "Tài khoản StudyHub" : "Chế độ khách"}</span></span>
-        <ChevronDown className="workspace-settings__chevron ml-auto shrink-0" size={17} aria-hidden="true" />
+        <span className="workspace-settings__chevron ml-auto flex h-5 w-5 shrink-0 items-center justify-center text-slate-500"><AccountMenuArrow open={open} /></span>
       </button>
 
       {open && <div className="glass-dialog absolute bottom-[calc(100%+.75rem)] left-0 z-[100] w-full rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.18)] backdrop-blur-xl">
