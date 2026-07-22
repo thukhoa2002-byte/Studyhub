@@ -105,6 +105,10 @@ function isJsonFile(file: File | undefined) {
   return Boolean(file && (file.type === "application/json" || file.name.toLowerCase().endsWith(".json")));
 }
 
+function isDocxFile(file: File | undefined) {
+  return Boolean(file && (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.toLowerCase().endsWith(".docx")));
+}
+
 function normalizeMcqJson(payload: unknown): { title: string; description: string; questions: McqLibraryQuestion[] } {
   const root = Array.isArray(payload) ? {} : (payload && typeof payload === "object" ? payload as Record<string, unknown> : {});
   const rawQuestions = Array.isArray(payload) ? payload : root.questions;
@@ -490,7 +494,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : isJsonFile(files[0]) ? <FileText /> : <FileSearch />}{isJsonFile(files[0]) ? "Nạp JSON chuẩn" : "Trích bằng Gemini"}</button>
     </div>
     <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]">
-      <FileDropZone id="mcq-word-source-file" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onFiles={(selected) => setWordFile(selected[0] || null)} className="flex min-h-28 items-center justify-center rounded-3xl border border-dashed border-emerald-300 bg-emerald-50/45 px-5 text-center transition hover:bg-emerald-50">
+      <FileDropZone id="mcq-word-source-file" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onFiles={(selected) => { const selectedFile = selected[0]; if (!isDocxFile(selectedFile)) { setWordFile(null); setError("Ô Đọc Word chỉ nhận file .docx. File PDF hãy đưa vào ô PDF phía trên."); return; } setError(""); setWordFile(selectedFile); }} className="flex min-h-28 items-center justify-center rounded-3xl border border-dashed border-emerald-300 bg-emerald-50/45 px-5 text-center transition hover:bg-emerald-50">
         <span><FileText className="mx-auto text-emerald-700" /><strong className="mt-2 block text-slate-800">Đưa file Word câu hỏi vào đây</strong><small className="mt-1 block text-slate-500">Gemini sẽ tách câu hỏi, lựa chọn và dòng đáp án trong file .docx.</small>{wordFile && <small className="mt-2 block truncate font-semibold text-emerald-700">{wordFile.name}</small>}</span>
       </FileDropZone>
       <button type="button" disabled={!wordFile || busy} onClick={() => wordFile && void extract([wordFile])} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Đọc Word bằng Gemini</button>
