@@ -1,8 +1,10 @@
 import express from "express";
 import multer from "multer";
 import { randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
 import { readFile, unlink } from "node:fs/promises";
 import os from "node:os";
+import { promisify } from "node:util";
 import { PDFDocument } from "pdf-lib";
 import { requireMcqAdmin } from "../middleware/mcqAdmin.js";
 import { generateStructuredFromFile } from "../services/gemini.js";
@@ -14,6 +16,7 @@ const MAX_TOTAL_BYTES = 120 * 1024 * 1024;
 const INLINE_FILE_THRESHOLD_BYTES = 14 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 6;
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const execFileAsync = promisify(execFile);
 const upload = multer({
   // Large PDFs must not occupy the Render process heap while Gemini is reading them.
   storage: multer.diskStorage({
@@ -259,6 +262,57 @@ async function splitLargePdf(file) {
   return splitPdfPart({ file, startPage: 1, endPage: 0, totalPages: 0 }, PDF_PAGES_PER_PASS);
 }
 
+function isDocxFile(file) {
+  return file?.sourceFormat === "docx" || file?.mimetype === DOCX_MIME || /\.docx$/i.test(file?.originalname || "");
+}
+
+function decodeXmlEntities(value) {
+  return value
+    .replace(/&#x([0-9a-f]+);/gi, (_match, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCodePoint(Number.parseInt(code, 10)))
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+async function extractDocxText(file) {
+  if (!file?.path) throw new Error("Không thể đọc file Word tạm thời.");
+  let xml;
+  try {
+    ({ stdout: xml } = await execFileAsync("unzip", ["-p", file.path, "word/document.xml"], { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 }));
+  } catch {
+    throw new Error("Không thể đọc nội dung file Word. Hãy thử lưu lại file dưới dạng .docx rồi tải lên lại.");
+  }
+  const text = String(xml)
+    .replace(/<w:tab\b[^>]*\/>/g, "\t")
+    .replace(/<w:(?:br|cr)\b[^>]*\/>/g, "\n")
+    .replace(/<\/w:tc>/g, "\n")
+    .replace(/<\/w:p>/g, "\n")
+    .replace(/<w:t\b[^>]*>([\s\S]*?)<\/w:t>/g, (_match, value) => decodeXmlEntities(value))
+    .replace(/<[^>]+>/g, "")
+    .replace(/\r/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  if (!text) throw new Error("File Word không có phần văn bản để trích xuất.");
+  return text;
+}
+
+async function prepareMcqFile(file) {
+  if (!isDocxFile(file)) return file;
+  const text = await extractDocxText(file);
+  return {
+    ...file,
+    sourceFormat: "docx",
+    mimetype: "text/plain",
+    buffer: Buffer.from(text, "utf8"),
+    path: undefined,
+    size: Buffer.byteLength(text, "utf8"),
+  };
+}
+
 function isOutputLimitError(error) {
   return /MAX_TOKENS|đầu ra AI đã chạm giới hạn|tài liệu quá dài/i.test(error instanceof Error ? error.message : String(error));
 }
@@ -285,7 +339,7 @@ async function generateChunkWithFallback(chunk) {
 }
 
 function promptForFilePart(file, startPage, endPage, totalPages) {
-  const isDocx = file.mimetype === DOCX_MIME || /\.docx$/i.test(file.originalname || "");
+  const isDocx = isDocxFile(file);
   const docxInstructions = isDocx ? `\n\nQUY TẮC RIÊNG CHO FILE WORD: Phân biệt rõ phần thân câu hỏi với phần “Đáp án”, “Đáp án đúng”, “Giải thích” hoặc bảng đáp án. Gắn đáp án gần nhất vào câu tương ứng; nếu file không có đáp án thì để correct_answer là chuỗi rỗng. Không biến dòng “Đáp án: A” thành một câu hỏi mới. Nếu câu hỏi và lựa chọn bị dính trên cùng một đoạn, tách lại theo ký hiệu a., b., c., d. hoặc A., B., C., D.` : "";
   if (!endPage) return `${prompt}${docxInstructions}`;
   return `${prompt}\n\nPHẠM VI XỬ LÝ HIỆN TẠI: Đây là trang PDF ${startPage}-${endPage} trên tổng ${totalPages} trang của file ${file.originalname}. Chỉ trích các câu hỏi nhìn thấy trong cụm này. Giữ nguyên thứ tự trong cụm; đáp án hoặc lời giải không xuất hiện trong cụm thì để trống, không đoán.`;
@@ -326,7 +380,8 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
     if (aiCallsRemaining === null) {
       return res.status(429).json({ success: false, message: "Đã hết lượt AI dùng chung.", aiCallsRemaining: 0 });
     }
-    const chunks = (await Promise.all(files.map(splitLargePdf))).flat();
+    const preparedFiles = await Promise.all(files.map(prepareMcqFile));
+    const chunks = (await Promise.all(preparedFiles.map(splitLargePdf))).flat();
     const results = [];
     for (const chunk of chunks) results.push(...await generateChunkWithFallback(chunk));
     const questions = normalizeQuestions(mergeChunkQuestions(results.flatMap((result) => result.questions || [])));
