@@ -413,9 +413,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-100 to-teal-100 text-rose-600 shadow-sm"><BookOpenCheck size={32} /></div>
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-600">Nguồn học đã kiểm chứng</p>
               <h1 id="guidelines-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">Guidelines</h1>
-              <p className="mt-1 text-sm text-slate-500">Chỉ quản trị viên kiểm chứng và đăng · thành viên chỉ xem bản đã công khai</p>
             </div>
           </div>
           {canManage && <button type="button" onClick={() => setShowDocumentForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500"><UploadCloud size={18} /> Thêm guideline</button>}
