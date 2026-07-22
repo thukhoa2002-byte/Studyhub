@@ -151,6 +151,9 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 .formula-editor .formula-table-cell { outline: none; }
 .formula-editor .formula-table-header:focus,
 .formula-editor .formula-table-cell:focus { box-shadow: inset 0 0 0 2px #c4b5fd; }
+.medical-select { transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.medical-select:hover { border-color: #99f6e4; background-color: #f0fdfa; }
+.medical-select:focus { border-color: #2dd4bf; background-color: #fff; box-shadow: 0 0 0 3px rgba(45,212,191,.16); }
 
 .study-runner { position: absolute; z-index: 2; top: 50%; left: 0; font-size: 2rem; line-height: 1; transform: translateY(-50%); animation: study-runner 700ms ease-in forwards; }
 .study-box-exit { animation: study-box-exit 700ms ease-in forwards; }
