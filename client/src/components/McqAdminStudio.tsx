@@ -226,6 +226,7 @@ async function exportWord(title: string, questions: McqLibraryQuestion[]) {
 
 export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRemaining, requestedBank, showDrafts = true }: Props) {
   const [files, setFiles] = useState<File[]>([]);
+  const [wordFile, setWordFile] = useState<File | null>(null);
   const [bankId, setBankId] = useState<string | undefined>();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -253,12 +254,12 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
   const invalidCount = useMemo(() => questions.filter((question) => !cleanLine(question.question) || question.options.length < 4 || question.options.length > 5 || question.options.some((option) => !cleanLine(option.text))).length, [questions]);
 
-  async function extract() {
-    if (!files.length) return;
+  async function extract(sourceFiles = files) {
+    if (!sourceFiles.length) return;
     setBusy(true); setError(""); setNotice("");
     try {
-      if (files.length === 1 && isJsonFile(files[0])) {
-        const payload = JSON.parse(await files[0].text()) as unknown;
+      if (sourceFiles.length === 1 && isJsonFile(sourceFiles[0])) {
+        const payload = JSON.parse(await sourceFiles[0].text()) as unknown;
         const normalized = normalizeMcqJson(payload);
         setBankId(undefined);
         setVisibility("draft");
@@ -268,8 +269,8 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         setNotice("Đã nạp JSON chuẩn trắc nghiệm trực tiếp, không gọi Gemini. Hãy kiểm tra trước khi lưu hoặc xuất Word.");
         return;
       }
-      const result = await extractMcqFiles(files);
-      const imageFiles = new Map(files.filter((file) => file.type.startsWith("image/")).map((file) => [file.name, file]));
+      const result = await extractMcqFiles(sourceFiles);
+      const imageFiles = new Map(sourceFiles.filter((file) => file.type.startsWith("image/")).map((file) => [file.name, file]));
       const imageUrls = new Map<string, string>();
       for (const [name, file] of imageFiles) imageUrls.set(name, await fileToDataUrl(file));
       setBankId(undefined);
@@ -487,6 +488,12 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
         <span><Upload className="mx-auto text-violet-600" /><strong className="mt-2 block text-slate-800">Chọn PDF, ảnh hoặc JSON trắc nghiệm</strong><small className="mt-1 block text-slate-500">PDF/ảnh sẽ gọi Gemini. JSON chuẩn trắc nghiệm được nạp trực tiếp, không phụ thuộc máy chủ AI.</small></span>
       </FileDropZone>
       <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : isJsonFile(files[0]) ? <FileText /> : <FileSearch />}{isJsonFile(files[0]) ? "Nạp JSON chuẩn" : "Trích bằng Gemini"}</button>
+    </div>
+    <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]">
+      <FileDropZone id="mcq-word-source-file" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onFiles={(selected) => setWordFile(selected[0] || null)} className="flex min-h-28 items-center justify-center rounded-3xl border border-dashed border-emerald-300 bg-emerald-50/45 px-5 text-center transition hover:bg-emerald-50">
+        <span><FileText className="mx-auto text-emerald-700" /><strong className="mt-2 block text-slate-800">Đưa file Word câu hỏi vào đây</strong><small className="mt-1 block text-slate-500">Gemini sẽ tách câu hỏi, lựa chọn và dòng đáp án trong file .docx.</small>{wordFile && <small className="mt-2 block truncate font-semibold text-emerald-700">{wordFile.name}</small>}</span>
+      </FileDropZone>
+      <button type="button" disabled={!wordFile || busy} onClick={() => wordFile && void extract([wordFile])} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-6 font-bold text-white disabled:opacity-40 lg:min-h-full">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Đọc Word bằng Gemini</button>
     </div>
     {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={`${file.name}-${file.size}`} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{file.type.startsWith("image/") && <ImageIcon size={13} />}{file.name}</span>)}</div>}
     {error && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}

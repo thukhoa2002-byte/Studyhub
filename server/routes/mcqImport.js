@@ -13,6 +13,7 @@ const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 120 * 1024 * 1024;
 const INLINE_FILE_THRESHOLD_BYTES = 14 * 1024 * 1024;
 const PDF_PAGES_PER_PASS = 6;
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const upload = multer({
   // Large PDFs must not occupy the Render process heap while Gemini is reading them.
   storage: multer.diskStorage({
@@ -67,6 +68,7 @@ const prompt = `Bạn là biên tập viên ngân hàng câu hỏi y khoa. Hãy 
 
 ĐẶC ĐIỂM TÀI LIỆU CẦN XỬ LÝ
 - PDF có thể được xuất từ Notion/ứng dụng ghi chú: một số trang có lớp chữ, một số nội dung hoặc đề thi nằm trong ảnh chụp, ảnh scan hay ảnh X-quang.
+- File Word (.docx) có thể dùng các mẫu “Câu 1”, “1.” hoặc đánh số tương tự; lựa chọn có thể viết thường a-d hoặc viết hoa A-D, và đáp án có thể nằm ngay sau câu dưới dạng “Đáp án: A”, “Đáp án A” hoặc một phần đáp án ở cuối tài liệu.
 - Bắt buộc quan sát trực tiếp phần hình ảnh của TỪNG TRANG, không chỉ dựa vào lớp text OCR của PDF.
 - Ghi chú học tập, phần giảng bài, bảng tóm tắt, tiêu đề, mục “TRẢ LỜI”, đáp án tô màu/gạch chân và lời giải có thể nằm xen giữa các câu.
 
@@ -283,7 +285,9 @@ async function generateChunkWithFallback(chunk) {
 }
 
 function promptForFilePart(file, startPage, endPage, totalPages) {
-  if (!endPage) return prompt;
+  const isDocx = file.mimetype === DOCX_MIME || /\.docx$/i.test(file.originalname || "");
+  const docxInstructions = isDocx ? `\n\nQUY TẮC RIÊNG CHO FILE WORD: Phân biệt rõ phần thân câu hỏi với phần “Đáp án”, “Đáp án đúng”, “Giải thích” hoặc bảng đáp án. Gắn đáp án gần nhất vào câu tương ứng; nếu file không có đáp án thì để correct_answer là chuỗi rỗng. Không biến dòng “Đáp án: A” thành một câu hỏi mới. Nếu câu hỏi và lựa chọn bị dính trên cùng một đoạn, tách lại theo ký hiệu a., b., c., d. hoặc A., B., C., D.` : "";
+  if (!endPage) return `${prompt}${docxInstructions}`;
   return `${prompt}\n\nPHẠM VI XỬ LÝ HIỆN TẠI: Đây là trang PDF ${startPage}-${endPage} trên tổng ${totalPages} trang của file ${file.originalname}. Chỉ trích các câu hỏi nhìn thấy trong cụm này. Giữ nguyên thứ tự trong cụm; đáp án hoặc lời giải không xuất hiện trong cụm thì để trống, không đoán.`;
 }
 
@@ -314,9 +318,9 @@ router.post("/extract", requireMcqAdmin, uploadFiles, async (req, res) => {
       return res.status(413).json({ success: false, message: "Tổng dung lượng file không được vượt quá 120 MB." });
     }
     const supportedImages = new Set(["image/png", "image/jpeg"]);
-    const unsupported = files.find((file) => !supportedImages.has(file.mimetype) && file.mimetype !== "application/pdf");
+    const unsupported = files.find((file) => !supportedImages.has(file.mimetype) && file.mimetype !== "application/pdf" && file.mimetype !== DOCX_MIME && !/\.docx$/i.test(file.originalname || ""));
     if (unsupported) {
-      return res.status(415).json({ success: false, message: `File ${unsupported.originalname} chưa được hỗ trợ. Hãy dùng PDF hoặc ảnh.` });
+      return res.status(415).json({ success: false, message: `File ${unsupported.originalname} chưa được hỗ trợ. Hãy dùng PDF, Word hoặc ảnh.` });
     }
     const aiCallsRemaining = consumeAiCall();
     if (aiCallsRemaining === null) {
