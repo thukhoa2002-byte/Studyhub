@@ -483,7 +483,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
   return <section onKeyDown={handleSaveShortcut} className="mb-8 overflow-visible rounded-[2rem] border border-violet-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl sm:p-7">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex items-start gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><FileSearch size={23} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.15em] text-rose-500">Xưởng trắc nghiệm riêng</p><h2 className="mt-1 text-2xl font-black text-rose-950">Tạo ngân hàng câu hỏi từ tài liệu</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">Tải PDF hoặc ảnh, duyệt lại nội dung rồi xuất Word và/hoặc đăng thành bộ trắc nghiệm trên web.</p></div></div>
+      <div className="flex items-start gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><FileSearch size={23} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.15em] text-rose-500">Xưởng trắc nghiệm riêng</p><h2 className="mt-1 text-2xl font-black text-rose-950">Tạo ngân hàng câu hỏi từ tài liệu</h2></div></div>
       <span className="w-fit rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">Chỉ bạn được đổi tên và sửa nội dung</span>
     </div>
 
