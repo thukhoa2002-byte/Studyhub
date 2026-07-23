@@ -590,11 +590,10 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
 
   function renderEditableDecks(): ReactNode {
     if (!canManage) return null;
-    return <aside className="rounded-3xl border border-violet-200/80 bg-white/75 p-4 shadow-sm backdrop-blur-xl sm:p-5" aria-label="Bộ trắc nghiệm cần sửa">
+    return <aside className="rounded-3xl border border-violet-200/80 bg-white/75 p-4 shadow-sm backdrop-blur-xl sm:p-5" aria-label="Bộ trắc nghiệm">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Bộ trắc nghiệm</p>
-          <h2 className="mt-1 text-lg font-black text-rose-950">Chỉnh sửa bộ MCQ</h2>
         </div>
         <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-extrabold text-violet-700">{editableDecks.length}</span>
       </div>
@@ -640,7 +639,7 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   if (!opened) return (
     <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8" aria-labelledby="mcq-title">
       {section === "create" && <>
-        <div className="grid items-start gap-5 lg:grid-cols-2">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.84fr)_minmax(0,1.16fr)]">
           <McqAccessPanel userEmail={userEmail} visible={Boolean(userId)} />
           {renderEditableDecks()}
         </div>
