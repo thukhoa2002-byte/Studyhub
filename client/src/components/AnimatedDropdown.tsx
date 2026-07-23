@@ -1,4 +1,4 @@
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export type AnimatedDropdownOption = { value: string; label: string };
@@ -48,7 +48,7 @@ export default function AnimatedDropdown({ value, options, onChange, ariaLabel =
       className={`animated-dropdown__trigger flex min-w-0 items-center justify-between gap-2 outline-none disabled:cursor-not-allowed disabled:opacity-50 ${triggerClassName}`}
     >
       <span className="min-w-0 truncate">{selected?.label || "Chọn một mục"}</span>
-      <ChevronDown size={16} className={`shrink-0 transition-transform duration-200 ${open ? "-rotate-90" : ""}`} />
+      {open ? <ChevronRight size={16} className="shrink-0" /> : <ChevronDown size={16} className="shrink-0" />}
     </button>
     {open && <div className={`animated-dropdown__menu absolute left-0 top-full z-[80] mt-2 min-w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_16px_35px_rgba(15,23,42,.18)] ${menuClassName}`} role="listbox" aria-label={ariaLabel}>
       {options.map((option) => <button

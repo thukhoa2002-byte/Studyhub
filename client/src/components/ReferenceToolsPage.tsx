@@ -1,4 +1,4 @@
-import { Calculator, Check, ChevronDown, ClipboardList, Edit3, FilePlus2, FileUp, Save, Search, Table2, Trash2, UploadCloud, X } from "lucide-react";
+import { Calculator, Check, ChevronDown, ChevronRight, ClipboardList, Edit3, FilePlus2, FileUp, Save, Search, Table2, Trash2, UploadCloud, X } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { User } from "@supabase/supabase-js";
 import { deleteReferenceFormula, listReferenceFormulas, saveReferenceFormula, type ReferenceFormula } from "../services/referenceTools";
@@ -239,7 +239,7 @@ function AnimatedDropdown({ label, value, options, onChange, compact = false }: 
     {label && <span className="block text-sm font-bold text-slate-700">{label}</span>}
     <button type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)} className={`medical-dropdown__trigger medical-select flex items-center justify-between gap-2 text-left text-sm font-bold outline-none ${compact ? "h-full w-full rounded-none border-0 border-l border-slate-200 bg-slate-50 px-2 text-teal-700" : "mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-slate-700"} ${open ? "medical-dropdown__trigger--open" : ""}`}>
       <span className="truncate">{selectedOption?.label}</span>
-      <ChevronDown size={17} className={`shrink-0 text-teal-700 transition-transform duration-200 ${open ? "-rotate-90" : ""}`} />
+      {open ? <ChevronRight size={17} className="shrink-0 text-teal-700" /> : <ChevronDown size={17} className="shrink-0 text-teal-700" />}
     </button>
     {open && <div className={`medical-dropdown__menu absolute top-full z-40 mt-2 overflow-hidden rounded-xl border border-teal-100 bg-white p-1.5 shadow-[0_16px_35px_rgba(15,118,110,.18)] ${compact ? "right-0 min-w-44" : "left-0 right-0"}`} role="listbox" aria-label={label || "Chọn đơn vị"}>
       {options.map((option) => <button key={option.value} type="button" role="option" aria-selected={option.value === value} onClick={() => { onChange(option.value); setOpen(false); }} className={`medical-dropdown__option flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${option.value === value ? "medical-dropdown__option--selected" : "text-slate-600 hover:bg-teal-50 hover:text-teal-800"}`}><span className="min-w-0"><strong className="block truncate">{option.label}</strong>{option.description && <small className="mt-0.5 block truncate text-xs font-semibold text-slate-400">{option.description}</small>}</span>{option.value === value && <Check size={16} className="shrink-0" />}</button>)}
