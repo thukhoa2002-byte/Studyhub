@@ -231,6 +231,7 @@ async function exportWord(title: string, questions: McqLibraryQuestion[]) {
 export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRemaining, requestedBank, showDrafts = true }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [wordFile, setWordFile] = useState<File | null>(null);
+  const [jsonFile, setJsonFile] = useState<File | null>(null);
   const [bankId, setBankId] = useState<string | undefined>();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -525,11 +526,11 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200/80 bg-white/70 shadow-sm">
       <div className="grid lg:grid-cols-2">
         <div className="p-4 sm:p-5">
-          <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><Upload size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">PDF, ảnh hoặc JSON</p><p className="text-xs font-medium text-slate-500">Trích câu hỏi bằng Gemini</p></div></div>
-          <FileDropZone id="mcq-source-files" multiple accept="application/pdf,image/png,image/jpeg,application/json,.json" onFiles={setFiles} className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-violet-300 bg-violet-50/50 px-5 text-center transition hover:bg-violet-50">
-            <span><strong className="block text-sm text-slate-800">Chọn file nguồn</strong><small className="mt-1 block text-xs text-slate-500">PDF, ảnh hoặc JSON chuẩn trắc nghiệm</small></span>
+          <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><Upload size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">PDF hoặc ảnh</p><p className="text-xs font-medium text-slate-500">Trích câu hỏi bằng Gemini</p></div></div>
+          <FileDropZone id="mcq-source-files" multiple accept="application/pdf,image/png,image/jpeg" onFiles={setFiles} className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-violet-300 bg-violet-50/50 px-5 text-center transition hover:bg-violet-50">
+            <span><strong className="block text-sm text-slate-800">Chọn file nguồn</strong><small className="mt-1 block text-xs text-slate-500">PDF hoặc ảnh câu hỏi</small></span>
           </FileDropZone>
-          <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : isJsonFile(files[0]) ? <FileText /> : <FileSearch />}{isJsonFile(files[0]) ? "Nạp JSON chuẩn" : "Trích bằng Gemini"}</button>
+          <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Trích bằng Gemini</button>
         </div>
         <div className="border-t border-slate-200/80 p-4 sm:p-5 lg:border-l lg:border-t-0">
           <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><FileText size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">File Word câu hỏi</p><p className="text-xs font-medium text-slate-500">Nhận diện câu hỏi, lựa chọn và đáp án</p></div></div>
@@ -542,6 +543,12 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
           </div>
         </div>
       </div>
+    </div>
+    <div className="mt-3 grid gap-3 rounded-3xl border border-dashed border-sky-300 bg-sky-50/45 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5">
+      <FileDropZone id="mcq-json-source-file" accept="application/json,.json" onFiles={(selected) => { const selectedFile = selected[0]; setJsonFile(selectedFile || null); setError(""); }} className="flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-sky-300 bg-white/70 px-5 text-center transition hover:bg-sky-50">
+        <span><strong className="block text-sm font-extrabold text-slate-800">Tải JSON chuẩn trắc nghiệm</strong><small className="mt-1 block text-xs font-medium text-slate-500">Nạp trực tiếp, không dùng Gemini</small>{jsonFile && <small className="mt-1 block truncate text-xs font-semibold text-sky-700">{jsonFile.name}</small>}</span>
+      </FileDropZone>
+      <button type="button" disabled={!jsonFile || busy} onClick={() => jsonFile && void extract([jsonFile])} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 text-sm font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileText />}Nạp JSON</button>
     </div>
     {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={`${file.name}-${file.size}`} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{file.type.startsWith("image/") && <ImageIcon size={13} />}{file.name}</span>)}</div>}
     {error && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
