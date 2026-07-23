@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { Check, ClipboardPaste, Crop, Download, FileSearch, FileText, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { extractMcqFiles, extractMcqFilesLocally } from "../services/api";
@@ -133,15 +133,10 @@ function normalizeMcqJson(payload: unknown): { title: string; description: strin
         ? Object.entries(rawOptions as Record<string, unknown>).map(([id, text]) => ({ id: id.toUpperCase(), text: jsonText(text) }))
         : [];
     const options = optionIds
-      .map((id) => optionEntries.find((option) => option.id === id && option.text))
-      .filter((option): option is { id: typeof optionIds[number]; text: string } => Boolean(option))
-      .map((option) => ({ id: option.id, text: option.text }));
-    if (!question) throw new Error(`Câu ${questionIndex + 1} chưa có nội dung question.`);
-    if (options.length < requiredOptionIds.length) throw new Error(`Câu ${questionIndex + 1} phải có đủ lựa chọn A, B, C và D.`);
-    const correctAnswer = jsonText(source.correct_answer ?? source.correctAnswer ?? source.answer ?? source.correct_option).toUpperCase();
-    if (correctAnswer && !options.some((option) => option.id === correctAnswer)) {
-      throw new Error(`Câu ${questionIndex + 1} có correct_answer không trùng với các lựa chọn.`);
-    }
+      .map((id) => ({ id, text: optionEntries.find((option) => option.id === id)?.text || "" }))
+      .filter((option) => option.id !== "E" || Boolean(option.text));
+    const requestedCorrectAnswer = jsonText(source.correct_answer ?? source.correctAnswer ?? source.answer ?? source.correct_option).toUpperCase();
+    const correctAnswer = options.some((option) => option.id === requestedCorrectAnswer) ? requestedCorrectAnswer : "";
     const sourceNumber = Number(source.source_number ?? source.sourceNumber ?? questionIndex + 1);
     return {
       id: crypto.randomUUID(),
@@ -260,8 +255,6 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     setError("");
     setNotice("Đang chỉnh sửa bộ trắc nghiệm đã chọn. Chỉ tài khoản của bạn có quyền lưu thay đổi.");
   }, [requestedBank]);
-
-  const invalidCount = useMemo(() => questions.filter((question) => !cleanLine(question.question) || question.options.length < 4 || question.options.length > 5 || question.options.some((option) => !cleanLine(option.text))).length, [questions]);
 
   async function extract(sourceFiles = files) {
     if (!sourceFiles.length) return;
@@ -504,7 +497,7 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   }
 
   async function persist(status: "draft" | "published") {
-    const saveStatus = status === "published" && invalidCount > 0 ? "draft" : status;
+    const saveStatus = status;
     setBusy(true); setError(""); setNotice("");
     try {
       const saved = await saveMcqBank(userId, { title, description, questions, status: saveStatus }, bankId);
@@ -534,8 +527,6 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
   }
 
   const visibleDrafts = [...recentBanks, ...drafts.filter((draft) => !recentBanks.some((recent) => recent.id === draft.id))];
-  const publishBlocked = visibility === "published" && invalidCount > 0;
-
   return <section onKeyDown={handleSaveShortcut} className="mb-8 overflow-visible rounded-[2rem] border border-violet-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl sm:p-7">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><FileSearch size={23} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.15em] text-rose-500">Xưởng trắc nghiệm riêng</p><h2 className="mt-1 text-2xl font-black text-rose-950">Tạo ngân hàng câu hỏi từ tài liệu</h2></div></div>
@@ -600,10 +591,10 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
       <button type="button" onClick={() => { setQuestions((items) => [...items, { id: crypto.randomUUID(), source_number: items.length + 1, question: "", options: requiredOptionIds.map((id) => ({ id, text: "" })) }]); setReviewed(false); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700"><Plus size={17} />Thêm câu thủ công</button>
       <p className="mt-4 text-right text-xs font-semibold text-slate-500">Bản Word gồm toàn bộ câu hỏi trong một file, chỉ tải về máy của bạn và không xuất hiện trong thư viện trắc nghiệm.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
-        <button type="button" disabled={busy || !title.trim() || invalidCount > 0} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
+        <button type="button" disabled={busy || !title.trim()} onClick={() => void exportWord(title, questions)} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold text-violet-700 disabled:opacity-40"><Download size={17} />Xuất toàn bộ thành 1 file Word</button>
         <button type="button" disabled={busy || !title.trim() || !questions.length} onClick={() => exportJson(title, description, questions)} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold text-sky-700 disabled:opacity-40"><FileText size={17} />Xuất JSON chuẩn</button>
         <span className={`inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold ${visibility === "published" ? "border-teal-200 bg-teal-50 text-teal-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{visibility === "published" ? <Globe2 size={17} /> : <LockKeyhole size={17} />}{visibility === "published" ? "Mọi người sẽ thấy" : "Chỉ mình bạn thấy"}</span>
-        <button type="button" disabled={busy} onClick={() => void persist(visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? (publishBlocked ? "Lưu bản nháp" : "Lưu thay đổi") : "Lưu bộ trắc nghiệm"}</button>
+        <button type="button" disabled={busy} onClick={() => void persist(visibility)} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-40"><Save size={17} />{bankId ? "Lưu thay đổi" : "Lưu bộ trắc nghiệm"}</button>
       </div>
     </div>}
         {cropEditor && <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Cắt hình câu hỏi"><div className="relative max-h-[calc(100vh-2rem)] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-violet-600">Chỉnh hình câu hỏi</p><h3 className="mt-1 text-lg font-black text-slate-900">Cắt phần cần giữ lại</h3></div><button type="button" title="Đóng" aria-label="Đóng trình cắt hình" onClick={() => setCropEditor(null)} className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"><X size={19} /></button></div><div className="mt-5 flex justify-center"><div ref={cropStageRef} onPointerDown={handleCropPointerDown} onPointerMove={handleCropPointerMove} onPointerUp={handleCropPointerUp} onPointerCancel={handleCropPointerUp} className="relative inline-block max-w-full touch-none select-none overflow-hidden rounded-2xl bg-slate-100 shadow-inner"><img src={cropEditor.source} alt="Xem trước hình cần cắt" draggable={false} className="block max-h-[68vh] max-w-[min(90vw,900px)] object-contain" /><div className="absolute border-2 border-white bg-transparent shadow-[0_0_0_9999px_rgba(15,23,42,0.5)]" style={{ left: `${cropEditor.x}%`, top: `${cropEditor.y}%`, width: `${cropEditor.width}%`, height: `${cropEditor.height}%` }}><span data-crop-handle="nw" className={`pointer-events-auto absolute h-8 w-8 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.9)] ${cropHandleClasses.nw}`} /><span data-crop-handle="ne" className={`pointer-events-auto absolute h-8 w-8 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.9)] ${cropHandleClasses.ne}`} /><span data-crop-handle="sw" className={`pointer-events-auto absolute h-8 w-8 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.9)] ${cropHandleClasses.sw}`} /><span data-crop-handle="se" className={`pointer-events-auto absolute h-8 w-8 bg-transparent shadow-[0_0_0_1px_rgba(255,255,255,0.9)] ${cropHandleClasses.se}`} /></div></div></div><p className="mt-3 text-center text-xs font-semibold text-slate-500">Kéo bốn thanh chữ L ở các góc để chỉnh vùng cắt.</p><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCropEditor(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600">Hủy</button><button type="button" disabled={busy} onClick={() => void applyImageCrop()} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"><Check size={17} />Áp dụng</button></div></div></div>}
