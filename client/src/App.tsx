@@ -843,7 +843,7 @@ export default function App() {
         {workspaceTab === "drugs" ? (
           <DrugsPage route={dataRoute.tab === "drugs" ? dataRoute : { tab: "drugs", kind: "drug-list" }} onNavigate={navigateDataPath} />
         ) : workspaceTab === "admin" ? (
-          <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/guidelines/manage")} onOpenMcq={() => { setMcqSection("create"); changeWorkspaceTab("mcq"); }} onOpenDrugs={() => changeWorkspaceTab("drugs")} />
+          <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/guidelines/manage")} onOpenDrugs={() => changeWorkspaceTab("drugs")} onAiCallsRemaining={setAiCallsRemaining} />
         ) : workspaceTab !== "flashcards" ? null : editing && currentSavedDeck ? (
           <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} currentUserLabel={(user?.user_metadata?.full_name as string | undefined) || user?.email || "Thành viên"} />
         ) : questions.length === 0 ? (
