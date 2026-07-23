@@ -2,7 +2,6 @@ import { Check, Download, FileDown, FileText, FilePenLine, FileUp, FolderPlus, G
 import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import GuidelinesPage from "./GuidelinesPage";
 import GuidelineDataPage from "./GuidelineDataPage";
 import ReferenceToolsPage from "./ReferenceToolsPage";
 import FileDropZone from "./FileDropZone";
@@ -23,7 +22,7 @@ function defaultDiagramCrop(page: ReferenceBookPage): ReferenceBookDiagramCrop {
   return { x: minX, y: minY, width: Math.max(0.05, maxX - minX), height: Math.max(0.05, maxY - minY) };
 }
 
-export default function ReferenceLibraryPage({ user, onAiCallsRemaining, section, guidelineRoute, onNavigate }: { user: User | null; onAiCallsRemaining?: (remaining: number) => void; section: ReferenceSection; guidelineRoute: Extract<DataRoute, { tab: "guidelines" }>; onNavigate: (path: string) => void }) {
+export default function ReferenceLibraryPage({ user, section, guidelineRoute, onNavigate }: { user: User | null; section: ReferenceSection; guidelineRoute: Extract<DataRoute, { tab: "guidelines" }>; onNavigate: (path: string) => void }) {
   const [books, setBooks] = useState<ReferenceBook[]>([]);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -316,7 +315,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining, section
   }
 
   return <>
-    {section === "guidelines" ? guidelineRoute.kind === "guideline-manager" ? <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8"><div className="mb-3"><button type="button" onClick={() => onNavigate("/guidelines")} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-bold text-violet-700 hover:bg-violet-50">Quay về kho dữ liệu guideline</button></div><GuidelinesPage user={user} onAiCallsRemaining={onAiCallsRemaining} /></section> : <GuidelineDataPage route={guidelineRoute} onNavigate={onNavigate} onManage={() => onNavigate("/guidelines/manage")} /> : section === "tools" ? <ReferenceToolsPage user={user} /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
+    {section === "guidelines" ? <GuidelineDataPage route={guidelineRoute} onNavigate={onNavigate} onManage={() => onNavigate("/admin/guidelines")} /> : section === "tools" ? <ReferenceToolsPage user={user} /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
       <div className="glass-panel border border-rose-100 bg-white/75 p-5">
         <div className="flex items-center gap-3"><LibraryBig className="text-rose-500" size={28} /><div><h1 className="text-xl font-extrabold text-rose-950">Sách tham khảo</h1><p className="text-sm text-slate-500">Sách đã đăng công khai mới hiển thị cho mọi tài khoản.</p></div></div>
 

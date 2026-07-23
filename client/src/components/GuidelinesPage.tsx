@@ -46,6 +46,8 @@ import FileDropZone from "./FileDropZone";
 interface Props {
   user: User | null;
   onAiCallsRemaining?: (remaining: number) => void;
+  initialGuidelineId?: string;
+  autoOpenDocumentForm?: boolean;
 }
 
 const emptyEntry = {
@@ -85,9 +87,9 @@ function guidelineCondition(value: string, title: string): GuidelineCondition {
   return "Khác";
 }
 
-export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
+export default function GuidelinesPage({ user, onAiCallsRemaining, initialGuidelineId, autoOpenDocumentForm = false }: Props) {
   const [documents, setDocuments] = useState<GuidelineDocument[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialGuidelineId || null);
   const [entries, setEntries] = useState<GuidelineEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -138,6 +140,10 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   }, [user]);
 
   useEffect(() => { void refreshDocuments(); }, [refreshDocuments]);
+
+  useEffect(() => {
+    if (autoOpenDocumentForm) setShowDocumentForm(true);
+  }, [autoOpenDocumentForm]);
 
   useEffect(() => {
     if (!selectedId) { setEntries([]); return; }

@@ -1,6 +1,6 @@
-import { drugs } from "../data/drugData";
 import { guidelines } from "../data/guidelineData";
 import { listGuidelineDocuments, listGuidelineEntries, type GuidelineDocument, type GuidelineEntry } from "./guidelines";
+import { getAllThuoc, getThuocById, getThuocBySlug } from "./thuocService";
 import type { Drug } from "../types/drug";
 import type { DrugReference, Guideline, GuidelineRecommendation, GuidelineReference, GuidelineSection } from "../types/guideline";
 
@@ -56,15 +56,15 @@ export function getRecommendationsByTag(tag: string, source: Guideline[] = guide
 }
 
 export function getAllDrugs(): Drug[] {
-  return drugs;
+  return getAllThuoc();
 }
 
 export function getDrugById(drugId: string): Drug | undefined {
-  return drugs.find((drug) => drug.id === drugId);
+  return getThuocById(drugId);
 }
 
 export function getDrugBySlug(slug: string): Drug | undefined {
-  return drugs.find((drug) => drug.slug === slug);
+  return getThuocBySlug(slug);
 }
 
 function slugify(value: string): string {
@@ -79,7 +79,7 @@ function parsePageReference(value: string): number | null {
 function resolveDrugId(drugName: string): string | null {
   const normalized = slugify(drugName);
   if (!normalized) return null;
-  return drugs.find((drug) => [drug.id, drug.slug, drug.genericName, drug.titleVi, ...drug.aliases].some((name) => slugify(name) === normalized || normalized.includes(slugify(name)) || slugify(name).includes(normalized)))?.id ?? null;
+  return getAllThuoc().find((drug) => [drug.id, drug.slug, drug.genericName, drug.titleVi, ...drug.aliases, ...drug.brandNames].some((name) => slugify(name) === normalized || normalized.includes(slugify(name)) || slugify(name).includes(normalized)))?.id ?? null;
 }
 
 function mapEntry(document: GuidelineDocument, entry: GuidelineEntry, sectionId: string): GuidelineRecommendation {

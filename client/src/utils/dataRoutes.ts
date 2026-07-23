@@ -1,19 +1,36 @@
 export type DataRoute =
   | { tab: "guidelines"; kind: "guideline-list" }
   | { tab: "guidelines"; kind: "guideline-detail"; slug: string; sectionSlug?: string; recommendationId?: string }
-  | { tab: "guidelines"; kind: "guideline-manager" }
   | { tab: "drugs"; kind: "drug-list" }
   | { tab: "drugs"; kind: "drug-detail"; slug: string }
+  | { tab: "admin"; kind: "admin-dashboard" | "admin-drug-list" | "admin-drug-new" | "admin-drug-detail" | "admin-drug-edit" | "admin-guideline-list" | "admin-guideline-new" | "admin-guideline-detail" | "admin-guideline-edit" | "admin-guideline-sections" | "admin-guideline-recommendations"; drugId?: string; guidelineId?: string }
   | { tab: null; kind: "other" };
 
 export function parseDataRoute(pathname: string): DataRoute {
   const parts = pathname.split("/").filter(Boolean).map((part) => decodeURIComponent(part));
+  if (parts[0] === "admin") {
+    if (!parts[1]) return { tab: "admin", kind: "admin-dashboard" };
+    if (parts[1] === "thuoc" || parts[1] === "drugs") {
+      if (!parts[2]) return { tab: "admin", kind: "admin-drug-list" };
+      if (parts[2] === "new") return { tab: "admin", kind: "admin-drug-new" };
+      if (parts[3] === "edit") return { tab: "admin", kind: "admin-drug-edit", drugId: parts[2] };
+      return { tab: "admin", kind: "admin-drug-detail", drugId: parts[2] };
+    }
+    if (parts[1] === "guidelines" || parts[1] === "guideline") {
+      if (!parts[2]) return { tab: "admin", kind: "admin-guideline-list" };
+      if (parts[2] === "new") return { tab: "admin", kind: "admin-guideline-new" };
+      if (parts[3] === "edit") return { tab: "admin", kind: "admin-guideline-edit", guidelineId: parts[2] };
+      if (parts[3] === "sections") return { tab: "admin", kind: "admin-guideline-sections", guidelineId: parts[2] };
+      if (parts[3] === "recommendations") return { tab: "admin", kind: "admin-guideline-recommendations", guidelineId: parts[2] };
+      return { tab: "admin", kind: "admin-guideline-detail", guidelineId: parts[2] };
+    }
+  }
   if (parts[0] === "guidelines") {
     if (!parts[1]) return { tab: "guidelines", kind: "guideline-list" };
-    if (parts[1] === "manage") return { tab: "guidelines", kind: "guideline-manager" };
+    if (parts[1] === "manage") return { tab: "admin", kind: "admin-guideline-list" };
     return { tab: "guidelines", kind: "guideline-detail", slug: parts[1], sectionSlug: parts[2], recommendationId: parts[3] };
   }
-  if (parts[0] === "drugs") {
+  if (parts[0] === "drugs" || parts[0] === "thuoc") {
     if (!parts[1]) return { tab: "drugs", kind: "drug-list" };
     return { tab: "drugs", kind: "drug-detail", slug: parts[1] };
   }
@@ -26,5 +43,22 @@ export function guidelinePath(slug: string, sectionSlug?: string, recommendation
 }
 
 export function drugPath(slug: string): string {
-  return `/drugs/${encodeURIComponent(slug)}`;
+  return `/thuoc/${encodeURIComponent(slug)}`;
+}
+
+export function canonicalDataPath(pathname: string): string {
+  const parts = pathname.split("/").filter(Boolean).map((part) => decodeURIComponent(part));
+  if (parts[0] === "guidelines" && parts[1] === "manage") return "/admin/guidelines";
+  if ((parts[0] === "thuoc" || parts[0] === "drugs") && ["admin", "manage", "edit", "new"].includes(parts[1] || "")) {
+    const tail = parts.slice(2);
+    if (parts[1] === "admin" || parts[1] === "manage") return `/admin/thuoc${tail.length ? `/${tail.join("/")}` : ""}`;
+    return `/admin/thuoc/${parts[1]}${tail.length ? `/${tail.join("/")}` : ""}`;
+  }
+  if ((parts[0] === "guidelines" || parts[0] === "guideline") && ["admin", "manage", "edit", "new"].includes(parts[1] || "")) {
+    const tail = parts.slice(2);
+    if (parts[1] === "admin" || parts[1] === "manage") return `/admin/guidelines${tail.length ? `/${tail.join("/")}` : ""}`;
+    return `/admin/guidelines/${parts[1]}${tail.length ? `/${tail.join("/")}` : ""}`;
+  }
+  if (parts[0] === "drugs") return `/thuoc${parts.length > 1 ? `/${parts.slice(1).join("/")}` : ""}`;
+  return pathname || "/";
 }

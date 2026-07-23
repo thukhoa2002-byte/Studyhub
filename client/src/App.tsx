@@ -16,12 +16,15 @@ import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import type { McqSection } from "./components/McqSectionsPanel";
 import DrugsPage from "./components/DrugsPage";
 import AdminPage from "./components/AdminPage";
+import AdminLayout from "./components/AdminLayout";
+import AdminDrugPage from "./components/AdminDrugPage";
+import AdminGuidelinePage from "./components/AdminGuidelinePage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import type { ReferenceSection } from "./components/ReferenceSectionsPanel";
-import { parseDataRoute, type DataRoute } from "./utils/dataRoutes";
+import { canonicalDataPath, parseDataRoute, type DataRoute } from "./utils/dataRoutes";
 import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
-import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
+import { isAnalyticsAdmin, isDrugAdmin, isGuidelineAdmin, isSpecialUser } from "./config/access";
 import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, encodeCardCategory, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
 import { normalizeSubdeck, replaceSubdeckPrefix } from "./utils/subdeck";
 
@@ -94,13 +97,20 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = () => {
-      const nextRoute = parseDataRoute(window.location.pathname);
+      const canonicalPath = canonicalDataPath(window.location.pathname);
+      if (canonicalPath !== window.location.pathname) window.history.replaceState({}, "", canonicalPath);
+      const nextRoute = parseDataRoute(canonicalPath);
       setDataRoute(nextRoute);
       if (nextRoute.tab) setWorkspaceTab(nextRoute.tab);
       if (nextRoute.tab === "guidelines") setReferenceSection("guidelines");
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const canonicalPath = canonicalDataPath(window.location.pathname);
+    if (canonicalPath !== window.location.pathname) window.history.replaceState({}, "", canonicalPath);
   }, []);
 
   useEffect(() => {
@@ -233,15 +243,19 @@ export default function App() {
   function changeWorkspaceTab(nextTab: WorkspaceTab) {
     if (nextTab === "mcq" && !requireLogin()) return;
     if (nextTab === "admin" && !analyticsAdmin) return;
+    if (nextTab === "admin") {
+      navigateDataPath("/admin");
+      return;
+    }
     setWorkspaceTab(nextTab);
-    if (nextTab === "admin") setAnalyticsOpen(false);
     if (nextTab === "guidelines") navigateDataPath("/guidelines");
-    else if (nextTab === "drugs") navigateDataPath("/drugs");
+    else if (nextTab === "drugs") navigateDataPath("/thuoc");
   }
 
   function navigateDataPath(path: string) {
-    window.history.pushState({}, "", path);
-    const nextRoute = parseDataRoute(path);
+    const canonicalPath = canonicalDataPath(path);
+    window.history.pushState({}, "", canonicalPath);
+    const nextRoute = parseDataRoute(canonicalPath);
     setDataRoute(nextRoute);
     if (nextRoute.tab) setWorkspaceTab(nextRoute.tab);
     if (nextRoute.tab === "guidelines") setReferenceSection("guidelines");
@@ -791,6 +805,21 @@ export default function App() {
     );
   }
 
+  const adminRoute = dataRoute.tab === "admin" ? dataRoute : null;
+  if (adminRoute) {
+    const adminAllowed = analyticsAdmin;
+    const moduleAllowed = adminRoute.kind.startsWith("admin-drug")
+      ? isDrugAdmin(user?.email)
+      : adminRoute.kind.startsWith("admin-guideline")
+        ? isGuidelineAdmin(user?.email)
+        : adminAllowed;
+    return <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f3e8ff_0,#fff7fb_38%,#ecfdf5_100%)]">
+      <AdminLayout user={user} route={adminRoute} onNavigate={navigateDataPath}>
+        {!user || !moduleAllowed ? <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không có quyền truy cập</h1><p className="mt-2 text-sm font-semibold text-rose-700">Khu vực này chỉ dành cho quản trị viên được cấp quyền.</p></section> : adminRoute.kind === "admin-dashboard" ? <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onAiCallsRemaining={setAiCallsRemaining} /> : adminRoute.kind.startsWith("admin-drug") ? <AdminDrugPage route={adminRoute} onNavigate={navigateDataPath} /> : <AdminGuidelinePage user={user} route={adminRoute} onAiCallsRemaining={setAiCallsRemaining} />}
+      </AdminLayout>
+    </main>;
+  }
+
   return (
     <>
       {showWelcome && <div className={`welcome-screen${welcomeClosing ? " welcome-screen--closing" : ""}`} role="status" aria-live="polite">
@@ -829,11 +858,11 @@ export default function App() {
         )}
 
         <div className={workspaceTab === "guidelines" ? "block" : "hidden"} aria-hidden={workspaceTab !== "guidelines"}>
-          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section={referenceSection} guidelineRoute={dataRoute.tab === "guidelines" ? dataRoute : { tab: "guidelines", kind: "guideline-list" }} onNavigate={navigateDataPath} />
+          <ReferenceLibraryPage user={user} section={referenceSection} guidelineRoute={dataRoute.tab === "guidelines" ? dataRoute : { tab: "guidelines", kind: "guideline-list" }} onNavigate={navigateDataPath} />
         </div>
 
         <div className={workspaceTab === "tools" ? "block" : "hidden"} aria-hidden={workspaceTab !== "tools"}>
-          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section="tools" guidelineRoute={{ tab: "guidelines", kind: "guideline-list" }} onNavigate={navigateDataPath} />
+          <ReferenceLibraryPage user={user} section="tools" guidelineRoute={{ tab: "guidelines", kind: "guideline-list" }} onNavigate={navigateDataPath} />
         </div>
 
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
@@ -843,7 +872,7 @@ export default function App() {
         {workspaceTab === "drugs" ? (
           <DrugsPage route={dataRoute.tab === "drugs" ? dataRoute : { tab: "drugs", kind: "drug-list" }} onNavigate={navigateDataPath} />
         ) : workspaceTab === "admin" ? (
-          <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/guidelines/manage")} onOpenDrugs={() => changeWorkspaceTab("drugs")} onAiCallsRemaining={setAiCallsRemaining} />
+          <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onAiCallsRemaining={setAiCallsRemaining} />
         ) : workspaceTab !== "flashcards" ? null : editing && currentSavedDeck ? (
           <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} currentUserLabel={(user?.user_metadata?.full_name as string | undefined) || user?.email || "Thành viên"} />
         ) : questions.length === 0 ? (
