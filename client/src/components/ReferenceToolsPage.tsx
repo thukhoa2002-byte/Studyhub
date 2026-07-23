@@ -63,7 +63,9 @@ const formulaSources = {
   hollidaySegar: "https://pubmed.ncbi.nlm.nih.gov/13431307/",
 };
 
-const referenceOnlyFormulaDefinitions: Partial<Record<CalculatorType, { title: string; description: string; formula: string; variables: string; source: string; sourceLabel: string }>> = {
+type ReferenceFormulaDefinition = { title: string; description: string; formula: string; variables: string; source: string; sourceLabel: string };
+type ReferenceFormulaOverrides = Partial<Record<CalculatorType, ReferenceFormulaDefinition>>;
+const referenceOnlyFormulaDefinitions: Partial<Record<CalculatorType, ReferenceFormulaDefinition>> = {
   bsa: {
     title: "BSA · Body Surface Area",
     description: "Diện tích da cơ thể theo công thức Mosteller",
@@ -270,14 +272,14 @@ function ReferenceChoiceField({ field, value, onChange }: { field: ReferenceFiel
   </div>;
 }
 
-function CalculatorFormulaReference({ calculatorType, egfrFormula, crclFormula }: { calculatorType: CalculatorType; egfrFormula: EgfrFormula; crclFormula: CrclFormula }) {
+function CalculatorFormulaReference({ calculatorType, egfrFormula, crclFormula, referenceOverrides, canEdit, onEdit }: { calculatorType: CalculatorType; egfrFormula: EgfrFormula; crclFormula: CrclFormula; referenceOverrides?: ReferenceFormulaOverrides; canEdit?: boolean; onEdit?: () => void }) {
   let title = "BMI · Body Mass Index";
   let description = "Chỉ số khối cơ thể";
   let formula = "BMI = Cân nặng (kg) / [Chiều cao (m)]<sup>2</sup>";
   let variables = "Cân nặng đổi về kg; chiều cao đổi về mét.";
   let source = formulaSources.niddk;
   let sourceLabel = "NIDDK · công cụ lâm sàng";
-  const additionalReference = referenceOnlyFormulaDefinitions[calculatorType];
+  const additionalReference = referenceOverrides?.[calculatorType] || referenceOnlyFormulaDefinitions[calculatorType];
 
   if (additionalReference) {
     title = additionalReference.title;
@@ -345,7 +347,7 @@ function CalculatorFormulaReference({ calculatorType, egfrFormula, crclFormula }
   }
 
   return <div className="formula-evidence mt-5 rounded-2xl border border-white bg-white/85 p-4 sm:p-6">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="formula-evidence__eyebrow">Formula</p><h3 className="mt-1 text-2xl font-black text-slate-700">{title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{description}</p></div><a href={source} target="_blank" rel="noreferrer" className="text-xs font-extrabold text-teal-700 underline hover:text-teal-900">{sourceLabel}</a></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="formula-evidence__eyebrow">Formula</p><h3 className="mt-1 text-2xl font-black text-slate-700">{title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{description}</p></div><div className="flex items-center gap-3">{canEdit && additionalReference && <button type="button" onClick={onEdit} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-extrabold text-violet-700 hover:bg-violet-100"><Edit3 size={14} />Sửa</button>}<a href={source} target="_blank" rel="noreferrer" className="text-xs font-extrabold text-teal-700 underline hover:text-teal-900">{sourceLabel}</a></div></div>
     <div className="mt-5"><FormulaPreview html={formula} className="formula-evidence__equation" /></div>
     <div className="mt-5">{parameterContent}</div>
   </div>;
@@ -487,6 +489,12 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableColumns, setTableColumns] = useState(3);
+  const [referenceOverrides, setReferenceOverrides] = useState<ReferenceFormulaOverrides>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(window.localStorage.getItem("studyhub-reference-formula-overrides") || "{}"); } catch { return {}; }
+  });
+  const [editingReferenceType, setEditingReferenceType] = useState<CalculatorType | null>(null);
+  const [referenceDraft, setReferenceDraft] = useState<ReferenceFormulaDefinition | null>(null);
   const [dataTableName, setDataTableName] = useState("");
   const [dataTableFile, setDataTableFile] = useState<File | null>(null);
   const [dataTableCreated, setDataTableCreated] = useState(false);
@@ -494,6 +502,7 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [scoreDescription, setScoreDescription] = useState("");
   const [scoreCreated, setScoreCreated] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
+  const referenceEditorRef = useRef<HTMLDivElement>(null);
   const isOwner = user?.email?.trim().toLowerCase() === OWNER_EMAIL;
 
   const selectedWeightUnit = weightUnits.find((option) => option.id === weightUnit) || weightUnits[0];
@@ -556,6 +565,57 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
 
   function syncFormula() {
     setForm((current) => ({ ...current, formula_html: sanitizeFormulaHtml(editorRef.current?.innerHTML || "") }));
+  }
+
+  function openEditBuiltInFormula() {
+    if (!isOwner) return;
+    const definition = referenceOverrides[calculatorType] || referenceOnlyFormulaDefinitions[calculatorType];
+    if (!definition) return;
+    setEditingReferenceType(calculatorType);
+    setReferenceDraft({ ...definition });
+  }
+
+  function syncReferenceEditor() {
+    setReferenceDraft((current) => current ? { ...current, formula: sanitizeFormulaHtml(referenceEditorRef.current?.innerHTML || "") } : current);
+  }
+
+  function useReferenceEditorCommand(command: "superscript" | "subscript") {
+    referenceEditorRef.current?.focus();
+    document.execCommand(command);
+    syncReferenceEditor();
+  }
+
+  function insertReferenceFormulaPart(kind: "fraction" | "root") {
+    referenceEditorRef.current?.focus();
+    const html = kind === "fraction"
+      ? "<span class=\"formula-fraction\"><span class=\"formula-numerator\" contenteditable=\"true\">a</span><span class=\"formula-denominator\" contenteditable=\"true\">b</span></span>"
+      : "<span class=\"formula-root\">√<span class=\"formula-root-value\" contenteditable=\"true\">x</span></span>";
+    document.execCommand("insertHTML", false, html);
+    syncReferenceEditor();
+  }
+
+  function insertReferenceFormulaTable() {
+    const rows = Math.min(8, Math.max(1, tableRows));
+    const columns = Math.min(8, Math.max(1, tableColumns));
+    const html = `<table class="formula-table"><tbody>${Array.from({ length: rows }, (_, rowIndex) => `<tr>${Array.from({ length: columns }, (_, columnIndex) => rowIndex === 0 ? `<th class="formula-table-header">${columnIndex === 0 ? "Tên / chỉ số" : `Cột ${columnIndex + 1}`}</th>` : `<td class="formula-table-cell">Ô ${rowIndex + 1}.${columnIndex + 1}</td>`).join("")}</tr>`).join("")}</tbody></table><br>`;
+    referenceEditorRef.current?.focus();
+    document.execCommand("insertHTML", false, html);
+    syncReferenceEditor();
+    setTablePickerOpen(false);
+  }
+
+  function cancelEditBuiltInFormula() {
+    setEditingReferenceType(null);
+    setReferenceDraft(null);
+    setTablePickerOpen(false);
+  }
+
+  function saveBuiltInFormula() {
+    if (!isOwner || !editingReferenceType || !referenceDraft?.title.trim()) return;
+    const nextOverrides = { ...referenceOverrides, [editingReferenceType]: { ...referenceDraft, formula: sanitizeFormulaHtml(referenceEditorRef.current?.innerHTML || referenceDraft.formula) } };
+    setReferenceOverrides(nextOverrides);
+    window.localStorage.setItem("studyhub-reference-formula-overrides", JSON.stringify(nextOverrides));
+    cancelEditBuiltInFormula();
   }
 
   function openNewFormula() {
@@ -676,7 +736,14 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
         {!(["bmi", "egfr", "crcl", "holliday-segar"] as CalculatorType[]).includes(calculatorType) && <ReferenceCalculatorPanel calculatorType={calculatorType} values={referenceInputs} onChange={(key, value) => setReferenceInputs((current) => ({ ...current, [key]: value }))} />}
         </div>}
         {calculatorPanelTab === "formula" && <>
-          <CalculatorFormulaReference calculatorType={calculatorType} egfrFormula={egfrFormula} crclFormula={crclFormula} />
+          <CalculatorFormulaReference calculatorType={calculatorType} egfrFormula={egfrFormula} crclFormula={crclFormula} referenceOverrides={referenceOverrides} canEdit={isOwner} onEdit={openEditBuiltInFormula} />
+          {isOwner && editingReferenceType === calculatorType && referenceDraft && <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50/35 p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Chỉnh sửa công thức dựng sẵn</p><p className="mt-1 text-sm font-semibold text-slate-500">Nội dung được trình bày theo cùng kiểu Formula ở phía trên.</p></div><button type="button" onClick={cancelEditBuiltInFormula} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"><X size={15} />Hủy</button></div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-sm font-bold text-slate-700">Tên công thức<input value={referenceDraft.title} onChange={(event) => setReferenceDraft((current) => current ? { ...current, title: event.target.value } : current)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Mô tả<textarea value={referenceDraft.description} onChange={(event) => setReferenceDraft((current) => current ? { ...current, description: event.target.value } : current)} rows={2} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" /></label></div>
+            <label className="mt-3 block text-sm font-bold text-slate-700">Công thức HTML<div className="mt-1.5 flex flex-wrap gap-1"><button type="button" title="Số mũ" onClick={() => useReferenceEditorCommand("superscript")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">x<sup>2</sup></button><button type="button" title="Chỉ số dưới" onClick={() => useReferenceEditorCommand("subscript")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">x<sub>i</sub></button><button type="button" title="Chèn phân số" onClick={() => insertReferenceFormulaPart("fraction")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">a⁄b</button><button type="button" title="Chèn dấu căn" onClick={() => insertReferenceFormulaPart("root")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50">√x</button><button type="button" title="Chèn bảng" onClick={() => { insertReferenceFormulaTable(); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 hover:bg-violet-50"><Table2 size={15} />Bảng</button></div><div ref={referenceEditorRef} contentEditable suppressContentEditableWarning onInput={syncReferenceEditor} className="formula-editor mt-2 min-h-24 rounded-xl border border-violet-200 bg-white px-4 py-3 text-xl text-slate-800 outline-none focus:border-violet-400" dangerouslySetInnerHTML={{ __html: sanitizeFormulaHtml(referenceDraft.formula) }} /></label>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm font-bold text-slate-700">Biến số<textarea value={referenceDraft.variables} onChange={(event) => setReferenceDraft((current) => current ? { ...current, variables: event.target.value } : current)} rows={3} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" /></label><div className="space-y-3"><label className="block text-sm font-bold text-slate-700">Tên nguồn<input value={referenceDraft.sourceLabel} onChange={(event) => setReferenceDraft((current) => current ? { ...current, sourceLabel: event.target.value } : current)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" /></label><label className="block text-sm font-bold text-slate-700">Liên kết nguồn<input type="url" value={referenceDraft.source} onChange={(event) => setReferenceDraft((current) => current ? { ...current, source: event.target.value } : current)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-violet-400" /></label></div></div>
+            <div className="mt-4 flex justify-end"><button type="button" onClick={saveBuiltInFormula} className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700"><Save size={16} />Lưu thay đổi</button></div>
+          </div>}
           {isOwner && <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50/35 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">Chủ web</p><h2 className="mt-1 text-lg font-black text-slate-800">Chỉnh sửa công thức</h2></div><button type="button" onClick={openNewFormula} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-sm font-bold text-white hover:bg-violet-700"><FilePlus2 size={16} />Thêm công thức</button></div>
             {formOpen && <form onSubmit={(event) => void saveFormula(event)} className="mt-4 space-y-3 rounded-2xl border border-white bg-white/80 p-4">
