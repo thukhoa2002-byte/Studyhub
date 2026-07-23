@@ -78,7 +78,6 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
     setReferencePanelTimer(null);
     setMcqPanelOpen(false);
     setReferencePanelOpen(false);
-    closeAnalyticsPanel();
   }
 
   function handleSidebarMouseLeave() {
@@ -138,11 +137,11 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
         aria-label="Khu vực học tập"
       >
         <span
-          className={`workspace-tabs__glider ${analyticsPanelOpen ? "workspace-tabs__glider--hidden" : visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "tools" ? "workspace-tabs__glider--tools" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : visualTab === "admin" ? "workspace-tabs__glider--admin" : ""}`}
+          className={`workspace-tabs__glider ${visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "tools" ? "workspace-tabs__glider--tools" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : visualTab === "admin" ? "workspace-tabs__glider--admin" : ""}`}
           aria-hidden="true"
         />
         {tabs.map(({ id, label, icon: Icon }, tabIndex) => {
-          const active = !analyticsPanelOpen && visualTab === id;
+          const active = visualTab === id;
           const distance = hoveredTab ? Math.abs(tabs.findIndex((tab) => tab.id === hoveredTab) - tabIndex) : 99;
           const dockClass = hoveredTab === id ? "workspace-tabs__button--dock-hover" : distance === 1 ? "workspace-tabs__button--dock-neighbor" : "";
           const hasHoverPanel = id === "mcq" || id === "guidelines";
@@ -155,8 +154,8 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
               // Keep the last hovered tab across the small gap between buttons.
               // The sidebar itself resets it only after the pointer leaves the whole rail.
               onMouseLeave={() => { if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
-              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); closeAnalyticsPanel(); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); closeAnalyticsPanel(); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
-              onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); closeAnalyticsPanel(); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); closeAnalyticsPanel(); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
+              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
+              onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
               onBlur={() => { if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
@@ -168,9 +167,9 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
           );
         })}
       </nav>
+      {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" panelOpen={analyticsPanelOpen} onExpandedChange={handleAnalyticsExpanded} />}
       <McqSectionsPanel section={mcqSection} onChange={handleMcqSectionChange} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
       <ReferenceSectionsPanel section={referenceSection} onChange={handleReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
-      {analyticsAdmin && activeTab !== "admin" && <SiteAnalytics userId={user?.id} visible placement="sidebar" panelOpen={analyticsPanelOpen} onExpandedChange={handleAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
     </div>
   );
