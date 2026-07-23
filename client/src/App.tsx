@@ -15,6 +15,7 @@ import SharedDeckNotification from "./components/SharedDeckNotification";
 import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
 import type { McqSection } from "./components/McqSectionsPanel";
 import DrugsPage from "./components/DrugsPage";
+import AdminPage from "./components/AdminPage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import type { ReferenceSection } from "./components/ReferenceSectionsPanel";
 import { parseDataRoute, type DataRoute } from "./utils/dataRoutes";
@@ -231,7 +232,9 @@ export default function App() {
 
   function changeWorkspaceTab(nextTab: WorkspaceTab) {
     if (nextTab === "mcq" && !requireLogin()) return;
+    if (nextTab === "admin" && !analyticsAdmin) return;
     setWorkspaceTab(nextTab);
+    if (nextTab === "admin") setAnalyticsOpen(false);
     if (nextTab === "guidelines") navigateDataPath("/guidelines");
     else if (nextTab === "drugs") navigateDataPath("/drugs");
   }
@@ -250,8 +253,8 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!user && workspaceTab === "mcq") setWorkspaceTab("flashcards");
-  }, [user, workspaceTab]);
+    if ((!user && workspaceTab === "mcq") || (workspaceTab === "admin" && !analyticsAdmin)) setWorkspaceTab("flashcards");
+  }, [analyticsAdmin, user, workspaceTab]);
 
   function continueWithGoogle() {
     setLoginRequiredOpen(false);
@@ -839,6 +842,8 @@ export default function App() {
 
         {workspaceTab === "drugs" ? (
           <DrugsPage route={dataRoute.tab === "drugs" ? dataRoute : { tab: "drugs", kind: "drug-list" }} onNavigate={navigateDataPath} />
+        ) : workspaceTab === "admin" ? (
+          <AdminPage user={user} onOpenGuidelines={() => changeWorkspaceTab("guidelines")} onOpenMcq={() => { setMcqSection("create"); changeWorkspaceTab("mcq"); }} onOpenDrugs={() => changeWorkspaceTab("drugs")} />
         ) : workspaceTab !== "flashcards" ? null : editing && currentSavedDeck ? (
           <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} currentUserLabel={(user?.user_metadata?.full_name as string | undefined) || user?.email || "Thành viên"} />
         ) : questions.length === 0 ? (

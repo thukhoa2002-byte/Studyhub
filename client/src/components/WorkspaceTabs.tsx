@@ -1,4 +1,4 @@
-import { BookOpen, BookOpenCheck, Calculator, ChevronDown, ChevronRight, Pill } from "lucide-react";
+import { BookOpen, BookOpenCheck, Calculator, ChevronDown, ChevronRight, Pill, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -8,7 +8,7 @@ import ReferenceSectionsPanel, { type ReferenceSection } from "./ReferenceSectio
 import SiteAnalytics from "./SiteAnalytics";
 import WorkspaceSettings from "./WorkspaceSettings";
 
-export type WorkspaceTab = "flashcards" | "mcq" | "tools" | "guidelines" | "drugs";
+export type WorkspaceTab = "flashcards" | "mcq" | "tools" | "guidelines" | "drugs" | "admin";
 
 interface Props {
   activeTab: WorkspaceTab;
@@ -27,7 +27,7 @@ interface Props {
   onMcqSectionChange: (section: McqSection) => void;
 }
 
-const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
+const baseTabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
   { id: "flashcards", label: "Thẻ học", icon: BookOpen },
   { id: "mcq", label: "Trắc nghiệm", icon: McqIcon },
   { id: "tools", label: "Công cụ & Bảng tra", icon: Calculator },
@@ -36,6 +36,7 @@ const tabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?
 ];
 
 export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded, referenceSection, onReferenceSectionChange, mcqSection, onMcqSectionChange }: Props) {
+  const tabs = analyticsAdmin ? [...baseTabs, { id: "admin" as const, label: "Quản trị", icon: ShieldCheck }] : baseTabs;
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
   const [mcqPanelOpen, setMcqPanelOpen] = useState(false);
   const [mcqPanelTimer, setMcqPanelTimer] = useState<number | null>(null);
@@ -117,11 +118,11 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
       </div>
       <div className="workspace-sidebar__divider my-6 hidden border-t border-slate-200/80 lg:block" />
       <nav
-        className="workspace-tabs workspace-tabs--sidebar glass-panel grid grid-cols-2 gap-2 border border-white/70 bg-white/58 p-2 sm:grid-cols-5 lg:mt-0 lg:grid-cols-1 lg:border-0 lg:bg-transparent lg:p-0"
+        className={`workspace-tabs workspace-tabs--sidebar ${analyticsAdmin ? "workspace-tabs--with-admin" : ""} glass-panel grid grid-cols-2 gap-2 border border-white/70 bg-white/58 p-2 sm:grid-cols-5 lg:mt-0 lg:grid-cols-1 lg:border-0 lg:bg-transparent lg:p-0`}
         aria-label="Khu vực học tập"
       >
         <span
-          className={`workspace-tabs__glider ${analyticsPanelOpen ? "workspace-tabs__glider--hidden" : visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "tools" ? "workspace-tabs__glider--tools" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : ""}`}
+          className={`workspace-tabs__glider ${analyticsPanelOpen ? "workspace-tabs__glider--hidden" : visualTab === "mcq" ? "workspace-tabs__glider--mcq" : visualTab === "tools" ? "workspace-tabs__glider--tools" : visualTab === "guidelines" ? "workspace-tabs__glider--guidelines" : visualTab === "drugs" ? "workspace-tabs__glider--drugs" : visualTab === "admin" ? "workspace-tabs__glider--admin" : ""}`}
           aria-hidden="true"
         />
         {tabs.map(({ id, label, icon: Icon }, tabIndex) => {
@@ -151,7 +152,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
       </nav>
       <McqSectionsPanel section={mcqSection} onChange={handleMcqSectionChange} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
       <ReferenceSectionsPanel section={referenceSection} onChange={handleReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
-      {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={handleAnalyticsExpanded} />}
+      {analyticsAdmin && activeTab !== "admin" && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={handleAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
     </div>
   );
