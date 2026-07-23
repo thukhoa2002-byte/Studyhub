@@ -240,13 +240,14 @@ function attachDocxImages(questions, files) {
   }
   const markerPattern = /\[HÌNH WORD:\s*([^\]]+)\]/iu;
   for (const question of questions) {
-    const sourceText = question.question + " " + question.explanation;
+    const sourceText = [question.question, question.explanation, ...(question.options || []).map((option) => option.text)].join(" ");
     const markerName = sourceText.match(markerPattern)?.[1]?.trim() || "";
     const imageName = question.image_source_name?.trim() || markerName;
     const image = imageMap.get(imageName) || imageMap.get(imageName.split("/").pop());
     const stripMarkers = (value) => value.replace(/\s*\[HÌNH WORD:\s*[^\]]+\]\s*/giu, " ").replace(/\s{2,}/g, " ").trim();
     question.question = stripMarkers(question.question);
     question.explanation = stripMarkers(question.explanation);
+    question.options = (question.options || []).map((option) => ({ ...option, text: stripMarkers(option.text) }));
     if (!image) continue;
     question.has_image = true;
     question.image_source_name = image.originalname;
