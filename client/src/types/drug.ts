@@ -22,6 +22,10 @@ export interface DrugProvenance {
   url?: string;
   pages?: string;
   sections?: string[];
+  guidelineId?: string;
+  tableName?: string;
+  tableNumber?: string;
+  documentTitle?: string;
   accessedAt?: string;
 }
 

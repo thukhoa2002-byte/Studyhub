@@ -1,10 +1,10 @@
-import { AlertTriangle, ChevronDown, GripVertical, Plus, Save, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertTriangle, ChevronDown, GripVertical, Plus, Save, Settings2, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Guideline } from "../types/guideline";
 import type { DataRoute } from "../utils/dataRoutes";
 import type { Drug, DrugDosingRegimen, DrugGuidelineLink, DrugIndication, DrugSourceReference, DrugStatus } from "../types/drug";
-import { deleteThuoc, createThuoc, getAllThuoc, getThuocById, updateThuoc } from "../services/thuocService";
+import { deleteThuoc, createThuoc, getAllThuoc, getThuocById, getUniqueDrugIdentity, slugifyDrugName, updateThuoc } from "../services/thuocService";
 import { findDrugDuplicate, validateDrugImport } from "../utils/drugImport";
 import { loadGuidelines } from "../services/guidelineService";
 
@@ -19,6 +19,7 @@ const relationTypes = ["recommended", "preferred", "alternative", "contraindicat
 function makeId(prefix: string): string { return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 function lines(value: string): string[] { return value.split("\n").map((item) => item.trim()).filter(Boolean); }
 function joinLines(value: string[]): string { return value.join("\n"); }
+function isCustomSlug(values: EditorValues): boolean { return Boolean(values.slug && values.slug !== slugifyDrugName(values.genericName)); }
 
 function blankValues(): EditorValues {
   return { id: "", slug: "", genericName: "", titleVi: "", aliases: [], brandNames: [], dosageForms: [], routes: [], drugClass: "", specialties: [], indications: "", indicationsDetailed: [], contraindications: "", dosing: "", dosingRegimens: [], renalAdjustment: "", hepaticAdjustment: "", elderlyAdjustment: "", pediatricAdjustment: "", specialPopulationAdjustments: "", pregnancy: "", breastfeeding: "", precautions: "", adverseEffects: "", interactions: "", monitoring: "", mechanism: "", pharmacodynamics: "", references: [], sourceReferences: [], guidelineReferences: [], guidelineLinks: [], flashcardReferences: [], quizReferences: [], calculatorReferences: [], flowchartReferences: [], imageReferences: [], notes: "", summary: "", status: "draft", publishedAt: null, isPlaceholder: false, sourceVerified: false, provenance: [] };
@@ -49,13 +50,19 @@ export default function AdminDrugEditor({ route, onNavigate }: Props) {
   const selected = route.drugId ? getThuocById(route.drugId) : undefined;
   const routeKey = isNew ? "new" : route.drugId || "unknown";
   const [values, setValues] = useState<EditorValues>(() => initialValues(selected, routeKey));
+  const initialRouteKey = useRef(routeKey);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
+  const [slugCustomized, setSlugCustomized] = useState(() => Boolean(selected?.status === "published" || isCustomSlug(values)));
   const [guidelines, setGuidelines] = useState<Guideline[]>([]);
 
   useEffect(() => {
-    setValues(initialValues(selected, routeKey));
+    if (initialRouteKey.current === routeKey) return;
+    initialRouteKey.current = routeKey;
+    const next = initialValues(selected, routeKey);
+    setValues(next);
+    setSlugCustomized(Boolean(next.status === "published" || isCustomSlug(next)));
     setMessage("");
     setFieldErrors({});
     setDirty(false);
@@ -80,7 +87,19 @@ export default function AdminDrugEditor({ route, onNavigate }: Props) {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [dirty]);
 
-  function setField<K extends keyof EditorValues>(key: K, value: EditorValues[K]) { setValues((current) => ({ ...current, [key]: value })); setDirty(true); }
+  function setField<K extends keyof EditorValues>(key: K, value: EditorValues[K]) {
+    if (key === "slug") setSlugCustomized(true);
+    setValues((current) => {
+      if (key !== "genericName") return { ...current, [key]: value };
+      const genericName = String(value);
+      const generated = getUniqueDrugIdentity(genericName, selected?.id);
+      const previousAutoId = slugifyDrugName(current.genericName);
+      const shouldUpdateId = !current.id || current.id === previousAutoId;
+      const shouldUpdateSlug = !slugCustomized && current.status !== "published";
+      return { ...current, genericName, id: shouldUpdateId ? generated.id : current.id, slug: shouldUpdateSlug ? generated.slug : current.slug };
+    });
+    setDirty(true);
+  }
   function navigate(path: string) {
     if (dirty && typeof window !== "undefined" && !window.confirm("Bạn có thay đổi chưa lưu. Rời trang sẽ giữ bản autosave, nhưng có thể mất thay đổi chưa kịp autosave. Tiếp tục?")) return;
     onNavigate(path);
@@ -134,7 +153,9 @@ function moveItem<T>(items: T[], from: number, to: number): T[] { if (to < 0 || 
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   const [open, setOpen] = useState(true);
-  return <section className="rounded-2xl border border-slate-200 bg-white/85 p-5"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={open}><span className="text-lg font-extrabold text-slate-800">{title}</span><ChevronDown size={19} className={`transition-transform ${open ? "rotate-180" : ""}`} /></button>{open && <div className="mt-4 grid gap-4">{children}</div>}</section>;
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const isGeneral = title === "Thông tin chung";
+  return <section className="rounded-2xl border border-slate-200 bg-white/85 p-5"><div className="flex items-center justify-between gap-3"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left" aria-expanded={open}><span className="text-lg font-extrabold text-slate-800">{title}</span><ChevronDown size={19} className={`transition-transform ${open ? "rotate-180" : ""}`} /></button>{isGeneral && <button type="button" onClick={() => setShowAdvanced((value) => !value)} className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-extrabold text-slate-600"><Settings2 size={15} />{showAdvanced ? "Ẩn cài đặt nâng cao" : "Hiển thị cài đặt nâng cao"}</button>}</div>{open && <div className={`mt-4 grid gap-4 ${isGeneral && !showAdvanced ? "[&>label:nth-child(3)]:hidden [&>label:nth-child(4)]:hidden" : ""}`}>{children}</div>}</section>;
 }
 
 function TextField({ label, value, onChange, error, required, type = "text" }: { label: string; value: string; onChange: (value: string) => void; error?: string; required?: boolean; type?: "text" | "number" }) {

@@ -21,7 +21,8 @@ function duplicateFor(candidate: DrugImportCandidate, existing: Drug[]): Drug | 
 function saveDrug(candidate: DrugImportCandidate, choice: DuplicateChoice, existing: Drug[], guidelineId?: string): Drug | undefined {
   const duplicate = duplicateFor(candidate, existing);
   if (duplicate && choice === "skip") return duplicate;
-  const payload = { ...candidate.parsedDrug, status: "draft" as const, sourceVerified: false, guidelineReferences: guidelineId ? [guidelineId] : [], importMetadata: candidate.aiMetadata };
+  const guidelineReferences = [...new Set([...(duplicate?.guidelineReferences || []), ...(candidate.parsedDrug.guidelineReferences || []), ...(guidelineId ? [guidelineId] : [])])];
+  const payload = { ...candidate.parsedDrug, status: "draft" as const, sourceVerified: false, guidelineReferences, provenance: candidate.provenance || candidate.parsedDrug.provenance || [], importMetadata: candidate.aiMetadata };
   if (duplicate && choice === "update") return updateThuoc(duplicate.id, payload);
   if (duplicate && choice === "copy") {
     const suffix = `-import-${Date.now()}`;
@@ -45,9 +46,9 @@ export async function saveGuidelineTableImport({ candidate, scope, selectedDrugI
       visibility: "private",
       tableName: candidate.table.name,
       tableNumber: candidate.table.number,
-      summary: candidate.guideline.summary || "",
+      summary: candidate.guideline.summary || candidate.commonGuidance.why || "",
       topics: candidate.guideline.topics || [],
-      provenance: candidate.provenance,
+      provenance: [...candidate.provenance, { kind: "group_guidance", ...candidate.commonGuidance }],
     });
   }
 

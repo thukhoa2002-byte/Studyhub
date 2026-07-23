@@ -1,9 +1,10 @@
 export type DataRoute =
+  | { tab: "tools"; kind: "calculator-list" | "calculator-detail"; calculatorSlug?: string }
   | { tab: "guidelines"; kind: "guideline-list" }
   | { tab: "guidelines"; kind: "guideline-detail"; slug: string; sectionSlug?: string; recommendationId?: string }
   | { tab: "drugs"; kind: "drug-list" }
   | { tab: "drugs"; kind: "drug-detail"; slug: string }
-  | { tab: "admin"; kind: "admin-dashboard" | "admin-drug-list" | "admin-drug-new" | "admin-drug-detail" | "admin-drug-edit" | "admin-drug-import" | "admin-guideline-list" | "admin-guideline-new" | "admin-guideline-detail" | "admin-guideline-edit" | "admin-guideline-sections" | "admin-guideline-recommendations"; drugId?: string; guidelineId?: string }
+  | { tab: "admin"; kind: "admin-dashboard" | "admin-drug-list" | "admin-drug-new" | "admin-drug-detail" | "admin-drug-edit" | "admin-drug-import" | "admin-guideline-list" | "admin-guideline-new" | "admin-guideline-detail" | "admin-guideline-edit" | "admin-guideline-sections" | "admin-guideline-recommendations" | "admin-calculator-list" | "admin-calculator-new" | "admin-calculator-import" | "admin-calculator-edit"; drugId?: string; guidelineId?: string; calculatorId?: string }
   | { tab: null; kind: "other" };
 
 export function parseDataRoute(pathname: string): DataRoute {
@@ -25,7 +26,15 @@ export function parseDataRoute(pathname: string): DataRoute {
       if (parts[3] === "recommendations") return { tab: "admin", kind: "admin-guideline-recommendations", guidelineId: parts[2] };
       return { tab: "admin", kind: "admin-guideline-detail", guidelineId: parts[2] };
     }
+    if (parts[1] === "may-tinh-y-khoa" || parts[1] === "calculators") {
+      if (!parts[2]) return { tab: "admin", kind: "admin-calculator-list" };
+      if (parts[2] === "new") return { tab: "admin", kind: "admin-calculator-new" };
+      if (parts[2] === "import") return { tab: "admin", kind: "admin-calculator-import" };
+      if (parts[3] === "edit") return { tab: "admin", kind: "admin-calculator-edit", calculatorId: parts[2] };
+      return { tab: "admin", kind: "admin-calculator-edit", calculatorId: parts[2] };
+    }
   }
+  if (parts[0] === "may-tinh-y-khoa" || parts[0] === "calculators") return { tab: "tools", kind: parts[1] ? "calculator-detail" : "calculator-list", calculatorSlug: parts[1] };
   if (parts[0] === "guidelines") {
     if (!parts[1]) return { tab: "guidelines", kind: "guideline-list" };
     if (parts[1] === "manage") return { tab: "admin", kind: "admin-guideline-list" };
@@ -61,5 +70,6 @@ export function canonicalDataPath(pathname: string): string {
     return `/admin/guidelines/${parts[1]}${tail.length ? `/${tail.join("/")}` : ""}`;
   }
   if (parts[0] === "drugs") return `/thuoc${parts.length > 1 ? `/${parts.slice(1).join("/")}` : ""}`;
+  if (parts[0] === "calculators") return `/may-tinh-y-khoa${parts.length > 1 ? `/${parts.slice(1).join("/")}` : ""}`;
   return pathname || "/";
 }

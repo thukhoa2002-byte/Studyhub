@@ -23,12 +23,27 @@ function now(): string {
   return new Date().toISOString();
 }
 
-function slugify(value: string): string {
+export function slugifyDrugName(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function createId(): string {
   return `thuoc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function uniqueValue(base: string, used: Set<string>): string {
+  const normalized = base || "thuoc";
+  if (!used.has(normalized)) return normalized;
+  let suffix = 2;
+  while (used.has(`${normalized}-${suffix}`)) suffix += 1;
+  return `${normalized}-${suffix}`;
+}
+
+export function getUniqueDrugIdentity(genericName: string, excludeId?: string): { id: string; slug: string } {
+  const catalog = readCatalog().filter((drug) => drug.id !== excludeId);
+  const slug = uniqueValue(slugifyDrugName(genericName), new Set(catalog.map((drug) => drug.slug)));
+  const id = uniqueValue(slug, new Set(catalog.map((drug) => drug.id)));
+  return { id, slug };
 }
 
 function stringArray(value: unknown): string[] {
@@ -64,7 +79,7 @@ function normalizeDrug(value: Partial<Drug>): Drug {
   const createdAt = value.createdAt || now();
   return {
     id: value.id || createId(),
-    slug: slugify(value.slug || titleVi) || createId(),
+    slug: slugifyDrugName(value.slug || titleVi) || createId(),
     genericName,
     titleVi,
     aliases: stringArray(value.aliases),
@@ -167,7 +182,10 @@ export function filterThuoc({ query = "", drugClass = "all", specialty = "all", 
 }
 
 export function createThuoc(input: Partial<ThuocInput>): Drug {
-  const created = normalizeDrug({ ...input, id: input.id || createId(), status: input.status || "draft", isPlaceholder: input.isPlaceholder ?? false, createdAt: input.createdAt || now(), updatedAt: now() });
+  const identity = getUniqueDrugIdentity(input.genericName || input.titleVi || "Thuốc");
+  const requestedSlug = slugifyDrugName(input.slug || input.genericName || input.titleVi || "Thuốc") || identity.slug;
+  const uniqueSlug = uniqueValue(requestedSlug, new Set(readCatalog().map((drug) => drug.slug)));
+  const created = normalizeDrug({ ...input, id: input.id || uniqueValue(uniqueSlug, new Set(readCatalog().map((drug) => drug.id))), slug: uniqueSlug, status: input.status || "draft", isPlaceholder: input.isPlaceholder ?? false, createdAt: input.createdAt || now(), updatedAt: now() });
   writeCatalog([...readCatalog(), created]);
   return created;
 }

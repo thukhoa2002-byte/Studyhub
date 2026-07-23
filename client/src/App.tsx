@@ -19,13 +19,15 @@ import AdminPage from "./components/AdminPage";
 import AdminLayout from "./components/AdminLayout";
 import AdminDrugPage from "./components/AdminDrugPage";
 import AdminDrugImportPage from "./components/AdminDrugImportPage";
+import AdminCalculatorPage from "./components/AdminCalculatorPage";
 import AdminGuidelinePage from "./components/AdminGuidelinePage";
+import CalculatorPublicPage from "./modules/calculators/CalculatorPublicPage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import type { ReferenceSection } from "./components/ReferenceSectionsPanel";
 import { canonicalDataPath, parseDataRoute, type DataRoute } from "./utils/dataRoutes";
 import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
-import { isAnalyticsAdmin, isDrugAdmin, isGuidelineAdmin, isSpecialUser } from "./config/access";
+import { isAnalyticsAdmin, isCalculatorAdmin, isDrugAdmin, isGuidelineAdmin, isSpecialUser } from "./config/access";
 import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, encodeCardCategory, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
 import { normalizeSubdeck, replaceSubdeckPrefix } from "./utils/subdeck";
 
@@ -251,6 +253,7 @@ export default function App() {
     setWorkspaceTab(nextTab);
     if (nextTab === "guidelines") navigateDataPath("/guidelines");
     else if (nextTab === "drugs") navigateDataPath("/thuoc");
+    else if (nextTab === "tools") navigateDataPath("/");
   }
 
   function navigateDataPath(path: string) {
@@ -813,10 +816,12 @@ export default function App() {
       ? isDrugAdmin(user?.email)
       : adminRoute.kind.startsWith("admin-guideline")
         ? isGuidelineAdmin(user?.email)
+        : adminRoute.kind.startsWith("admin-calculator")
+          ? isCalculatorAdmin(user?.email)
         : adminAllowed;
     return <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f3e8ff_0,#fff7fb_38%,#ecfdf5_100%)]">
       <AdminLayout user={user} route={adminRoute} onNavigate={navigateDataPath}>
-        {!user || !moduleAllowed ? <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không có quyền truy cập</h1><p className="mt-2 text-sm font-semibold text-rose-700">Khu vực này chỉ dành cho quản trị viên được cấp quyền.</p></section> : adminRoute.kind === "admin-dashboard" ? <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onAiCallsRemaining={setAiCallsRemaining} /> : adminRoute.kind === "admin-drug-import" ? <AdminDrugImportPage user={user} onNavigate={navigateDataPath} /> : adminRoute.kind.startsWith("admin-drug") ? <AdminDrugPage route={adminRoute} onNavigate={navigateDataPath} /> : <AdminGuidelinePage user={user} route={adminRoute} onAiCallsRemaining={setAiCallsRemaining} />}
+        {!user || !moduleAllowed ? <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không có quyền truy cập</h1><p className="mt-2 text-sm font-semibold text-rose-700">Khu vực này chỉ dành cho quản trị viên được cấp quyền.</p></section> : adminRoute.kind === "admin-dashboard" ? <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onOpenCalculators={() => navigateDataPath("/admin/may-tinh-y-khoa")} onAiCallsRemaining={setAiCallsRemaining} /> : adminRoute.kind.startsWith("admin-calculator") ? <AdminCalculatorPage route={adminRoute} onNavigate={navigateDataPath} /> : adminRoute.kind === "admin-drug-import" ? <AdminDrugImportPage user={user} onNavigate={navigateDataPath} /> : adminRoute.kind.startsWith("admin-drug") ? <AdminDrugPage route={adminRoute} onNavigate={navigateDataPath} /> : <AdminGuidelinePage user={user} route={adminRoute} onAiCallsRemaining={setAiCallsRemaining} />}
       </AdminLayout>
     </main>;
   }
@@ -863,7 +868,7 @@ export default function App() {
         </div>
 
         <div className={workspaceTab === "tools" ? "block" : "hidden"} aria-hidden={workspaceTab !== "tools"}>
-          <ReferenceLibraryPage user={user} section="tools" guidelineRoute={{ tab: "guidelines", kind: "guideline-list" }} onNavigate={navigateDataPath} />
+          {dataRoute.tab === "tools" ? <CalculatorPublicPage user={user} route={dataRoute} onNavigate={navigateDataPath} /> : <ReferenceLibraryPage user={user} section="tools" guidelineRoute={{ tab: "guidelines", kind: "guideline-list" }} onNavigate={navigateDataPath} />}
         </div>
 
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
@@ -873,7 +878,7 @@ export default function App() {
         {workspaceTab === "drugs" ? (
           <DrugsPage route={dataRoute.tab === "drugs" ? dataRoute : { tab: "drugs", kind: "drug-list" }} onNavigate={navigateDataPath} />
         ) : workspaceTab === "admin" ? (
-          <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onAiCallsRemaining={setAiCallsRemaining} />
+          <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onOpenCalculators={() => navigateDataPath("/admin/may-tinh-y-khoa")} onAiCallsRemaining={setAiCallsRemaining} />
         ) : workspaceTab !== "flashcards" ? null : editing && currentSavedDeck ? (
           <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} currentUserLabel={(user?.user_metadata?.full_name as string | undefined) || user?.email || "Thành viên"} />
         ) : questions.length === 0 ? (

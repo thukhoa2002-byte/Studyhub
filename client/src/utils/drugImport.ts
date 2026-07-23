@@ -11,6 +11,7 @@ export interface DrugImportCandidate {
   duplicateStatus: "new_record" | "exact_duplicate" | "possible_duplicate";
   importStatus: "pending" | "extracting" | "validating" | "valid" | "invalid" | "duplicate" | "ready" | "saving" | "saved" | "failed";
   aiMetadata?: DrugImportMetadata;
+  provenance?: DrugProvenance[];
 }
 
 const statuses = new Set(["draft", "in_review", "reviewed", "published", "archived"]);
@@ -46,7 +47,6 @@ export function unwrapDrugImport(value: unknown): Record<string, unknown>[] {
 export function validateDrugImport(drug: Partial<Drug>): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
-  if (!stringValue(drug.id) && !stringValue(drug.slug)) errors.push("id: cần nhập id hoặc slug.");
   if (stringValue(drug.slug) && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(stringValue(drug.slug))) errors.push("slug: chỉ dùng chữ thường, số, dấu gạch ngang.");
   if (!stringValue(drug.genericName)) errors.push("genericName: bắt buộc và không được để trống.");
   if (drug.status && !statuses.has(drug.status)) errors.push("status: giá trị không hợp lệ.");

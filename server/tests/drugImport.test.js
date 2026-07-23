@@ -39,8 +39,8 @@ test("validation rejects published or source-verified imports", () => {
 
 test("validation reports missing required fields", () => {
   const result = validateDrugRecord({ titleVi: "Không đủ trường" });
-  assert.ok(result.errors.some((error) => error.startsWith("id:")));
   assert.ok(result.errors.some((error) => error.startsWith("genericName:")));
+  assert.equal(result.errors.some((error) => error.startsWith("id:")), false);
 });
 
 test("guideline table validation keeps each active ingredient as a separate row", () => {

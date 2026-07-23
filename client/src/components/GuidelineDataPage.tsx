@@ -4,6 +4,7 @@ import type { DataRoute } from "../utils/dataRoutes";
 import { drugPath, guidelinePath } from "../utils/dataRoutes";
 import { getAllGuidelines, getDrugById, getGuidelineBySlug, loadGuidelines } from "../services/guidelineService";
 import type { Guideline, GuidelineRecommendation } from "../types/guideline";
+import { getCalculatorReferencesForGuideline } from "../services/calculatorService";
 
 type GuidelineRoute = Extract<DataRoute, { tab: "guidelines"; kind: "guideline-list" | "guideline-detail" }>;
 
@@ -62,6 +63,7 @@ function RecommendationCard({ guideline, sectionSlug, recommendation, onNavigate
 }
 
 function GuidelineDetail({ guideline, route, onNavigate }: { guideline: Guideline; route: Extract<GuidelineRoute, { kind: "guideline-detail" }>; onNavigate: (path: string) => void }) {
+  const relatedCalculators = getCalculatorReferencesForGuideline(guideline.id);
   useEffect(() => {
     const targetId = route.recommendationId || (route.sectionSlug ? `section-${route.sectionSlug}` : "");
     if (!targetId) return;
@@ -82,6 +84,7 @@ function GuidelineDetail({ guideline, route, onNavigate }: { guideline: Guidelin
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white/80 p-3 lg:sticky lg:top-4"><p className="px-2 pb-2 text-xs font-extrabold uppercase tracking-[.12em] text-slate-400">Mục guideline</p><nav className="grid gap-1">{guideline.sections.slice().sort((a, b) => a.order - b.order).map((section) => <a key={section.id} href={`#section-${section.slug}`} className="rounded-xl px-2 py-2 text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-700">{section.titleVi}</a>)}</nav></aside>
         <div className="min-w-0">
           <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-800"><div className="flex items-start gap-2"><ShieldAlert className="mt-0.5 shrink-0" size={18} /><p>{guideline.summary} Chưa hiển thị nhãn đã xác minh vì dữ liệu mẫu chưa có nguồn được đối chiếu.</p></div></div>
+          {relatedCalculators.length > 0 && <section className="mt-4 rounded-2xl border border-teal-200 bg-teal-50/50 p-4"><h2 className="text-sm font-extrabold text-teal-800">Máy tính liên quan</h2><div className="mt-2 flex flex-wrap gap-2">{relatedCalculators.map((calculator) => <button key={calculator.id} type="button" onClick={() => onNavigate(`/may-tinh-y-khoa/${calculator.slug}`)} className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-bold text-teal-700">{calculator.nameVi}</button>)}</div></section>}
           <div className="mt-4 space-y-4">{guideline.sections.slice().sort((a, b) => a.order - b.order).map((section) => <section key={section.id} id={`section-${section.slug}`} className="scroll-mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-extrabold uppercase tracking-[.12em] text-violet-500">Mục {section.order}</p><h2 className="mt-1 text-lg font-extrabold text-slate-800">{section.titleVi}</h2><p className="text-sm font-semibold text-slate-400">{section.title}</p></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">{section.recommendations.length} khuyến cáo</span></div><p className="mt-3 text-sm leading-6 text-slate-600">{section.summary}</p>{section.recommendations.length > 0 && <div className="mt-4 space-y-3">{section.recommendations.map((recommendation) => <RecommendationCard key={recommendation.id} guideline={guideline} sectionSlug={section.slug} recommendation={recommendation} onNavigate={onNavigate} />)}</div>}</section>)}</div>
         </div>
       </div>

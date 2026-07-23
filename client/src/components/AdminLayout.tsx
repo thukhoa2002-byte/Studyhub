@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpenCheck, ChevronRight, FileInput, LayoutDashboard, Pill, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, Calculator, ChevronRight, FileInput, LayoutDashboard, Pill, ShieldCheck } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import type { ReactNode } from "react";
 import type { DataRoute } from "../utils/dataRoutes";
@@ -15,6 +15,7 @@ interface Props {
 function breadcrumb(route: AdminRoute) {
   if (route.kind.startsWith("admin-drug")) return ["Thuốc", route.kind === "admin-drug-new" ? "Thêm thuốc" : route.kind === "admin-drug-import" ? "Nhập dữ liệu" : route.drugId || "Danh sách"];
   if (route.kind.startsWith("admin-guideline")) return ["Guideline", route.kind === "admin-guideline-new" ? "Thêm guideline" : route.guidelineId || "Danh sách"];
+  if (route.kind.startsWith("admin-calculator")) return ["Máy tính y khoa", route.kind === "admin-calculator-new" ? "Thêm máy tính" : route.kind === "admin-calculator-import" ? "Nhập dữ liệu" : route.calculatorId || "Danh sách"];
   return [];
 }
 
@@ -35,6 +36,10 @@ export default function AdminLayout({ user, route, onNavigate, children }: Props
           <AdminSubNavItem active={route.kind === "admin-drug-new"} label="Thêm thuốc" onClick={() => onNavigate("/admin/thuoc/new")} />
           <AdminSubNavItem active={route.kind === "admin-drug-import"} icon={<FileInput size={15} />} label="Nhập dữ liệu" onClick={() => onNavigate("/admin/thuoc/import")} />
           <AdminNavItem active={route.kind.startsWith("admin-guideline")} icon={<BookOpenCheck size={18} />} label="Guideline" onClick={() => onNavigate("/admin/guidelines")} />
+          <AdminNavItem active={route.kind.startsWith("admin-calculator")} icon={<Calculator size={18} />} label="Máy tính y khoa" onClick={() => onNavigate("/admin/may-tinh-y-khoa")} />
+          <AdminSubNavItem active={route.kind === "admin-calculator-list"} label="Danh sách máy tính" onClick={() => onNavigate("/admin/may-tinh-y-khoa")} />
+          <AdminSubNavItem active={route.kind === "admin-calculator-new"} label="Thêm máy tính" onClick={() => onNavigate("/admin/may-tinh-y-khoa/new")} />
+          <AdminSubNavItem active={route.kind === "admin-calculator-import"} icon={<FileInput size={15} />} label="Nhập dữ liệu" onClick={() => onNavigate("/admin/may-tinh-y-khoa/import")} />
         </nav>
         <div className="mt-auto grid gap-2 border-t border-slate-200/80 pt-5">
           <button type="button" onClick={() => onNavigate("/guidelines")} className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-500 hover:bg-violet-50 hover:text-violet-700"><ArrowLeft size={16} />Trang công khai</button>
@@ -48,11 +53,12 @@ export default function AdminLayout({ user, route, onNavigate, children }: Props
             <button type="button" onClick={() => onNavigate("/")} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:border-violet-200 hover:bg-violet-50"><ArrowLeft size={16} />Rời quản trị</button>
           </div>
         </header>
-        <nav className="grid grid-cols-3 gap-2 border-b border-violet-100/80 bg-white/60 p-3 lg:hidden" aria-label="Điều hướng quản trị trên thiết bị nhỏ">
+        <nav className="grid grid-cols-4 gap-2 border-b border-violet-100/80 bg-white/60 p-3 lg:hidden" aria-label="Điều hướng quản trị trên thiết bị nhỏ">
           <AdminNavItem active={route.kind === "admin-dashboard"} icon={<LayoutDashboard size={16} />} label="Tổng quan" onClick={() => onNavigate("/admin")} />
           <AdminNavItem active={route.kind.startsWith("admin-drug")} icon={<Pill size={16} />} label="Thuốc" onClick={() => onNavigate("/admin/thuoc")} />
           <AdminSubNavItem active={route.kind === "admin-drug-import"} icon={<FileInput size={14} />} label="Nhập dữ liệu" onClick={() => onNavigate("/admin/thuoc/import")} />
           <AdminNavItem active={route.kind.startsWith("admin-guideline")} icon={<BookOpenCheck size={16} />} label="Guideline" onClick={() => onNavigate("/admin/guidelines")} />
+          <AdminNavItem active={route.kind.startsWith("admin-calculator")} icon={<Calculator size={16} />} label="Máy tính" onClick={() => onNavigate("/admin/may-tinh-y-khoa")} />
         </nav>
         <div className="p-4 sm:p-6 xl:p-8">{children}</div>
       </main>
