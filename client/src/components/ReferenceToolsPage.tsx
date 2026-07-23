@@ -262,6 +262,15 @@ function CalculatorSearch({ options, onSelect }: { options: Array<{ id: Calculat
   </div>;
 }
 
+function ReferenceChoiceField({ field, value, onChange }: { field: ReferenceField; value: string; onChange: (value: string) => void }) {
+  return <div className="rounded-xl border border-slate-200 bg-white p-3">
+    <p className="text-sm font-bold text-slate-700">{field.label}</p>
+    <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-1.5" role="group" aria-label={field.label}>
+      {field.options?.map((option) => <button key={option.value} type="button" aria-pressed={option.value === value} onClick={() => onChange(option.value)} className={`min-h-10 rounded-lg border px-2 py-2 text-xs font-extrabold transition ${option.value === value ? "border-teal-600 bg-teal-500 text-white shadow-sm" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800"}`}>{option.label}</button>)}
+    </div>
+  </div>;
+}
+
 function CalculatorFormulaReference({ calculatorType, egfrFormula, crclFormula }: { calculatorType: CalculatorType; egfrFormula: EgfrFormula; crclFormula: CrclFormula }) {
   let title = "BMI · Body Mass Index";
   let description = "Chỉ số khối cơ thể";
@@ -448,7 +457,7 @@ function ReferenceCalculatorPanel({ calculatorType, values, onChange }: { calcul
 
   return <div className="mt-5 rounded-2xl border border-white bg-white/85 p-4 sm:p-5">
     <div><p className="text-sm font-extrabold text-slate-700">Nhập dữ liệu</p><p className="mt-1 text-xs font-semibold text-slate-500">Không có giá trị mặc định. Chọn hoặc nhập từng tiêu chí để xem kết quả.</p></div>
-    {fields.length > 0 ? <div className="mt-4 grid gap-4 md:grid-cols-2">{fields.map((field) => field.options ? <AnimatedDropdown key={field.key} label={field.label} value={values[field.key] || ""} options={[{ value: "", label: "Chọn giá trị" }, ...field.options]} onChange={(value) => onChange(field.key, value)} /> : <label key={field.key} className="block min-w-0 text-sm font-bold text-slate-700">{field.label}<input type="number" inputMode="decimal" step="any" value={values[field.key] || ""} onChange={(event) => onChange(field.key, event.target.value)} placeholder={field.placeholder || "Nhập giá trị"} className="medical-value-input mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-teal-400" /></label>)}</div> : <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-3 text-sm font-semibold text-amber-800">Công thức này cần bảng điểm chuẩn để tính chính xác. Bạn có thể tra cứu công thức ở tab bên cạnh.</p>}
+    {fields.length > 0 ? <div className="mt-4 grid gap-3">{fields.map((field) => field.options ? <ReferenceChoiceField key={field.key} field={field} value={values[field.key] || ""} onChange={(value) => onChange(field.key, value)} /> : <label key={field.key} className="block min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-700">{field.label}<input type="number" inputMode="decimal" step="any" value={values[field.key] || ""} onChange={(event) => onChange(field.key, event.target.value)} placeholder={field.placeholder || "Nhập giá trị"} className="medical-value-input mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-teal-400" /></label>)}</div> : <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-3 text-sm font-semibold text-amber-800">Công thức này cần bảng điểm chuẩn để tính chính xác. Bạn có thể tra cứu công thức ở tab bên cạnh.</p>}
     <div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-teal-100 bg-teal-50/60 p-4"><div><p className="text-sm font-bold text-slate-500">{resultLabel}</p><p className="mt-1 text-4xl font-black text-teal-800">{result === null ? "—" : result.toFixed(1)} {resultUnit && <span className="text-base font-extrabold">{resultUnit}</span>}</p></div><p className="max-w-xl text-sm font-semibold leading-6 text-slate-600">{interpretation}</p></div>
   </div>;
 }
