@@ -603,6 +603,13 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><McqIcon size={19} /></span>
           <div className="min-w-0 flex-1"><p className="truncate text-sm font-extrabold text-slate-800">{deck.title}</p><p className="text-xs font-semibold text-slate-400">{deck.questionCount || 0} câu</p></div>
           <button type="button" onClick={() => void requestDeckEdit(deck)} aria-label={`Sửa ${deck.title}`} title={`Sửa ${deck.title}`} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-200 bg-white text-violet-700 transition hover:bg-violet-100"><Pencil size={16} /></button>
+          <div className="relative shrink-0">
+            <button type="button" onClick={() => setOpenDeckMenuId((current) => current === deck.key ? null : deck.key)} aria-label={`Chuyển ${deck.title} vào thư mục`} title="Chuyển vào thư mục" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200 bg-white text-amber-700 transition hover:bg-amber-50"><FolderInput size={16} /></button>
+            {openDeckMenuId === deck.key && <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 text-left shadow-[0_18px_40px_rgba(15,23,42,.2)]">
+              <label className="block rounded-xl px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">Chuyển vào thư mục<select value={deck.folderId || ""} onChange={(event) => void moveDeckToFolder(deck, event.target.value || null)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-700"><option value="">Thư mục gốc</option>{libraryFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.parent_id ? "↳ " : ""}{folder.title}</option>)}</select></label>
+            </div>}
+          </div>
+          <button type="button" onClick={() => void removeDeck(deck)} aria-label={`Xóa ${deck.title}`} title={`Xóa ${deck.title}`} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"><Trash2 size={16} /></button>
         </div>)}
       </div> : <p className="mt-4 rounded-2xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm font-semibold text-slate-400">Chưa có bộ MCQ để sửa.</p>}
     </aside>;
