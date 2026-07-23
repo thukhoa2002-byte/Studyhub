@@ -341,6 +341,25 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     setQuestions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
   }
 
+  function getSharedContextRange(index: number) {
+    const context = cleanLine(questions[index]?.shared_context || "");
+    if (!context) return null;
+    let start = index;
+    let end = index;
+    while (start > 0 && cleanLine(questions[start - 1]?.shared_context || "") === context) start -= 1;
+    while (end < questions.length - 1 && cleanLine(questions[end + 1]?.shared_context || "") === context) end += 1;
+    return {
+      start,
+      end,
+      startNumber: questions[start]?.source_number || start + 1,
+      endNumber: questions[end]?.source_number || end + 1,
+    };
+  }
+
+  function editSharedContext(start: number, end: number, value: string) {
+    setQuestions((items) => items.map((item, itemIndex) => itemIndex >= start && itemIndex <= end ? { ...item, shared_context: value } : item));
+  }
+
   function editOption(questionIndex: number, optionIndex: number, text: string) {
     setQuestions((items) => items.map((item, itemIndex) => itemIndex === questionIndex ? {
       ...item,
@@ -558,9 +577,13 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
 
     {questions.length > 0 && <div className="mt-7 border-t border-violet-100 pt-6">
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"><label className="text-sm font-bold text-slate-700">Tên bộ trắc nghiệm<input value={title} onChange={(event) => { setTitle(event.target.value); setReviewed(false); }} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Mô tả ngắn<input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Chủ đề, nguồn hoặc phạm vi câu hỏi" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-violet-400" /></label><label className="text-sm font-bold text-slate-700">Quyền xem<select value={visibility} onChange={(event) => setVisibility(event.target.value as "draft" | "published")} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none focus:border-violet-400"><option value="draft">Riêng tư</option><option value="published">Công khai</option></select></label></div>
-      <div className="mt-5 space-y-4">{questions.map((question, questionIndex) => <article key={question.id} className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+      <div className="mt-5 space-y-4">{questions.map((question, questionIndex) => {
+        const sharedContext = cleanLine(question.shared_context || "");
+        const sharedContextRange = getSharedContextRange(questionIndex);
+        const showSharedContext = Boolean(sharedContextRange?.start === questionIndex);
+        return <article key={question.id} className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3"><label className="text-xs font-black uppercase tracking-wider text-violet-600">Câu nguồn<input type="number" min={1} value={question.source_number} onChange={(event) => editQuestion(questionIndex, { source_number: Number(event.target.value) })} className="ml-2 w-20 rounded-lg border border-slate-200 px-2 py-1 text-slate-700" /></label><div className="flex shrink-0 items-center gap-1"><FileDropZone id={`mcq-image-${question.id}`} accept="image/png,image/jpeg,image/webp" onFiles={(files) => { void attachQuestionImage(questionIndex, files[0]); }} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-violet-600 hover:bg-violet-50" ariaLabel={question.image_url ? "Đổi hình câu hỏi" : "Thêm hình câu hỏi"} title={question.image_url ? "Đổi hình câu hỏi" : "Thêm hình câu hỏi"}><ImagePlus size={17} /></FileDropZone><button type="button" title="Dán hình từ clipboard" aria-label="Dán hình từ clipboard" onClick={() => void attachQuestionImageFromClipboard(questionIndex)} className="flex h-8 w-8 items-center justify-center rounded-lg text-violet-600 hover:bg-violet-50"><ClipboardPaste size={16} /></button>{question.image_url && <button type="button" title="Bỏ hình câu hỏi" aria-label="Bỏ hình câu hỏi" onClick={() => editQuestion(questionIndex, { image_url: undefined, image_alt: "" })} className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"><X size={17} /></button>}<button type="button" aria-label={`Xóa câu ${questionIndex + 1}`} title={`Xóa câu ${questionIndex + 1}`} onClick={() => { if (!confirm(`Xóa câu ${questionIndex + 1}?`)) return; setQuestions((items) => items.filter((_, index) => index !== questionIndex)); setReviewed(false); }} className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50"><Trash2 size={16} /></button></div></div>
-        {question.shared_context !== undefined ? <label className="mt-3 block text-xs font-black uppercase tracking-wider text-amber-700">Tình huống chung cho nhóm câu<textarea value={question.shared_context} onChange={(event) => editQuestion(questionIndex, { shared_context: event.target.value })} rows={4} placeholder="Dữ kiện/bệnh cảnh dùng chung cho các câu phía dưới" className="mt-1.5 w-full resize-y rounded-xl border border-amber-200 bg-amber-50/40 px-3 py-2.5 text-sm font-normal normal-case tracking-normal leading-6 text-slate-700 outline-none focus:border-amber-400" /></label> : <button type="button" onClick={() => editQuestion(questionIndex, { shared_context: "" })} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/40 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50"><Plus size={14} />Thêm tình huống chung</button>}
+        {showSharedContext && sharedContextRange ? <label className="mt-3 block text-xs font-black uppercase tracking-wider text-amber-700">{sharedContextRange.startNumber === sharedContextRange.endNumber ? `Tình huống dùng cho câu ${sharedContextRange.startNumber}` : `Tình huống dùng cho câu ${sharedContextRange.startNumber} đến câu ${sharedContextRange.endNumber}`}<textarea value={sharedContext} onChange={(event) => editSharedContext(sharedContextRange.start, sharedContextRange.end, event.target.value)} rows={4} placeholder="Dữ kiện/bệnh cảnh dùng chung cho các câu phía dưới" className="mt-1.5 w-full resize-y rounded-xl border border-amber-200 bg-amber-50/40 px-3 py-2.5 text-sm font-normal normal-case tracking-normal leading-6 text-slate-700 outline-none focus:border-amber-400" /></label> : !sharedContext ? <button type="button" onClick={() => editQuestion(questionIndex, { shared_context: "" })} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/40 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50"><Plus size={14} />Thêm tình huống chung</button> : null}
         <textarea value={question.question} onChange={(event) => editQuestion(questionIndex, { question: event.target.value })} rows={2} className="mt-3 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 font-bold leading-6 outline-none focus:border-violet-400" />
         {question.image_url && <figure className="mt-3"><img src={question.image_url} alt={question.image_alt || "Hình kèm câu hỏi"} onClick={() => openCropEditor(questionIndex, question.image_url)} title="Bấm để mở hình và cắt" className="block h-auto max-h-[70vh] max-w-full cursor-zoom-in rounded-2xl border border-slate-200 object-contain" /><div className="mt-2 flex flex-wrap items-center gap-2"><button type="button" onClick={() => openCropEditor(questionIndex, question.image_url)} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-50"><Crop size={15} />Cắt hình</button><input value={question.image_alt || ""} onChange={(event) => editQuestion(questionIndex, { image_alt: event.target.value })} placeholder="Chú thích trung tính cho ảnh" className="min-w-[220px] flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div></figure>}
         <div className="mt-3 grid gap-2 sm:grid-cols-2">{question.options.map((option, optionIndex) => {
@@ -572,7 +595,8 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
           <label className="text-sm font-bold normal-case tracking-normal text-slate-900">Giải thích / ghi chú sau khi hiện đáp án<RichTextEditor value={question.explanation || ""} onChange={(value) => editQuestion(questionIndex, { explanation: value })} placeholder="Giữ nguyên lời giải, ghi chú, căn cứ hoặc ngoại lệ trong tài liệu nguồn." /></label>
         </div>
         {question.review_note && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Cần kiểm tra: {question.review_note}</p>}
-      </article>)}</div>
+      </article>;
+      })}</div>
       <button type="button" onClick={() => { setQuestions((items) => [...items, { id: crypto.randomUUID(), source_number: items.length + 1, question: "", options: requiredOptionIds.map((id) => ({ id, text: "" })) }]); setReviewed(false); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700"><Plus size={17} />Thêm câu thủ công</button>
       <p className="mt-4 text-right text-xs font-semibold text-slate-500">Bản Word gồm toàn bộ câu hỏi trong một file, chỉ tải về máy của bạn và không xuất hiện trong thư viện trắc nghiệm.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3">
