@@ -405,6 +405,7 @@ async function extractDocxContent(file) {
 function parseLocalMcqText(text, originalname) {
   const lines = String(text || "")
     .replace(/\r/g, "")
+    .replace(/\s+(?=[A-Ea-e]\s*[.)\]:-]\s+)/g, "\n")
     .split("\n")
     .map((line) => line.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim())
     .filter(Boolean);
@@ -489,11 +490,25 @@ function parseLocalMcqText(text, originalname) {
         continue;
       }
       finishCurrent();
-      current = { rawNumber: Number(questionMatch[1]), question: [questionMatch[2]], options: { A: [], B: [], C: [], D: [] }, correctAnswer: "", explanation: [] };
+      current = { rawNumber: Number(questionMatch[1]), question: [questionMatch[2]], options: { A: [], B: [], C: [], D: [] }, correctAnswer: "", explanation: [], pendingOption: "" };
       mode = "question";
       continue;
     }
     if (!current) continue;
+
+    const bareOptionMatch = structuralLine.match(/^[([\[]?([A-E])[\])\]]?$/iu);
+    if (bareOptionMatch) {
+      const optionId = bareOptionMatch[1].toUpperCase();
+      const hasAllOptions = ["A", "B", "C", "D"].every((id) => current.options[id].length > 0);
+      if (hasAllOptions && optionId !== "E") {
+        current.correctAnswer = optionId;
+        mode = "answer";
+      } else {
+        if (optionId !== "E") current.pendingOption = optionId;
+        mode = "option";
+      }
+      continue;
+    }
 
     const optionMatch = structuralLine.match(optionPattern);
     if (optionMatch) {
@@ -507,6 +522,7 @@ function parseLocalMcqText(text, originalname) {
         current.options.D.push(`${optionId}. ${formattedOptionText}`);
       } else {
         append(current.options[optionId], formattedOptionText);
+        current.pendingOption = "";
         mode = "option";
       }
       continue;
@@ -526,7 +542,10 @@ function parseLocalMcqText(text, originalname) {
       continue;
     }
 
-    if (mode === "option") {
+    if (current.pendingOption) {
+      append(current.options[current.pendingOption], line);
+      current.pendingOption = "";
+    } else if (mode === "option") {
       const lastOption = ["D", "C", "B", "A"].find((id) => current.options[id].length);
       if (lastOption) append(current.options[lastOption], line);
     } else if (mode === "answer" || mode === "explanation") {
