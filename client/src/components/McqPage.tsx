@@ -640,11 +640,11 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   if (!opened) return (
     <section className="mode-panel mx-auto w-full max-w-[1600px] px-5 py-8" aria-labelledby="mcq-title">
       {section === "create" && <>
-        <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,0.84fr)_minmax(0,1.16fr)]">
+        <div className="relative z-30 grid items-stretch gap-5 lg:grid-cols-[minmax(0,0.84fr)_minmax(0,1.16fr)]">
           <McqAccessPanel userEmail={userEmail} visible={Boolean(userId)} />
           {renderEditableDecks()}
         </div>
-        {(adminAccessReady || isOwner) && canManage && userId && <div id="mcq-admin-studio" className="mt-5"><McqAdminStudio userId={userId} drafts={libraryBanks} requestedBank={requestedEditBank} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} showDrafts={false} /></div>}
+        {(adminAccessReady || isOwner) && canManage && userId && <div id="mcq-admin-studio" className="relative z-0 mt-5"><McqAdminStudio userId={userId} drafts={libraryBanks} requestedBank={requestedEditBank} onChanged={refreshLibrary} onAiCallsRemaining={onAiCallsRemaining} showDrafts={false} /></div>}
       </>}
       {section === "banks" && <div className="glass-panel overflow-hidden border border-violet-100/80 bg-white/70 p-6 sm:p-10">
         <div className="flex items-start justify-between gap-4">
