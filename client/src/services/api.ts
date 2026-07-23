@@ -190,6 +190,27 @@ export async function extractMcqFiles(files: File[]): Promise<McqImportResponse>
   }
 }
 
+export async function extractMcqFilesLocally(files: File[]): Promise<McqImportResponse> {
+  const { supabase } = await import("./supabase");
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  const { data: { session } } = await supabase.auth.getSession();
+  let accessToken = session?.access_token || "";
+  if (!accessToken) {
+    const refreshed = await supabase.auth.refreshSession();
+    if (refreshed.error || !refreshed.data.session?.access_token) throw new Error("Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để tiếp tục.");
+    accessToken = refreshed.data.session.access_token;
+  }
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+  const response = await fetch(`${API_URL}/api/mcq-import/local`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: formData,
+  });
+  if (!response.ok) throw new Error(await apiErrorMessage(response, "Không thể nhận diện file trên máy."));
+  return (await response.json()) as McqImportResponse;
+}
+
 export interface ExtractedGuidelineEntry {
   topic: string;
   drugName: string;

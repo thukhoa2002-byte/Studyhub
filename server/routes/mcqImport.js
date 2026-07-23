@@ -397,6 +397,127 @@ async function extractDocxContent(file) {
   return { text, images };
 }
 
+function parseLocalMcqText(text, originalname) {
+  const lines = String(text || "")
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim())
+    .filter(Boolean);
+  const questionStartPattern = /^(?:(?:câu|question)\s*)?(\d{1,4})\s*[.)\-:]\s*(.*)$/iu;
+  const optionPattern = /^[([\[]?([A-E])[\])\].:\-]\s*(.+)$/iu;
+  const answerPattern = /^(?:đáp án(?: đúng)?|đáp án|answer|correct answer)\s*[:\-]?\s*([A-E])\b/iu;
+  const explanationPattern = /^(?:giải thích|lời giải|explanation|solution)\s*[:\-]?\s*(.*)$/iu;
+  const answerKeyPattern = /^(?:đáp án|answer key|answers?)\s*[:\-]?\s*(.*)$/iu;
+  const answerKey = new Map();
+  const questions = [];
+  let current = null;
+  let mode = "question";
+
+  function append(target, value) {
+    const clean = String(value || "").trim();
+    if (!clean) return;
+    target.push(clean);
+  }
+
+  function finishCurrent() {
+    if (!current) return;
+    const question = current.question.join(" ").trim();
+    const options = ["A", "B", "C", "D"].map((id) => ({
+      id,
+      text: current.options[id].join(" ").trim(),
+    }));
+    if (question || options.some((option) => option.text) || current.explanation.length) {
+      questions.push({
+        id: randomUUID(),
+        source_number: questions.length + 1,
+        question,
+        options,
+        correct_answer: current.correctAnswer || answerKey.get(current.rawNumber) || "",
+        explanation: current.explanation.join(" ").trim(),
+        image_source_name: "",
+        image_alt: "",
+        review_note: options.some((option) => !option.text) ? "Thiếu lựa chọn trong dữ liệu văn bản; cần kiểm tra lại file Word." : "",
+        source_page: undefined,
+        image_page: undefined,
+        shared_context: "",
+      });
+    }
+    current = null;
+    mode = "question";
+  }
+
+  for (const line of lines) {
+    const answerKeyLine = line.match(answerKeyPattern);
+    const answerPairs = [...(answerKeyLine?.[1] || line).matchAll(/(?:^|\s)(\d{1,4})\s*[.)\-:]?\s*([A-E])(?=\s|$)/giu)];
+    if (answerKeyLine) {
+      for (const pair of answerPairs) answerKey.set(Number(pair[1]), pair[2].toUpperCase());
+      const directAnswer = (answerKeyLine[1] || "").trim().match(/^([A-E])$/iu);
+      if (directAnswer && current) current.correctAnswer = directAnswer[1].toUpperCase();
+      continue;
+    }
+    if (answerPairs.length >= 2 && !line.match(optionPattern)) {
+      for (const pair of answerPairs) answerKey.set(Number(pair[1]), pair[2].toUpperCase());
+      continue;
+    }
+
+    const questionMatch = line.match(questionStartPattern);
+    if (questionMatch && !/^[A-E][.)\]:\-]/iu.test(questionMatch[2])) {
+      const numberOnlyAnswer = line.match(/^\d{1,4}\s*[.)\-:]\s*([A-E])\s*$/iu);
+      if (numberOnlyAnswer) {
+        answerKey.set(Number(questionMatch[1]), numberOnlyAnswer[1].toUpperCase());
+        continue;
+      }
+      finishCurrent();
+      current = { rawNumber: Number(questionMatch[1]), question: [questionMatch[2]], options: { A: [], B: [], C: [], D: [] }, correctAnswer: "", explanation: [] };
+      mode = "question";
+      continue;
+    }
+    if (!current) continue;
+
+    const optionMatch = line.match(optionPattern);
+    if (optionMatch) {
+      const optionId = optionMatch[1].toUpperCase();
+      if (optionId === "E") {
+        current.options.D.push(`${optionId}. ${optionMatch[2]}`);
+      } else {
+        append(current.options[optionId], optionMatch[2]);
+        mode = "option";
+      }
+      continue;
+    }
+
+    const answerMatch = line.match(answerPattern);
+    if (answerMatch) {
+      current.correctAnswer = answerMatch[1].toUpperCase();
+      mode = "answer";
+      continue;
+    }
+
+    const explanationMatch = line.match(explanationPattern);
+    if (explanationMatch) {
+      append(current.explanation, explanationMatch[1]);
+      mode = "explanation";
+      continue;
+    }
+
+    if (mode === "option") {
+      const lastOption = ["D", "C", "B", "A"].find((id) => current.options[id].length);
+      if (lastOption) append(current.options[lastOption], line);
+    } else if (mode === "answer" || mode === "explanation") {
+      append(current.explanation, line);
+      mode = "explanation";
+    } else {
+      append(current.question, line);
+    }
+  }
+  finishCurrent();
+  if (!questions.length) throw new Error("Không nhận diện được câu hỏi theo cấu trúc Câu 1 và lựa chọn A-D. Hãy dùng file Word có đánh số câu và lựa chọn rõ ràng.");
+  return {
+    title: lines.find((line) => !questionStartPattern.test(line) && !optionPattern.test(line)) || originalname?.replace(/\.docx$/i, "") || "Bộ trắc nghiệm mới",
+    questions,
+  };
+}
+
 async function prepareMcqFile(file) {
   if (!isDocxFile(file)) return file;
   const { text, images } = await extractDocxContent(file);
@@ -571,6 +692,34 @@ function findMcqImportJob(req, res) {
   }
   return job;
 }
+
+router.post("/local", requireMcqAdmin, uploadFiles, async (req, res) => {
+  const files = req.files || [];
+  try {
+    const validation = validateMcqFiles(files);
+    if (validation) return res.status(validation.status).json({ success: false, message: validation.message });
+    if (files.some((file) => !isDocxFile(file))) {
+      return res.status(415).json({ success: false, message: "Nhận diện trên máy hiện hỗ trợ file Word .docx. PDF/ảnh scan cần dùng OCR hoặc Gemini để đọc chính xác hơn." });
+    }
+    const preparedFiles = await Promise.all(files.map(prepareMcqFile));
+    const parsed = preparedFiles.map((file) => parseLocalMcqText(file.buffer?.toString("utf8"), file.originalname));
+    const questions = normalizeQuestions(parsed.flatMap((result) => result.questions || []));
+    attachDocxImages(questions, preparedFiles);
+    return res.json({
+      success: true,
+      data: {
+        title: parsed.find((result) => result.title?.trim())?.title || "Bộ trắc nghiệm mới",
+        questions,
+      },
+      local: true,
+    });
+  } catch (error) {
+    console.error("Local MCQ import failed", error);
+    return res.status(error?.status || 422).json({ success: false, message: error?.message || "Không thể nhận diện file Word trên máy." });
+  } finally {
+    await cleanupUploadedFiles(files);
+  }
+});
 
 router.post("/jobs", requireMcqAdmin, uploadFiles, (req, res) => {
   const files = req.files || [];

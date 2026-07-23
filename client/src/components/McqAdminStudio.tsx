@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { Check, ClipboardPaste, Crop, Download, FileSearch, FileText, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
-import { extractMcqFiles } from "../services/api";
+import { extractMcqFiles, extractMcqFilesLocally } from "../services/api";
 import { deleteMcqBank, mcqLibraryErrorMessage, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
 import FileDropZone from "./FileDropZone";
 import RichTextEditor from "./RichTextEditor";
@@ -306,6 +306,36 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     } finally { setBusy(false); }
   }
 
+  async function extractLocally(sourceFile = wordFile) {
+    if (!sourceFile) return;
+    setBusy(true); setError(""); setNotice("Đang nhận diện file Word trên máy. Không gọi Gemini và không trừ quota...");
+    try {
+      const result = await extractMcqFilesLocally([sourceFile]);
+      setBankId(undefined);
+      setVisibility("draft");
+      setTitle(cleanLine(result.data.title) || "Bộ trắc nghiệm mới");
+      setDescription("");
+      setQuestions(result.data.questions.map((question, index) => ({
+        id: crypto.randomUUID(),
+        source_number: question.source_number || index + 1,
+        question: cleanLine(question.question),
+        options: requiredOptionIds.map((id) => ({ id, text: cleanLine(question.options.find((option) => option.id === id)?.text || "") })),
+        correct_answer: question.correct_answer || "",
+        explanation: cleanLine(question.explanation),
+        image_url: question.image_url,
+        image_alt: cleanLine(question.image_alt),
+        review_note: cleanLine(question.review_note),
+        source_page: question.source_page,
+        image_page: question.image_page,
+        shared_context: cleanLine(question.shared_context || ""),
+      })));
+      setNotice("Đã nhận diện Word trên máy, không dùng Gemini. Hãy kiểm tra các câu còn thiếu lựa chọn hoặc đáp án trước khi lưu.");
+    } catch (extractError) {
+      setNotice("");
+      setError(extractError instanceof Error ? extractError.message : "Không thể nhận diện file Word trên máy.");
+    } finally { setBusy(false); }
+  }
+
   function editQuestion(index: number, patch: Partial<McqLibraryQuestion>) {
     setQuestions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
   }
@@ -502,11 +532,14 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
           <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : isJsonFile(files[0]) ? <FileText /> : <FileSearch />}{isJsonFile(files[0]) ? "Nạp JSON chuẩn" : "Trích bằng Gemini"}</button>
         </div>
         <div className="border-t border-slate-200/80 p-4 sm:p-5 lg:border-l lg:border-t-0">
-          <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><FileText size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">File Word câu hỏi</p><p className="text-xs font-medium text-slate-500">Tách câu hỏi và đáp án bằng Gemini</p></div></div>
-          <FileDropZone id="mcq-word-source-file" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onFiles={(selected) => { const selectedFile = selected[0]; if (!isDocxFile(selectedFile)) { setWordFile(null); setError("Ô Đọc Word chỉ nhận file .docx. File PDF hãy đưa vào ngăn PDF phía bên trái."); return; } setError(""); setWordFile(selectedFile); }} className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/45 px-5 text-center transition hover:bg-emerald-50">
+          <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><FileText size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">File Word câu hỏi</p><p className="text-xs font-medium text-slate-500">Nhận diện câu hỏi, lựa chọn và đáp án</p></div></div>
+          <FileDropZone id="mcq-word-source-file" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onFiles={(selected) => { const selectedFile = selected[0]; if (!isDocxFile(selectedFile)) { setWordFile(null); setError("Ô Đọc Word chỉ nhận file .docx. File PDF hãy đưa vào ngăn PDF phía bên trái."); return; } setError(""); setWordFile(selectedFile); void extractLocally(selectedFile); }} className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/45 px-5 text-center transition hover:bg-emerald-50">
             <span><strong className="block text-sm text-slate-800">Chọn file .docx</strong><small className="mt-1 block text-xs text-slate-500">Word có thể chứa câu hỏi, đáp án và hình minh họa</small>{wordFile && <small className="mt-2 block truncate text-xs font-semibold text-emerald-700">{wordFile.name}</small>}</span>
           </FileDropZone>
-          <button type="button" disabled={!wordFile || busy} onClick={() => wordFile && void extract([wordFile])} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Đọc Word bằng Gemini</button>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button type="button" disabled={!wordFile || busy} onClick={() => void extractLocally()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-3 text-sm font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Đọc trên máy</button>
+            <button type="button" disabled={!wordFile || busy} onClick={() => wordFile && void extract([wordFile])} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-3 text-sm font-bold text-emerald-700 disabled:opacity-40"><FileSearch />Dùng Gemini</button>
+          </div>
         </div>
       </div>
     </div>
