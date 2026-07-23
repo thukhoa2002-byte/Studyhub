@@ -358,6 +358,10 @@ async function extractDocxContent(file) {
       referencedImages.set(entry, filename);
       return "\n<w:t>[HÌNH WORD: " + filename + "]</w:t>\n";
     })
+    .replace(/<w:r\b[^>]*>([\s\S]*?)<\/w:r>/g, (_match, run) => {
+      const isBold = /<w:(?:b|bCs)(?:\s[^>]*)?(?:\/>|>)/i.test(run) && !/<w:(?:b|bCs)\b[^>]*w:val="0"/i.test(run);
+      return isBold ? '<w:t>[[BOLD]]</w:t>' + run + '<w:t>[[/BOLD]]</w:t>' : run;
+    })
     .replace(/<w:pict\b[\s\S]*?<\/w:pict>/g, (picture) => {
       const relationshipId = picture.match(/r:id="([^"]+)"/)?.[1] || "";
       const entry = relationships.get(relationshipId);
@@ -413,6 +417,14 @@ function parseLocalMcqText(text, originalname) {
   let current = null;
   let mode = "question";
 
+  function stripFormatting(value) {
+    return String(value || "").replace(/\[\[\/?BOLD\]\]/g, "").replace(/\s{2,}/g, " ").trim();
+  }
+
+  function hasBoldText(value) {
+    return /\[\[BOLD\]\][\s\S]*?\S[\s\S]*?\[\[\/BOLD\]\]/i.test(String(value || ""));
+  }
+
   function append(target, value) {
     const clean = String(value || "").trim();
     if (!clean) return;
@@ -421,22 +433,29 @@ function parseLocalMcqText(text, originalname) {
 
   function finishCurrent() {
     if (!current) return;
-    const question = current.question.join(" ").trim();
-    const options = ["A", "B", "C", "D"].map((id) => ({
+    const question = stripFormatting(current.question.join(" "));
+    const rawOptions = ["A", "B", "C", "D"].map((id) => ({
       id,
       text: current.options[id].join(" ").trim(),
     }));
+    const boldOptions = rawOptions.filter((option) => hasBoldText(option.text));
+    const options = rawOptions.map((option) => ({ ...option, text: stripFormatting(option.text) }));
+    const inferredAnswer = boldOptions.length === 1 ? boldOptions[0].id : "";
     if (question || options.some((option) => option.text) || current.explanation.length) {
       questions.push({
         id: randomUUID(),
         source_number: questions.length + 1,
         question,
         options,
-        correct_answer: current.correctAnswer || answerKey.get(current.rawNumber) || "",
-        explanation: current.explanation.join(" ").trim(),
+        correct_answer: current.correctAnswer || answerKey.get(current.rawNumber) || inferredAnswer,
+        explanation: stripFormatting(current.explanation.join(" ")),
         image_source_name: "",
         image_alt: "",
-        review_note: options.some((option) => !option.text) ? "Thiếu lựa chọn trong dữ liệu văn bản; cần kiểm tra lại file Word." : "",
+        review_note: options.some((option) => !option.text)
+          ? "Thiếu lựa chọn trong dữ liệu văn bản; cần kiểm tra lại file Word."
+          : boldOptions.length > 1
+            ? "Có nhiều lựa chọn được in đậm; hệ thống không tự chọn đáp án để tránh đoán sai."
+            : "",
         source_page: undefined,
         image_page: undefined,
         shared_context: "",
@@ -447,7 +466,8 @@ function parseLocalMcqText(text, originalname) {
   }
 
   for (const line of lines) {
-    const answerKeyLine = line.match(answerKeyPattern);
+    const structuralLine = stripFormatting(line);
+    const answerKeyLine = structuralLine.match(answerKeyPattern);
     const answerPairs = [...(answerKeyLine?.[1] || line).matchAll(/(?:^|\s)(\d{1,4})\s*[.)\-:]?\s*([A-E])(?=\s|$)/giu)];
     if (answerKeyLine) {
       for (const pair of answerPairs) answerKey.set(Number(pair[1]), pair[2].toUpperCase());
@@ -455,12 +475,12 @@ function parseLocalMcqText(text, originalname) {
       if (directAnswer && current) current.correctAnswer = directAnswer[1].toUpperCase();
       continue;
     }
-    if (answerPairs.length >= 2 && !line.match(optionPattern)) {
+    if (answerPairs.length >= 2 && !structuralLine.match(optionPattern)) {
       for (const pair of answerPairs) answerKey.set(Number(pair[1]), pair[2].toUpperCase());
       continue;
     }
 
-    const questionMatch = line.match(questionStartPattern);
+    const questionMatch = structuralLine.match(questionStartPattern);
     if (questionMatch && !/^[A-E][.)\]:\-]/iu.test(questionMatch[2])) {
       const numberOnlyAnswer = line.match(/^\d{1,4}\s*[.)\-:]\s*([A-E])\s*$/iu);
       if (numberOnlyAnswer) {
@@ -474,28 +494,33 @@ function parseLocalMcqText(text, originalname) {
     }
     if (!current) continue;
 
-    const optionMatch = line.match(optionPattern);
+    const optionMatch = structuralLine.match(optionPattern);
     if (optionMatch) {
       const optionId = optionMatch[1].toUpperCase();
+      const boldLinePrefix = /^\[\[BOLD\]\]/i.test(line) ? "[[BOLD]]" : "";
+      const rawOptionText = line
+        .replace(/^\[\[BOLD\]\]/i, "")
+        .replace(/^[([\[]?[A-E][\])\].:\-]\s*/iu, "");
+      const formattedOptionText = boldLinePrefix + rawOptionText;
       if (optionId === "E") {
-        current.options.D.push(`${optionId}. ${optionMatch[2]}`);
+        current.options.D.push(`${optionId}. ${formattedOptionText}`);
       } else {
-        append(current.options[optionId], optionMatch[2]);
+        append(current.options[optionId], formattedOptionText);
         mode = "option";
       }
       continue;
     }
 
-    const answerMatch = line.match(answerPattern);
+    const answerMatch = structuralLine.match(answerPattern);
     if (answerMatch) {
       current.correctAnswer = answerMatch[1].toUpperCase();
       mode = "answer";
       continue;
     }
 
-    const explanationMatch = line.match(explanationPattern);
+    const explanationMatch = structuralLine.match(explanationPattern);
     if (explanationMatch) {
-      append(current.explanation, explanationMatch[1]);
+      append(current.explanation, line.replace(/^\[\[BOLD\]\]/i, "").replace(/^(?:giải thích|lời giải|explanation|solution)\s*[:\-]?\s*/iu, ""));
       mode = "explanation";
       continue;
     }
@@ -513,7 +538,7 @@ function parseLocalMcqText(text, originalname) {
   finishCurrent();
   if (!questions.length) throw new Error("Không nhận diện được câu hỏi theo cấu trúc Câu 1 và lựa chọn A-D. Hãy dùng file Word có đánh số câu và lựa chọn rõ ràng.");
   return {
-    title: lines.find((line) => !questionStartPattern.test(line) && !optionPattern.test(line)) || originalname?.replace(/\.docx$/i, "") || "Bộ trắc nghiệm mới",
+    title: lines.map(stripFormatting).find((line) => !questionStartPattern.test(line) && !optionPattern.test(line)) || originalname?.replace(/\.docx$/i, "") || "Bộ trắc nghiệm mới",
     questions,
   };
 }
