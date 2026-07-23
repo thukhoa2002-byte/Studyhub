@@ -18,6 +18,8 @@ create table if not exists public.guideline_documents (
 );
 
 alter table public.guideline_documents add column if not exists supplement_file_path text;
+alter table public.guideline_documents add column if not exists summary text not null default '';
+alter table public.guideline_documents add column if not exists topics jsonb not null default '[]'::jsonb;
 
 create table if not exists public.guideline_entries (
   id uuid primary key default gen_random_uuid(),

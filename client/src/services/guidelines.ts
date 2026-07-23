@@ -16,6 +16,11 @@ export interface GuidelineDocument {
   supplement_file_path: string | null;
   visibility: "private" | "shared";
   created_at: string;
+  table_name?: string;
+  table_number?: string;
+  summary?: string;
+  topics?: string[];
+  provenance?: unknown[];
 }
 
 export interface GuidelineEntry {
@@ -40,6 +45,8 @@ export interface GuidelineEntry {
   table_cells: Array<{ text: string; colSpan: number; rowSpan: number; backgroundColor: string; textColor: string; textAlign: "left" | "center" | "right"; fontWeight: "normal" | "bold" }>;
   status: GuidelineStatus;
   created_at: string;
+  drug_id?: string | null;
+  provenance?: unknown[];
 }
 
 export interface NewGuidelineDocument {
@@ -52,6 +59,11 @@ export interface NewGuidelineDocument {
   visibility: "private" | "shared";
   file?: File | null;
   supplementFile?: File | null;
+  tableName?: string;
+  tableNumber?: string;
+  summary?: string;
+  topics?: string[];
+  provenance?: unknown[];
 }
 
 export type NewGuidelineEntry = Omit<GuidelineEntry, "id" | "owner_id" | "created_at" | "status">;
@@ -111,6 +123,11 @@ export async function createGuidelineDocument(userId: string, input: NewGuidelin
       file_path: filePath,
       supplement_file_path: supplementFilePath,
       visibility: input.visibility,
+      table_name: input.tableName || "",
+      table_number: input.tableNumber || "",
+      summary: input.summary || "",
+      topics: input.topics || [],
+      provenance: input.provenance || [],
     })
     .select("*")
     .single();

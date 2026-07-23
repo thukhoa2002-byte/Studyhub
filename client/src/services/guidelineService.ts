@@ -83,7 +83,7 @@ function resolveDrugId(drugName: string): string | null {
 }
 
 function mapEntry(document: GuidelineDocument, entry: GuidelineEntry, sectionId: string): GuidelineRecommendation {
-  const drugId = resolveDrugId(entry.drug_name);
+  const drugId = entry.drug_id || resolveDrugId(entry.drug_name);
   return {
     id: entry.id,
     title: entry.topic.trim() || "Khuyến cáo",
@@ -114,7 +114,7 @@ function mapStoredGuideline(document: GuidelineDocument, entries: GuidelineEntry
   });
   if (sections.length === 0) sections.push({ id: `${document.id}-overview`, slug: "overview", title: "Overview", titleVi: "Tổng quan", order: 1, summary: "Guideline chưa có recommendation đã lưu.", recommendations: [], drugReferences: [], calculatorReferences: [], flowchartReferences: [] });
   const allEntriesReviewed = entries.length > 0 && entries.every((entry) => entry.status === "reviewed");
-  return { id: document.id, slug: slugify(`${document.society}-${document.title}-${document.publication_year}`) || document.id, title: document.title, titleVi: document.title, organization: document.society, publicationYear: document.publication_year, version: document.version_label, specialty: document.condition, topics: [document.condition], summary: "Dữ liệu được chuyển từ kho guideline hiện có.", sourceUrl: document.source_url, lastReviewedAt: allEntriesReviewed ? new Date().toISOString() : "", status: allEntriesReviewed && document.visibility === "shared" ? "published" : "draft", isPlaceholder: false, sections };
+  return { id: document.id, slug: slugify(`${document.society}-${document.title}-${document.publication_year}`) || document.id, title: document.title, titleVi: document.title, organization: document.society, publicationYear: document.publication_year, version: document.version_label, specialty: document.condition, topics: document.topics?.length ? document.topics : [document.condition], summary: document.summary || "Dữ liệu được chuyển từ kho guideline hiện có.", sourceUrl: document.source_url, lastReviewedAt: allEntriesReviewed ? new Date().toISOString() : "", status: allEntriesReviewed && document.visibility === "shared" ? "published" : "draft", isPlaceholder: false, sections };
 }
 
 export async function loadGuidelines(): Promise<Guideline[]> {

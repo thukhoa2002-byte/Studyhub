@@ -1,5 +1,5 @@
 import { drugs as seedDrugs } from "../data/drugData";
-import type { Drug, DrugStatus } from "../types/drug";
+import type { Drug, DrugDosingRegimen, DrugGuidelineLink, DrugImportMetadata, DrugIndication, DrugProvenance, DrugSourceReference, DrugStatus } from "../types/drug";
 
 const STORAGE_KEY = "studyhub:thuoc:v1";
 let memoryCatalog: Drug[] | null = null;
@@ -35,6 +35,29 @@ function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean) : [];
 }
 
+function objectArray<T>(value: unknown, normalize: (item: Record<string, unknown>, index: number) => T): T[] {
+  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object" && !Array.isArray(item))).map(normalize) : [];
+}
+
+function textValue(value: unknown): string { return typeof value === "string" ? value.trim() : ""; }
+
+function normalizeIndication(item: Record<string, unknown>, index: number): DrugIndication {
+  return { id: textValue(item.id) || `indication-${index + 1}`, name: textValue(item.name), population: textValue(item.population), clinicalContext: textValue(item.clinicalContext), notes: textValue(item.notes) };
+}
+
+function normalizeRegimen(item: Record<string, unknown>, index: number): DrugDosingRegimen {
+  return { id: textValue(item.id) || `dosing-${index + 1}`, indication: textValue(item.indication), population: textValue(item.population), route: textValue(item.route), startingDose: textValue(item.startingDose), loadingDose: textValue(item.loadingDose), maintenanceDose: textValue(item.maintenanceDose), targetDose: textValue(item.targetDose), interval: textValue(item.interval), duration: textValue(item.duration), notes: textValue(item.notes) };
+}
+
+function normalizeSource(item: Record<string, unknown>, index: number): DrugSourceReference {
+  const year = Number(item.year);
+  return { id: textValue(item.id) || `source-${index + 1}`, title: textValue(item.title), organization: textValue(item.organization), year: Number.isInteger(year) && year > 0 ? year : null, url: textValue(item.url), pages: textValue(item.pages), table: textValue(item.table), section: textValue(item.section), notes: textValue(item.notes) };
+}
+
+function normalizeGuidelineLink(item: Record<string, unknown>): DrugGuidelineLink {
+  return { guidelineId: textValue(item.guidelineId), sectionId: textValue(item.sectionId), recommendationId: textValue(item.recommendationId), relationType: textValue(item.relationType) || "recommended", context: textValue(item.context) };
+}
+
 function normalizeDrug(value: Partial<Drug>): Drug {
   const titleVi = value.titleVi?.trim() || value.genericName?.trim() || "Thuốc chưa đặt tên";
   const genericName = value.genericName?.trim() || titleVi;
@@ -46,6 +69,8 @@ function normalizeDrug(value: Partial<Drug>): Drug {
     titleVi,
     aliases: stringArray(value.aliases),
     brandNames: stringArray(value.brandNames),
+    dosageForms: stringArray(value.dosageForms),
+    routes: stringArray(value.routes),
     drugClass: value.drugClass?.trim() || "",
     specialties: stringArray(value.specialties),
     indications: value.indications?.trim() || "",
@@ -59,7 +84,16 @@ function normalizeDrug(value: Partial<Drug>): Drug {
     interactions: value.interactions?.trim() || "",
     monitoring: value.monitoring?.trim() || "",
     mechanism: value.mechanism?.trim() || "",
+    pharmacodynamics: value.pharmacodynamics?.trim() || "",
+    indicationsDetailed: objectArray(value.indicationsDetailed, normalizeIndication),
+    dosingRegimens: objectArray(value.dosingRegimens, normalizeRegimen),
+    elderlyAdjustment: value.elderlyAdjustment?.trim() || "",
+    pediatricAdjustment: value.pediatricAdjustment?.trim() || "",
+    specialPopulationAdjustments: value.specialPopulationAdjustments?.trim() || "",
+    precautions: value.precautions?.trim() || "",
     references: stringArray(value.references),
+    sourceReferences: objectArray(value.sourceReferences, normalizeSource),
+    guidelineLinks: objectArray(value.guidelineLinks, normalizeGuidelineLink),
     guidelineReferences: stringArray(value.guidelineReferences),
     flashcardReferences: stringArray(value.flashcardReferences),
     quizReferences: stringArray(value.quizReferences),
@@ -73,6 +107,12 @@ function normalizeDrug(value: Partial<Drug>): Drug {
     createdAt,
     updatedAt: value.updatedAt || createdAt,
     publishedAt: value.publishedAt || null,
+    sourceVerified: value.sourceVerified ?? false,
+    reviewedAt: value.reviewedAt || null,
+    reviewedBy: value.reviewedBy || null,
+    publishedBy: value.publishedBy || null,
+    importMetadata: value.importMetadata as DrugImportMetadata | undefined,
+    provenance: Array.isArray(value.provenance) ? value.provenance as DrugProvenance[] : [],
   };
 }
 

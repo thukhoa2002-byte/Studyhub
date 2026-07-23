@@ -18,6 +18,7 @@ import DrugsPage from "./components/DrugsPage";
 import AdminPage from "./components/AdminPage";
 import AdminLayout from "./components/AdminLayout";
 import AdminDrugPage from "./components/AdminDrugPage";
+import AdminDrugImportPage from "./components/AdminDrugImportPage";
 import AdminGuidelinePage from "./components/AdminGuidelinePage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import type { ReferenceSection } from "./components/ReferenceSectionsPanel";
@@ -815,7 +816,7 @@ export default function App() {
         : adminAllowed;
     return <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f3e8ff_0,#fff7fb_38%,#ecfdf5_100%)]">
       <AdminLayout user={user} route={adminRoute} onNavigate={navigateDataPath}>
-        {!user || !moduleAllowed ? <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không có quyền truy cập</h1><p className="mt-2 text-sm font-semibold text-rose-700">Khu vực này chỉ dành cho quản trị viên được cấp quyền.</p></section> : adminRoute.kind === "admin-dashboard" ? <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onAiCallsRemaining={setAiCallsRemaining} /> : adminRoute.kind.startsWith("admin-drug") ? <AdminDrugPage route={adminRoute} onNavigate={navigateDataPath} /> : <AdminGuidelinePage user={user} route={adminRoute} onAiCallsRemaining={setAiCallsRemaining} />}
+        {!user || !moduleAllowed ? <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không có quyền truy cập</h1><p className="mt-2 text-sm font-semibold text-rose-700">Khu vực này chỉ dành cho quản trị viên được cấp quyền.</p></section> : adminRoute.kind === "admin-dashboard" ? <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onAiCallsRemaining={setAiCallsRemaining} /> : adminRoute.kind === "admin-drug-import" ? <AdminDrugImportPage user={user} onNavigate={navigateDataPath} /> : adminRoute.kind.startsWith("admin-drug") ? <AdminDrugPage route={adminRoute} onNavigate={navigateDataPath} /> : <AdminGuidelinePage user={user} route={adminRoute} onAiCallsRemaining={setAiCallsRemaining} />}
       </AdminLayout>
     </main>;
   }

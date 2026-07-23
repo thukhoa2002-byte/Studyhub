@@ -1,3 +1,6 @@
+import type { DrugImportCandidate } from "../utils/drugImport";
+import type { GuidelineTableBundle } from "../utils/guidelineImport";
+
 const API_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? "http://localhost:3000" : window.location.origin);
@@ -7,6 +10,45 @@ export async function getAiCallsRemaining(): Promise<number | null> {
   if (!response.ok) return null;
   const result = (await response.json()) as { aiCallsRemaining?: number };
   return typeof result.aiCallsRemaining === "number" ? result.aiCallsRemaining : null;
+}
+
+async function drugImportRequest(path: string, init: RequestInit = {}): Promise<Response> {
+  const { supabase } = await import("./supabase");
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  let { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    const refreshed = await supabase.auth.refreshSession();
+    if (refreshed.error || !refreshed.data.session?.access_token) throw new Error("Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.");
+    session = refreshed.data.session;
+  }
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${session.access_token}`);
+  if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message || `Máy chủ trả về lỗi ${response.status}.`);
+  }
+  return response;
+}
+
+export async function parseDrugImportJson(raw: string): Promise<DrugImportCandidate[]> {
+  const response = await drugImportRequest("/api/admin/thuoc/import/parse-json", { method: "POST", body: JSON.stringify({ raw }) });
+  const result = await response.json() as { candidates: DrugImportCandidate[] };
+  return result.candidates;
+}
+
+export async function extractDrugDocument(file: File): Promise<{ text: string; sourceType: "pdf" | "docx"; originalFileName: string; characterCount: number }> {
+  const form = new FormData();
+  form.append("file", file);
+  const response = await drugImportRequest("/api/admin/thuoc/import/extract-file", { method: "POST", body: form });
+  const result = await response.json() as { data: { text: string; sourceType: "pdf" | "docx"; originalFileName: string; characterCount: number } };
+  return result.data;
+}
+
+export async function extractDrugWithAi(input: { text: string; drugName?: string; documentKind?: "drug" | "guideline_table"; sourceMetadata: Record<string, string | number | null>; rawFileName?: string }): Promise<{ candidate?: DrugImportCandidate; bundle?: GuidelineTableBundle; mode?: "guideline_table"; aiCallsRemaining?: number; chunksProcessed?: number; aiModel?: string; promptVersion?: string }> {
+  const response = await drugImportRequest("/api/admin/thuoc/import/extract-ai", { method: "POST", body: JSON.stringify(input) });
+  return await response.json() as { candidate: DrugImportCandidate; aiCallsRemaining?: number };
 }
 
 export interface GeneratedQuestion {

@@ -13,6 +13,7 @@ import clinicalCaseRouter from "./routes/clinicalCase.js";
 import guidelineExtractionRouter from "./routes/guidelineExtraction.js";
 import mcqImportRouter from "./routes/mcqImport.js";
 import referenceBookExtractionRouter from "./routes/referenceBookExtraction.js";
+import drugImportRouter from "./routes/drugImport.js";
 import { getAiCallsRemaining } from "./services/aiUsage.js";
 
 dotenv.config();
@@ -26,7 +27,7 @@ const legacyHost = "hocbaithoii.onrender.com";
 
 app.set("trust proxy", true);
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 
 app.use((req, res, next) => {
   if (req.hostname.toLowerCase() === legacyHost) {
@@ -58,6 +59,7 @@ app.use("/api/generate-clinical-case", clinicalCaseRouter);
 app.use("/api/extract-guideline", guidelineExtractionRouter);
 app.use("/api/mcq-import", mcqImportRouter);
 app.use("/api/reference-books", referenceBookExtractionRouter);
+app.use("/api/admin/thuoc/import", drugImportRouter);
 
 if (existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));

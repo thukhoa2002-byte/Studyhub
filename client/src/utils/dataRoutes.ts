@@ -3,7 +3,7 @@ export type DataRoute =
   | { tab: "guidelines"; kind: "guideline-detail"; slug: string; sectionSlug?: string; recommendationId?: string }
   | { tab: "drugs"; kind: "drug-list" }
   | { tab: "drugs"; kind: "drug-detail"; slug: string }
-  | { tab: "admin"; kind: "admin-dashboard" | "admin-drug-list" | "admin-drug-new" | "admin-drug-detail" | "admin-drug-edit" | "admin-guideline-list" | "admin-guideline-new" | "admin-guideline-detail" | "admin-guideline-edit" | "admin-guideline-sections" | "admin-guideline-recommendations"; drugId?: string; guidelineId?: string }
+  | { tab: "admin"; kind: "admin-dashboard" | "admin-drug-list" | "admin-drug-new" | "admin-drug-detail" | "admin-drug-edit" | "admin-drug-import" | "admin-guideline-list" | "admin-guideline-new" | "admin-guideline-detail" | "admin-guideline-edit" | "admin-guideline-sections" | "admin-guideline-recommendations"; drugId?: string; guidelineId?: string }
   | { tab: null; kind: "other" };
 
 export function parseDataRoute(pathname: string): DataRoute {
@@ -13,6 +13,7 @@ export function parseDataRoute(pathname: string): DataRoute {
     if (parts[1] === "thuoc" || parts[1] === "drugs") {
       if (!parts[2]) return { tab: "admin", kind: "admin-drug-list" };
       if (parts[2] === "new") return { tab: "admin", kind: "admin-drug-new" };
+      if (parts[2] === "import") return { tab: "admin", kind: "admin-drug-import" };
       if (parts[3] === "edit") return { tab: "admin", kind: "admin-drug-edit", drugId: parts[2] };
       return { tab: "admin", kind: "admin-drug-detail", drugId: parts[2] };
     }
