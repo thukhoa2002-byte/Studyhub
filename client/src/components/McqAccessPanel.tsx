@@ -63,7 +63,7 @@ export default function McqAccessPanel({ userEmail, visible = true }: Props) {
   if (!isOwner || !visible) return null;
 
   return (
-    <section className="mb-0 rounded-3xl border border-teal-200/80 bg-white/80 p-4 shadow-sm backdrop-blur-xl" aria-label="Quyền trắc nghiệm">
+    <section className="mb-0 h-full rounded-3xl border border-teal-200/80 bg-white/80 p-4 shadow-sm backdrop-blur-xl" aria-label="Quyền trắc nghiệm">
       <div className="rounded-2xl border border-teal-100 bg-white/75 p-3.5">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-teal-100 text-teal-700"><ShieldCheck size={21} /></span>
