@@ -43,6 +43,7 @@ import type { SavedDeck } from "../services/supabase";
 import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
 import { DEFAULT_SUBDECK, listSubdeckSuggestions, normalizeSubdeck } from "../utils/subdeck";
 import { sanitizeHtml, toEditorHtml } from "../utils/richText";
+import AnimatedDropdown from "./AnimatedDropdown";
 import RichTextEditor from "./RichTextEditor";
 import FileDropZone from "./FileDropZone";
 
@@ -546,7 +547,7 @@ export default function DeckSetup({
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
             <p className="text-sm font-bold text-teal-900">Bộ thẻ đã lưu</p>
             <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[11px] font-semibold text-slate-500" aria-label="Trạng thái thẻ">
-              <label className="flex items-center gap-1.5 text-slate-600"><span className="sr-only">Sắp xếp bộ thẻ</span><select value={deckSort} onChange={(event) => setDeckSort(event.target.value as DeckSort)} className="rounded-lg border border-teal-100 bg-white px-2 py-1 text-[11px] font-bold text-slate-600 outline-none focus:border-teal-400"><option value="recent">Gần nhất</option><option value="oldest">Xa nhất</option><option value="title-asc">A-Z</option><option value="title-desc">Z-A</option></select></label>
+              <label className="flex items-center gap-1.5 text-slate-600"><span className="sr-only">Sắp xếp bộ thẻ</span><AnimatedDropdown value={deckSort} options={[{ value: "recent", label: "Gần nhất" }, { value: "oldest", label: "Xa nhất" }, { value: "title-asc", label: "A-Z" }, { value: "title-desc", label: "Z-A" }]} onChange={(value) => setDeckSort(value as DeckSort)} ariaLabel="Sắp xếp bộ thẻ" triggerClassName="h-7 rounded-lg border border-teal-100 bg-white px-2 py-1 text-[11px] font-bold text-slate-600" menuClassName="right-0 left-auto min-w-28" /></label>
               <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-sky-400" />Mới</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-400" />Đang học</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />Đến hạn</span>

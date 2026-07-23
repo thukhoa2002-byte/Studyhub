@@ -20,6 +20,7 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
+import AnimatedDropdown from "./AnimatedDropdown";
 import {
   createGuidelineDocument,
   createGuidelineEntry,
@@ -100,6 +101,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
   const [streamPreviewEntries, setStreamPreviewEntries] = useState<ExtractedGuidelineEntry[]>([]);
   const [showGuidelineContent, setShowGuidelineContent] = useState(false);
   const [guidelineTab, setGuidelineTab] = useState<"translated" | "original">("translated");
+  const [condition, setCondition] = useState("ACS");
   const [originalPdfUrl, setOriginalPdfUrl] = useState("");
   const documentFormRef = useRef<HTMLFormElement>(null);
 
@@ -432,7 +434,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining }: Props) {
         {canManage && showDocumentForm && <form ref={documentFormRef} onSubmit={submitDocument} className="mt-6 grid gap-4 rounded-3xl border border-rose-100 bg-white/75 p-5 sm:grid-cols-2">
           <label className="text-sm font-bold text-slate-700">Tên guideline<input name="title" required placeholder="2024 ESC Guidelines for AF" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
           <label className="text-sm font-bold text-slate-700">Hiệp hội<input name="society" required defaultValue="ESC" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 font-medium" /></label>
-          <label className="text-sm font-bold text-slate-700">Bệnh<select name="condition" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3"><option>ACS</option><option>HF</option><option>AF</option><option>Khác</option></select></label>
+          <label className="text-sm font-bold text-slate-700">Bệnh<AnimatedDropdown name="condition" value={condition} options={[{ value: "ACS", label: "ACS" }, { value: "HF", label: "HF" }, { value: "AF", label: "AF" }, { value: "Khác", label: "Khác" }]} onChange={setCondition} ariaLabel="Bệnh" triggerClassName="mt-2 h-11 w-full rounded-xl border border-rose-100 bg-white px-4 py-3 text-slate-700" /></label>
           <label className="text-sm font-bold text-slate-700">Năm xuất bản<input name="publicationYear" required type="number" min="1900" max="2200" defaultValue={new Date().getFullYear()} className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
           <label className="text-sm font-bold text-slate-700">Phiên bản<input name="versionLabel" placeholder="Full guideline / Focused update" className="mt-2 w-full rounded-xl border border-rose-100 bg-white px-4 py-3" /></label>
           <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-semibold leading-5 text-amber-800">Tài liệu mới luôn ở chế độ Riêng tư. Sau khi xác nhận toàn bộ khuyến cáo, bạn mới có thể đăng công khai.</div>

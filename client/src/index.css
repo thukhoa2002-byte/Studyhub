@@ -256,8 +256,8 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-sidebar:has(.site-analytics--sidebar-open) { width: 15rem; }
   .site-analytics--sidebar-open { position: fixed; top: 6rem; left: 15rem; z-index: 55; width: 15rem !important; max-height: calc(100vh - 7rem); margin-top: 0 !important; overflow-y: auto; }
   .mcq-access-popover,
-  .mcq-sections-popover { top: 9.5rem; left: 15rem; width: 15rem; }
-  .reference-sections-popover { top: 13.5rem; left: 15rem; width: 15rem; transition: opacity 180ms ease; }
+  .mcq-sections-popover { top: 11.5rem; left: 15rem; width: 15rem; }
+  .reference-sections-popover { top: 15.5rem; left: 15rem; width: 15rem; transition: opacity 180ms ease; }
   .workspace-sidebar:hover .workspace-sidebar__brand,
   .workspace-sidebar:focus-within .workspace-sidebar__brand { justify-content: flex-start; }
   .workspace-sidebar:not(:hover):not(:focus-within) .workspace-sidebar__brand { width: 100%; justify-content: center; gap: 0; }
@@ -319,6 +319,10 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
 .sidebar-hover-panel--open.sidebar-hover-panel__surface { animation: sidebar-panel-surface-pop 420ms cubic-bezier(.22,1,.36,1) both; transform-origin: left center; }
 .sidebar-hover-panel--open .sidebar-hover-panel__item { animation: mcq-folder-deck-pop 420ms cubic-bezier(.22,1,.36,1) both; transform-origin: left center; }
 .sidebar-hover-panel--open .sidebar-hover-panel__item:nth-child(2) { animation-delay: 50ms; }
+.animated-dropdown__menu { animation: animated-dropdown-pop 180ms cubic-bezier(.22,1,.36,1) both; transform-origin: top center; }
+.animated-dropdown__option--selected { background: #3b82f6; color: #fff; }
+.animated-dropdown__option--selected:hover { background: #2563eb; color: #fff; }
+@keyframes animated-dropdown-pop { from { opacity: 0; transform: translateY(-5px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .rich-editor img.rich-editor__selected-image { outline: 2px solid #8b5cf6; outline-offset: 3px; }
 @keyframes mode-panel-in { from { opacity: 0; filter: blur(4px); transform: translateY(12px) scale(.985); } 70% { filter: blur(0); transform: translateY(-1px) scale(1.002); } to { opacity: 1; filter: blur(0); transform: none; } }
 @keyframes mcq-folder-deck-pop { from { opacity: 0; transform: translateX(-15px) scale(.5); } 70% { opacity: 1; transform: translateX(0) scale(1.04); } to { opacity: 1; transform: translateX(0) scale(1); } }

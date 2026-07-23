@@ -5,6 +5,7 @@ import type { SavedDeck } from "../services/supabase";
 import { hasCloze, toClozeAnswerHtml } from "../utils/richText";
 import { DEFAULT_SUBDECK, listSubdeckSuggestions, normalizeSubdeck } from "../utils/subdeck";
 import RichTextEditor from "./RichTextEditor";
+import AnimatedDropdown from "./AnimatedDropdown";
 
 interface Props {
   title: string;
@@ -270,10 +271,7 @@ export default function DeckEditor({ title: initialTitle, questions: initialQues
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block text-xs font-semibold text-violet-700">Đáp án đúng
-                <select value={activeQuestion.correctOption || ""} onChange={(event) => updateMcq(activeQuestion.id, { correctOption: event.target.value, answer: event.target.value })} className="mt-1 w-full rounded-lg border border-violet-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-violet-300">
-                  <option value="">Chọn đáp án</option>
-                  {activeQuestion.options.map((option, optionIndex) => <option key={`${activeQuestion.id}-correct-${optionIndex}`} value={option}>{String.fromCharCode(65 + optionIndex)}. {option}</option>)}
-                </select>
+                <AnimatedDropdown value={activeQuestion.correctOption || ""} options={[{ value: "", label: "Chọn đáp án" }, ...activeQuestion.options.map((option, optionIndex) => ({ value: option, label: `${String.fromCharCode(65 + optionIndex)}. ${option}` }))]} onChange={(value) => updateMcq(activeQuestion.id, { correctOption: value, answer: value })} ariaLabel="Đáp án đúng" triggerClassName="mt-1 h-10 w-full rounded-lg border border-violet-100 bg-white px-3 py-2 text-sm font-semibold text-slate-700" />
               </label>
               <div><p className="text-xs font-semibold text-violet-700">Giải thích</p><RichTextEditor value={activeQuestion.explanation || ""} onChange={(value) => updateMcq(activeQuestion.id, { explanation: value })} placeholder="Giải thích đáp án" /></div>
             </div>
