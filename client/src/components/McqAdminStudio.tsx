@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { Check, ClipboardPaste, Crop, Download, FileSearch, FileText, Globe2, Image as ImageIcon, ImagePlus, LoaderCircle, LockKeyhole, Plus, Save, Trash2, Upload, X } from "lucide-react";
-import { extractMcqFiles, extractMcqFilesLocally } from "../services/api";
+import { extractMcqFiles } from "../services/api";
 import { deleteMcqBank, mcqLibraryErrorMessage, saveMcqBank, type McqLibraryBank, type McqLibraryQuestion } from "../services/mcqLibrary";
 import FileDropZone from "./FileDropZone";
 import RichTextEditor from "./RichTextEditor";
@@ -103,10 +103,6 @@ function jsonText(value: unknown) {
 
 function isJsonFile(file: File | undefined) {
   return Boolean(file && (file.type === "application/json" || file.name.toLowerCase().endsWith(".json")));
-}
-
-function isDocxFile(file: File | undefined) {
-  return Boolean(file && (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.toLowerCase().endsWith(".docx")));
 }
 
 function normalizeMcqJson(payload: unknown): { title: string; description: string; questions: McqLibraryQuestion[] } {
@@ -225,7 +221,6 @@ async function exportWord(title: string, questions: McqLibraryQuestion[]) {
 
 export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRemaining, requestedBank, showDrafts = true }: Props) {
   const [files, setFiles] = useState<File[]>([]);
-  const [wordFile, setWordFile] = useState<File | null>(null);
   const [jsonFile, setJsonFile] = useState<File | null>(null);
   const [bankId, setBankId] = useState<string | undefined>();
   const [title, setTitle] = useState("");
@@ -297,36 +292,6 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
     } catch (extractError) {
       setNotice("");
       setError(extractError instanceof Error ? extractError.message : "Không thể đọc file.");
-    } finally { setBusy(false); }
-  }
-
-  async function extractLocally(sourceFile = wordFile) {
-    if (!sourceFile) return;
-    setBusy(true); setError(""); setNotice("Đang nhận diện file Word trên máy. Không gọi Gemini và không trừ quota...");
-    try {
-      const result = await extractMcqFilesLocally([sourceFile]);
-      setBankId(undefined);
-      setVisibility("draft");
-      setTitle(cleanLine(result.data.title) || "Bộ trắc nghiệm mới");
-      setDescription("");
-      setQuestions(result.data.questions.map((question, index) => ({
-        id: crypto.randomUUID(),
-        source_number: question.source_number || index + 1,
-        question: cleanLine(question.question),
-        options: requiredOptionIds.map((id) => ({ id, text: cleanLine(question.options.find((option) => option.id === id)?.text || "") })),
-        correct_answer: question.correct_answer || "",
-        explanation: cleanLine(question.explanation),
-        image_url: question.image_url,
-        image_alt: cleanLine(question.image_alt),
-        review_note: cleanLine(question.review_note),
-        source_page: question.source_page,
-        image_page: question.image_page,
-        shared_context: cleanLine(question.shared_context || ""),
-      })));
-      setNotice("Đã nhận diện Word trên máy, không dùng Gemini. Hãy kiểm tra các câu còn thiếu lựa chọn hoặc đáp án trước khi lưu.");
-    } catch (extractError) {
-      setNotice("");
-      setError(extractError instanceof Error ? extractError.message : "Không thể nhận diện file Word trên máy.");
     } finally { setBusy(false); }
   }
 
@@ -543,22 +508,13 @@ export default function McqAdminStudio({ userId, drafts, onChanged, onAiCallsRem
           <button type="button" disabled={!files.length || busy} onClick={() => void extract()} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Trích bằng Gemini</button>
         </div>
         <div className="border-t border-slate-200/80 p-4 sm:p-5 lg:border-l lg:border-t-0">
-          <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><FileText size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">File Word câu hỏi</p><p className="text-xs font-medium text-slate-500">Nhận diện câu hỏi, lựa chọn và đáp án</p></div></div>
-          <FileDropZone id="mcq-word-source-file" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onFiles={(selected) => { const selectedFile = selected[0]; if (!isDocxFile(selectedFile)) { setWordFile(null); setError("Ô Đọc Word chỉ nhận file .docx. File PDF hãy đưa vào ngăn PDF phía bên trái."); return; } setError(""); setWordFile(selectedFile); void extractLocally(selectedFile); }} className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/45 px-5 text-center transition hover:bg-emerald-50">
-            <span><strong className="block text-sm text-slate-800">Chọn file .docx</strong><small className="mt-1 block text-xs text-slate-500">Word có thể chứa câu hỏi, đáp án và hình minh họa</small>{wordFile && <small className="mt-2 block truncate text-xs font-semibold text-emerald-700">{wordFile.name}</small>}</span>
+          <div className="mb-3 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-700"><FileText size={18} /></span><div><p className="text-sm font-extrabold text-slate-800">JSON trắc nghiệm</p><p className="text-xs font-medium text-slate-500">Nạp trực tiếp, không dùng Gemini</p></div></div>
+          <FileDropZone id="mcq-json-source-file" accept="application/json,.json" onFiles={(selected) => { const selectedFile = selected[0]; setJsonFile(selectedFile || null); setError(""); }} className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-sky-300 bg-sky-50/45 px-5 text-center transition hover:bg-sky-50">
+            <span><strong className="block text-sm text-slate-800">Chọn file .json</strong><small className="mt-1 block text-xs text-slate-500">JSON chuẩn câu hỏi, lựa chọn và đáp án</small>{jsonFile && <small className="mt-2 block truncate text-xs font-semibold text-sky-700">{jsonFile.name}</small>}</span>
           </FileDropZone>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <button type="button" disabled={!wordFile || busy} onClick={() => void extractLocally()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-3 text-sm font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileSearch />}Đọc trên máy</button>
-            <button type="button" disabled={!wordFile || busy} onClick={() => wordFile && void extract([wordFile])} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-3 text-sm font-bold text-emerald-700 disabled:opacity-40"><FileSearch />Dùng Gemini</button>
-          </div>
+          <button type="button" disabled={!jsonFile || busy} onClick={() => jsonFile && void extract([jsonFile])} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileText />}Nạp JSON</button>
         </div>
       </div>
-    </div>
-    <div className="mt-3 grid gap-3 rounded-3xl border border-dashed border-sky-300 bg-sky-50/45 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5">
-      <FileDropZone id="mcq-json-source-file" accept="application/json,.json" onFiles={(selected) => { const selectedFile = selected[0]; setJsonFile(selectedFile || null); setError(""); }} className="flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-sky-300 bg-white/70 px-5 text-center transition hover:bg-sky-50">
-        <span><strong className="block text-sm font-extrabold text-slate-800">Tải JSON chuẩn trắc nghiệm</strong><small className="mt-1 block text-xs font-medium text-slate-500">Nạp trực tiếp, không dùng Gemini</small>{jsonFile && <small className="mt-1 block truncate text-xs font-semibold text-sky-700">{jsonFile.name}</small>}</span>
-      </FileDropZone>
-      <button type="button" disabled={!jsonFile || busy} onClick={() => jsonFile && void extract([jsonFile])} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 text-sm font-bold text-white disabled:opacity-40">{busy ? <LoaderCircle className="animate-spin" /> : <FileText />}Nạp JSON</button>
     </div>
     {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={`${file.name}-${file.size}`} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{file.type.startsWith("image/") && <ImageIcon size={13} />}{file.name}</span>)}</div>}
     {error && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
