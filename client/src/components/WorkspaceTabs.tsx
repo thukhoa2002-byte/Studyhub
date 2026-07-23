@@ -152,10 +152,12 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
               key={id}
               type="button"
               onClick={() => handleTabClick(id)}
-              onMouseLeave={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
+              // Keep the last hovered tab across the small gap between buttons.
+              // The sidebar itself resets it only after the pointer leaves the whole rail.
+              onMouseLeave={() => { if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
               onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); closeAnalyticsPanel(); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); closeAnalyticsPanel(); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
               onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); closeAnalyticsPanel(); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); closeAnalyticsPanel(); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
-              onBlur={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
+              onBlur={() => { if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
             >
