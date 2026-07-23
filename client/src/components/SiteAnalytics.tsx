@@ -14,6 +14,7 @@ interface SiteAnalyticsProps {
   userId?: string | null;
   visible: boolean;
   placement?: "content" | "sidebar";
+  panelOpen?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
 }
 
@@ -38,7 +39,7 @@ function formatDateTime(value: string) {
   return Number.isNaN(date.getTime()) ? "—" : dateTimeFormatter.format(date);
 }
 
-export default function SiteAnalytics({ userId, visible, placement = "content", onExpandedChange }: SiteAnalyticsProps) {
+export default function SiteAnalytics({ userId, visible, placement = "content", panelOpen, onExpandedChange }: SiteAnalyticsProps) {
   const [summary, setSummary] = useState<SiteAnalyticsSummary>({ totalVisits: 0, uniqueVisitors: 0 });
   const [details, setDetails] = useState<SiteAnalyticsDetails>({ visitors: [], visits: [] });
   const [onlineVisitors, setOnlineVisitors] = useState<OnlineVisitor[]>([]);
@@ -70,10 +71,17 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
 
   function scheduleAnalyticsClose() {
     clearCollapseTimer();
-    collapseTimer.current = window.setTimeout(closeAnalyticsPanel, 700);
+    collapseTimer.current = window.setTimeout(closeAnalyticsPanel, 300);
   }
 
   useEffect(() => () => clearCollapseTimer(), []);
+
+  useEffect(() => {
+    if (placement === "sidebar" && panelOpen === false) {
+      setCollapsed(true);
+      setActivePanel(null);
+    }
+  }, [panelOpen, placement]);
 
   useEffect(() => {
     const client = supabase;
@@ -163,7 +171,9 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
 
   if (!visible) return null;
 
-  if (collapsed) {
+  const isCollapsed = placement === "sidebar" && panelOpen !== undefined ? !panelOpen : collapsed;
+
+  if (isCollapsed) {
     return (
       <section onMouseEnter={openAnalyticsPanel} onMouseLeave={scheduleAnalyticsClose} className={placement === "sidebar" ? "site-analytics site-analytics--sidebar mt-3 w-full" : "site-analytics site-analytics--collapsed mx-auto mb-6 flex w-full max-w-[1600px] justify-end px-5"} aria-label="Bảng điều khiển riêng">
         <button

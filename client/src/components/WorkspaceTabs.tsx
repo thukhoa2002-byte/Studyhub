@@ -51,7 +51,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
 
   function scheduleMcqPanelClose() {
     if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
-    const timer = window.setTimeout(() => { setMcqPanelOpen(false); setMcqPanelTimer(null); }, 700);
+    const timer = window.setTimeout(() => { setMcqPanelOpen(false); setMcqPanelTimer(null); }, 300);
     setMcqPanelTimer(timer);
   }
 
@@ -62,8 +62,23 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
 
   function scheduleReferencePanelClose() {
     if (referencePanelTimer !== null) window.clearTimeout(referencePanelTimer);
-    const timer = window.setTimeout(() => { setReferencePanelOpen(false); setReferencePanelTimer(null); }, 700);
+    const timer = window.setTimeout(() => { setReferencePanelOpen(false); setReferencePanelTimer(null); }, 300);
     setReferencePanelTimer(timer);
+  }
+
+  function closeAnalyticsPanel() {
+    setAnalyticsPanelOpen(false);
+    onAnalyticsExpanded(false);
+  }
+
+  function closeHoverPanels() {
+    if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
+    if (referencePanelTimer !== null) window.clearTimeout(referencePanelTimer);
+    setMcqPanelTimer(null);
+    setReferencePanelTimer(null);
+    setMcqPanelOpen(false);
+    setReferencePanelOpen(false);
+    closeAnalyticsPanel();
   }
 
   function handleSidebarMouseLeave() {
@@ -77,12 +92,13 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
     if (id === "mcq") {
       setMcqPanelOpen(true);
       setReferencePanelOpen(false);
+      closeAnalyticsPanel();
     } else if (id === "guidelines") {
       setReferencePanelOpen(true);
       setMcqPanelOpen(false);
+      closeAnalyticsPanel();
     } else {
-      setMcqPanelOpen(false);
-      setReferencePanelOpen(false);
+      closeHoverPanels();
     }
   }
 
@@ -137,22 +153,22 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
               type="button"
               onClick={() => handleTabClick(id)}
               onMouseLeave={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
-              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); keepMcqPanelOpen(); } if (id === "guidelines") { setMcqPanelOpen(false); keepReferencePanelOpen(); } }}
-              onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); keepMcqPanelOpen(); } if (id === "guidelines") { setMcqPanelOpen(false); keepReferencePanelOpen(); } }}
+              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); closeAnalyticsPanel(); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); closeAnalyticsPanel(); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
+              onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); closeAnalyticsPanel(); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); closeAnalyticsPanel(); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
               onBlur={() => { setHoveredTab(null); if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
             >
               <span className="workspace-tabs__icon shrink-0"><Icon size={21} strokeWidth={2.2} /></span>
-              <span className="workspace-tabs__label">{label}</span>
-              {hasHoverPanel && (panelOpen ? <ChevronRight size={15} aria-hidden="true" className="workspace-tabs__panel-arrow shrink-0 text-slate-400" /> : <ChevronDown size={15} aria-hidden="true" className="workspace-tabs__panel-arrow shrink-0 text-slate-400" />)}
+              <span className="workspace-tabs__label min-w-0 flex-1 text-left">{label}</span>
+              {hasHoverPanel && (panelOpen ? <ChevronRight size={15} aria-hidden="true" className="workspace-tabs__panel-arrow ml-auto w-4 shrink-0 text-slate-400" /> : <ChevronDown size={15} aria-hidden="true" className="workspace-tabs__panel-arrow ml-auto w-4 shrink-0 text-slate-400" />)}
             </button>
           );
         })}
       </nav>
       <McqSectionsPanel section={mcqSection} onChange={handleMcqSectionChange} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
       <ReferenceSectionsPanel section={referenceSection} onChange={handleReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
-      {analyticsAdmin && activeTab !== "admin" && <SiteAnalytics userId={user?.id} visible placement="sidebar" onExpandedChange={handleAnalyticsExpanded} />}
+      {analyticsAdmin && activeTab !== "admin" && <SiteAnalytics userId={user?.id} visible placement="sidebar" panelOpen={analyticsPanelOpen} onExpandedChange={handleAnalyticsExpanded} />}
       <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
     </div>
   );
