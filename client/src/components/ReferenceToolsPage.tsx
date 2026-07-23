@@ -262,9 +262,9 @@ function CalculatorSearch({ options, onSelect }: { options: Array<{ id: Calculat
 }
 
 function ReferenceChoiceField({ field, value, onChange }: { field: ReferenceField; value: string; onChange: (value: string) => void }) {
-  return <div className="rounded-xl border border-slate-200 bg-white p-3">
-    <p className="text-sm font-bold text-slate-700">{field.label}</p>
-    <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-1.5" role="group" aria-label={field.label}>
+  return <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-[minmax(0,1fr)_minmax(300px,1fr)] md:items-center">
+    <p className="min-w-0 text-sm font-bold text-slate-700">{field.label}</p>
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1.5" role="group" aria-label={field.label}>
       {field.options?.map((option) => <button key={option.value} type="button" aria-pressed={option.value === value} onClick={() => onChange(option.value)} className={`min-h-10 rounded-lg border px-2 py-2 text-xs font-extrabold transition ${option.value === value ? "border-teal-600 bg-teal-500 text-white shadow-sm" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800"}`}>{option.label}</button>)}
     </div>
   </div>;
