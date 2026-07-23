@@ -41,21 +41,21 @@ const calculatorOptions: Array<{ id: CalculatorType; label: string; description:
   { id: "egfr", label: "eGFR · Estimated Glomerular Filtration Rate", description: "Độ lọc cầu thận ước tính", interactive: true },
   { id: "crcl", label: "CrCl · Creatinine Clearance", description: "Độ thanh thải creatinine", interactive: true },
   { id: "holliday-segar", label: "Holliday-Segar", description: "Dịch duy trì theo cân nặng", interactive: true },
-  { id: "bsa", label: "BSA · Body Surface Area", description: "Diện tích da cơ thể", interactive: false },
-  { id: "wells-pe", label: "Wells' Score · Pulmonary Embolism", description: "Thang điểm Wells đánh giá khả năng thuyên tắc phổi", interactive: false },
-  { id: "cha2ds2-vasc", label: "CHA₂DS₂-VASc Score", description: "Nguy cơ đột quỵ ở rung nhĩ", interactive: false },
-  { id: "child-pugh", label: "Child-Pugh Score", description: "Mức độ nặng bệnh gan mạn", interactive: false },
-  { id: "timi", label: "TIMI Risk Score", description: "Nguy cơ hội chứng vành cấp", interactive: false },
-  { id: "has-bled", label: "HAS-BLED Score", description: "Nguy cơ chảy máu ở rung nhĩ", interactive: false },
-  { id: "centor", label: "Centor / McIsaac Score", description: "Khả năng viêm họng do liên cầu", interactive: false },
-  { id: "sirs", label: "SIRS Criteria", description: "Tiêu chuẩn đáp ứng viêm hệ thống", interactive: false },
-  { id: "grace-acs", label: "GRACE ACS Score", description: "Nguy cơ tử vong/hồi máu cơ tim trong ACS", interactive: false },
-  { id: "anion-gap", label: "Anion Gap", description: "Khoảng trống anion", interactive: false },
-  { id: "psi-port", label: "PSI / PORT Score", description: "Tiên lượng viêm phổi cộng đồng", interactive: false },
-  { id: "curb-65", label: "CURB-65 Score", description: "Đánh giá mức độ nặng viêm phổi", interactive: false },
-  { id: "apache-ii", label: "APACHE II Score", description: "Đánh giá mức độ nặng bệnh nhân hồi sức", interactive: false },
+  { id: "bsa", label: "BSA · Body Surface Area", description: "Diện tích da cơ thể", interactive: true },
+  { id: "wells-pe", label: "Wells' Score · Pulmonary Embolism", description: "Thang điểm Wells đánh giá khả năng thuyên tắc phổi", interactive: true },
+  { id: "cha2ds2-vasc", label: "CHA₂DS₂-VASc Score", description: "Nguy cơ đột quỵ ở rung nhĩ", interactive: true },
+  { id: "child-pugh", label: "Child-Pugh Score", description: "Mức độ nặng bệnh gan mạn", interactive: true },
+  { id: "timi", label: "TIMI Risk Score", description: "Nguy cơ hội chứng vành cấp", interactive: true },
+  { id: "has-bled", label: "HAS-BLED Score", description: "Nguy cơ chảy máu ở rung nhĩ", interactive: true },
+  { id: "centor", label: "Centor / McIsaac Score", description: "Khả năng viêm họng do liên cầu", interactive: true },
+  { id: "sirs", label: "SIRS Criteria", description: "Tiêu chuẩn đáp ứng viêm hệ thống", interactive: true },
+  { id: "grace-acs", label: "GRACE ACS Score", description: "Nguy cơ tử vong/hồi máu cơ tim trong ACS", interactive: true },
+  { id: "anion-gap", label: "Anion Gap", description: "Khoảng trống anion", interactive: true },
+  { id: "psi-port", label: "PSI / PORT Score", description: "Tiên lượng viêm phổi cộng đồng", interactive: true },
+  { id: "curb-65", label: "CURB-65 Score", description: "Đánh giá mức độ nặng viêm phổi", interactive: true },
+  { id: "apache-ii", label: "APACHE II Score", description: "Đánh giá mức độ nặng bệnh nhân hồi sức", interactive: true },
 ];
-const interactiveCalculatorTypes: CalculatorType[] = ["bmi", "egfr", "crcl", "holliday-segar"];
+const interactiveCalculatorTypes: CalculatorType[] = calculatorOptions.filter((option) => option.interactive).map((option) => option.id);
 
 const formulaSources = {
   niddk: "https://www.niddk.nih.gov/health-information/professionals/clinical-tools-patient-management/estimating-gfr-equations",
@@ -343,6 +343,116 @@ function CalculatorFormulaReference({ calculatorType, egfrFormula, crclFormula }
   </div>;
 }
 
+type ReferenceField = { key: string; label: string; placeholder?: string; options?: Array<{ value: string; label: string }> };
+type ReferenceInputValues = Record<string, string>;
+const binaryScoreOptions = [{ value: "0", label: "Không · 0 điểm" }, { value: "1", label: "Có · 1 điểm" }];
+const referenceCalculatorFields: Partial<Record<CalculatorType, ReferenceField[]>> = {
+  bsa: [{ key: "heightCm", label: "Chiều cao (cm)" }, { key: "weightKg", label: "Cân nặng (kg)" }],
+  "wells-pe": [
+    { key: "dvt", label: "Dấu hiệu lâm sàng DVT", options: [{ value: "0", label: "Không · 0" }, { value: "3", label: "Có · 3" }] },
+    { key: "peLikely", label: "PE là chẩn đoán có khả năng nhất", options: [{ value: "0", label: "Không · 0" }, { value: "3", label: "Có · 3" }] },
+    { key: "heartRate", label: "Nhịp tim >100/phút", options: [{ value: "0", label: "Không · 0" }, { value: "1.5", label: "Có · 1,5" }] },
+    { key: "immobilization", label: "Bất động/phẫu thuật trong 4 tuần", options: [{ value: "0", label: "Không · 0" }, { value: "1.5", label: "Có · 1,5" }] },
+    { key: "historyVte", label: "Tiền sử DVT/PE", options: [{ value: "0", label: "Không · 0" }, { value: "1.5", label: "Có · 1,5" }] },
+    { key: "hemoptysis", label: "Ho ra máu", options: [{ value: "0", label: "Không · 0" }, { value: "1", label: "Có · 1" }] },
+    { key: "cancer", label: "Ung thư đang điều trị", options: [{ value: "0", label: "Không · 0" }, { value: "1", label: "Có · 1" }] },
+  ],
+  "cha2ds2-vasc": [
+    { key: "chf", label: "Suy tim", options: binaryScoreOptions }, { key: "hypertension", label: "Tăng huyết áp", options: binaryScoreOptions },
+    { key: "age75", label: "Tuổi ≥75", options: [{ value: "0", label: "Không · 0" }, { value: "2", label: "Có · 2" }] }, { key: "diabetes", label: "Đái tháo đường", options: binaryScoreOptions },
+    { key: "stroke", label: "Đột quỵ/TIA/thuyên tắc", options: [{ value: "0", label: "Không · 0" }, { value: "2", label: "Có · 2" }] }, { key: "vascular", label: "Bệnh mạch máu", options: binaryScoreOptions },
+    { key: "age65", label: "Tuổi 65–74", options: binaryScoreOptions }, { key: "female", label: "Giới nữ", options: binaryScoreOptions },
+  ],
+  "child-pugh": [
+    { key: "bilirubin", label: "Bilirubin", options: [{ value: "1", label: "<2 mg/dL · 1" }, { value: "2", label: "2–3 mg/dL · 2" }, { value: "3", label: ">3 mg/dL · 3" }] },
+    { key: "albumin", label: "Albumin", options: [{ value: "1", label: ">3,5 g/dL · 1" }, { value: "2", label: "2,8–3,5 g/dL · 2" }, { value: "3", label: "<2,8 g/dL · 3" }] },
+    { key: "inr", label: "INR / thời gian prothrombin", options: [{ value: "1", label: "INR <1,7 · 1" }, { value: "2", label: "INR 1,7–2,3 · 2" }, { value: "3", label: "INR >2,3 · 3" }] },
+    { key: "ascites", label: "Cổ trướng", options: [{ value: "1", label: "Không · 1" }, { value: "2", label: "Nhẹ/kiểm soát · 2" }, { value: "3", label: "Vừa-nặng/khó kiểm soát · 3" }] },
+    { key: "encephalopathy", label: "Bệnh não gan", options: [{ value: "1", label: "Không · 1" }, { value: "2", label: "Độ I–II · 2" }, { value: "3", label: "Độ III–IV · 3" }] },
+  ],
+  timi: ["age65", "riskFactors", "knownCad", "aspirin", "angina", "stDeviation", "biomarker"].map((key, index) => ({ key, label: ["Tuổi ≥65", "≥3 yếu tố nguy cơ CAD", "CAD đã biết ≥50%", "Dùng aspirin trong 7 ngày", "≥2 cơn đau ngực trong 24 giờ", "ST chênh ≥0,5 mm", "Biomarker tim tăng"][index], options: binaryScoreOptions })),
+  "has-bled": ["hypertension", "renal", "liver", "stroke", "bleeding", "labileInr", "age65", "drugs", "alcohol"].map((key, index) => ({ key, label: ["Tăng huyết áp", "Bất thường thận", "Bất thường gan", "Tiền sử đột quỵ", "Tiền sử chảy máu", "INR không ổn định", "Tuổi >65", "Thuốc làm tăng nguy cơ chảy máu", "Rượu"][index], options: binaryScoreOptions })),
+  centor: ["noCough", "tenderNodes", "fever", "exudate"].map((key, index) => ({ key, label: ["Không ho", "Hạch cổ trước đau", "Sốt", "Amidan xuất tiết/sưng"][index], options: binaryScoreOptions })).concat([{ key: "ageAdjustment", label: "Điều chỉnh theo tuổi", options: [{ value: "-1", label: "≥45 tuổi · −1" }, { value: "0", label: "15–44 tuổi · 0" }, { value: "1", label: "3–14 tuổi · +1" }] }]),
+  sirs: ["temperature", "heartRate", "respiratoryRate", "whiteBloodCell"].map((key, index) => ({ key, label: ["Nhiệt độ bất thường", "Nhịp tim >90/phút", "Nhịp thở/PaCO₂ bất thường", "Bạch cầu/band bất thường"][index], options: binaryScoreOptions })),
+  "anion-gap": [{ key: "sodium", label: "Na⁺ (mmol/L)" }, { key: "chloride", label: "Cl⁻ (mmol/L)" }, { key: "bicarbonate", label: "HCO₃⁻ (mmol/L)" }, { key: "albumin", label: "Albumin (g/dL)", placeholder: "Không bắt buộc" }],
+  "curb-65": ["confusion", "urea", "respiratoryRate", "bloodPressure", "age65"].map((key, index) => ({ key, label: ["Lú lẫn mới xuất hiện", "Ure >7 mmol/L", "Nhịp thở ≥30/phút", "HA tâm thu <90 hoặc tâm trương ≤60", "Tuổi ≥65"][index], options: binaryScoreOptions })),
+  "grace-acs": [
+    { key: "age", label: "Tuổi (năm)" }, { key: "heartRate", label: "Nhịp tim (lần/phút)" }, { key: "systolicBp", label: "Huyết áp tâm thu (mmHg)" }, { key: "creatinine", label: "Creatinine (mg/dL)" },
+    { key: "killip", label: "Killip", options: [{ value: "0", label: "I · 0" }, { value: "20", label: "II · 20" }, { value: "39", label: "III · 39" }, { value: "59", label: "IV · 59" }] },
+    { key: "cardiacArrest", label: "Ngừng tim lúc nhập viện", options: [{ value: "0", label: "Không · 0" }, { value: "39", label: "Có · 39" }] }, { key: "stDeviation", label: "ST chênh lệch", options: [{ value: "0", label: "Không · 0" }, { value: "28", label: "Có · 28" }] }, { key: "enzymes", label: "Biomarker tim tăng", options: [{ value: "0", label: "Không · 0" }, { value: "14", label: "Có · 14" }] },
+  ],
+  "psi-port": [
+    { key: "age", label: "Tuổi (nam) / tuổi −10 (nữ)" }, { key: "nursingHome", label: "Sống tại viện dưỡng lão", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] },
+    { key: "neoplastic", label: "Bệnh tân sinh", options: [{ value: "0", label: "Không · 0" }, { value: "30", label: "Có · 30" }] }, { key: "liver", label: "Bệnh gan", options: [{ value: "0", label: "Không · 0" }, { value: "20", label: "Có · 20" }] }, { key: "chf", label: "Suy tim", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] }, { key: "cerebrovascular", label: "Bệnh mạch máu não", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] }, { key: "renal", label: "Bệnh thận", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] },
+    { key: "confusion", label: "Lú lẫn", options: [{ value: "0", label: "Không · 0" }, { value: "20", label: "Có · 20" }] }, { key: "respiratoryRate", label: "Nhịp thở ≥30/phút", options: [{ value: "0", label: "Không · 0" }, { value: "20", label: "Có · 20" }] }, { key: "systolicBp", label: "HA tâm thu <90 mmHg", options: [{ value: "0", label: "Không · 0" }, { value: "20", label: "Có · 20" }] }, { key: "temperature", label: "Nhiệt độ <35 hoặc ≥40°C", options: [{ value: "0", label: "Không · 0" }, { value: "15", label: "Có · 15" }] }, { key: "pulse", label: "Mạch ≥125/phút", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] },
+    { key: "ph", label: "pH động mạch <7,35", options: [{ value: "0", label: "Không · 0" }, { value: "30", label: "Có · 30" }] }, { key: "bun", label: "BUN ≥30 mg/dL", options: [{ value: "0", label: "Không · 0" }, { value: "20", label: "Có · 20" }] }, { key: "sodium", label: "Na⁺ <130 mmol/L", options: [{ value: "0", label: "Không · 0" }, { value: "20", label: "Có · 20" }] }, { key: "glucose", label: "Glucose ≥250 mg/dL", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] }, { key: "hematocrit", label: "Hematocrit <30%", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] }, { key: "oxygenation", label: "PaO₂ <60 hoặc SpO₂ <90%", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] }, { key: "pleuralEffusion", label: "Tràn dịch màng phổi", options: [{ value: "0", label: "Không · 0" }, { value: "10", label: "Có · 10" }] },
+  ],
+  "apache-ii": [
+    { key: "temperature", label: "Nhiệt độ (°C)" }, { key: "meanArterialPressure", label: "MAP (mmHg)" }, { key: "heartRate", label: "Nhịp tim (lần/phút)" }, { key: "respiratoryRate", label: "Nhịp thở (lần/phút)" }, { key: "oxygenation", label: "PaO₂ (mmHg; FiO₂ <0,5)" }, { key: "arterialPh", label: "pH động mạch" }, { key: "sodium", label: "Na⁺ (mmol/L)" }, { key: "potassium", label: "K⁺ (mmol/L)" }, { key: "creatinine", label: "Creatinine (mg/dL)" }, { key: "hematocrit", label: "Hematocrit (%)" }, { key: "whiteBloodCell", label: "Bạch cầu (×10³/mm³)" }, { key: "gcs", label: "GCS (3–15)" }, { key: "age", label: "Tuổi (năm)" }, { key: "chronicHealth", label: "Bệnh mạn nặng/suy giảm miễn dịch", options: [{ value: "0", label: "Không · 0" }, { value: "2", label: "Mổ chương trình · 2" }, { value: "5", label: "Mổ cấp cứu/không mổ · 5" }] },
+  ],
+};
+
+function ReferenceCalculatorPanel({ calculatorType, values, onChange }: { calculatorType: CalculatorType; values: ReferenceInputValues; onChange: (key: string, value: string) => void }) {
+  const fields = referenceCalculatorFields[calculatorType] || [];
+  const read = (key: string) => values[key] === undefined || values[key] === "" ? null : Number(values[key]);
+  const allFilled = fields.every((field) => read(field.key) !== null && Number.isFinite(read(field.key)));
+  const rangeScore = (value: number, rules: Array<{ min?: number; max?: number; score: number }>) => rules.find((rule) => value >= (rule.min ?? -Infinity) && value <= (rule.max ?? Infinity))?.score ?? 0;
+  let result: number | null = null;
+  let resultLabel = "Kết quả";
+  let resultUnit = "";
+  let interpretation = "Nhập đủ dữ liệu để tính.";
+  if (calculatorType === "bsa" && allFilled) {
+    result = Math.sqrt((read("heightCm")! * read("weightKg")!) / 3600);
+    resultLabel = "BSA · Body Surface Area";
+    resultUnit = "m²";
+  } else if (["wells-pe", "cha2ds2-vasc", "child-pugh", "timi", "has-bled", "centor", "sirs", "curb-65"].includes(calculatorType) && allFilled) {
+    result = fields.reduce((total, field) => total + (read(field.key) || 0), 0);
+    resultLabel = calculatorType === "child-pugh" ? "Child-Pugh Score" : calculatorOptions.find((option) => option.id === calculatorType)?.label || "Tổng điểm";
+    if (calculatorType === "child-pugh") interpretation = result <= 6 ? "Child-Pugh A · 5–6 điểm" : result <= 9 ? "Child-Pugh B · 7–9 điểm" : "Child-Pugh C · 10–15 điểm";
+    else if (calculatorType === "sirs") interpretation = result >= 2 ? "Đạt ≥2 tiêu chí SIRS" : "Chưa đạt 2 tiêu chí SIRS";
+    else interpretation = "Cần đối chiếu ngưỡng diễn giải theo hướng dẫn tương ứng.";
+  } else if (calculatorType === "anion-gap" && read("sodium") !== null && read("chloride") !== null && read("bicarbonate") !== null) {
+    result = read("sodium")! - read("chloride")! - read("bicarbonate")!;
+    resultLabel = "Anion Gap";
+    resultUnit = "mmol/L";
+    const albumin = read("albumin");
+    interpretation = albumin !== null ? `AG hiệu chỉnh albumin: ${(result + 2.5 * (4 - albumin)).toFixed(1)} mmol/L` : "AG không gồm kali; có thể nhập albumin để hiệu chỉnh.";
+  } else if (calculatorType === "grace-acs" && allFilled) {
+    const ageScore = rangeScore(read("age")!, [{ max: 29, score: 0 }, { min: 30, max: 39, score: 8 }, { min: 40, max: 49, score: 25 }, { min: 50, max: 59, score: 41 }, { min: 60, max: 69, score: 58 }, { min: 70, max: 79, score: 75 }, { min: 80, score: 91 }]);
+    const heartRateScore = rangeScore(read("heartRate")!, [{ max: 69, score: 0 }, { min: 70, max: 89, score: 3 }, { min: 90, max: 109, score: 9 }, { min: 110, max: 149, score: 15 }, { min: 150, max: 199, score: 24 }, { min: 200, score: 38 }]);
+    const bloodPressureScore = rangeScore(read("systolicBp")!, [{ max: 79, score: 63 }, { min: 80, max: 99, score: 58 }, { min: 100, max: 119, score: 47 }, { min: 120, max: 139, score: 37 }, { min: 140, max: 159, score: 26 }, { min: 160, max: 199, score: 11 }, { min: 200, score: 0 }]);
+    const creatinineScore = rangeScore(read("creatinine")!, [{ max: 0.39, score: 1 }, { min: 0.4, max: 0.79, score: 4 }, { min: 0.8, max: 1.19, score: 7 }, { min: 1.2, max: 1.59, score: 10 }, { min: 1.6, max: 1.99, score: 13 }, { min: 2, max: 3.99, score: 21 }, { min: 4, score: 28 }]);
+    result = ageScore + heartRateScore + bloodPressureScore + creatinineScore + (read("killip") || 0) + (read("cardiacArrest") || 0) + (read("stDeviation") || 0) + (read("enzymes") || 0);
+    resultLabel = "GRACE ACS Score";
+    interpretation = "Đối chiếu phân tầng nguy cơ GRACE và bối cảnh lâm sàng; đây là bản tính điểm GRACE gốc.";
+  } else if (calculatorType === "psi-port" && allFilled) {
+    result = fields.reduce((total, field) => total + (read(field.key) || 0), 0);
+    resultLabel = "PSI / PORT Score";
+    interpretation = result <= 70 ? "Class II · nguy cơ thấp" : result <= 90 ? "Class III · nguy cơ thấp–trung bình" : result <= 130 ? "Class IV · nguy cơ trung bình–cao" : "Class V · nguy cơ cao";
+  } else if (calculatorType === "apache-ii" && allFilled) {
+    const temperatureScore = rangeScore(read("temperature")!, [{ min: 41, score: 4 }, { min: 39, max: 40.9, score: 3 }, { min: 38.5, max: 38.9, score: 1 }, { min: 36, max: 38.4, score: 0 }, { min: 34, max: 35.9, score: 1 }, { min: 32, max: 33.9, score: 2 }, { min: 30, max: 31.9, score: 3 }, { max: 29.9, score: 4 }]);
+    const mapScore = rangeScore(read("meanArterialPressure")!, [{ min: 160, score: 4 }, { min: 130, max: 159, score: 3 }, { min: 110, max: 129, score: 2 }, { min: 70, max: 109, score: 0 }, { min: 50, max: 69, score: 2 }, { max: 49, score: 4 }]);
+    const heartRateScore = rangeScore(read("heartRate")!, [{ min: 180, score: 4 }, { min: 140, max: 179, score: 3 }, { min: 110, max: 139, score: 2 }, { min: 70, max: 109, score: 0 }, { min: 55, max: 69, score: 2 }, { min: 40, max: 54, score: 3 }, { max: 39, score: 4 }]);
+    const respiratoryScore = rangeScore(read("respiratoryRate")!, [{ min: 50, score: 3 }, { min: 35, max: 49, score: 1 }, { min: 25, max: 34, score: 0 }, { min: 12, max: 24, score: 0 }, { min: 10, max: 11, score: 1 }, { min: 6, max: 9, score: 2 }, { max: 5, score: 4 }]);
+    const oxygenationScore = rangeScore(read("oxygenation")!, [{ min: 70, score: 0 }, { min: 61, max: 69, score: 1 }, { min: 55, max: 60, score: 3 }, { max: 54, score: 3 }]);
+    const phScore = rangeScore(read("arterialPh")!, [{ min: 7.7, score: 4 }, { min: 7.6, max: 7.69, score: 3 }, { min: 7.5, max: 7.59, score: 1 }, { min: 7.33, max: 7.49, score: 0 }, { min: 7.25, max: 7.32, score: 2 }, { min: 7.15, max: 7.24, score: 3 }, { max: 7.14, score: 4 }]);
+    const sodiumScore = rangeScore(read("sodium")!, [{ min: 180, score: 4 }, { min: 160, max: 179, score: 3 }, { min: 155, max: 159, score: 1 }, { min: 130, max: 154, score: 0 }, { min: 120, max: 129, score: 2 }, { min: 111, max: 119, score: 3 }, { max: 110, score: 4 }]);
+    const potassiumScore = rangeScore(read("potassium")!, [{ min: 7, score: 4 }, { min: 6, max: 6.9, score: 3 }, { min: 5.5, max: 5.9, score: 1 }, { min: 3.5, max: 5.4, score: 0 }, { min: 3, max: 3.4, score: 1 }, { min: 2.5, max: 2.9, score: 2 }, { max: 2.49, score: 4 }]);
+    const creatinineScore = rangeScore(read("creatinine")!, [{ min: 3.5, score: 4 }, { min: 2, max: 3.49, score: 3 }, { min: 1.5, max: 1.99, score: 2 }, { min: 0.6, max: 1.49, score: 0 }, { max: 0.59, score: 2 }]);
+    const hematocritScore = rangeScore(read("hematocrit")!, [{ min: 60, score: 4 }, { min: 50, max: 59.9, score: 2 }, { min: 46, max: 49.9, score: 1 }, { min: 30, max: 45.9, score: 0 }, { min: 20, max: 29.9, score: 2 }, { max: 19.9, score: 4 }]);
+    const whiteCellScore = rangeScore(read("whiteBloodCell")!, [{ min: 40, score: 4 }, { min: 20, max: 39.9, score: 1 }, { min: 15, max: 19.9, score: 1 }, { min: 3, max: 14.9, score: 0 }, { min: 1, max: 2.9, score: 2 }, { max: 0.99, score: 4 }]);
+    result = temperatureScore + mapScore + heartRateScore + respiratoryScore + oxygenationScore + phScore + sodiumScore + potassiumScore + creatinineScore + hematocritScore + whiteCellScore + (15 - read("gcs")!) + rangeScore(read("age")!, [{ min: 75, score: 6 }, { min: 65, max: 74, score: 5 }, { min: 55, max: 64, score: 3 }, { min: 45, max: 54, score: 2 }, { max: 44, score: 0 }]) + (read("chronicHealth") || 0);
+    resultLabel = "APACHE II Score";
+    interpretation = "Lấy giá trị xấu nhất trong 24 giờ đầu ICU; cần bác sĩ hồi sức đối chiếu bảng chuẩn.";
+  }
+
+  return <div className="mt-5 rounded-2xl border border-white bg-white/85 p-4 sm:p-5">
+    <div><p className="text-sm font-extrabold text-slate-700">Nhập dữ liệu</p><p className="mt-1 text-xs font-semibold text-slate-500">Không có giá trị mặc định. Chọn hoặc nhập từng tiêu chí để xem kết quả.</p></div>
+    {fields.length > 0 ? <div className="mt-4 grid gap-4 md:grid-cols-2">{fields.map((field) => field.options ? <AnimatedDropdown key={field.key} label={field.label} value={values[field.key] || ""} options={[{ value: "", label: "Chọn giá trị" }, ...field.options]} onChange={(value) => onChange(field.key, value)} /> : <label key={field.key} className="block min-w-0 text-sm font-bold text-slate-700">{field.label}<input type="number" inputMode="decimal" step="any" value={values[field.key] || ""} onChange={(event) => onChange(field.key, event.target.value)} placeholder={field.placeholder || "Nhập giá trị"} className="medical-value-input mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-teal-400" /></label>)}</div> : <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-3 text-sm font-semibold text-amber-800">Công thức này cần bảng điểm chuẩn để tính chính xác. Bạn có thể tra cứu công thức ở tab bên cạnh.</p>}
+    <div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-teal-100 bg-teal-50/60 p-4"><div><p className="text-sm font-bold text-slate-500">{resultLabel}</p><p className="mt-1 text-4xl font-black text-teal-800">{result === null ? "—" : result.toFixed(1)} {resultUnit && <span className="text-base font-extrabold">{resultUnit}</span>}</p></div><p className="max-w-xl text-sm font-semibold leading-6 text-slate-600">{interpretation}</p></div>
+  </div>;
+}
+
 export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [formulas, setFormulas] = useState<ReferenceFormula[]>([]);
   const [form, setForm] = useState(emptyFormula);
@@ -357,6 +467,7 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
   const [heightUnit, setHeightUnit] = useState("cm");
   const [calculatorType, setCalculatorType] = useState<CalculatorType>("bmi");
   const [calculatorPanelTab, setCalculatorPanelTab] = useState<"calculator" | "formula">("calculator");
+  const [referenceInputs, setReferenceInputs] = useState<ReferenceInputValues>({});
   const [egfrFormula, setEgfrFormula] = useState<EgfrFormula>("creatinine");
   const [crclFormula, setCrclFormula] = useState<CrclFormula>("standard");
   const [age, setAge] = useState("");
@@ -566,6 +677,7 @@ export default function ReferenceToolsPage({ user }: { user: User | null }) {
         {calculatorType === "bmi" && <div className="mt-5"><div className="grid gap-4 md:grid-cols-2"><UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} /><UnitValueField label="Chiều cao" value={height} unit={heightUnit} units={heightUnits} onValueChange={setHeight} onUnitChange={(nextUnit) => changeUnit(height, heightUnit, nextUnit, heightUnits, setHeight, setHeightUnit)} /></div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white bg-white/85 p-4"><div><p className="text-sm font-bold text-slate-500">Kết quả BMI</p><p className="mt-1 text-4xl font-black text-teal-800">{bmi === null ? "—" : bmi.toFixed(1)}</p></div><p className="max-w-sm text-sm font-semibold leading-6 text-slate-500">{bmi === null ? "Nhập cân nặng và chiều cao để tính." : bmi < 18.5 ? "Thiếu cân" : bmi < 25 ? "Bình thường" : bmi < 30 ? "Thừa cân" : "Béo phì"}</p></div></div>}
         {calculatorType === "holliday-segar" && <div className="mt-5"><UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} /><div className="mt-5 grid gap-4 md:grid-cols-2"><div className="rounded-2xl border border-white bg-white/85 p-4"><p className="text-sm font-bold text-slate-500">Dịch duy trì mỗi giờ · 4-2-1</p><p className="mt-1 text-3xl font-black text-teal-800">{hollidayHourly === null ? "—" : hollidayHourly.toFixed(1)} <span className="text-base font-extrabold">mL/giờ</span></p></div><div className="rounded-2xl border border-white bg-white/85 p-4"><p className="text-sm font-bold text-slate-500">Dịch duy trì mỗi ngày · 100-50-20</p><p className="mt-1 text-3xl font-black text-teal-800">{hollidayDaily === null ? "—" : hollidayDaily.toFixed(1)} <span className="text-base font-extrabold">mL/ngày</span></p></div></div><div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-slate-500"><span>Nguồn:</span><a href={formulaSources.hollidaySegar} target="_blank" rel="noreferrer" className="text-teal-700 underline hover:text-teal-900">Holliday-Segar · PubMed</a></div><p className="mt-3 text-xs font-semibold leading-5 text-slate-500">Chỉ là ước tính dịch duy trì ban đầu; cần điều chỉnh theo tuổi, bệnh cảnh, điện giải và đánh giá lâm sàng.</p></div>}
         {(calculatorType === "egfr" || calculatorType === "crcl") && <div className="mt-5">{calculatorType === "egfr" && <AnimatedDropdown label="Công thức eGFR" value={egfrFormula} onChange={(value) => setEgfrFormula(value as EgfrFormula)} options={[{ value: "creatinine", label: "CKD-EPI Creatinine 2021" }, { value: "cystatin", label: "CKD-EPI Cystatin C 2012" }, { value: "combined", label: "CKD-EPI Creatinine-Cystatin C 2012" }, { value: "mdrd", label: "MDRD 4 biến chuẩn hóa" }]} />}{calculatorType === "crcl" && <AnimatedDropdown label="Công thức CrCl" value={crclFormula} onChange={(value) => setCrclFormula(value as CrclFormula)} options={[{ value: "standard", label: "Cockcroft-Gault chuẩn" }, { value: "adjusted-weight", label: "Cockcroft-Gault + cân nặng hiệu chỉnh (IBW/AdjBW)" }, { value: "bsa-normalized", label: "CrCl chuẩn hóa theo BSA" }]} />}<div className="mt-4 grid gap-4 md:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]"><label className="block min-w-0 text-sm font-bold text-slate-700">Tuổi (năm)<input type="number" min="1" max="120" step="1" value={age} onChange={(event) => setAge(event.target.value)} className="medical-value-input mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-teal-400" /></label><AnimatedDropdown label="Giới tính sinh học" value={sex} onChange={(value) => setSex(value as "male" | "female")} options={[{ value: "male", label: "Nam" }, { value: "female", label: "Nữ" }]} />{(calculatorType !== "egfr" || egfrFormula !== "cystatin") && <UnitValueField label="Creatinine huyết thanh" value={creatinine} unit={creatinineUnit} units={creatinineUnits} onValueChange={setCreatinine} onUnitChange={(nextUnit) => changeUnit(creatinine, creatinineUnit, nextUnit, creatinineUnits, setCreatinine, setCreatinineUnit)} />}{calculatorType === "egfr" && (egfrFormula === "cystatin" || egfrFormula === "combined") && <UnitValueField label="Cystatin C" value={cystatinC} unit={cystatinCUnit} units={cystatinCUnits} onValueChange={setCystatinC} onUnitChange={(nextUnit) => changeUnit(cystatinC, cystatinCUnit, nextUnit, cystatinCUnits, setCystatinC, setCystatinCUnit)} />}{calculatorType === "crcl" && <UnitValueField label="Cân nặng" value={weight} unit={weightUnit} units={weightUnits} onValueChange={setWeight} onUnitChange={(nextUnit) => changeUnit(weight, weightUnit, nextUnit, weightUnits, setWeight, setWeightUnit)} />}{calculatorType === "crcl" && crclFormula !== "standard" && <UnitValueField label="Chiều cao" value={height} unit={heightUnit} units={heightUnits} onValueChange={setHeight} onUnitChange={(nextUnit) => changeUnit(height, heightUnit, nextUnit, heightUnits, setHeight, setHeightUnit)} />}</div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white bg-white/85 p-4"><div><p className="text-sm font-bold text-slate-500">{calculatorType === "egfr" ? egfrFormula === "creatinine" ? "eGFR · CKD-EPI Creatinine 2021" : egfrFormula === "cystatin" ? "eGFR · CKD-EPI Cystatin C 2012" : egfrFormula === "combined" ? "eGFR · CKD-EPI Creatinine-Cystatin C 2012" : "eGFR · MDRD 4 biến" : crclLabel}</p><p className="mt-1 text-4xl font-black text-teal-800">{calculatorType === "egfr" ? (selectedEgfr === null ? "—" : selectedEgfr.toFixed(1)) : (crcl === null ? "—" : crcl.toFixed(1))}</p></div><p className="text-sm font-semibold text-slate-500">{calculatorType === "egfr" ? "mL/min/1,73 m²" : crclUnitLabel}</p></div><div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-slate-500"><span>Nguồn:</span><a href={formulaSources.niddk} target="_blank" rel="noreferrer" className="text-teal-700 underline hover:text-teal-900">NIDDK · CKD-EPI &amp; MDRD</a><a href={formulaSources.kdigo} target="_blank" rel="noreferrer" className="text-teal-700 underline hover:text-teal-900">KDIGO · CKD guideline</a>{calculatorType === "crcl" && <a href={formulaSources.cockcroftGault} target="_blank" rel="noreferrer" className="text-teal-700 underline hover:text-teal-900">Cockcroft-Gault · PubMed</a>}</div><p className="mt-3 text-xs font-semibold leading-5 text-slate-500">Kết quả chỉ mang tính tham khảo lâm sàng; cần đối chiếu tình trạng người bệnh và hướng dẫn chuyên môn.</p></div>}
+        {!(["bmi", "egfr", "crcl", "holliday-segar"] as CalculatorType[]).includes(calculatorType) && <ReferenceCalculatorPanel calculatorType={calculatorType} values={referenceInputs} onChange={(key, value) => setReferenceInputs((current) => ({ ...current, [key]: value }))} />}
         </div>}
         {calculatorPanelTab === "formula" && <CalculatorFormulaReference calculatorType={calculatorType} egfrFormula={egfrFormula} crclFormula={crclFormula} />}
       </div>}
