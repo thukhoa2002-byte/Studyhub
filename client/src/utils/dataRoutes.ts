@@ -1,6 +1,7 @@
 export type DataRoute =
   | { tab: "guidelines"; kind: "guideline-list" }
   | { tab: "guidelines"; kind: "guideline-detail"; slug: string; sectionSlug?: string; recommendationId?: string }
+  | { tab: "guidelines"; kind: "guideline-manager" }
   | { tab: "drugs"; kind: "drug-list" }
   | { tab: "drugs"; kind: "drug-detail"; slug: string }
   | { tab: null; kind: "other" };
@@ -9,6 +10,7 @@ export function parseDataRoute(pathname: string): DataRoute {
   const parts = pathname.split("/").filter(Boolean).map((part) => decodeURIComponent(part));
   if (parts[0] === "guidelines") {
     if (!parts[1]) return { tab: "guidelines", kind: "guideline-list" };
+    if (parts[1] === "manage") return { tab: "guidelines", kind: "guideline-manager" };
     return { tab: "guidelines", kind: "guideline-detail", slug: parts[1], sectionSlug: parts[2], recommendationId: parts[3] };
   }
   if (parts[0] === "drugs") {

@@ -44,7 +44,6 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining, section
   const [contentLayout, setContentLayout] = useState<ReferenceBookExtraction | null>(null);
   const [contentBusy, setContentBusy] = useState(false);
   const [extractionProgress, setExtractionProgress] = useState("");
-  const [guidelineView, setGuidelineView] = useState<"data" | "manager">("data");
   const isOwner = user?.email?.trim().toLowerCase() === REFERENCE_BOOK_OWNER_EMAIL;
   const visibleBooks = isOwner ? books : books.filter((book) => book.status === "shared");
   const folders = visibleBooks.filter((book) => book.item_type === "folder");
@@ -317,7 +316,7 @@ export default function ReferenceLibraryPage({ user, onAiCallsRemaining, section
   }
 
   return <>
-    {section === "guidelines" ? guidelineView === "data" ? <GuidelineDataPage route={guidelineRoute} onNavigate={onNavigate} onManage={() => setGuidelineView("manager")} /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8"><div className="mb-3"><button type="button" onClick={() => setGuidelineView("data")} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-bold text-violet-700 hover:bg-violet-50">Quay về kho dữ liệu guideline</button></div><GuidelinesPage user={user} onAiCallsRemaining={onAiCallsRemaining} /></section> : section === "tools" ? <ReferenceToolsPage user={user} /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
+    {section === "guidelines" ? guidelineRoute.kind === "guideline-manager" ? <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8"><div className="mb-3"><button type="button" onClick={() => onNavigate("/guidelines")} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-bold text-violet-700 hover:bg-violet-50">Quay về kho dữ liệu guideline</button></div><GuidelinesPage user={user} onAiCallsRemaining={onAiCallsRemaining} /></section> : <GuidelineDataPage route={guidelineRoute} onNavigate={onNavigate} onManage={() => onNavigate("/guidelines/manage")} /> : section === "tools" ? <ReferenceToolsPage user={user} /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
       <div className="glass-panel border border-rose-100 bg-white/75 p-5">
         <div className="flex items-center gap-3"><LibraryBig className="text-rose-500" size={28} /><div><h1 className="text-xl font-extrabold text-rose-950">Sách tham khảo</h1><p className="text-sm text-slate-500">Sách đã đăng công khai mới hiển thị cho mọi tài khoản.</p></div></div>
 

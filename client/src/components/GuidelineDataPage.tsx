@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BookOpenCheck, ExternalLink, Search, ShieldAlert } from "lucide-react";
 import type { DataRoute } from "../utils/dataRoutes";
 import { drugPath, guidelinePath } from "../utils/dataRoutes";
-import { getAllGuidelines, getDrugById, getGuidelineBySlug } from "../services/guidelineService";
+import { getAllGuidelines, getDrugById, getGuidelineBySlug, loadGuidelines } from "../services/guidelineService";
 import type { Guideline, GuidelineRecommendation } from "../types/guideline";
 
-type GuidelineRoute = Extract<DataRoute, { tab: "guidelines" }>;
+type GuidelineRoute = Extract<DataRoute, { tab: "guidelines"; kind: "guideline-list" | "guideline-detail" }>;
 
 interface Props {
   route: GuidelineRoute;
@@ -63,10 +63,11 @@ function RecommendationCard({ guideline, sectionSlug, recommendation, onNavigate
 
 function GuidelineDetail({ guideline, route, onNavigate }: { guideline: Guideline; route: Extract<GuidelineRoute, { kind: "guideline-detail" }>; onNavigate: (path: string) => void }) {
   useEffect(() => {
-    if (!route.recommendationId) return;
-    const timer = window.setTimeout(() => document.getElementById(route.recommendationId || "")?.scrollIntoView({ block: "center", behavior: "smooth" }), 80);
+    const targetId = route.recommendationId || (route.sectionSlug ? `section-${route.sectionSlug}` : "");
+    if (!targetId) return;
+    const timer = window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ block: "center", behavior: "smooth" }), 80);
     return () => window.clearTimeout(timer);
-  }, [route.recommendationId]);
+  }, [route.recommendationId, route.sectionSlug]);
 
   return <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8" aria-labelledby="guideline-detail-title">
     <div className="glass-panel border border-violet-100 bg-white/75 p-5 sm:p-7">
@@ -93,8 +94,9 @@ export default function GuidelineDataPage({ route, onNavigate, onManage }: Props
   const [specialty, setSpecialty] = useState("");
   const [organization, setOrganization] = useState("");
   const [year, setYear] = useState("");
-  const allGuidelines = getAllGuidelines();
-  const selectedGuideline = route.kind === "guideline-detail" ? getGuidelineBySlug(route.slug) : undefined;
+  const [allGuidelines, setAllGuidelines] = useState(() => getAllGuidelines());
+  useEffect(() => { let active = true; void loadGuidelines().then((items) => { if (active) setAllGuidelines(items); }); return () => { active = false; }; }, []);
+  const selectedGuideline = route.kind === "guideline-detail" ? getGuidelineBySlug(route.slug, allGuidelines) : undefined;
   const filtered = useMemo(() => allGuidelines.filter((guideline) => {
     const haystack = `${guideline.title} ${guideline.titleVi} ${guideline.topics.join(" ")}`.toLowerCase();
     return (!query.trim() || haystack.includes(query.trim().toLowerCase())) && (!specialty || guideline.specialty === specialty) && (!organization || guideline.organization === organization) && (!year || String(guideline.publicationYear) === year);
