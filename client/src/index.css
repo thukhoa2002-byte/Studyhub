@@ -301,6 +301,9 @@ input:focus, textarea:focus, [contenteditable="true"]:focus { outline: none; box
   .workspace-sidebar .workspace-tabs__button,
   .workspace-sidebar .workspace-settings > button { justify-content: flex-start; padding-inline: 1rem; transition: transform 360ms cubic-bezier(.22,1,.36,1), color 240ms ease, background-color 240ms ease; }
   .workspace-tabs__label { max-width: 14rem; overflow: hidden; white-space: nowrap; opacity: 1; transition: max-width 360ms cubic-bezier(.22,1,.36,1), opacity 180ms ease, visibility 180ms ease; }
+  .workspace-tabs__panel-arrow { opacity: .78; transition: transform 300ms ease, opacity 180ms ease; }
+  .workspace-tabs__button:hover .workspace-tabs__panel-arrow { opacity: 1; transform: rotate(-90deg); }
+  .workspace-sidebar:not(:hover):not(:focus-within):not(:has(.site-analytics--sidebar-open)):not(.workspace-sidebar--panel-open) .workspace-tabs__panel-arrow { display: none; }
   .workspace-tabs__button--dock-hover { transform: translateX(3px) scale(1.02); }
   .workspace-tabs__button--dock-neighbor { transform: translateX(1px) scale(1.01); }
 }

@@ -1,4 +1,4 @@
-import { BookOpen, BookOpenCheck, Calculator, Pill } from "lucide-react";
+import { BookOpen, BookOpenCheck, Calculator, ChevronDown, Pill } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -128,6 +128,8 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
           const active = !analyticsPanelOpen && visualTab === id;
           const distance = hoveredTab ? Math.abs(tabs.findIndex((tab) => tab.id === hoveredTab) - tabIndex) : 99;
           const dockClass = hoveredTab === id ? "workspace-tabs__button--dock-hover" : distance === 1 ? "workspace-tabs__button--dock-neighbor" : "";
+          const hasHoverPanel = id === "mcq" || id === "guidelines";
+          const panelOpen = id === "mcq" ? mcqPanelOpen : id === "guidelines" ? referencePanelOpen : false;
           return (
             <button
               key={id}
@@ -142,6 +144,7 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
             >
               <span className="workspace-tabs__icon shrink-0"><Icon size={21} strokeWidth={2.2} /></span>
               <span className="workspace-tabs__label">{label}</span>
+              {hasHoverPanel && <ChevronDown size={15} aria-hidden="true" className={`workspace-tabs__panel-arrow shrink-0 text-slate-400 transition-transform duration-300 ${panelOpen ? "-rotate-90" : ""}`} />}
             </button>
           );
         })}
