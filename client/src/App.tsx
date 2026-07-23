@@ -17,6 +17,7 @@ import type { McqSection } from "./components/McqSectionsPanel";
 import DrugsPage from "./components/DrugsPage";
 import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import type { ReferenceSection } from "./components/ReferenceSectionsPanel";
+import { parseDataRoute, type DataRoute } from "./utils/dataRoutes";
 import McqPage from "./components/McqPage";
 import Footer, { getDailyQuote } from "./components/Footer";
 import { isAnalyticsAdmin, isSpecialUser } from "./config/access";
@@ -33,8 +34,18 @@ import {
   type GenerateQuestionsResponse,
 } from "./services/api";
 
+function initialPath(): string {
+  return typeof window === "undefined" ? "/" : window.location.pathname;
+}
+
+function workspaceTabForPath(pathname: string): WorkspaceTab {
+  const route = parseDataRoute(pathname);
+  return route.tab || "flashcards";
+}
+
 export default function App() {
-  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("flashcards");
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>(() => workspaceTabForPath(initialPath()));
+  const [dataRoute, setDataRoute] = useState<DataRoute>(() => parseDataRoute(initialPath()));
   const [referenceSection, setReferenceSection] = useState<ReferenceSection>("guidelines");
   const [mcqSection, setMcqSection] = useState<McqSection>("banks");
   const [mode, setMode] = useState<"study" | "review">("study");
@@ -79,6 +90,17 @@ export default function App() {
   const specialUser = isSpecialUser(user?.email);
   const analyticsAdmin = isAnalyticsAdmin(user?.email);
   const [dailyQuote, dailyAuthor] = getDailyQuote();
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const nextRoute = parseDataRoute(window.location.pathname);
+      setDataRoute(nextRoute);
+      if (nextRoute.tab) setWorkspaceTab(nextRoute.tab);
+      if (nextRoute.tab === "guidelines") setReferenceSection("guidelines");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("hocbai-theme", theme);
@@ -210,6 +232,21 @@ export default function App() {
   function changeWorkspaceTab(nextTab: WorkspaceTab) {
     if (nextTab === "mcq" && !requireLogin()) return;
     setWorkspaceTab(nextTab);
+    if (nextTab === "guidelines") navigateDataPath("/guidelines");
+    else if (nextTab === "drugs") navigateDataPath("/drugs");
+  }
+
+  function navigateDataPath(path: string) {
+    window.history.pushState({}, "", path);
+    const nextRoute = parseDataRoute(path);
+    setDataRoute(nextRoute);
+    if (nextRoute.tab) setWorkspaceTab(nextRoute.tab);
+    if (nextRoute.tab === "guidelines") setReferenceSection("guidelines");
+  }
+
+  function changeReferenceSection(nextSection: ReferenceSection) {
+    setReferenceSection(nextSection);
+    if (nextSection === "guidelines") navigateDataPath("/guidelines");
   }
 
   useEffect(() => {
@@ -775,7 +812,7 @@ export default function App() {
         <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
 
         <div className={`relative min-h-[calc(100vh-4rem)] pb-8 ${analyticsOpen ? "lg:pl-[31rem]" : "lg:pl-20"}`}>
-          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} referenceSection={referenceSection} onReferenceSectionChange={setReferenceSection} mcqSection={mcqSection} onMcqSectionChange={setMcqSection} />
+          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} referenceSection={referenceSection} onReferenceSectionChange={changeReferenceSection} mcqSection={mcqSection} onMcqSectionChange={setMcqSection} />
           <div className="min-w-0 flex-1">
 
         {workspaceTab === "flashcards" && questions.length > 0 && (
@@ -789,11 +826,11 @@ export default function App() {
         )}
 
         <div className={workspaceTab === "guidelines" ? "block" : "hidden"} aria-hidden={workspaceTab !== "guidelines"}>
-          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section={referenceSection} />
+          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section={referenceSection} guidelineRoute={dataRoute.tab === "guidelines" ? dataRoute : { tab: "guidelines", kind: "guideline-list" }} onNavigate={navigateDataPath} />
         </div>
 
         <div className={workspaceTab === "tools" ? "block" : "hidden"} aria-hidden={workspaceTab !== "tools"}>
-          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section="tools" />
+          <ReferenceLibraryPage user={user} onAiCallsRemaining={setAiCallsRemaining} section="tools" guidelineRoute={{ tab: "guidelines", kind: "guideline-list" }} onNavigate={navigateDataPath} />
         </div>
 
         <div className={workspaceTab === "mcq" ? "block" : "hidden"} aria-hidden={workspaceTab !== "mcq"}>
@@ -801,7 +838,7 @@ export default function App() {
         </div>
 
         {workspaceTab === "drugs" ? (
-          <DrugsPage />
+          <DrugsPage route={dataRoute.tab === "drugs" ? dataRoute : { tab: "drugs", kind: "drug-list" }} onNavigate={navigateDataPath} />
         ) : workspaceTab !== "flashcards" ? null : editing && currentSavedDeck ? (
           <DeckEditor title={deckTitle} questions={questions} visibility={currentSavedDeck.visibility} focusQuestionId={studyCurrentId} titleSuggestions={savedDecks.map((deck) => deck.title)} decks={savedDecks} currentDeckId={currentSavedDeck.id} onSwitchDeck={switchEditingDeck} onCancel={cancelEditing} onHome={cancelEditing} onSave={saveEditedDeck} onSaveAndStudy={saveEditedDeckAndStudy} currentUserLabel={(user?.user_metadata?.full_name as string | undefined) || user?.email || "Thành viên"} />
         ) : questions.length === 0 ? (
