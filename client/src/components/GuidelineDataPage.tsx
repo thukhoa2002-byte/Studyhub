@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BookOpenCheck, ExternalLink, Search, ShieldAlert } from "lucide-react";
 import type { DataRoute } from "../utils/dataRoutes";
 import { drugPath, guidelinePath } from "../utils/dataRoutes";
-import { getPublishedGuidelines, getPublishedDrugById, getPublishedGuidelineBySlug, loadPublishedGuidelines } from "../services/guidelineService";
+import { findPublishedCoreGuidelineBySlug, loadPublishedCoreGuidelines } from "../services/guidelineCorePublicService";
+import { getPublishedThuocById } from "../services/thuocService";
 import type { Guideline, GuidelineRecommendation } from "../types/guideline";
 import { listPublicCalculatorRecordsForGuideline } from "../services/calculatorDatabaseService";
 import type { DatabaseCalculator } from "../modules/calculators/databaseTypes";
@@ -53,7 +54,7 @@ function RecommendationCard({ guideline, sectionSlug, recommendation, onNavigate
       </div>}
       {recommendation.drugReferences.length > 0 && <div className="mt-4 flex flex-wrap gap-2">
         {recommendation.drugReferences.map((reference) => {
-          const drug = getPublishedDrugById(reference.drugId);
+          const drug = getPublishedThuocById(reference.drugId);
           return <button key={`${recommendation.id}-${reference.drugId}`} type="button" onClick={() => drug && onNavigate(drugPath(drug.slug))} disabled={!drug} className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-default disabled:opacity-60">{drug?.titleVi || reference.drugId}<span className="text-rose-400">· {relationLabels[reference.relationType] || reference.relationType}</span></button>;
         })}
       </div>}
@@ -100,10 +101,12 @@ export default function GuidelineDataPage({ route, onNavigate, onManage }: Props
   const [organization, setOrganization] = useState("");
   const [year, setYear] = useState("");
   const [languageMode, setLanguageMode] = useLanguageMode();
-  const [allGuidelines, setAllGuidelines] = useState(() => getPublishedGuidelines());
+  const [allGuidelines, setAllGuidelines] = useState<Guideline[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [relatedCalculators, setRelatedCalculators] = useState<DatabaseCalculator[]>([]);
-  useEffect(() => { let active = true; void loadPublishedGuidelines().then((items) => { if (active) setAllGuidelines(items); }); return () => { active = false; }; }, []);
-  const selectedGuideline = route.kind === "guideline-detail" ? getPublishedGuidelineBySlug(route.slug, allGuidelines) : undefined;
+  useEffect(() => { let active = true; setLoading(true); void loadPublishedCoreGuidelines().then((items) => { if (active) { setAllGuidelines(items); setLoadError(""); } }).catch((reason) => { if (active) setLoadError(reason instanceof Error ? reason.message : "Không thể tải Guideline."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
+  const selectedGuideline = route.kind === "guideline-detail" ? findPublishedCoreGuidelineBySlug(allGuidelines, route.slug) : undefined;
   useEffect(() => { let active = true; if (!selectedGuideline) { setRelatedCalculators([]); return () => { active = false; }; } void listPublicCalculatorRecordsForGuideline(selectedGuideline.id).then((items) => { if (active) setRelatedCalculators(items); }).catch(() => { if (active) setRelatedCalculators([]); }); return () => { active = false; }; }, [selectedGuideline]);
   const filtered = useMemo(() => allGuidelines.filter((guideline) => {
     const haystack = `${guideline.title} ${guideline.titleVi} ${guideline.topics.join(" ")}`.toLowerCase();
@@ -113,6 +116,8 @@ export default function GuidelineDataPage({ route, onNavigate, onManage }: Props
   const organizations = [...new Set(allGuidelines.map((guideline) => guideline.organization))];
   const years = [...new Set(allGuidelines.map((guideline) => guideline.publicationYear))].sort((a, b) => b - a);
 
+  if (loading) return <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-8"><div className="glass-panel p-8 text-center text-sm font-semibold text-slate-500">Đang tải Guideline...</div></section>;
+  if (loadError) return <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-8"><div role="alert" className="glass-panel border border-rose-200 bg-rose-50 p-8 text-center text-sm font-semibold text-rose-700">{loadError}</div></section>;
   if (route.kind === "guideline-detail") {
     if (!selectedGuideline) return <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-8"><div className="glass-panel p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không tìm thấy guideline</h1><button type="button" onClick={() => onNavigate("/guidelines")} className="mt-4 font-bold text-violet-700">Quay về danh sách</button></div></section>;
     return <GuidelineDetail guideline={selectedGuideline} route={route} onNavigate={onNavigate} languageMode={languageMode} onLanguageChange={setLanguageMode} relatedCalculators={relatedCalculators} />;
