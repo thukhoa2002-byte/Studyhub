@@ -71,11 +71,17 @@ export interface CalculatorGuidelineReferenceRow {
 export interface GuidelineSectionTarget {
   id: string;
   guideline_id: string;
+  slug?: string;
+  title?: string;
+  title_vi?: string;
 }
 
 export interface GuidelineDocumentTarget {
   id: string;
   visibility: "private" | "shared";
+  title?: string;
+  society?: string;
+  publication_year?: number;
 }
 
 export interface GuidelineRecommendationTarget {
@@ -83,4 +89,7 @@ export interface GuidelineRecommendationTarget {
   document_id: string;
   section_id: string | null;
   status: "draft" | "reviewed";
+  title?: string;
+  recommendation_summary?: string;
+  drug_name?: string;
 }

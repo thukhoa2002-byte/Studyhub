@@ -4,7 +4,8 @@ import type { DataRoute } from "../utils/dataRoutes";
 import { drugPath, guidelinePath } from "../utils/dataRoutes";
 import { getPublishedGuidelines, getPublishedDrugById, getPublishedGuidelineBySlug, loadPublishedGuidelines } from "../services/guidelineService";
 import type { Guideline, GuidelineRecommendation } from "../types/guideline";
-import { getPublishedCalculatorReferencesForGuideline } from "../services/calculatorService";
+import { listPublicCalculatorRecordsForGuideline } from "../services/calculatorDatabaseService";
+import type { DatabaseCalculator } from "../modules/calculators/databaseTypes";
 import { LanguageToggle, LocalizedTextView, useLanguageMode } from "../utils/language";
 import type { LanguageMode } from "../types/language";
 
@@ -64,8 +65,7 @@ function RecommendationCard({ guideline, sectionSlug, recommendation, onNavigate
   );
 }
 
-function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguageChange }: { guideline: Guideline; route: Extract<GuidelineRoute, { kind: "guideline-detail" }>; onNavigate: (path: string) => void; languageMode: LanguageMode; onLanguageChange: (mode: LanguageMode) => void }) {
-  const relatedCalculators = getPublishedCalculatorReferencesForGuideline(guideline.id);
+function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguageChange, relatedCalculators }: { guideline: Guideline; route: Extract<GuidelineRoute, { kind: "guideline-detail" }>; onNavigate: (path: string) => void; languageMode: LanguageMode; onLanguageChange: (mode: LanguageMode) => void; relatedCalculators: DatabaseCalculator[] }) {
   useEffect(() => {
     const targetId = route.recommendationId || (route.sectionSlug ? `section-${route.sectionSlug}` : "");
     if (!targetId) return;
@@ -86,7 +86,7 @@ function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguag
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white/80 p-3 lg:sticky lg:top-4"><p className="px-2 pb-2 text-xs font-extrabold uppercase tracking-[.12em] text-slate-400">Mục guideline</p><nav className="grid gap-1">{guideline.sections.slice().sort((a, b) => a.order - b.order).map((section) => <a key={section.id} href={`#section-${section.slug}`} className="rounded-xl px-2 py-2 text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-700"><LocalizedTextView value={section.localizedContent?.title || { vi: section.titleVi, en: section.title }} mode={languageMode} /></a>)}</nav></aside>
         <div className="min-w-0">
           <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-800"><div className="flex items-start gap-2"><ShieldAlert className="mt-0.5 shrink-0" size={18} /><p><LocalizedTextView value={guideline.localizedContent?.summary || guideline.summary} mode={languageMode} /> Chưa hiển thị nhãn đã xác minh vì dữ liệu mẫu chưa có nguồn được đối chiếu.</p></div></div>
-          {relatedCalculators.length > 0 && <section className="mt-4 rounded-2xl border border-teal-200 bg-teal-50/50 p-4"><h2 className="text-sm font-extrabold text-teal-800">Máy tính liên quan</h2><div className="mt-2 flex flex-wrap gap-2">{relatedCalculators.map((calculator) => <button key={calculator.id} type="button" onClick={() => onNavigate(`/may-tinh-y-khoa/${calculator.slug}`)} className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-bold text-teal-700">{calculator.nameVi}</button>)}</div></section>}
+          {relatedCalculators.length > 0 && <section className="mt-4 rounded-2xl border border-teal-200 bg-teal-50/50 p-4"><h2 className="text-sm font-extrabold text-teal-800">Máy tính liên quan</h2><div className="mt-2 flex flex-wrap gap-2">{relatedCalculators.map((calculator) => <button key={calculator.id} type="button" onClick={() => onNavigate(`/may-tinh-y-khoa/${calculator.slug}`)} className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-bold text-teal-700">{calculator.name?.vi || calculator.name?.en || calculator.short_name}</button>)}</div></section>}
           <div className="mt-4 space-y-4">{guideline.sections.slice().sort((a, b) => a.order - b.order).map((section) => <section key={section.id} id={`section-${section.slug}`} className="scroll-mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-extrabold uppercase tracking-[.12em] text-violet-500">Mục {section.order}</p><h2 className="mt-1 text-lg font-extrabold text-slate-800"><LocalizedTextView value={section.localizedContent?.title || { vi: section.titleVi, en: section.title }} mode={languageMode} /></h2></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">{section.recommendations.length} khuyến cáo</span></div><p className="mt-3 text-sm leading-6 text-slate-600"><LocalizedTextView value={section.localizedContent?.summary || section.summary} mode={languageMode} /></p>{section.recommendations.length > 0 && <div className="mt-4 space-y-3">{section.recommendations.map((recommendation) => <RecommendationCard key={recommendation.id} guideline={guideline} sectionSlug={section.slug} recommendation={recommendation} onNavigate={onNavigate} languageMode={languageMode} />)}</div>}</section>)}</div>
         </div>
       </div>
@@ -101,8 +101,10 @@ export default function GuidelineDataPage({ route, onNavigate, onManage }: Props
   const [year, setYear] = useState("");
   const [languageMode, setLanguageMode] = useLanguageMode();
   const [allGuidelines, setAllGuidelines] = useState(() => getPublishedGuidelines());
+  const [relatedCalculators, setRelatedCalculators] = useState<DatabaseCalculator[]>([]);
   useEffect(() => { let active = true; void loadPublishedGuidelines().then((items) => { if (active) setAllGuidelines(items); }); return () => { active = false; }; }, []);
   const selectedGuideline = route.kind === "guideline-detail" ? getPublishedGuidelineBySlug(route.slug, allGuidelines) : undefined;
+  useEffect(() => { let active = true; if (!selectedGuideline) { setRelatedCalculators([]); return () => { active = false; }; } void listPublicCalculatorRecordsForGuideline(selectedGuideline.id).then((items) => { if (active) setRelatedCalculators(items); }).catch(() => { if (active) setRelatedCalculators([]); }); return () => { active = false; }; }, [selectedGuideline]);
   const filtered = useMemo(() => allGuidelines.filter((guideline) => {
     const haystack = `${guideline.title} ${guideline.titleVi} ${guideline.topics.join(" ")}`.toLowerCase();
     return (!query.trim() || haystack.includes(query.trim().toLowerCase())) && (!specialty || guideline.specialty === specialty) && (!organization || guideline.organization === organization) && (!year || String(guideline.publicationYear) === year);
@@ -113,7 +115,7 @@ export default function GuidelineDataPage({ route, onNavigate, onManage }: Props
 
   if (route.kind === "guideline-detail") {
     if (!selectedGuideline) return <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-8"><div className="glass-panel p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không tìm thấy guideline</h1><button type="button" onClick={() => onNavigate("/guidelines")} className="mt-4 font-bold text-violet-700">Quay về danh sách</button></div></section>;
-    return <GuidelineDetail guideline={selectedGuideline} route={route} onNavigate={onNavigate} languageMode={languageMode} onLanguageChange={setLanguageMode} />;
+    return <GuidelineDetail guideline={selectedGuideline} route={route} onNavigate={onNavigate} languageMode={languageMode} onLanguageChange={setLanguageMode} relatedCalculators={relatedCalculators} />;
   }
 
   return <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8" aria-labelledby="guidelines-data-title">

@@ -1,11 +1,40 @@
 import { hasCalculatorHandler } from "../modules/calculators/engine.ts";
 import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineReferenceRow } from "../modules/calculators/databaseTypes.ts";
-import { calculatorRepository, type CalculatorInsert, type CalculatorUpdate } from "./calculatorRepository";
-import { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation";
+import type { CalculatorDefinition } from "../modules/calculators/types.ts";
+import { calculatorRepository, type CalculatorInsert, type CalculatorListFilter, type CalculatorUpdate } from "./calculatorRepository.ts";
+import { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
 
 function text(value: unknown): string { return typeof value === "string" ? value.trim() : ""; }
 
-type CalculatorDraftInput = Omit<CalculatorInsert, "owner_id" | "status" | "source_verified" | "published_at" | "published_by" | "archived_at" | "archived_by" | "slug"> & { slug?: string };
+export type CalculatorDraftInput = Omit<CalculatorInsert, "owner_id" | "status" | "source_verified" | "published_at" | "published_by" | "archived_at" | "archived_by" | "reviewed_by" | "reviewed_at" | "slug"> & { slug?: string };
+
+export function calculatorDefinitionToDraftInput(definition: CalculatorDefinition): CalculatorDraftInput {
+  return {
+    slug: definition.slug,
+    short_name: definition.shortName,
+    name: { vi: definition.nameVi, en: definition.name },
+    description: { vi: definition.description, en: definition.description },
+    purpose: { vi: definition.purpose, en: definition.purpose },
+    calculator_type: "equation",
+    specialty_id: definition.specialty || null,
+    category_id: definition.category || null,
+    handler_key: definition.calculation.handlerId || null,
+    calculation_mode: "automatic",
+    input_fields: definition.inputFields,
+    scoring_rules: [],
+    formula_display: { vi: "", en: "" },
+    formula_variables: [],
+    result_definitions: definition.resultDefinitions,
+    when_to_use: { vi: definition.whenToUse, en: definition.whenToUse },
+    when_not_to_use: { vi: definition.whenNotToUse, en: definition.whenNotToUse },
+    limitations: { vi: definition.limitations, en: definition.limitations },
+    warnings: { vi: [], en: [] },
+    evidence_references: definition.references,
+    version: definition.version,
+    calculation_version: definition.version,
+    content_revision: 1,
+  };
+}
 
 export async function createCalculatorDraft(ownerId: string, input: CalculatorDraftInput): Promise<DatabaseCalculator> {
   const requestedSlug = text(input.slug) || text(input.name?.vi) || text(input.name?.en) || text(input.short_name);
@@ -15,7 +44,7 @@ export async function createCalculatorDraft(ownerId: string, input: CalculatorDr
   let slug = baseSlug;
   let suffix = 2;
   while (await calculatorRepository.findBySlug(slug)) slug = `${baseSlug}-${suffix++}`;
-  return calculatorRepository.create({ ...input, slug, owner_id: ownerId, status: "draft", source_verified: false, published_at: null, published_by: null, archived_at: null, archived_by: null });
+  return calculatorRepository.create({ ...input, slug, owner_id: ownerId, status: "draft", source_verified: false, reviewed_by: null, reviewed_at: null, published_at: null, published_by: null, archived_at: null, archived_by: null });
 }
 
 export async function updateCalculatorDraft(id: string, input: CalculatorUpdate): Promise<DatabaseCalculator> {
@@ -52,8 +81,29 @@ export async function deleteCalculatorDraft(id: string): Promise<void> {
   await calculatorRepository.deleteDraft(id);
 }
 
-export async function listPublicCalculators(): Promise<DatabaseCalculator[]> {
-  return calculatorRepository.list({ publicOnly: true });
+export async function listPublicCalculators(filter: Pick<CalculatorListFilter, "query" | "specialtyId" | "categoryId"> = {}): Promise<DatabaseCalculator[]> {
+  return calculatorRepository.list({ ...filter, publicOnly: true });
+}
+
+export async function listAdminCalculators(query = ""): Promise<DatabaseCalculator[]> {
+  return calculatorRepository.list({ query });
+}
+
+export async function getCalculatorRecord(id: string): Promise<DatabaseCalculator | null> {
+  return calculatorRepository.findById(id);
+}
+
+export async function listCalculatorGuidelineReferences(calculatorId: string): Promise<CalculatorGuidelineReferenceRow[]> {
+  return calculatorRepository.listGuidelineReferences(calculatorId);
+}
+
+export async function listGuidelineReferenceTargets() {
+  const [documents, sections, recommendations] = await Promise.all([
+    calculatorRepository.listGuidelineDocuments(),
+    calculatorRepository.listGuidelineSections(),
+    calculatorRepository.listGuidelineRecommendations(),
+  ]);
+  return { documents, sections, recommendations };
 }
 
 export async function getPublicCalculatorBySlug(slug: string): Promise<DatabaseCalculator | null> {
@@ -66,6 +116,12 @@ export async function listPublicCalculatorGuidelineReferences(calculatorId: stri
 
 export async function listPublicCalculatorReferencesForGuideline(guidelineId: string): Promise<CalculatorGuidelineReferenceRow[]> {
   return calculatorRepository.listPublishedGuidelineReferencesForGuideline(guidelineId);
+}
+
+export async function listPublicCalculatorRecordsForGuideline(guidelineId: string): Promise<DatabaseCalculator[]> {
+  const references = await calculatorRepository.listPublishedGuidelineReferencesForGuideline(guidelineId);
+  const records = await Promise.all([...new Set(references.map((reference) => reference.calculator_id))].map((id) => calculatorRepository.findById(id, true)));
+  return records.filter((record): record is DatabaseCalculator => Boolean(record));
 }
 
 export async function createCalculatorGuidelineReference(input: Omit<CalculatorGuidelineReferenceRow, "id" | "created_at" | "updated_at">): Promise<CalculatorGuidelineReferenceRow> {
@@ -82,6 +138,15 @@ export async function createCalculatorGuidelineReference(input: Omit<CalculatorG
   return calculatorRepository.createGuidelineReference(input);
 }
 
-export { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation";
+export async function updateCalculatorGuidelineReference(id: string, input: Partial<Omit<CalculatorGuidelineReferenceRow, "id" | "created_at" | "updated_at" | "owner_id">>): Promise<CalculatorGuidelineReferenceRow> {
+  return calculatorRepository.updateGuidelineReference(id, input);
+}
+
+export async function deleteCalculatorGuidelineReference(id: string): Promise<void> {
+  return calculatorRepository.deleteGuidelineReference(id);
+}
+
+export { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
+export { databaseCalculatorToDefinition, filterPublicDatabaseCalculators } from "./calculatorDatabaseAdapter.ts";
 export { hasCalculatorHandler };
 export type { DatabaseCalculatorStatus };

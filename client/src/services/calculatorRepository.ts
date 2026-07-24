@@ -10,6 +10,8 @@ export interface CalculatorListFilter {
   publicOnly?: boolean;
   status?: DatabaseCalculator["status"];
   query?: string;
+  specialtyId?: string;
+  categoryId?: string;
   limit?: number;
 }
 
@@ -21,6 +23,8 @@ export class CalculatorRepository {
     let query = client().from("calculators").select("*").order("updated_at", { ascending: false });
     if (filter.publicOnly) query = query.eq("status", "published");
     if (filter.status) query = query.eq("status", filter.status);
+    if (filter.specialtyId) query = query.eq("specialty_id", filter.specialtyId);
+    if (filter.categoryId) query = query.eq("category_id", filter.categoryId);
     if (filter.query?.trim()) {
       const value = filter.query.trim().replace(/[%(),]/g, " ");
       query = query.or(`slug.ilike.%${value}%,short_name.ilike.%${value}%`);
@@ -107,31 +111,31 @@ export class CalculatorRepository {
   }
 
   async findGuidelineSection(id: string): Promise<GuidelineSectionTarget | null> {
-    const { data, error } = await client().from("guideline_sections").select("id, guideline_id").eq("id", id).maybeSingle();
+    const { data, error } = await client().from("guideline_sections").select("id, guideline_id, slug, title, title_vi").eq("id", id).maybeSingle();
     if (error) throw error;
     return (data as GuidelineSectionTarget | null) ?? null;
   }
 
   async listGuidelineDocuments(): Promise<GuidelineDocumentTarget[]> {
-    const { data, error } = await client().from("guideline_documents").select("id, visibility");
+    const { data, error } = await client().from("guideline_documents").select("id, title, society, publication_year, visibility").order("title");
     if (error) throw error;
     return (data ?? []) as GuidelineDocumentTarget[];
   }
 
   async listGuidelineSections(): Promise<GuidelineSectionTarget[]> {
-    const { data, error } = await client().from("guideline_sections").select("id, guideline_id");
+    const { data, error } = await client().from("guideline_sections").select("id, guideline_id, slug, title, title_vi").order("display_order");
     if (error) throw error;
     return (data ?? []) as GuidelineSectionTarget[];
   }
 
   async listGuidelineRecommendations(): Promise<GuidelineRecommendationTarget[]> {
-    const { data, error } = await client().from("guideline_entries").select("id, document_id, section_id, status");
+    const { data, error } = await client().from("guideline_entries").select("id, document_id, section_id, status, drug_name, recommendation_summary").order("source_order");
     if (error) throw error;
     return (data ?? []) as GuidelineRecommendationTarget[];
   }
 
   async findGuidelineRecommendation(id: string): Promise<GuidelineRecommendationTarget | null> {
-    const { data, error } = await client().from("guideline_entries").select("id, document_id, section_id, status").eq("id", id).maybeSingle();
+    const { data, error } = await client().from("guideline_entries").select("id, document_id, section_id, status, drug_name, recommendation_summary").eq("id", id).maybeSingle();
     if (error) throw error;
     return (data as GuidelineRecommendationTarget | null) ?? null;
   }

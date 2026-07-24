@@ -1,5 +1,31 @@
 # Calculator Staging Execution Report
 
+## Latest Deployment Verification
+
+| Hạng mục | Kết quả |
+|---|---|
+| Staging URL | `https://studyhub-staging.onrender.com` |
+| Branch deployed | `feature/calculator-guideline-staging` |
+| Commit expected | `93318f7e72c24d823ca3a236c832a426a21b40b3` |
+| Repository commit | PASS: local HEAD và remote branch khớp commit trên |
+| Render deployment | PASS theo xác nhận external verification |
+| Backend startup | PASS theo xác nhận external verification |
+| `/api/health` | PASS: `{"success":true,"message":"Backend OK","version":"1.2.0-gemini"}` |
+| Serving expected commit | PASS theo xác nhận Render deployment branch/commit |
+| Anonymous RLS | BLOCKED: chưa truy cập được staging build |
+| Admin RLS | BLOCKED: chưa truy cập được staging build |
+| Regular user permissions | BLOCKED: chưa truy cập được staging build |
+| Network/API evidence | BLOCKED: chưa lấy được HTTP response/network trace |
+| Calculator → Guideline E2E | BLOCKED: chưa truy cập được staging build |
+| Admin login/UI | PASS theo xác nhận người dùng: thấy khu vực Management/Admin |
+| Regular user login/UI | PASS theo xác nhận người dùng: không thấy khu vực Management/Admin |
+| Login Not Found | PASS theo xác nhận người dùng: chưa tái hiện lỗi |
+
+External verification đã gọi thành công `GET https://studyhub-staging.onrender.com/api/health` và nhận response thành công với backend version `1.2.0-gemini`. Lỗi DNS trước đó chỉ xảy ra trong Codex workspace, không được coi là lỗi của Render hoặc ứng dụng.
+
+UI visibility is not treated as RLS evidence. Direct Supabase API/database
+checks remain separate below.
+
 ## Status
 
 **IN PROGRESS**: hai migration đã chạy thành công trên Supabase staging theo
@@ -75,8 +101,8 @@ hoàn tất:
 | `ON DELETE RESTRICT` | NOT RUN |
 | Validation Guideline/Section/Recommendation | NOT RUN |
 | Trigger | PASS theo xác nhận SQL Editor: không có trigger Calculator migration |
-| RLS anonymous UI/API | BLOCKED: build Calculator ↔ Guideline chưa deploy lên staging |
-| RLS authenticated/admin UI/API | BLOCKED: build Calculator ↔ Guideline chưa deploy lên staging |
+| RLS anonymous UI/API | BLOCKED: chờ manual verification trên staging |
+| RLS authenticated/admin UI/API | BLOCKED: chờ manual verification trên staging |
 | RLS structural query ban đầu | FAIL: `pg_tables.forcerowsecurity` không tồn tại; đã thay bằng `pg_class` |
 | RLS policy query | PASS theo ảnh SQL Editor: trả về 20 policy |
 | RLS flags (`relrowsecurity`, `relforcerowsecurity`) | PASS theo ảnh SQL Editor: cả 3 bảng `true / false` |
@@ -95,7 +121,7 @@ hoàn tất:
 | Reverse Guideline → Calculator | PASS theo xác nhận workflow |
 | Stale-reference checker | NOT RUN trên DB thật; local unit test đã PASS |
 | Transaction rollback | PASS theo xác nhận workflow |
-| E2E Admin → Publish → Public | BLOCKED: build Calculator ↔ Guideline chưa deploy lên staging |
+| E2E Admin → Publish → Public | BLOCKED: chờ manual verification trên staging |
 
 ## Không có lỗi SQL để phân tích
 
@@ -194,17 +220,128 @@ Chỉ xem migration đủ điều kiện commit khi:
 
 ## Deployment Gate
 
-Các kiểm tra sau chưa thể kết luận từ SQL Editor vì SQL Editor dùng role
-`postgres` và bypass RLS:
+Deployment đã PASS. Các kiểm tra sau vẫn chưa thể kết luận từ SQL Editor vì
+SQL Editor dùng role `postgres` và bypass RLS:
 
-- Anonymous UI/API: **BLOCKED** cho tới khi build Calculator ↔ Guideline được
-  deploy lên staging.
-- Authenticated/Admin UI/API: **BLOCKED** cho tới khi build Calculator ↔
-  Guideline được deploy lên staging.
-- E2E Admin → Publish → Public: **BLOCKED** cho tới khi deploy.
+- Anonymous UI/API: **BLOCKED** chờ manual verification.
+- Authenticated/Admin UI/API: **BLOCKED** chờ manual verification.
+- Regular-user RLS: **BLOCKED** chờ manual verification.
+- Network/API evidence: **BLOCKED** chờ manual verification.
+- E2E Admin → Publish → Public: **BLOCKED** chờ manual verification.
 
-Sau khi deploy staging, chạy lại toàn bộ checklist Anonymous/Admin trong
-`CALCULATOR_STAGING_RUNBOOK.md`, rồi cập nhật các mục trên thành `PASS` hoặc
-`FAIL` theo kết quả thực tế.
+Chạy checklist trong `CALCULATOR_STAGING_RUNBOOK.md` và cập nhật các mục trên
+thành `PASS` hoặc `FAIL` theo kết quả thực tế.
 
 Hiện tại chưa đạt điều kiện commit.
+
+## Current Staging Verification Update
+
+## Application Integration Fix
+
+Previous E2E blocker: Admin/Public Calculator pages vẫn dùng
+`client/src/services/calculatorService.ts` (catalog local/legacy), nên không
+đi qua bảng `calculators` và `calculator_guideline_references`.
+
+Integration fix đã hoàn tất trên feature branch:
+
+- `AdminCalculatorPage` đọc và ghi qua `calculatorDatabaseService`;
+- Admin hỗ trợ list mọi status, tạo/sửa calculator, publish, archive và xóa
+  draft chưa từng publish;
+- Admin có panel tạo, sửa, xóa Calculator ↔ Guideline relation, dùng service
+  validation cho FK, duplicate và điều kiện publish;
+- `AdminCalculatorImportPage` lưu JSON thành draft database, không dùng
+  localStorage;
+- `CalculatorPublicPage` query `status = 'published'` ở repository, detail
+  draft/archived trả not-found, relation lấy qua public RLS query;
+- `GuidelineDataPage` dùng reverse query database để hiển thị Calculator liên
+  quan đủ điều kiện public;
+- adapter giữ nguyên calculator engine hiện tại mà không đưa catalog legacy
+  vào runtime.
+
+Legacy consumer còn lại sau audit:
+
+| Consumer | Trạng thái |
+|---|---|
+| `client/src/services/calculatorReset.test.ts` | Chỉ dùng để kiểm tra reset legacy, không phải runtime UI |
+| `client/src/services/calculatorService.ts` | Giữ tạm để phục vụ test reset; không còn được import bởi Admin/Public/Import/Guideline calculator flows |
+
+Migration không thay đổi. Drug không thay đổi.
+
+Commit source fix sẽ được push trên branch
+`feature/calculator-guideline-staging`; Render staging cần deploy lại commit
+mới trước khi chạy E2E.
+
+### Source integration note
+
+Database Calculator service/repository có trong source. Việc xác nhận đường đi
+UI tới entity `calculators` và `calculator_guideline_references` được gộp vào
+mục E2E bên dưới; không tạo thêm một hạng mục pending ngoài năm kiểm tra thủ
+công đã chốt.
+
+### Live verification evidence currently available
+
+| Kiểm tra | Kết quả | Evidence |
+|---|---|---|
+| Admin login và thấy Admin/Management | PASS | Người dùng xác nhận |
+| Regular user login và không thấy Admin/Management | PASS | Người dùng xác nhận; chỉ là UI evidence |
+| Anonymous calculator status filtering | BLOCKED | Chưa có HTTP response/API trace từ staging |
+| Anonymous direct non-public slug | BLOCKED | Chưa có HTTP response/API trace từ staging |
+| Admin đọc mọi Calculator status | BLOCKED | Chưa có authenticated Supabase response |
+| Admin tạo/sửa/xóa relation | BLOCKED | Chưa có authenticated REST response; UI chưa nối database service |
+| Regular user CRUD relation bị chặn | BLOCKED | Chưa có authenticated REST response |
+| Network/API chứng minh DB RLS | BLOCKED | Chưa truy cập được staging/browser network trong workspace |
+| E2E Draft → relation → Review → Publish → Public → Archive → Hidden | BLOCKED | UI chưa nối database service và chưa có live trace |
+
+### Manual API verification to run from staging-connected browser
+
+Thực hiện trong Supabase staging project, dùng đúng project URL và anon key
+của staging. Không dùng production key. Thay các giá trị trong dấu `<...>`
+và ghi lại status code cùng response body trong report.
+
+```http
+GET /rest/v1/calculators?select=id,slug,status&order=slug
+apikey: <STAGING_ANON_KEY>
+```
+
+Anonymous expected result: chỉ có `published`; draft, `in_review`, reviewed
+chưa publish và archived không xuất hiện. Truy vấn slug không public phải trả
+`200` với `[]` hoặc response bị từ chối, không trả nội dung.
+
+```http
+GET /rest/v1/calculator_guideline_references?select=*&order=display_order
+apikey: <STAGING_ANON_KEY>
+```
+
+Anonymous expected result: chỉ relation đáp ứng policy public; không có
+relation của Calculator chưa published.
+
+Với admin, thêm:
+
+```http
+Authorization: Bearer <ADMIN_ACCESS_TOKEN>
+```
+
+Expected: đọc được mọi status và relation; POST/PATCH/DELETE relation hợp lệ
+thành công. Với regular user, dùng access token của user thường; các POST,
+PATCH, DELETE phải bị RLS từ chối và các GET non-public phải trả rỗng hoặc bị
+từ chối.
+
+### Xác nhận deployment live
+
+External verification xác nhận Render staging đang hoạt động tại
+`https://studyhub-staging.onrender.com` với branch
+`feature/calculator-guideline-staging` và commit
+`93318f7e72c24d823ca3a236c832a426a21b40b3`. Health endpoint trả backend
+version `1.2.0-gemini`. DNS không phân giải được trong Codex workspace chỉ là
+giới hạn của workspace, không phải application failure.
+
+### Điều kiện hoàn tất staging verification
+
+- [ ] Có response API anonymous chứng minh RLS lọc status.
+- [ ] Có response API admin chứng minh đọc đủ status và CRUD relation.
+- [ ] Có response API regular user chứng minh bị chặn CRUD/non-public read.
+- [ ] Network trace chứng minh frontend không tải toàn bộ dữ liệu rồi lọc local.
+- [ ] E2E trên staging PASS sau khi build tích hợp được deploy.
+- [ ] Không có thay đổi Drug.
+
+Chưa đủ điều kiện commit/merge vào `main` hoặc deploy production.

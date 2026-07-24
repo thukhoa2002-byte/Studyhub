@@ -1,4 +1,4 @@
-import type { CalculatorCalculationResult, CalculatorDefinition } from "./types";
+import type { CalculatorCalculationResult, CalculatorDefinition } from "./types.ts";
 
 export type CalculatorInputs = Record<string, unknown>;
 export type CalculatorHandler = (inputs: CalculatorInputs) => CalculatorCalculationResult;
