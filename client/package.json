@@ -11,6 +11,7 @@
     "test:calculator-validation": "node --experimental-strip-types --test src/services/calculatorValidation.test.ts",
     "test:calculator-integrity": "node --experimental-strip-types --test src/services/calculatorGuidelineIntegrity.test.ts src/services/calculatorMigrationPolicy.test.ts",
     "test:guideline-publication": "node --experimental-strip-types --test src/services/guidelinePublication.test.ts",
+    "test:guideline-core": "node --experimental-strip-types --test src/services/guidelineValidation.test.ts src/services/guidelineLegacyMigrationService.test.ts src/services/guidelineCoreMigrationPolicy.test.ts",
     "test:calculator-reset": "node --experimental-strip-types --test src/services/calculatorReset.test.ts",
     "test:visibility": "node --experimental-strip-types --test src/utils/publicVisibility.test.ts",
     "preview": "vite preview"
