@@ -1,4 +1,4 @@
-import { ArrowLeft, Calculator, ExternalLink, Search, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Calculator, ExternalLink, LockKeyhole, Search, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { calculateCalculator } from "./engine";
@@ -8,7 +8,6 @@ import { databaseCalculatorToDefinition, getPublicCalculatorBySlug, listPublicCa
 import { findPublishedCoreGuidelineById, loadPublishedCoreGuidelines } from "../../services/guidelineCorePublicService";
 import type { Guideline } from "../../types/guideline";
 import { guidelinePath } from "../../utils/dataRoutes";
-import ProtectedContentGate from "../../components/ProtectedContentGate";
 
 type Props = { route: { kind: "calculator-list" | "calculator-detail"; calculatorSlug?: string }; user: User | null; onNavigate: (path: string) => void };
 
@@ -39,7 +38,7 @@ function DatabaseCalculatorDetail({ slug, user, onNavigate }: { slug: string; us
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => { let active = true; if (!user) { setLoading(false); return () => { active = false; }; } setLoading(true); void Promise.all([getPublicCalculatorBySlug(slug), loadPublishedCoreGuidelines()]).then(async ([record, guidelines]) => { if (!active) return; setPublishedGuidelines(guidelines); if (!record) { setError("Không tìm thấy máy tính đã công khai."); setDefinition(null); return; } const references = await listPublicCalculatorGuidelineReferences(record.id); if (active) setDefinition(databaseCalculatorToDefinition(record, references)); }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "Không thể tải máy tính."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [slug, user]);
-  if (!user) return <ProtectedContentGate />;
+  if (!user) return <CalculatorSignInGate />;
   if (loading) return <LoadingState />;
   if (!definition) return <NotFound message={error || "Không tìm thấy máy tính đã công khai."} onNavigate={onNavigate} />;
   return <CalculatorDetail definition={definition} publishedGuidelines={publishedGuidelines} onNavigate={onNavigate} />;
@@ -53,6 +52,7 @@ function DatabaseCalculatorList({ onNavigate }: { onNavigate: (path: string) => 
 }
 
 function Filter({ value, options, placeholder, onChange }: { value: string; options: string[]; placeholder: string; onChange: (value: string) => void }) { return <select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400"><option value="all">{placeholder}: Tất cả</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>; }
+function CalculatorSignInGate() { return <section className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6" aria-labelledby="calculator-login-title"><div className="rounded-3xl border border-violet-100 bg-white/85 p-7 text-center shadow-sm sm:p-9"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><LockKeyhole size={22} /></span><h1 id="calculator-login-title" className="mt-4 text-xl font-extrabold text-rose-950">Nội dung cần đăng nhập</h1><p className="mt-2 text-sm leading-6 text-slate-600">Đăng nhập bằng Google để tiếp tục xem nội dung StudyHub.</p><button type="button" onClick={() => { window.sessionStorage.setItem("studyhub:auth-return-path", `${window.location.pathname}${window.location.search}${window.location.hash}`); window.dispatchEvent(new Event("hocbai:google-sign-in")); }} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700">Đăng nhập bằng Google</button></div></section>; }
 function LoadingState() { return <p className="mt-5 rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm font-semibold text-slate-500">Đang tải dữ liệu...</p>; }
 function NotFound({ message, onNavigate }: { message: string; onNavigate: (path: string) => void }) { return <section className="mx-auto max-w-3xl p-8 text-center text-sm font-semibold text-slate-500"><p>{message}</p><button type="button" onClick={() => onNavigate("/may-tinh-y-khoa")} className="mt-4 font-bold text-teal-700">Quay về danh sách</button></section>; }
 function LinkGroup({ title, children }: { title: string; children: ReactNode }) { return <section className="rounded-2xl border border-slate-200 bg-white/75 p-4"><h2 className="text-sm font-extrabold text-slate-700">{title}</h2><div className="mt-2">{children}</div></section>; }
