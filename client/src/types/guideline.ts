@@ -1,4 +1,5 @@
 export type GuidelineStatus = "draft" | "reviewed" | "published" | "archived";
+import type { LocalizedContent } from "./language";
 
 export type RelationType =
   | "recommended"
@@ -44,6 +45,7 @@ export interface GuidelineRecommendation {
   lastUpdatedAt: string;
   sourceVerified: boolean;
   isPlaceholder: boolean;
+  localizedContent?: LocalizedContent;
 }
 
 export interface GuidelineSection {
@@ -60,6 +62,7 @@ export interface GuidelineSection {
   flashcardReferences?: string[];
   quizReferences?: string[];
   imageReferences?: string[];
+  localizedContent?: LocalizedContent;
 }
 
 export interface Guideline {
@@ -78,6 +81,7 @@ export interface Guideline {
   status: GuidelineStatus;
   isPlaceholder: boolean;
   sections: GuidelineSection[];
+  localizedContent?: LocalizedContent;
 }
 
 export interface GuidelineReference {

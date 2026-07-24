@@ -48,7 +48,7 @@ export async function saveGuidelineTableImport({ candidate, scope, selectedDrugI
       tableNumber: candidate.table.number,
       summary: candidate.guideline.summary || candidate.commonGuidance.why || "",
       topics: candidate.guideline.topics || [],
-      provenance: [...candidate.provenance, { kind: "group_guidance", ...candidate.commonGuidance }],
+      provenance: [...candidate.provenance, { kind: "group_guidance", ...candidate.commonGuidance }, { kind: "localized_content", data: candidate.localizedContent }],
     });
   }
 
@@ -90,7 +90,7 @@ export async function saveGuidelineTableImport({ candidate, scope, selectedDrugI
       table_kind: "data" as const,
       table_row_role: "body" as const,
       table_cells: row.tableCells,
-      provenance: candidate.provenance,
+      provenance: [...candidate.provenance, { kind: "localized_content", data: row.localizedContent }],
     };
   }).filter((entry) => scope !== "link_existing" || Boolean(entry.drug_id));
   await createGuidelineEntries(userId, entries);

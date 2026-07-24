@@ -1,8 +1,9 @@
-import { calculatorDefinitions } from "../modules/calculators/data";
-import { hasCalculatorHandler } from "../modules/calculators/engine";
+import { hasCalculatorHandler } from "../modules/calculators/engine.ts";
 import type { CalculatorDefinition, CalculatorStatus } from "../modules/calculators/types";
+import { onlyPublished } from "../utils/publicVisibility.ts";
 
 const STORAGE_KEY = "studyhub:calculators:v1";
+const RESET_MARKER_KEY = "studyhub:calculators:reset-v1";
 let catalog: CalculatorDefinition[] | null = null;
 
 function now() { return new Date().toISOString(); }
@@ -16,18 +17,24 @@ function normalize(value: Partial<CalculatorDefinition>): CalculatorDefinition {
     shortName: value.shortName?.trim() || nameVi, specialty: value.specialty?.trim() || "", category: value.category?.trim() || "",
     description: value.description?.trim() || "", purpose: value.purpose?.trim() || "", whenToUse: value.whenToUse || [], whenNotToUse: value.whenNotToUse || [], limitations: value.limitations || [],
     inputFields: value.inputFields || [], calculation: value.calculation || { handlerId: "" }, resultDefinitions: value.resultDefinitions || [], interpretations: value.interpretations || [],
-    guidelineReferences: value.guidelineReferences || [], drugReferences: value.drugReferences || [], flashcardReferences: value.flashcardReferences || [], quizReferences: value.quizReferences || [], relatedCalculatorReferences: value.relatedCalculatorReferences || [], references: value.references || [],
+    guidelineReferences: value.guidelineReferences || [], flashcardReferences: value.flashcardReferences || [], quizReferences: value.quizReferences || [], relatedCalculatorReferences: value.relatedCalculatorReferences || [], references: value.references || [],
     status: value.status || "draft", version: value.version || "1.0.0", sourceVerified: value.sourceVerified ?? false, createdAt: value.createdAt || now(), updatedAt: value.updatedAt || now(), updatedBy: value.updatedBy, changeNotes: value.changeNotes, history: value.history || [],
   };
 }
 
 function read(): CalculatorDefinition[] {
   if (catalog) return catalog;
-  if (typeof window === "undefined") return (catalog = calculatorDefinitions.map(normalize));
+  if (typeof window === "undefined") return (catalog = []);
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    catalog = raw ? (JSON.parse(raw) as Partial<CalculatorDefinition>[]).map(normalize) : calculatorDefinitions.map(normalize);
-  } catch { catalog = calculatorDefinitions.map(normalize); }
+    // One-time cleanup removes the pre-reset catalog without deleting future
+    // records created by the next calculator architecture.
+    if (window.localStorage.getItem(RESET_MARKER_KEY) !== "done") {
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem("studyhub-reference-formula-overrides");
+      window.localStorage.setItem(RESET_MARKER_KEY, "done");
+    }
+  } catch { /* local persistence is optional */ }
+  catalog = [];
   return catalog;
 }
 
@@ -41,6 +48,8 @@ export function getAllCalculators(): CalculatorDefinition[] { return [...read()]
 export function getPublishedCalculators(): CalculatorDefinition[] { return getAllCalculators().filter((item) => item.status === "published"); }
 export function getCalculatorById(id: string) { return read().find((item) => item.id === id); }
 export function getCalculatorBySlug(slug: string) { return read().find((item) => item.slug === slug); }
+export function getPublishedCalculatorById(id: string) { return onlyPublished(getAllCalculators()).find((item) => item.id === id); }
+export function getPublishedCalculatorBySlug(slug: string) { return onlyPublished(getAllCalculators()).find((item) => item.slug === slug); }
 export function searchCalculators(query = "", specialty = "all", category = "all", publicOnly = false) {
   const normalized = query.trim().toLocaleLowerCase();
   return (publicOnly ? getPublishedCalculators() : getAllCalculators()).filter((item) => {
@@ -48,11 +57,10 @@ export function searchCalculators(query = "", specialty = "all", category = "all
     return (!normalized || haystack.includes(normalized)) && (specialty === "all" || item.specialty === specialty) && (category === "all" || item.category === category);
   });
 }
-export function getCalculatorFilterOptions() { const all = getAllCalculators(); return { specialties: [...new Set(all.map((item) => item.specialty).filter(Boolean))], categories: [...new Set(all.map((item) => item.category).filter(Boolean))] }; }
+export function getCalculatorFilterOptions(publicOnly = false) { const all = publicOnly ? getPublishedCalculators() : getAllCalculators(); return { specialties: [...new Set(all.map((item) => item.specialty).filter(Boolean))], categories: [...new Set(all.map((item) => item.category).filter(Boolean))] }; }
 export function getGuidelineReferencesForCalculator(calculatorId: string) { return getCalculatorById(calculatorId)?.guidelineReferences || []; }
 export function getCalculatorReferencesForGuideline(guidelineId: string) { return getAllCalculators().filter((item) => item.guidelineReferences.some((reference) => reference.guidelineId === guidelineId)); }
-export function getDrugReferencesForCalculator(calculatorId: string) { return getCalculatorById(calculatorId)?.drugReferences || []; }
-export function getCalculatorReferencesForDrug(drugId: string) { return getAllCalculators().filter((item) => item.drugReferences.some((reference) => reference.id === drugId)); }
+export function getPublishedCalculatorReferencesForGuideline(guidelineId: string) { return getPublishedCalculators().filter((item) => item.guidelineReferences.some((reference) => reference.guidelineId === guidelineId)); }
 export function getFlashcardsForCalculator(calculatorId: string) { return getCalculatorById(calculatorId)?.flashcardReferences || []; }
 export function getQuizzesForCalculator(calculatorId: string) { return getCalculatorById(calculatorId)?.quizReferences || []; }
 export function createCalculator(input: Partial<CalculatorDefinition>): CalculatorDefinition { const created = normalize({ ...input, id: input.id || createId(), status: "draft", sourceVerified: false, createdAt: now(), updatedAt: now() }); return write([...read(), created]).at(-1)!; }

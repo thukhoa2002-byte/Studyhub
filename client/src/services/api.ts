@@ -38,15 +38,17 @@ export async function parseDrugImportJson(raw: string): Promise<DrugImportCandid
   return result.candidates;
 }
 
-export async function extractDrugDocument(file: File): Promise<{ text: string; sourceType: "pdf" | "docx"; originalFileName: string; characterCount: number }> {
+export interface DocumentContentItem { id: string; type: "table" | "figure" | "algorithm" | "flowchart" | "appendix" | "document"; label: string; title: string; pageStart: number | null; pageEnd: number | null; text: string }
+
+export async function extractDrugDocument(file: File): Promise<{ text: string; items: DocumentContentItem[]; sourceType: "pdf" | "docx"; originalFileName: string; characterCount: number }> {
   const form = new FormData();
   form.append("file", file);
   const response = await drugImportRequest("/api/admin/thuoc/import/extract-file", { method: "POST", body: form });
-  const result = await response.json() as { data: { text: string; sourceType: "pdf" | "docx"; originalFileName: string; characterCount: number } };
+  const result = await response.json() as { data: { text: string; items: DocumentContentItem[]; sourceType: "pdf" | "docx"; originalFileName: string; characterCount: number } };
   return result.data;
 }
 
-export async function extractDrugWithAi(input: { text: string; drugName?: string; documentKind?: "drug" | "guideline_table"; sourceMetadata: Record<string, string | number | null>; rawFileName?: string }): Promise<{ candidate?: DrugImportCandidate; bundle?: GuidelineTableBundle; mode?: "guideline_table"; aiCallsRemaining?: number; chunksProcessed?: number; aiModel?: string; promptVersion?: string }> {
+export async function extractDrugWithAi(input: { text: string; drugName?: string; documentKind?: "drug" | "guideline_table"; documentItemType?: "table" | "figure" | "algorithm" | "flowchart" | "appendix" | "document"; outputLanguage?: "vi" | "en" | "bilingual"; sourceMetadata: Record<string, string | number | null>; rawFileName?: string }): Promise<{ candidate?: DrugImportCandidate; bundle?: GuidelineTableBundle; mode?: "guideline_table"; aiCallsRemaining?: number; chunksProcessed?: number; aiModel?: string; promptVersion?: string }> {
   const response = await drugImportRequest("/api/admin/thuoc/import/extract-ai", { method: "POST", body: JSON.stringify(input) });
   return await response.json() as { candidate: DrugImportCandidate; aiCallsRemaining?: number };
 }

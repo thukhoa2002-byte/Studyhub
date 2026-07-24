@@ -26,6 +26,7 @@ export interface GuidelineDocument {
 export interface GuidelineEntry {
   id: string;
   document_id: string;
+  section_id?: string | null;
   owner_id: string;
   topic: string;
   drug_name: string;

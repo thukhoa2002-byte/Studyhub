@@ -1,5 +1,6 @@
 import { drugs as seedDrugs } from "../data/drugData";
 import type { Drug, DrugDosingRegimen, DrugGuidelineLink, DrugImportMetadata, DrugIndication, DrugProvenance, DrugSourceReference, DrugStatus } from "../types/drug";
+import { onlyPublished } from "../utils/publicVisibility";
 
 const STORAGE_KEY = "studyhub:thuoc:v1";
 let memoryCatalog: Drug[] | null = null;
@@ -127,6 +128,7 @@ function normalizeDrug(value: Partial<Drug>): Drug {
     reviewedBy: value.reviewedBy || null,
     publishedBy: value.publishedBy || null,
     importMetadata: value.importMetadata as DrugImportMetadata | undefined,
+    localizedContent: value.localizedContent,
     provenance: Array.isArray(value.provenance) ? value.provenance as DrugProvenance[] : [],
   };
 }
@@ -158,6 +160,10 @@ export function getAllThuoc(): Drug[] {
   return [...readCatalog()];
 }
 
+export function getPublishedThuoc(): Drug[] {
+  return onlyPublished(getAllThuoc());
+}
+
 export function getThuocById(id: string): Drug | undefined {
   return readCatalog().find((drug) => drug.id === id);
 }
@@ -166,13 +172,33 @@ export function getThuocBySlug(slug: string): Drug | undefined {
   return readCatalog().find((drug) => drug.slug === slug);
 }
 
+export function getPublishedThuocById(id: string): Drug | undefined {
+  return getPublishedThuoc().find((drug) => drug.id === id);
+}
+
+export function getPublishedThuocBySlug(slug: string): Drug | undefined {
+  return getPublishedThuoc().find((drug) => drug.slug === slug);
+}
+
 export function searchThuoc(query: string): Drug[] {
   return filterThuoc({ query });
 }
 
+export function searchPublishedThuoc(query: string): Drug[] {
+  return filterPublishedThuoc({ query });
+}
+
 export function filterThuoc({ query = "", drugClass = "all", specialty = "all", status = "all" }: ThuocFilter = {}): Drug[] {
+  return filterCatalog(getAllThuoc(), { query, drugClass, specialty, status });
+}
+
+export function filterPublishedThuoc({ query = "", drugClass = "all", specialty = "all" }: Omit<ThuocFilter, "status"> = {}): Drug[] {
+  return filterCatalog(getPublishedThuoc(), { query, drugClass, specialty, status: "published" });
+}
+
+function filterCatalog(catalog: Drug[], { query = "", drugClass = "all", specialty = "all", status = "all" }: ThuocFilter = {}): Drug[] {
   const normalizedQuery = query.trim().toLocaleLowerCase();
-  return getAllThuoc().filter((drug) => {
+  return catalog.filter((drug) => {
     const haystack = [drug.titleVi, drug.genericName, drug.slug, drug.drugClass, ...drug.aliases, ...drug.brandNames, ...drug.specialties].join(" ").toLocaleLowerCase();
     return (!normalizedQuery || haystack.includes(normalizedQuery)) &&
       (drugClass === "all" || !drugClass || drug.drugClass === drugClass) &&
@@ -213,8 +239,8 @@ export function archiveThuoc(id: string): Drug | undefined {
   return updateThuoc(id, { status: "archived" });
 }
 
-export function getThuocFilterOptions(): { drugClasses: string[]; specialties: string[] } {
-  const all = getAllThuoc();
+export function getThuocFilterOptions(publicOnly = false): { drugClasses: string[]; specialties: string[] } {
+  const all = publicOnly ? getPublishedThuoc() : getAllThuoc();
   return {
     drugClasses: [...new Set(all.map((drug) => drug.drugClass).filter(Boolean))].sort(),
     specialties: [...new Set(all.flatMap((drug) => drug.specialties))].sort(),

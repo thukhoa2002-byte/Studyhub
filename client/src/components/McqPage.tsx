@@ -103,14 +103,14 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
     // Render folders as soon as their small query returns. Do not make them
     // wait for the much larger questions JSON stored in mcq_banks. This also
     // runs again when admin access becomes ready so private items are included.
-    const folderLoad = listMcqFolders()
+    const folderLoad = listMcqFolders(!canManage)
       .then((folders) => { if (isCurrentRequest()) setLibraryFolders(folders); })
       .catch((loadError) => {
         if (!isCurrentRequest()) return;
         console.warn("Không thể tải thư mục MCQ", loadError);
         setError(mcqLibraryErrorMessage(loadError, "Không thể tải danh sách thư mục MCQ."));
       });
-    const bankLoad = listMcqBanks()
+    const bankLoad = listMcqBanks(!canManage)
       .then((banks) => { if (isCurrentRequest()) setLibraryBanks(banks); })
       .catch((loadError) => {
         if (!isCurrentRequest()) return;
@@ -125,12 +125,12 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
         setBankStates([] as McqBankState[]);
       });
     await Promise.all([folderLoad, bankLoad, stateLoad]);
-  }, [userId]);
+  }, [canManage, userId]);
   useEffect(() => { void refreshLibrary(); }, [adminAccessReady, refreshLibrary]);
   const decks = useMemo<DeckDefinition[]>(() => [
     ...staticDecks.flatMap<DeckDefinition>((deck) => {
       const state = bankStates.find((item) => item.id === deck.managedBankId)?.status;
-      if (state === "archived" || (!canManage && state === "draft")) return [];
+      if (state === "archived" || (!canManage && state !== undefined && state !== "published")) return [];
       const managedBank = libraryBanks.find((item) => item.id === deck.managedBankId);
       if (managedBank?.status === "archived") return [];
       if (!managedBank) return [deck];

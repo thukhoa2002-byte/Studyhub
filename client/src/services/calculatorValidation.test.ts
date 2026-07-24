@@ -1,0 +1,74 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  isDuplicateGuidelineReference,
+  normalizeCalculatorSlug,
+  validateCalculatorPublish,
+  validateCalculatorSlug,
+  validateGuidelineReferenceInput,
+  validateGuidelineReferenceTargets,
+} from "./calculatorValidation.ts";
+
+test("calculator slugs are normalized and validated", () => {
+  assert.equal(normalizeCalculatorSlug("Cockcroft–Gault"), "cockcroft-gault");
+  assert.deepEqual(validateCalculatorSlug("cockcroft-gault"), []);
+  assert.notDeepEqual(validateCalculatorSlug("Cockcroft Gault"), []);
+});
+
+test("calculator publish validation keeps source and handler requirements", () => {
+  const check = validateCalculatorPublish({
+    slug: "bmi",
+    name: { vi: "BMI", en: "BMI" },
+    calculator_type: "equation",
+    handler_key: "bmi",
+    input_fields: [{ id: "weightKg" }],
+    scoring_rules: [],
+    source_verified: true,
+    version: "1.0.0",
+  });
+  assert.equal(check.canPublish, true);
+
+  const unverified = validateCalculatorPublish({
+    ...checkRecord(),
+    source_verified: false,
+  });
+  assert.equal(unverified.canPublish, false);
+  assert.match(unverified.errors.join(" "), /xác minh nguồn/);
+});
+
+test("guideline relation types are constrained", () => {
+  assert.deepEqual(validateGuidelineReferenceInput({ guideline_id: "g-1", section_id: null, recommendation_id: null, relation_type: "recommended-use" }), []);
+  assert.notDeepEqual(validateGuidelineReferenceInput({ guideline_id: "g-1", section_id: null, recommendation_id: null, relation_type: "free-text" as never }), []);
+});
+
+test("guideline targets must belong to the referenced document and section", () => {
+  const base = { guideline_id: "guide-1", section_id: "section-1", recommendation_id: "entry-1" };
+  assert.deepEqual(validateGuidelineReferenceTargets(base, {
+    section: { id: "section-1", guideline_id: "guide-2" },
+    recommendation: { id: "entry-1", document_id: "guide-2", section_id: "section-2" },
+  }), [
+    "section_id không thuộc guideline_id.",
+    "recommendation_id không thuộc guideline_id.",
+    "recommendation_id không thuộc section_id.",
+  ]);
+});
+
+test("nullable guideline references use the same duplicate identity as the database", () => {
+  const input = { calculator_id: "calc-1", guideline_id: "guide-1", section_id: null, recommendation_id: null, relation_type: "related" as const };
+  assert.equal(isDuplicateGuidelineReference(input, [input]), true);
+  assert.equal(isDuplicateGuidelineReference(input, [{ ...input, relation_type: "monitoring" }]), false);
+  assert.equal(isDuplicateGuidelineReference(input, [{ ...input, section_id: "section-1" }]), false);
+});
+
+function checkRecord() {
+  return {
+    slug: "bmi",
+    name: { vi: "BMI", en: "BMI" },
+    calculator_type: "equation" as const,
+    handler_key: "bmi",
+    input_fields: [{ id: "weightKg" }],
+    scoring_rules: [],
+    source_verified: true,
+    version: "1.0.0",
+  };
+}

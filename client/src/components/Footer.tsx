@@ -63,7 +63,7 @@ function Footer() {
   const [quote, author] = getDailyQuote();
 
   return (
-    <footer className="mx-auto mt-6 w-full max-w-[1900px] px-5 pb-5 pt-2 text-center sm:px-6 xl:px-8 lg:pl-72">
+    <footer className="relative z-10 mx-auto mt-6 w-full max-w-[1900px] clear-both px-5 pb-5 pt-2 text-center sm:px-6 xl:px-8 lg:pl-72">
       <div className="rounded-2xl border border-rose-100/80 bg-white/55 px-5 py-4 shadow-sm backdrop-blur-sm sm:px-8">
         <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-rose-400">Lời nhắc hôm nay</p>
         <blockquote className="daily-quote daily-quote--shiny mx-auto max-w-3xl text-base font-medium italic leading-6">“{quote}”</blockquote>

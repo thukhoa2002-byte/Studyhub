@@ -41,7 +41,6 @@ export interface CalculatorResultDefinition {
   max?: number | null;
   severity?: "low" | "moderate" | "high" | "critical" | "neutral";
   recommendationReferences?: CalculatorGuidelineReference[];
-  drugReferences?: CalculatorReference[];
   nextStepText?: string;
 }
 
@@ -80,7 +79,6 @@ export interface CalculatorDefinition {
   resultDefinitions: CalculatorResultDefinition[];
   interpretations: string[];
   guidelineReferences: CalculatorGuidelineReference[];
-  drugReferences: CalculatorReference[];
   flashcardReferences: CalculatorReference[];
   quizReferences: CalculatorReference[];
   relatedCalculatorReferences: CalculatorReference[];

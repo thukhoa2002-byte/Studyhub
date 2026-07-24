@@ -928,9 +928,9 @@ export default function App() {
 
           </div>
         </div>
+        <Footer />
       </main>
       {!showWelcome && deckActivityNotifications.length > 0 && <SharedDeckNotification notifications={deckActivityNotifications} onDismiss={(notificationId) => void dismissSharedDeckNotification(notificationId)} onDisable={() => void changeSharedDeckNotifications(false)} />}
-      <Footer />
       <PandaAssistant />
         {loginRequiredOpen && <div className="fixed inset-0 z-[160] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-labelledby="login-required-title">
           <div className="w-full max-w-md rounded-3xl border border-white/80 bg-gradient-to-br from-white via-rose-50/95 to-teal-50/90 p-7 text-center shadow-[0_28px_80px_rgba(136,19,55,.22)]">

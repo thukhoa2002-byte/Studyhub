@@ -4,6 +4,7 @@ import type { DataRoute } from "../utils/dataRoutes";
 import type { Drug, DrugStatus } from "../types/drug";
 import { archiveThuoc, deleteThuoc, filterThuoc, getThuocFilterOptions, publishThuoc } from "../services/thuocService";
 import AdminDrugEditor from "./AdminDrugEditor";
+import ConfirmDialog from "./ConfirmDialog";
 
 type AdminRoute = Extract<DataRoute, { tab: "admin" }>;
 interface Props { route: AdminRoute; onNavigate: (path: string) => void }
@@ -22,13 +23,19 @@ function DrugList({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [specialty, setSpecialty] = useState("all");
   const [status, setStatus] = useState<DrugStatus | "all">("all");
   const [, setVersion] = useState(0);
+  const [pendingDelete, setPendingDelete] = useState<Drug | null>(null);
   const options = getThuocFilterOptions();
   const items = filterThuoc({ query, drugClass, specialty, status });
 
   function refresh() { setVersion((value) => value + 1); }
   function handleDelete(drug: Drug) {
-    if (typeof window !== "undefined" && !window.confirm(`Xóa hồ sơ ${drug.titleVi}?`)) return;
-    deleteThuoc(drug.id);
+    setPendingDelete(drug);
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) return;
+    deleteThuoc(pendingDelete.id);
+    setPendingDelete(null);
     refresh();
   }
 
@@ -37,6 +44,7 @@ function DrugList({ onNavigate }: { onNavigate: (path: string) => void }) {
     <div className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,180px))]"><label className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên, hoạt chất, nhóm..." className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-teal-300" aria-label="Tìm thuốc trong quản trị" /></label><FilterSelect label="Nhóm thuốc" value={drugClass} options={options.drugClasses} onChange={setDrugClass} /><FilterSelect label="Chuyên khoa" value={specialty} options={options.specialties} onChange={setSpecialty} /><FilterSelect label="Trạng thái" value={status} options={Object.keys(statusLabels)} onChange={(value) => setStatus(value as DrugStatus | "all")} /></div>
     <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{items.map((drug) => <article key={drug.id} className="rounded-2xl border border-teal-100 bg-white/85 p-4 shadow-sm"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-700"><Pill size={19} /></span><div className="min-w-0"><h2 className="truncate font-extrabold text-slate-800">{drug.titleVi}</h2><p className="text-xs font-semibold text-slate-500">{drug.genericName}</p><p className="mt-1 text-xs text-slate-400">{drug.drugClass || "Chưa phân nhóm"}</p></div></div><p className="mt-3 line-clamp-2 text-sm leading-5 text-slate-600">{drug.summary || "Chưa có mô tả."}</p><div className="mt-4 flex flex-wrap items-center justify-between gap-2"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${drug.status === "published" ? "bg-teal-50 text-teal-700" : drug.status === "archived" ? "bg-slate-100 text-slate-600" : "bg-amber-50 text-amber-700"}`}>{statusLabels[drug.status]}</span><div className="flex items-center gap-1"><button type="button" title="Sửa" aria-label={`Sửa ${drug.titleVi}`} onClick={() => onNavigate(`/admin/thuoc/${drug.id}/edit`)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50"><Pencil size={16} /></button>{drug.status !== "published" && <button type="button" title="Xuất bản" aria-label={`Xuất bản ${drug.titleVi}`} onClick={() => { publishThuoc(drug.id); refresh(); }} className="rounded-lg p-2 text-teal-600 hover:bg-teal-50"><Upload size={16} /></button>}{drug.status !== "archived" && <button type="button" title="Lưu trữ" aria-label={`Lưu trữ ${drug.titleVi}`} onClick={() => { archiveThuoc(drug.id); refresh(); }} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><Archive size={16} /></button>}<button type="button" title="Xóa" aria-label={`Xóa ${drug.titleVi}`} onClick={() => handleDelete(drug)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={16} /></button></div></div></article>)}</div>
     {items.length === 0 && <p className="mt-5 rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">Không tìm thấy thuốc phù hợp.</p>}
+    <ConfirmDialog open={Boolean(pendingDelete)} title={`Xóa hồ sơ ${pendingDelete?.titleVi || "Thuốc"}?`} description="Hồ sơ sẽ bị xóa khỏi danh mục Thuốc và các liên kết đang dùng ID này có thể không còn hiển thị." onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />
   </section>;
 }
 
