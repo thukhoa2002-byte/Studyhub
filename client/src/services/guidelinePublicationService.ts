@@ -21,6 +21,9 @@ export async function publishGuideline(guidelineId: string, actorId: string) {
   assertValidGuidelinePublication(document, sections, recommendations, sourceDocuments);
   return updateGuidelineCoreDocument(guidelineId, {
     status: "published",
+    // Keep the legacy visibility flag aligned while older RLS policies are still present.
+    // Public Core reads remain governed by status = published.
+    visibility: "shared",
     published_at: new Date().toISOString(),
     published_by: actorId,
     archived_at: null,
@@ -54,6 +57,7 @@ export async function setGuidelineStatus(guidelineId: string, status: GuidelineC
   if (status === "published") return publishGuideline(guidelineId, actorId);
   return updateGuidelineCoreDocument(guidelineId, {
     status,
+    visibility: "private",
     archived_at: status === "archived" ? new Date().toISOString() : null,
     archived_by: status === "archived" ? actorId : null,
   });
