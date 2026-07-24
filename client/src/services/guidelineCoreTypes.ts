@@ -12,6 +12,8 @@ export interface GuidelineCoreDocument {
   condition: string;
   publication_year: number | null;
   version_label: string;
+  summary: string;
+  topics: unknown[];
   source_url: string | null;
   doi: string | null;
   citation: string | null;
@@ -92,6 +94,8 @@ export interface GuidelineRecommendationRecord {
 }
 
 export type NewGuidelineCoreDocument = Pick<GuidelineCoreDocument, "title" | "society" | "condition" | "version_label" | "visibility"> & {
+  summary?: string;
+  topics?: unknown[];
   publication_year?: number | null;
   source_url?: string | null;
   doi?: string | null;

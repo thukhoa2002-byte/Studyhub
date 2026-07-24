@@ -19,3 +19,8 @@ export async function updateGuidelineSourceDocument(id: string, patch: Partial<P
   if (error) throw error;
   return data as GuidelineSourceDocumentRecord;
 }
+
+export async function deleteGuidelineSourceDocument(id: string): Promise<void> {
+  const { error } = await requireGuidelineClient().from("guideline_source_documents").delete().eq("id", id);
+  if (error) throw error;
+}

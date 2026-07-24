@@ -28,6 +28,8 @@ export async function createGuidelineCoreDocument(ownerId: string, input: NewGui
     title: input.title.trim(),
     society: input.society.trim(),
     condition: input.condition,
+    summary: input.summary?.trim() ?? "",
+    topics: input.topics ?? [],
     publication_year: input.publication_year ?? null,
     version_label: input.version_label.trim(),
     source_url: input.source_url?.trim() || null,
