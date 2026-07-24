@@ -21,8 +21,13 @@ test("calculator publish validation keeps source and handler requirements", () =
     name: { vi: "BMI", en: "BMI" },
     calculator_type: "equation",
     handler_key: "bmi",
-    input_fields: [{ id: "weightKg" }],
+    input_fields: [
+      { id: "weightKg", label: "Cân nặng", type: "number", required: true },
+      { id: "heightCm", label: "Chiều cao", type: "number", required: true },
+    ],
     scoring_rules: [],
+    result_definitions: [{ key: "normal", label: "Bình thường", description: "" }],
+    evidence_references: ["WHO BMI classification"],
     source_verified: true,
     version: "1.0.0",
   });
@@ -45,7 +50,7 @@ test("guideline targets must belong to the referenced document and section", () 
   const base = { guideline_id: "guide-1", section_id: "section-1", recommendation_id: "entry-1" };
   assert.deepEqual(validateGuidelineReferenceTargets(base, {
     section: { id: "section-1", guideline_id: "guide-2" },
-    recommendation: { id: "entry-1", document_id: "guide-2", section_id: "section-2" },
+    recommendation: { id: "entry-1", guideline_id: "guide-2", section_id: "section-2" },
   }), [
     "section_id không thuộc guideline_id.",
     "recommendation_id không thuộc guideline_id.",
@@ -60,13 +65,29 @@ test("nullable guideline references use the same duplicate identity as the datab
   assert.equal(isDuplicateGuidelineReference(input, [{ ...input, section_id: "section-1" }]), false);
 });
 
+test("publication is blocked when a handler is missing a required input or a test case fails", () => {
+  const missingInput = validateCalculatorPublish({ ...checkRecord(), input_fields: [{ id: "weightKg", label: "Cân nặng", type: "number", required: true }], result_definitions: [{ key: "normal", label: "Bình thường", description: "" }], evidence_references: ["WHO"] });
+  assert.equal(missingInput.canPublish, false);
+  assert.match(missingInput.errors.join(" "), /heightCm/);
+
+  const failedCase = validateCalculatorPublish({
+    ...checkRecord(),
+    input_fields: [{ id: "weightKg", label: "Cân nặng", type: "number", required: true }, { id: "heightCm", label: "Chiều cao", type: "number", required: true }],
+    result_definitions: [{ key: "normal", label: "Bình thường", description: "" }],
+    evidence_references: ["WHO"],
+    formula_variables: [{ key: "clinical_test_cases", cases: [{ id: "bad", label: "Sai", inputs: { weightKg: 70, heightCm: 175 }, expected: { rawValue: 99, valid: true } }] }],
+  });
+  assert.equal(failedCase.canPublish, false);
+  assert.match(failedCase.errors.join(" "), /kiểm thử/);
+});
+
 function checkRecord() {
   return {
     slug: "bmi",
     name: { vi: "BMI", en: "BMI" },
     calculator_type: "equation" as const,
     handler_key: "bmi",
-    input_fields: [{ id: "weightKg" }],
+    input_fields: [{ id: "weightKg", label: "Cân nặng", type: "number", required: true }, { id: "heightCm", label: "Chiều cao", type: "number", required: true }],
     scoring_rules: [],
     source_verified: true,
     version: "1.0.0",

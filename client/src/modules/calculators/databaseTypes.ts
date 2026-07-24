@@ -42,6 +42,8 @@ export interface DatabaseCalculator {
   updated_at: string;
 }
 
+export type DatabaseCalculatorPreview = Pick<DatabaseCalculator, "id" | "slug" | "short_name" | "name" | "description" | "specialty_id" | "category_id" | "status" | "version" | "updated_at">;
+
 export const calculatorGuidelineRelationTypes = [
   "recommended-use",
   "risk-assessment",
@@ -71,6 +73,7 @@ export interface CalculatorGuidelineReferenceRow {
 export interface GuidelineSectionTarget {
   id: string;
   guideline_id: string;
+  status?: "draft" | "in_review" | "published" | "archived";
   slug?: string;
   title?: string;
   title_vi?: string;
@@ -79,6 +82,7 @@ export interface GuidelineSectionTarget {
 export interface GuidelineDocumentTarget {
   id: string;
   visibility: "private" | "shared";
+  status?: "draft" | "in_review" | "published" | "archived";
   title?: string;
   society?: string;
   publication_year?: number;
@@ -86,10 +90,11 @@ export interface GuidelineDocumentTarget {
 
 export interface GuidelineRecommendationTarget {
   id: string;
-  document_id: string;
+  guideline_id: string;
   section_id: string | null;
-  status: "draft" | "reviewed";
+  status: "draft" | "in_review" | "reviewed" | "published" | "archived";
+  verification_status?: "unverified" | "needs_review" | "verified" | "rejected";
   title?: string;
-  recommendation_summary?: string;
-  drug_name?: string;
+  recommendation_text_vi?: string;
+  recommendation_text_original?: string;
 }

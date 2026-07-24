@@ -1,10 +1,10 @@
 import { FileInput, Save } from "lucide-react";
 import { useState } from "react";
-import { createCalculatorDraft, calculatorDefinitionToDraftInput } from "../services/calculatorDatabaseService";
+import type { User } from "@supabase/supabase-js";
+import { createCalculatorDraft, calculatorDefinitionToDraftInput, getCurrentCalculatorActorId } from "../services/calculatorDatabaseService";
 import type { CalculatorDefinition } from "../modules/calculators/types";
-import { supabase } from "../services/supabase";
 
-export default function AdminCalculatorImportPage({ onNavigate }: { onNavigate: (path: string) => void }) {
+export default function AdminCalculatorImportPage({ user, onNavigate }: { user?: User | null; onNavigate: (path: string) => void }) {
   const [raw, setRaw] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -12,13 +12,11 @@ export default function AdminCalculatorImportPage({ onNavigate }: { onNavigate: 
   async function save() {
     setSaving(true); setMessage("");
     try {
-      if (!supabase) throw new Error("Supabase chưa được cấu hình.");
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) throw new Error("Phiên đăng nhập không hợp lệ.");
       const parsed = JSON.parse(raw) as CalculatorDefinition | CalculatorDefinition[];
       const items = Array.isArray(parsed) ? parsed : [parsed];
       if (items.length === 0) throw new Error("JSON không có calculator.");
-      for (const item of items) await createCalculatorDraft(data.user.id, calculatorDefinitionToDraftInput(item));
+      const ownerId = user?.id || await getCurrentCalculatorActorId();
+      for (const item of items) await createCalculatorDraft(ownerId, calculatorDefinitionToDraftInput(item));
       setMessage(`Đã lưu ${items.length} calculator vào database ở trạng thái bản nháp.`);
       setRaw("");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể nhập JSON."); }

@@ -1,5 +1,5 @@
 import type { DatabaseCalculator, CalculatorGuidelineReferenceRow } from "../modules/calculators/databaseTypes.ts";
-import type { CalculatorDefinition } from "../modules/calculators/types.ts";
+import type { CalculatorClinicalTestCase, CalculatorDefinition, CalculatorScoringRule } from "../modules/calculators/types.ts";
 
 function localized(value: unknown, fallback = ""): { vi: string; en: string } {
   if (!value || typeof value !== "object") return { vi: fallback, en: fallback };
@@ -13,6 +13,12 @@ function localizedList(value: unknown): { vi: string[]; en: string[] } {
   if (!value || typeof value !== "object") return { vi: [], en: [] };
   const source = value as { vi?: unknown; en?: unknown };
   return { vi: stringList(source.vi), en: stringList(source.en) };
+}
+
+function clinicalTestCases(value: unknown): CalculatorClinicalTestCase[] {
+  if (!Array.isArray(value)) return [];
+  const entry = value.find((item) => item && typeof item === "object" && (item as { key?: unknown }).key === "clinical_test_cases") as { cases?: unknown } | undefined;
+  return Array.isArray(entry?.cases) ? entry.cases as CalculatorClinicalTestCase[] : [];
 }
 
 export function databaseCalculatorToDefinition(record: DatabaseCalculator, guidelineReferences: CalculatorGuidelineReferenceRow[] = []): CalculatorDefinition {
@@ -37,6 +43,7 @@ export function databaseCalculatorToDefinition(record: DatabaseCalculator, guide
     limitations: limitations.vi.length ? limitations.vi : limitations.en,
     inputFields: Array.isArray(record.input_fields) ? record.input_fields as CalculatorDefinition["inputFields"] : [],
     calculation: { handlerId: record.handler_key || "" },
+    scoringRules: Array.isArray(record.scoring_rules) ? record.scoring_rules as CalculatorScoringRule[] : [],
     resultDefinitions: Array.isArray(record.result_definitions) ? record.result_definitions as CalculatorDefinition["resultDefinitions"] : [],
     interpretations: stringList(record.warnings),
     guidelineReferences: guidelineReferences.map((reference) => ({
@@ -51,6 +58,7 @@ export function databaseCalculatorToDefinition(record: DatabaseCalculator, guide
     quizReferences: [],
     relatedCalculatorReferences: [],
     references: stringList(record.evidence_references),
+    testCases: clinicalTestCases(record.formula_variables),
     status: record.status,
     version: record.version,
     sourceVerified: record.source_verified,

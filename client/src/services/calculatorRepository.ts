@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.ts";
-import type { DatabaseCalculator, CalculatorGuidelineReferenceRow, GuidelineDocumentTarget, GuidelineRecommendationTarget, GuidelineSectionTarget } from "../modules/calculators/databaseTypes.ts";
+import type { DatabaseCalculator, DatabaseCalculatorPreview, CalculatorGuidelineReferenceRow, GuidelineDocumentTarget, GuidelineRecommendationTarget, GuidelineSectionTarget } from "../modules/calculators/databaseTypes.ts";
 
 function client() {
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
@@ -33,6 +33,14 @@ export class CalculatorRepository {
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as DatabaseCalculator[];
+  }
+
+  async listPublicPreviews(): Promise<DatabaseCalculatorPreview[]> {
+    const { data, error } = await client().rpc("list_public_calculator_previews");
+    if (!error && data) return data as DatabaseCalculatorPreview[];
+    const result = await client().from("calculators").select("id,slug,short_name,name,description,specialty_id,category_id,status,version,updated_at").eq("status", "published").order("updated_at", { ascending: false });
+    if (result.error) throw result.error;
+    return (result.data ?? []) as DatabaseCalculatorPreview[];
   }
 
   async findById(id: string, publicOnly = false): Promise<DatabaseCalculator | null> {
@@ -111,31 +119,31 @@ export class CalculatorRepository {
   }
 
   async findGuidelineSection(id: string): Promise<GuidelineSectionTarget | null> {
-    const { data, error } = await client().from("guideline_sections").select("id, guideline_id, slug, title, title_vi").eq("id", id).maybeSingle();
+    const { data, error } = await client().from("guideline_sections").select("id, guideline_id, status, slug, title, title_vi").eq("id", id).maybeSingle();
     if (error) throw error;
     return (data as GuidelineSectionTarget | null) ?? null;
   }
 
   async listGuidelineDocuments(): Promise<GuidelineDocumentTarget[]> {
-    const { data, error } = await client().from("guideline_documents").select("id, title, society, publication_year, visibility").order("title");
+    const { data, error } = await client().from("guideline_documents").select("id, title, society, publication_year, visibility, status").order("title");
     if (error) throw error;
     return (data ?? []) as GuidelineDocumentTarget[];
   }
 
   async listGuidelineSections(): Promise<GuidelineSectionTarget[]> {
-    const { data, error } = await client().from("guideline_sections").select("id, guideline_id, slug, title, title_vi").order("display_order");
+    const { data, error } = await client().from("guideline_sections").select("id, guideline_id, status, slug, title, title_vi").order("display_order");
     if (error) throw error;
     return (data ?? []) as GuidelineSectionTarget[];
   }
 
   async listGuidelineRecommendations(): Promise<GuidelineRecommendationTarget[]> {
-    const { data, error } = await client().from("guideline_entries").select("id, document_id, section_id, status, drug_name, recommendation_summary").order("source_order");
+    const { data, error } = await client().from("guideline_recommendations").select("id, guideline_id, section_id, status, verification_status, title, recommendation_text_vi, recommendation_text_original").order("sort_order");
     if (error) throw error;
     return (data ?? []) as GuidelineRecommendationTarget[];
   }
 
   async findGuidelineRecommendation(id: string): Promise<GuidelineRecommendationTarget | null> {
-    const { data, error } = await client().from("guideline_entries").select("id, document_id, section_id, status, drug_name, recommendation_summary").eq("id", id).maybeSingle();
+    const { data, error } = await client().from("guideline_recommendations").select("id, guideline_id, section_id, status, verification_status, title, recommendation_text_vi, recommendation_text_original").eq("id", id).maybeSingle();
     if (error) throw error;
     return (data as GuidelineRecommendationTarget | null) ?? null;
   }

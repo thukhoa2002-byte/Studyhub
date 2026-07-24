@@ -16,9 +16,9 @@ function normalize(value: Partial<CalculatorDefinition>): CalculatorDefinition {
     id: value.id || createId(), slug: slugify(value.slug || nameVi) || createId(), name: value.name?.trim() || nameVi, nameVi,
     shortName: value.shortName?.trim() || nameVi, specialty: value.specialty?.trim() || "", category: value.category?.trim() || "",
     description: value.description?.trim() || "", purpose: value.purpose?.trim() || "", whenToUse: value.whenToUse || [], whenNotToUse: value.whenNotToUse || [], limitations: value.limitations || [],
-    inputFields: value.inputFields || [], calculation: value.calculation || { handlerId: "" }, resultDefinitions: value.resultDefinitions || [], interpretations: value.interpretations || [],
+    inputFields: value.inputFields || [], calculation: value.calculation || { handlerId: "" }, scoringRules: value.scoringRules || [], resultDefinitions: value.resultDefinitions || [], interpretations: value.interpretations || [],
     guidelineReferences: value.guidelineReferences || [], flashcardReferences: value.flashcardReferences || [], quizReferences: value.quizReferences || [], relatedCalculatorReferences: value.relatedCalculatorReferences || [], references: value.references || [],
-    status: value.status || "draft", version: value.version || "1.0.0", sourceVerified: value.sourceVerified ?? false, createdAt: value.createdAt || now(), updatedAt: value.updatedAt || now(), updatedBy: value.updatedBy, changeNotes: value.changeNotes, history: value.history || [],
+    status: value.status || "draft", version: value.version || "1.0.0", sourceVerified: value.sourceVerified ?? false, testCases: value.testCases || [], createdAt: value.createdAt || now(), updatedAt: value.updatedAt || now(), updatedBy: value.updatedBy, changeNotes: value.changeNotes, history: value.history || [],
   };
 }
 

@@ -20,9 +20,9 @@ const baseReference: CalculatorGuidelineReferenceRow = {
 
 const targets = {
   calculators: [{ id: "calc-1" }],
-  documents: [{ id: "guide-1", visibility: "shared" as const }],
-  sections: [{ id: "section-1", guideline_id: "guide-1" }],
-  recommendations: [{ id: "entry-1", document_id: "guide-1", section_id: "section-1", status: "reviewed" as const }],
+  documents: [{ id: "guide-1", visibility: "shared" as const, status: "published" as const }],
+  sections: [{ id: "section-1", guideline_id: "guide-1", status: "published" as const }],
+  recommendations: [{ id: "entry-1", guideline_id: "guide-1", section_id: "section-1", status: "published" as const, verification_status: "verified" as const }],
 };
 
 test("valid calculator-guideline reference is not stale", () => {
@@ -37,27 +37,21 @@ test("stale checker reports missing and cross-parent targets", () => {
     { ...baseReference, recommendation_id: "entry-2" },
   ], {
     ...targets,
-    documents: [...targets.documents, { id: "guide-2", visibility: "private" as const }],
-    recommendations: [...targets.recommendations, { id: "entry-2", document_id: "guide-2", section_id: "section-1", status: "draft" as const }],
+    documents: [...targets.documents, { id: "guide-2", visibility: "private" as const, status: "draft" as const }],
+    recommendations: [...targets.recommendations, { id: "entry-2", guideline_id: "guide-2", section_id: "section-1", status: "draft" as const, verification_status: "unverified" as const }],
   });
 
   assert.deepEqual(stale[0]?.reasons, ["missing-calculator"]);
   assert.ok(stale[1]?.reasons.includes("missing-section"));
-  assert.ok(stale[2]?.reasons.includes("guideline-not-shared"));
+  assert.ok(stale[2]?.reasons.includes("guideline-not-published"));
   assert.ok(stale[3]?.reasons.includes("recommendation-wrong-guideline"));
-  assert.ok(stale[3]?.reasons.includes("recommendation-not-reviewed"));
+  assert.ok(stale[3]?.reasons.includes("recommendation-not-publishable"));
 });
 
 test("section and document references require reviewed entries", () => {
   const sectionStale = findStaleCalculatorGuidelineReferences([{ ...baseReference, recommendation_id: null }], {
     ...targets,
-    recommendations: [{ id: "entry-draft", document_id: "guide-1", section_id: "section-1", status: "draft" }],
+    sections: [{ id: "section-1", guideline_id: "guide-1", status: "draft" }],
   });
-  assert.deepEqual(sectionStale[0]?.reasons, ["section-not-reviewed"]);
-
-  const documentStale = findStaleCalculatorGuidelineReferences([{ ...baseReference, section_id: null, recommendation_id: null }], {
-    ...targets,
-    recommendations: [{ id: "entry-draft", document_id: "guide-1", section_id: null, status: "draft" }],
-  });
-  assert.deepEqual(documentStale[0]?.reasons, ["guideline-not-reviewed"]);
+  assert.deepEqual(sectionStale[0]?.reasons, ["section-not-published"]);
 });

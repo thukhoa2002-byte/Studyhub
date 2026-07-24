@@ -3,8 +3,16 @@ import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineR
 import type { CalculatorDefinition } from "../modules/calculators/types.ts";
 import { calculatorRepository, type CalculatorInsert, type CalculatorListFilter, type CalculatorUpdate } from "./calculatorRepository.ts";
 import { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
+import { supabase } from "./supabase.ts";
 
 function text(value: unknown): string { return typeof value === "string" ? value.trim() : ""; }
+
+export async function getCurrentCalculatorActorId(): Promise<string> {
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error("Phiên đăng nhập không hợp lệ.");
+  return data.user.id;
+}
 
 export type CalculatorDraftInput = Omit<CalculatorInsert, "owner_id" | "status" | "source_verified" | "published_at" | "published_by" | "archived_at" | "archived_by" | "reviewed_by" | "reviewed_at" | "slug"> & { slug?: string };
 
@@ -21,9 +29,9 @@ export function calculatorDefinitionToDraftInput(definition: CalculatorDefinitio
     handler_key: definition.calculation.handlerId || null,
     calculation_mode: "automatic",
     input_fields: definition.inputFields,
-    scoring_rules: [],
+    scoring_rules: definition.scoringRules || [],
     formula_display: { vi: "", en: "" },
-    formula_variables: [],
+    formula_variables: definition.testCases.length ? [{ key: "clinical_test_cases", cases: definition.testCases }] : [],
     result_definitions: definition.resultDefinitions,
     when_to_use: { vi: definition.whenToUse, en: definition.whenToUse },
     when_not_to_use: { vi: definition.whenNotToUse, en: definition.whenNotToUse },
@@ -83,6 +91,10 @@ export async function deleteCalculatorDraft(id: string): Promise<void> {
 
 export async function listPublicCalculators(filter: Pick<CalculatorListFilter, "query" | "specialtyId" | "categoryId"> = {}): Promise<DatabaseCalculator[]> {
   return calculatorRepository.list({ ...filter, publicOnly: true });
+}
+
+export async function listPublicCalculatorPreviews() {
+  return calculatorRepository.listPublicPreviews();
 }
 
 export async function listAdminCalculators(query = ""): Promise<DatabaseCalculator[]> {

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const migration = readFileSync(new URL("../../../supabase/calculator_foundation_migration.sql", import.meta.url), "utf8");
+const coreReferenceMigration = readFileSync(new URL("../../../supabase/calculator_guideline_core_reference_migration.sql", import.meta.url), "utf8");
 
 test("calculator migration has real Guideline foreign keys and NULL-safe uniqueness", () => {
   assert.match(migration, /create table if not exists public\.calculators/);
@@ -22,4 +23,14 @@ test("public calculator and reference policies require published/eligible conten
   assert.match(migration, /status = 'reviewed'/);
   assert.match(migration, /alter table public\.calculators enable row level security/);
   assert.match(migration, /alter table public\.calculator_guideline_references enable row level security/);
+});
+
+test("Guideline Core hardening preserves legacy rows and upgrades recommendation integrity safely", () => {
+  assert.match(coreReferenceMigration, /begin;/);
+  assert.match(coreReferenceMigration, /Legacy calculator_guideline_references require an explicit recommendation mapping/);
+  assert.match(coreReferenceMigration, /references public\.guideline_recommendations\(id, guideline_id\)\s+on delete restrict/);
+  assert.match(coreReferenceMigration, /references public\.guideline_recommendations\(id, section_id\)\s+on delete restrict/);
+  assert.match(coreReferenceMigration, /document\.status = 'published'/);
+  assert.match(coreReferenceMigration, /recommendation\.verification_status = 'verified'/);
+  assert.doesNotMatch(coreReferenceMigration, /guideline_entries\.drug_id/);
 });

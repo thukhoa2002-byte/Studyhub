@@ -8,10 +8,9 @@ export type StaleReferenceReason =
   | "missing-recommendation"
   | "recommendation-wrong-guideline"
   | "recommendation-wrong-section"
-  | "guideline-not-shared"
-  | "guideline-not-reviewed"
-  | "section-not-reviewed"
-  | "recommendation-not-reviewed";
+  | "guideline-not-published"
+  | "section-not-published"
+  | "recommendation-not-publishable";
 
 export interface StaleCalculatorGuidelineReference {
   reference: CalculatorGuidelineReferenceRow;
@@ -39,27 +38,22 @@ export function findStaleCalculatorGuidelineReferences(
     if (!calculators.has(reference.calculator_id)) reasons.push("missing-calculator");
     const document = documents.get(reference.guideline_id);
     if (!document) reasons.push("missing-guideline");
-    else if (document.visibility !== "shared") reasons.push("guideline-not-shared");
-
-    const documentRecommendations = targets.recommendations.filter((item) => item.document_id === reference.guideline_id);
-    if (!reference.section_id && !reference.recommendation_id && document) {
-      if (documentRecommendations.length === 0 || documentRecommendations.some((item) => item.status !== "reviewed")) reasons.push("guideline-not-reviewed");
-    }
+    else if (document.status !== "published") reasons.push("guideline-not-published");
 
     if (reference.section_id) {
       const section = sections.get(reference.section_id);
       if (!section) reasons.push("missing-section");
       else if (section.guideline_id !== reference.guideline_id) reasons.push("section-wrong-guideline");
-      else if (!targets.recommendations.some((item) => item.document_id === reference.guideline_id && item.section_id === reference.section_id && item.status === "reviewed")) reasons.push("section-not-reviewed");
+      else if (section.status !== "published") reasons.push("section-not-published");
     }
 
     if (reference.recommendation_id) {
       const recommendation = recommendations.get(reference.recommendation_id);
       if (!recommendation) reasons.push("missing-recommendation");
       else {
-        if (recommendation.document_id !== reference.guideline_id) reasons.push("recommendation-wrong-guideline");
+        if (recommendation.guideline_id !== reference.guideline_id) reasons.push("recommendation-wrong-guideline");
         if (reference.section_id && recommendation.section_id !== reference.section_id) reasons.push("recommendation-wrong-section");
-        if (recommendation.status !== "reviewed") reasons.push("recommendation-not-reviewed");
+        if (recommendation.status !== "published" || recommendation.verification_status !== "verified") reasons.push("recommendation-not-publishable");
       }
     }
 

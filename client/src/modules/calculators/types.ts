@@ -1,5 +1,6 @@
 export type CalculatorStatus = "draft" | "in_review" | "reviewed" | "published" | "archived";
 export type CalculatorInputType = "number" | "select" | "radio" | "checkbox" | "boolean";
+export type CalculatorValueType = "number" | "string" | "boolean";
 
 export interface CalculatorOption {
   value: string;
@@ -10,7 +11,12 @@ export interface CalculatorInputField {
   id: string;
   label: string;
   type: CalculatorInputType;
+  dataType?: CalculatorValueType;
   unit?: string;
+  displayUnit?: string;
+  canonicalUnit?: string;
+  allowedUnits?: string[];
+  unitKey?: string;
   required: boolean;
   min?: number;
   max?: number;
@@ -19,6 +25,32 @@ export interface CalculatorInputField {
   options?: CalculatorOption[];
   helpText?: string;
   validationMessage?: string;
+}
+
+export type CalculatorRuleOperator = "equals" | "not_equals" | "greater_than" | "greater_or_equal" | "less_than" | "less_or_equal" | "in";
+
+export interface CalculatorScoringRule {
+  id: string;
+  inputId: string;
+  operator?: CalculatorRuleOperator;
+  value?: string | number | boolean | Array<string | number | boolean>;
+  points?: number;
+  resultKey?: string;
+  warning?: string;
+}
+
+export interface CalculatorClinicalTestCase {
+  id: string;
+  label: string;
+  inputs: Record<string, unknown>;
+  expected: {
+    rawValue?: number | null;
+    displayValue?: string;
+    unit?: string;
+    category?: string;
+    valid?: boolean;
+  };
+  reference?: string;
 }
 
 export interface CalculatorReference {
@@ -55,10 +87,12 @@ export interface CalculatorCalculationResult {
   rawValue: number | null;
   displayValue: string;
   unit?: string;
+  score?: number | null;
   category?: string;
   interpretationKey?: string;
   interpretation?: string;
   warnings: string[];
+  validationErrors?: string[];
 }
 
 export interface CalculatorDefinition {
@@ -76,6 +110,7 @@ export interface CalculatorDefinition {
   limitations: string[];
   inputFields: CalculatorInputField[];
   calculation: { handlerId: string };
+  scoringRules?: CalculatorScoringRule[];
   resultDefinitions: CalculatorResultDefinition[];
   interpretations: string[];
   guidelineReferences: CalculatorGuidelineReference[];
@@ -83,6 +118,7 @@ export interface CalculatorDefinition {
   quizReferences: CalculatorReference[];
   relatedCalculatorReferences: CalculatorReference[];
   references: string[];
+  testCases: CalculatorClinicalTestCase[];
   status: CalculatorStatus;
   version: string;
   sourceVerified: boolean;
