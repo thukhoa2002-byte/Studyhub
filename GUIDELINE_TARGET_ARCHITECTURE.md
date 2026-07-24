@@ -5,7 +5,11 @@ Trạng thái: đề xuất, chưa triển khai.
 
 ## Nguyên tắc
 
-- Guideline Core là structured clinical knowledge; AI ingestion chỉ là adapter nhập liệu.
+- Guideline Core là structured clinical knowledge; ingestion chỉ là một producer của Core.
+- GuidelineRecommendation là đơn vị tri thức lâm sàng có cấu trúc, độc lập và ổn định; không phải chỉ là bản dịch của một đoạn văn.
+- Recommendation trả lời câu hỏi "What should be done". Calculator trả lời "What was calculated". Drug mô tả "How the medication is defined".
+- Recommendation không chứa logic Calculator, hồ sơ Drug hoặc bản sao dữ liệu của các domain khác.
+- Guideline Core không phụ thuộc vào việc có PDF hay file nguồn. Guideline có thể được tạo từ PDF, Word, HTML, DOI, XML hoặc trình soạn thảo thủ công.
 - Giữ nội dung gốc, source metadata, page/section/quote và trạng thái kiểm chứng.
 - Calculator không chứa recommendation text; chỉ lưu reference tới Guideline.
 - Không tạo quan hệ Drug trong sprint này.
@@ -26,9 +30,17 @@ Trạng thái: đề xuất, chưa triển khai.
               ├── Section (nullable)
               └── Recommendation (nullable)
 
-    GuidelineIngestionJob
-      └── IngestionCandidate / TranslationCandidate
-              └── creates draft Core records after admin review
+    SourceDocument / ManualEditor / ExternalMetadata
+      └── Extraction / Normalization / Translation adapters
+              └── Draft Candidate
+                      └── Human Review
+                              └── Structured GuidelineRecommendation
+                                      └── Publication
+
+Guideline Core không phụ thuộc ngược vào bất kỳ adapter ingestion nào. Một
+Guideline hoặc Recommendation hợp lệ có thể được tạo và chỉnh sửa mà không
+có SourceDocument; source/provenance là metadata kiểm chứng, không phải điều
+kiện tồn tại của Core.
 
 Future-only Drug branch:
 
@@ -120,7 +132,27 @@ guideline_sections hiện có là nền tảng phù hợp. Cần bổ sung paren
     sort_order
     created_at / updated_at
 
-Mapping tạm thời: guideline_entries là recommendation read/write adapter. Các row table_row_role=header/section không tự động trở thành recommendation.
+Recommendation là domain entity độc lập và là đơn vị tham chiếu chính cho
+kiến thức lâm sàng có cấu trúc. Nó mô tả hành động/khuyến cáo cần thực hiện,
+đối tượng áp dụng, điều kiện và mức bằng chứng; không thực thi phép tính và
+không lưu hồ sơ thuốc.
+
+Các domain khác trong tương lai có thể tham chiếu Recommendation bằng ID:
+
+    Calculator -> Recommendation
+    Drug -> Recommendation
+    Disease -> Recommendation
+    Procedure -> Recommendation
+    DiagnosticTest -> Recommendation
+    EvidenceSummary -> Recommendation
+
+Các tham chiếu này không làm Recommendation phụ thuộc vào entity đích và
+không được nhúng dữ liệu domain đích vào recommendation.
+
+Trong transition, guideline_entries là recommendation read/write adapter.
+Các row table_row_role=header/section không tự động trở thành
+recommendation. Adapter phải có mapping/review rõ ràng trước khi tạo Core
+Recommendation ổn định.
 
 ### GuidelineSourceDocument
 
@@ -160,16 +192,31 @@ Repository/service chịu trách nhiệm:
 
 ### Guideline Ingestion
 
-Adapter/service chịu trách nhiệm:
+Adapter/service chỉ chịu trách nhiệm sản xuất candidate:
 
-- upload PDF/DOCX;
-- trích xuất text/layout/table;
+- tiếp nhận PDF, DOCX, HTML, DOI, XML hoặc dữ liệu từ editor;
+- trích xuất text/layout/table khi nguồn có cấu trúc tương ứng;
 - nhận diện section/recommendation;
-- dịch Anh sang Việt;
+- dịch Anh sang Việt khi được yêu cầu;
 - tạo candidate draft;
 - lưu provenance và trạng thái job.
 
-Ingestion không gọi publish service tự động. Candidate phải qua core editor/review.
+Ingestion không tạo ra định nghĩa riêng của Guideline Core, không gọi publish
+service tự động và không được coi PDF là nguồn bắt buộc. Candidate phải đi
+qua Core editor và human review trước khi trở thành Structured
+Recommendation và được publish.
+
+### Core publication flow
+
+    Source (optional)
+      -> Extraction (optional)
+      -> Draft
+      -> Human Review
+      -> Structured Recommendation
+      -> Publication
+
+Manual editor có thể bắt đầu trực tiếp tại Draft. Khi đó source metadata có
+thể để trống hoặc bổ sung sau; quy trình review/publication vẫn giữ nguyên.
 
 ## Publish policy
 
