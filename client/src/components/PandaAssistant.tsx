@@ -37,19 +37,19 @@ export default function PandaAssistant() {
   const scene = routine.action === "exercise" ? "🎉✨" : "";
 
   return (
-    <div className="fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-2 sm:bottom-7 sm:right-7">
-      {open && <div className="relative w-60 rounded-2xl border border-rose-100 bg-white/95 p-4 text-sm text-slate-600 shadow-[0_16px_40px_rgba(190,24,93,0.18)] backdrop-blur">
-        <button type="button" onClick={() => setOpen(false)} aria-label="Đóng trợ lý" className="absolute right-2 top-2 rounded-full p-1 text-slate-400 hover:bg-rose-50"><X size={14} /></button>
-        <p className="pr-5 font-bold text-rose-950">{PANDA_TITLES[routine.action]}</p>
-        <p className="mt-1 font-semibold text-teal-600">{routine.label} · {routine.emoji}</p>
+    <div className="fixed bottom-20 right-4 z-[var(--z-chatbot)] flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+      {open && <div className="ui-card relative w-60 p-4 text-sm text-[var(--text-secondary)]">
+        <button type="button" onClick={() => setOpen(false)} aria-label="Đóng trợ lý" className="absolute right-2 top-2 rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"><X size={14} /></button>
+        <p className="pr-5 font-bold text-[var(--text-primary)]">{PANDA_TITLES[routine.action]}</p>
+        <p className="mt-1 font-semibold text-[var(--accent-hover)]">{routine.label} · {routine.emoji}</p>
         <p className="mt-1 text-[11px] font-medium text-slate-400">Cập nhật lúc {timeLabel}</p>
         <p className="mt-1 leading-5">{routine.message}</p>
       </div>}
-      <button type="button" onClick={() => setOpen((value) => !value)} aria-label={`Mở trợ lý AI Panda: ${routine.label}`} title={routine.label} className="group relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-rose-100 to-teal-100 shadow-[0_10px_30px_rgba(15,118,110,0.2)] transition hover:scale-105 sm:h-24 sm:w-24">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-label={`Mở trợ lý AI Panda: ${routine.label}`} title={routine.label} aria-expanded={open} className="group relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-[var(--surface-selected)] shadow-[var(--shadow-md)] transition hover:scale-105 sm:h-20 sm:w-20">
         {scene && <span className={`panda-scene panda-scene-${routine.action}`} aria-hidden="true">{scene}</span>}
         <img src={pandaImage} alt={sleeping ? "Panda đang ngủ trên cành cây" : "Trợ lý AI Panda"} className={`panda-bob panda-action-${routine.action} relative z-[1] h-full w-full rounded-full object-cover`} />
         <span className={`panda-prop panda-prop-${routine.action}`} aria-hidden="true">{routine.emoji}</span>
-        <span className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-teal-400 text-white shadow-sm"><MessageCircle size={14} /></span>
+        <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-sm"><MessageCircle size={13} /></span>
       </button>
     </div>
   );

@@ -1,9 +1,202 @@
+import { supabase } from "./supabase";
 import { createGuidelineDocument, createGuidelineEntries, type NewGuidelineEntry } from "./guidelines";
 import { createThuoc, getAllThuoc, updateThuoc } from "./thuocService";
 import type { Drug } from "../types/drug";
 import type { GuidelineImportCandidate, GuidelineImportScope } from "../utils/guidelineImport";
 import type { DrugImportCandidate } from "../utils/drugImport";
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:3000" : window.location.origin);
+
+export interface GuidelineImportItem {
+  id: string;
+  type: "table" | "figure" | "algorithm" | "flowchart" | "appendix" | "document";
+  label: string;
+  title: string;
+  pageStart: number | null;
+  pageEnd: number | null;
+  startOffset?: number;
+  endOffset?: number;
+}
+
+export interface GuidelineImportJob {
+  id: string;
+  owner_id: string;
+  target_guideline_id: string | null;
+  import_mode: "create_new" | "existing_guideline";
+  source_language: string;
+  target_language: string;
+  preserve_english_terminology: boolean;
+  preserve_abbreviations: boolean;
+  status: string;
+  progress: number;
+  current_stage: string;
+  total_pages: number | null;
+  processed_pages: number;
+  source_metadata: Record<string, unknown>;
+  analysis_metadata: { items?: GuidelineImportItem[]; document?: Record<string, unknown>; selectedItemIds?: string[]; [key: string]: unknown };
+  imported_guideline_id: string | null;
+  error_message: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GuidelineImportDocument {
+  id: string;
+  original_filename: string;
+  mime_type: string;
+  source_language: string;
+  storage_path: string;
+  checksum: string;
+  file_size: number;
+  page_count: number | null;
+  ocr_required: boolean;
+  ocr_status: string;
+}
+
+export interface GuidelineImportSection {
+  id: string;
+  parent_section_id: string | null;
+  source_key: string;
+  title_original: string;
+  title_vi: string;
+  summary_original: string;
+  summary_vi: string;
+  level: number;
+  source_page: number | null;
+  source_anchor: string;
+  display_order: number;
+  review_status: "pending" | "accepted" | "rejected" | "needs_review";
+  duplicate_status: "new" | "exact" | "possible" | "update";
+}
+
+export interface GuidelineImportRecommendation {
+  id: string;
+  import_section_id: string | null;
+  source_key: string;
+  title_original: string;
+  recommendation_text_original: string;
+  recommendation_text_vi: string;
+  rationale_vi: string;
+  recommendation_class: string;
+  evidence_level: string;
+  evidence_system: string;
+  population: string;
+  intervention: string;
+  comparator: string;
+  outcome: string;
+  conditions: string;
+  contraindications: string;
+  source_page: number | null;
+  source_quote: string;
+  source_anchor: string;
+  coordinates: Record<string, unknown>;
+  confidence: number | null;
+  review_status: "pending" | "accepted" | "rejected" | "needs_review";
+  verification_status: "unverified" | "needs_review" | "verified" | "rejected";
+  duplicate_status: "new" | "exact" | "possible" | "update";
+  duplicate_target_id: string | null;
+  issue_count: number;
+  display_order: number;
+}
+
+export interface GuidelineImportIssue {
+  id: string;
+  recommendation_id: string | null;
+  severity: "info" | "warning" | "error" | "blocking";
+  issue_code: string;
+  message: string;
+  source_page: number | null;
+  resolved: boolean;
+}
+
+export interface GuidelineImportJobData {
+  job: GuidelineImportJob;
+  document: GuidelineImportDocument | null;
+  sections: GuidelineImportSection[];
+  recommendations: GuidelineImportRecommendation[];
+  issues: GuidelineImportIssue[];
+  terminology: Array<{ id: string; source_term: string; preferred_translation: string; locked: boolean }>;
+  events: Array<{ id: string; event_type: string; stage: string; payload: Record<string, unknown>; created_at: string }>;
+}
+
+async function accessToken(): Promise<string> {
+  if (!supabase) throw new Error("Supabase chưa được cấu hình.");
+  let { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    const refreshed = await supabase.auth.refreshSession();
+    if (refreshed.error || !refreshed.data.session?.access_token) throw new Error("Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.");
+    session = refreshed.data.session;
+  }
+  return session.access_token;
+}
+
+async function request(path: string, init: RequestInit = {}): Promise<Response> {
+  const token = await accessToken();
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string; validationErrors?: string[] } | null;
+    const error = new Error(body?.message || `Máy chủ trả về lỗi ${response.status}.`);
+    (error as Error & { validationErrors?: string[] }).validationErrors = body?.validationErrors;
+    throw error;
+  }
+  return response;
+}
+
+export async function listGuidelineImportJobs(): Promise<GuidelineImportJob[]> {
+  const response = await request("/api/admin/guideline-import/jobs");
+  return ((await response.json()) as { jobs?: GuidelineImportJob[] }).jobs || [];
+}
+
+export async function uploadGuidelineImport(input: { file: File; targetGuidelineId?: string; sourceLanguage: string; targetLanguage: string; preserveEnglishTerminology: boolean; preserveAbbreviations: boolean; note?: string }): Promise<{ job: GuidelineImportJob; items: GuidelineImportItem[] }> {
+  const body = new FormData();
+  body.append("file", input.file);
+  if (input.targetGuidelineId) body.append("targetGuidelineId", input.targetGuidelineId);
+  body.append("sourceLanguage", input.sourceLanguage);
+  body.append("targetLanguage", input.targetLanguage);
+  body.append("preserveEnglishTerminology", String(input.preserveEnglishTerminology));
+  body.append("preserveAbbreviations", String(input.preserveAbbreviations));
+  if (input.note) body.append("note", input.note);
+  const response = await request("/api/admin/guideline-import/jobs", { method: "POST", body });
+  return await response.json() as { job: GuidelineImportJob; items: GuidelineImportItem[] };
+}
+
+export async function getGuidelineImportJob(jobId: string): Promise<GuidelineImportJobData> {
+  const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}`);
+  return await response.json() as GuidelineImportJobData;
+}
+
+export async function processGuidelineImport(jobId: string, itemIds: string[]): Promise<void> {
+  await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/process`, { method: "POST", body: JSON.stringify({ itemIds }) });
+}
+
+export async function resumeGuidelineImport(jobId: string, itemIds?: string[]): Promise<void> {
+  await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/resume`, { method: "POST", body: JSON.stringify({ itemIds }) });
+}
+
+export async function updateGuidelineImportSection(sectionId: string, patch: Partial<GuidelineImportSection>): Promise<GuidelineImportSection> {
+  const response = await request(`/api/admin/guideline-import/sections/${encodeURIComponent(sectionId)}`, { method: "PATCH", body: JSON.stringify(patch) });
+  return ((await response.json()) as { section: GuidelineImportSection }).section;
+}
+
+export async function updateGuidelineImportRecommendation(recommendationId: string, patch: Partial<GuidelineImportRecommendation>): Promise<GuidelineImportRecommendation> {
+  const response = await request(`/api/admin/guideline-import/recommendations/${encodeURIComponent(recommendationId)}`, { method: "PATCH", body: JSON.stringify(patch) });
+  return ((await response.json()) as { recommendation: GuidelineImportRecommendation }).recommendation;
+}
+
+export async function bulkImportGuideline(jobId: string): Promise<{ guidelineId: string }> {
+  const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/import`, { method: "POST", body: JSON.stringify({}) });
+  return await response.json() as { guidelineId: string };
+}
+
+export async function deleteGuidelineImportJob(jobId: string): Promise<void> {
+  await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}`, { method: "DELETE" });
+}
+
+// Kept for the existing Drug import flow. The Sprint D API is exposed above
+// without changing the legacy guideline-table import contract.
 type DuplicateChoice = "skip" | "copy" | "update";
 
 function condition(value: string): "ACS" | "HF" | "AF" | "Khác" {
@@ -48,7 +241,7 @@ export async function saveGuidelineTableImport({ candidate, scope, selectedDrugI
       tableNumber: candidate.table.number,
       summary: candidate.guideline.summary || candidate.commonGuidance.why || "",
       topics: candidate.guideline.topics || [],
-      provenance: [...candidate.provenance, { kind: "group_guidance", ...candidate.commonGuidance }],
+      provenance: [...candidate.provenance, { kind: "group_guidance", ...candidate.commonGuidance }, { kind: "localized_content", data: candidate.localizedContent }],
     });
   }
 
@@ -90,7 +283,7 @@ export async function saveGuidelineTableImport({ candidate, scope, selectedDrugI
       table_kind: "data" as const,
       table_row_role: "body" as const,
       table_cells: row.tableCells,
-      provenance: candidate.provenance,
+      provenance: [...candidate.provenance, { kind: "localized_content", data: row.localizedContent }],
     };
   }).filter((entry) => scope !== "link_existing" || Boolean(entry.drug_id));
   await createGuidelineEntries(userId, entries);

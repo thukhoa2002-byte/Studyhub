@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Eye, Folder, Folder
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
 import McqAccessPanel from "./McqAccessPanel";
+import ProtectedContentGate from "./ProtectedContentGate";
 import McqIcon from "./McqIcon";
 import LungIcon from "./LungIcon";
 import type { McqSection } from "./McqSectionsPanel";
@@ -103,14 +104,14 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
     // Render folders as soon as their small query returns. Do not make them
     // wait for the much larger questions JSON stored in mcq_banks. This also
     // runs again when admin access becomes ready so private items are included.
-    const folderLoad = listMcqFolders()
+    const folderLoad = listMcqFolders(!canManage)
       .then((folders) => { if (isCurrentRequest()) setLibraryFolders(folders); })
       .catch((loadError) => {
         if (!isCurrentRequest()) return;
         console.warn("Không thể tải thư mục MCQ", loadError);
         setError(mcqLibraryErrorMessage(loadError, "Không thể tải danh sách thư mục MCQ."));
       });
-    const bankLoad = listMcqBanks()
+    const bankLoad = listMcqBanks(!canManage)
       .then((banks) => { if (isCurrentRequest()) setLibraryBanks(banks); })
       .catch((loadError) => {
         if (!isCurrentRequest()) return;
@@ -125,12 +126,12 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
         setBankStates([] as McqBankState[]);
       });
     await Promise.all([folderLoad, bankLoad, stateLoad]);
-  }, [userId]);
+  }, [canManage, userId]);
   useEffect(() => { void refreshLibrary(); }, [adminAccessReady, refreshLibrary]);
   const decks = useMemo<DeckDefinition[]>(() => [
     ...staticDecks.flatMap<DeckDefinition>((deck) => {
       const state = bankStates.find((item) => item.id === deck.managedBankId)?.status;
-      if (state === "archived" || (!canManage && state === "draft")) return [];
+      if (state === "archived" || (!canManage && state !== undefined && state !== "published")) return [];
       const managedBank = libraryBanks.find((item) => item.id === deck.managedBankId);
       if (managedBank?.status === "archived") return [];
       if (!managedBank) return [deck];
@@ -503,6 +504,8 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   const visibleFolders = canManage ? libraryFolders : libraryFolders.filter((folder) => folder.status === "published");
   const rootFolders = visibleFolders.filter((folder) => !folder.parent_id);
   const editableDecks = decks.filter((deck) => Boolean(deck.libraryBank || deck.managedBankId));
+
+  if (!userId) return <ProtectedContentGate compact />;
 
   function folderIdsInTree(folderId: string): Set<string> {
     const result = new Set<string>();

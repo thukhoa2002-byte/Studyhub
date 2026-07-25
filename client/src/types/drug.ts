@@ -1,8 +1,9 @@
 import type { GuidelineStatus } from "./guideline";
+import type { LocalizedContent, TranslationMetadata } from "./language";
 
 export type DrugStatus = GuidelineStatus | "in_review";
 
-export interface DrugImportMetadata {
+export interface DrugImportMetadata extends TranslationMetadata {
   importMethod: "manual" | "json" | "text" | "pdf" | "docx" | "ai";
   originalFileName?: string;
   importedAt: string;
@@ -121,5 +122,6 @@ export interface Drug {
   reviewedBy?: string | null;
   publishedBy?: string | null;
   importMetadata?: DrugImportMetadata;
+  localizedContent?: LocalizedContent;
   provenance?: DrugProvenance[];
 }

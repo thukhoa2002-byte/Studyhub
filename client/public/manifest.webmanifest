@@ -1,19 +1,19 @@
 {
   "name": "StudyHub",
   "short_name": "StudyHub",
-  "description": "Ứng dụng học và ôn thẻ ghi nhớ",
+  "description": "Nền tảng kiến thức y khoa StudyHub",
   "lang": "vi",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#fff7fb",
-  "theme_color": "#fda4af",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2453E6",
   "icons": [
     {
-      "src": "/brain-learning-icon.png?v=3",
-      "sizes": "1254x1254",
-      "type": "image/png",
+      "src": "/brand/studyhub-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]

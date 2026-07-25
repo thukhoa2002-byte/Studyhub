@@ -42,6 +42,7 @@ import {
 import { extractGuidelinePdf, extractGuidelinePdfStream, type ExtractedGuidelineEntry, type GuidelineExtractionProgress, type GuidelineExtractionResponse } from "../services/api";
 import { isGuidelineAdmin } from "../config/access";
 import FileDropZone from "./FileDropZone";
+import { LanguageToggle, LocalizedTextView, useLanguageMode } from "../utils/language";
 
 interface Props {
   user: User | null;
@@ -87,6 +88,12 @@ function guidelineCondition(value: string, title: string): GuidelineCondition {
   return "Khác";
 }
 
+function localizedEntryValue(entry: GuidelineEntry, key: string, fallback: string): unknown {
+  const marker = Array.isArray(entry.provenance) ? entry.provenance.find((item) => Boolean(item && typeof item === "object" && (item as { kind?: string }).kind === "localized_content")) : undefined;
+  const data = marker && typeof marker === "object" ? (marker as { data?: Record<string, unknown> }).data : undefined;
+  return data?.[key] || fallback;
+}
+
 export default function GuidelinesPage({ user, onAiCallsRemaining, initialGuidelineId, autoOpenDocumentForm = false }: Props) {
   const [documents, setDocuments] = useState<GuidelineDocument[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(initialGuidelineId || null);
@@ -105,6 +112,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining, initialGuidel
   const [guidelineTab, setGuidelineTab] = useState<"translated" | "original">("translated");
   const [condition, setCondition] = useState("ACS");
   const [originalPdfUrl, setOriginalPdfUrl] = useState("");
+  const [languageMode, setLanguageMode] = useLanguageMode();
   const documentFormRef = useRef<HTMLFormElement>(null);
 
   const selectedDocument = useMemo(
@@ -424,7 +432,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining, initialGuidel
               <h1 id="guidelines-title" className="mt-1 text-3xl font-extrabold tracking-tight text-rose-950">Guidelines</h1>
             </div>
           </div>
-          {canManage && <button type="button" onClick={() => setShowDocumentForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500"><UploadCloud size={18} /> Thêm guideline</button>}
+          <div className="flex flex-wrap items-center gap-2"><LanguageToggle value={languageMode} onChange={setLanguageMode} />{canManage && <button type="button" onClick={() => setShowDocumentForm((value) => !value)} className="inline-flex items-center gap-2 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500"><UploadCloud size={18} /> Thêm guideline</button>}</div>
         </div>
 
         {notice && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/85 px-4 py-3 text-sm leading-6 text-amber-900">{notice}</div>}
@@ -501,7 +509,7 @@ export default function GuidelinesPage({ user, onAiCallsRemaining, initialGuidel
                       {entry.clinical_context && entry.clinical_context !== group.items[entryIndex - 1]?.clinical_context && <tr className="border-t border-white bg-[#d0d0d2]"><th colSpan={3} className="px-5 py-2.5 text-left text-sm font-extrabold text-slate-900">{entry.clinical_context}</th></tr>}
                       <tr className="border-t border-white align-top hover:brightness-[.99]">
                       <td className="bg-[#f1f1f2] px-5 py-4">
-                        <p className="whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-800">{entry.recommendation_summary}</p>
+                        <p className="whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-800"><LocalizedTextView value={localizedEntryValue(entry, "content", entry.recommendation_summary)} mode={languageMode} /></p>
                         {hasSourceValue(entry.drug_name) && <p className="mt-2 text-xs font-extrabold text-rose-700">Thuốc/nhóm thuốc: {entry.drug_name}</p>}
                         <DrugFacts entry={entry} />
                         <p className="mt-3 text-[11px] font-semibold text-slate-400">{selectedDocument.society} {selectedDocument.publication_year} · {entry.page_reference}</p>

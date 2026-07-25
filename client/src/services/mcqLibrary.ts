@@ -92,21 +92,25 @@ export async function removeMcqAdmin(email: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function listMcqBanks(): Promise<McqLibraryBank[]> {
+export async function listMcqBanks(publicOnly = false): Promise<McqLibraryBank[]> {
   const client = requireSupabase();
   // Avoid downloading the potentially very large questions JSON for every
   // bank while opening the library. Load a full bank only when needed.
-  const counted = await client
+  let countedQuery = client
     .from("mcq_banks")
-    .select("id, owner_id, title, description, folder_id, status, created_at, updated_at, published_at, question_count")
+    .select("id, owner_id, title, description, folder_id, status, created_at, updated_at, published_at, question_count");
+  if (publicOnly) countedQuery = countedQuery.eq("status", "published");
+  const counted = await countedQuery
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   let data: unknown = counted.data;
   let error: { message: string } | null = counted.error;
   if (error && /question_count|schema cache/i.test(error.message)) {
-    const fallback = await client
+    let fallbackQuery = client
       .from("mcq_banks")
-      .select("id, owner_id, title, description, folder_id, status, created_at, updated_at, published_at")
+      .select("id, owner_id, title, description, folder_id, status, created_at, updated_at, published_at");
+    if (publicOnly) fallbackQuery = fallbackQuery.eq("status", "published");
+    const fallback = await fallbackQuery
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
     data = fallback.data;
@@ -127,11 +131,12 @@ export async function getMcqBank(bankId: string): Promise<McqLibraryBank> {
   return data as McqLibraryBank;
 }
 
-export async function listMcqFolders(): Promise<McqFolder[]> {
-  const { data, error } = await requireSupabase()
+export async function listMcqFolders(publicOnly = false): Promise<McqFolder[]> {
+  let query = requireSupabase()
     .from("mcq_folders")
-    .select("*")
-    .order("created_at", { ascending: true });
+    .select("*");
+  if (publicOnly) query = query.eq("status", "published");
+  const { data, error } = await query.order("created_at", { ascending: true });
   if (error) throw error;
   return (data ?? []) as McqFolder[];
 }

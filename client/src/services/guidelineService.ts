@@ -1,19 +1,34 @@
 import { guidelines } from "../data/guidelineData";
 import { listGuidelineDocuments, listGuidelineEntries, type GuidelineDocument, type GuidelineEntry } from "./guidelines";
+import { canExposeGuideline } from "./guidelinePublication";
 import { getAllThuoc, getThuocById, getThuocBySlug } from "./thuocService";
 import type { Drug } from "../types/drug";
 import type { DrugReference, Guideline, GuidelineRecommendation, GuidelineReference, GuidelineSection } from "../types/guideline";
+import type { LocalizedContent } from "../types/language";
+import { onlyPublished } from "../utils/publicVisibility";
 
 export function getAllGuidelines(source: Guideline[] = guidelines): Guideline[] {
   return source;
+}
+
+export function getPublishedGuidelines(source: Guideline[] = guidelines): Guideline[] {
+  return onlyPublished(getAllGuidelines(source));
 }
 
 export function getGuidelineById(guidelineId: string, source: Guideline[] = guidelines): Guideline | undefined {
   return source.find((guideline) => guideline.id === guidelineId);
 }
 
+export function getPublishedGuidelineById(guidelineId: string, source: Guideline[] = guidelines): Guideline | undefined {
+  return getPublishedGuidelines(source).find((guideline) => guideline.id === guidelineId);
+}
+
 export function getGuidelineBySlug(slug: string, source: Guideline[] = guidelines): Guideline | undefined {
   return source.find((guideline) => guideline.slug === slug);
+}
+
+export function getPublishedGuidelineBySlug(slug: string, source: Guideline[] = guidelines): Guideline | undefined {
+  return getPublishedGuidelines(source).find((guideline) => guideline.slug === slug);
 }
 
 export function getGuidelineSection(guidelineId: string, sectionId: string, source: Guideline[] = guidelines): GuidelineSection | undefined {
@@ -47,6 +62,10 @@ export function getGuidelineReferencesForDrug(drugId: string, source: Guideline[
   return references;
 }
 
+export function getPublishedGuidelineReferencesForDrug(drugId: string, source: Guideline[] = guidelines): GuidelineReference[] {
+  return getGuidelineReferencesForDrug(drugId, getPublishedGuidelines(source));
+}
+
 export function getRecommendationsByDrugId(drugId: string, source: Guideline[] = guidelines): GuidelineRecommendation[] {
   return getGuidelineReferencesForDrug(drugId, source).map((reference) => reference.recommendation);
 }
@@ -59,12 +78,24 @@ export function getAllDrugs(): Drug[] {
   return getAllThuoc();
 }
 
+export function getPublishedDrugs(): Drug[] {
+  return onlyPublished(getAllThuoc());
+}
+
 export function getDrugById(drugId: string): Drug | undefined {
   return getThuocById(drugId);
 }
 
+export function getPublishedDrugById(drugId: string): Drug | undefined {
+  return getPublishedDrugs().find((drug) => drug.id === drugId);
+}
+
 export function getDrugBySlug(slug: string): Drug | undefined {
   return getThuocBySlug(slug);
+}
+
+export function getPublishedDrugBySlug(slug: string): Drug | undefined {
+  return getPublishedDrugs().find((drug) => drug.slug === slug);
 }
 
 function slugify(value: string): string {
@@ -74,6 +105,12 @@ function slugify(value: string): string {
 function parsePageReference(value: string): number | null {
   const match = value.match(/\d+/);
   return match ? Number(match[0]) : null;
+}
+
+function localizedFromProvenance(provenance: unknown): LocalizedContent | undefined {
+  if (!Array.isArray(provenance)) return undefined;
+  const item = provenance.find((entry) => Boolean(entry && typeof entry === "object" && (entry as { kind?: string }).kind === "localized_content"));
+  return item && typeof item === "object" ? (item as { data?: LocalizedContent }).data : undefined;
 }
 
 function resolveDrugId(drugName: string): string | null {
@@ -99,6 +136,7 @@ function mapEntry(document: GuidelineDocument, entry: GuidelineEntry, sectionId:
     lastUpdatedAt: entry.created_at,
     sourceVerified: entry.status === "reviewed",
     isPlaceholder: false,
+    localizedContent: localizedFromProvenance(entry.provenance),
   };
 }
 
@@ -110,11 +148,11 @@ function mapStoredGuideline(document: GuidelineDocument, entries: GuidelineEntry
   }
   const sections = Array.from(grouped.entries()).map(([title, sectionEntries], index) => {
     const sectionId = `${document.id}-${slugify(title) || "general-recommendations"}`;
-    return { id: sectionId, slug: slugify(title) || "general-recommendations", title, titleVi: title, order: index + 1, summary: "Nội dung được chuyển từ guideline đã lưu.", recommendations: sectionEntries.map((entry) => mapEntry(document, entry, sectionId)), drugReferences: [], calculatorReferences: [], flowchartReferences: [] };
+    return { id: sectionId, slug: slugify(title) || "general-recommendations", title, titleVi: title, order: index + 1, summary: "Nội dung được chuyển từ guideline đã lưu.", recommendations: sectionEntries.map((entry) => mapEntry(document, entry, sectionId)), drugReferences: [], calculatorReferences: [], flowchartReferences: [], localizedContent: localizedFromProvenance(sectionEntries[0]?.provenance) };
   });
-  if (sections.length === 0) sections.push({ id: `${document.id}-overview`, slug: "overview", title: "Overview", titleVi: "Tổng quan", order: 1, summary: "Guideline chưa có recommendation đã lưu.", recommendations: [], drugReferences: [], calculatorReferences: [], flowchartReferences: [] });
-  const allEntriesReviewed = entries.length > 0 && entries.every((entry) => entry.status === "reviewed");
-  return { id: document.id, slug: slugify(`${document.society}-${document.title}-${document.publication_year}`) || document.id, title: document.title, titleVi: document.title, organization: document.society, publicationYear: document.publication_year, version: document.version_label, specialty: document.condition, topics: document.topics?.length ? document.topics : [document.condition], summary: document.summary || "Dữ liệu được chuyển từ kho guideline hiện có.", sourceUrl: document.source_url, lastReviewedAt: allEntriesReviewed ? new Date().toISOString() : "", status: allEntriesReviewed && document.visibility === "shared" ? "published" : "draft", isPlaceholder: false, sections };
+  if (sections.length === 0) sections.push({ id: `${document.id}-overview`, slug: "overview", title: "Overview", titleVi: "Tổng quan", order: 1, summary: "Guideline chưa có recommendation đã lưu.", recommendations: [], drugReferences: [], calculatorReferences: [], flowchartReferences: [], localizedContent: undefined });
+  const allEntriesReviewed = canExposeGuideline(document, entries);
+  return { id: document.id, slug: slugify(`${document.society}-${document.title}-${document.publication_year}`) || document.id, title: document.title, titleVi: document.title, organization: document.society, publicationYear: document.publication_year, version: document.version_label, specialty: document.condition, topics: document.topics?.length ? document.topics : [document.condition], summary: document.summary || "Dữ liệu được chuyển từ kho guideline hiện có.", sourceUrl: document.source_url, lastReviewedAt: allEntriesReviewed ? new Date().toISOString() : "", status: allEntriesReviewed && document.visibility === "shared" ? "published" : "draft", isPlaceholder: false, sections, localizedContent: localizedFromProvenance(document.provenance) };
 }
 
 export async function loadGuidelines(): Promise<Guideline[]> {
@@ -126,4 +164,8 @@ export async function loadGuidelines(): Promise<Guideline[]> {
   } catch {
     return guidelines;
   }
+}
+
+export async function loadPublishedGuidelines(): Promise<Guideline[]> {
+  return onlyPublished(await loadGuidelines());
 }

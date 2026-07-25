@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { GeneratedQuestion } from "./api";
+import type { GeneratedQuestion } from "./api.ts";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -218,7 +218,7 @@ export async function saveDeck(
   return deck;
 }
 
-export async function listDecks(_userId: string): Promise<SavedDeck[]> {
+export async function listDecks(_userId: string, options: { publicOnly?: boolean } = {}): Promise<SavedDeck[]> {
   if (!supabase) return [];
   const client = supabase;
 
@@ -226,10 +226,11 @@ export async function listDecks(_userId: string): Promise<SavedDeck[]> {
   const { error: claimError } = await supabase.rpc("claim_pending_deck_shares");
   if (claimError) console.warn("Pending deck shares are not available yet", claimError.message);
 
-  const { data: deckRows, error: deckError } = await supabase
+  let deckQuery = supabase
     .from("decks")
-    .select("id, title, visibility, owner_id, created_at")
-    .order("created_at", { ascending: false });
+    .select("id, title, visibility, owner_id, created_at");
+  if (options.publicOnly) deckQuery = deckQuery.eq("visibility", "shared");
+  const { data: deckRows, error: deckError } = await deckQuery.order("created_at", { ascending: false });
   if (deckError) throw deckError;
 
   const deckIds = (deckRows ?? []).map((deck) => deck.id);

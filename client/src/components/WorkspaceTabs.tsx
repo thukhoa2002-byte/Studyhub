@@ -1,12 +1,13 @@
-import { BookOpen, BookOpenCheck, Calculator, ChevronDown, ChevronRight, Pill, ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { BookOpen, BookOpenCheck, Calculator, Pill, ShieldCheck, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import type { User } from "@supabase/supabase-js";
 import McqIcon from "./McqIcon";
-import McqSectionsPanel, { type McqSection } from "./McqSectionsPanel";
-import ReferenceSectionsPanel, { type ReferenceSection } from "./ReferenceSectionsPanel";
 import SiteAnalytics from "./SiteAnalytics";
 import WorkspaceSettings from "./WorkspaceSettings";
+import StudyHubIcon from "./branding/StudyHubIcon";
+import StudyHubLogo from "./branding/StudyHubLogo";
+import type { AppTheme } from "../theme/themeTypes";
 
 export type WorkspaceTab = "flashcards" | "mcq" | "tools" | "guidelines" | "drugs" | "admin";
 
@@ -15,16 +16,16 @@ interface Props {
   onChange: (tab: WorkspaceTab) => void;
   user: User | null;
   onUserChange: (user: User | null) => void;
-  theme: "color" | "basic" | "test" | "test-light" | "green";
-  onThemeChange: (theme: "color" | "basic" | "test" | "test-light" | "green") => void;
+  theme: AppTheme;
+  onThemeChange: (theme: AppTheme) => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
   analyticsAdmin: boolean;
   onAnalyticsExpanded: (expanded: boolean) => void;
-  referenceSection: ReferenceSection;
-  onReferenceSectionChange: (section: ReferenceSection) => void;
-  mcqSection: McqSection;
-  onMcqSectionChange: (section: McqSection) => void;
+  onSidebarExpandedChange: (expanded: boolean) => void;
+  mobileOpen: boolean;
+  onMobileOpenChange: (open: boolean) => void;
+  onColorThemeEligible: boolean;
 }
 
 const baseTabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
@@ -35,80 +36,32 @@ const baseTabs: Array<{ id: WorkspaceTab; label: string; icon: ComponentType<{ s
   { id: "drugs", label: "Thuốc", icon: Pill },
 ];
 
-export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded, referenceSection, onReferenceSectionChange, mcqSection, onMcqSectionChange }: Props) {
+export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, analyticsAdmin, onAnalyticsExpanded, onSidebarExpandedChange, mobileOpen, onMobileOpenChange, onColorThemeEligible }: Props) {
   const tabs = analyticsAdmin ? [...baseTabs, { id: "admin" as const, label: "Quản trị", icon: ShieldCheck }] : baseTabs;
   const [hoveredTab, setHoveredTab] = useState<WorkspaceTab | null>(null);
-  const [mcqPanelOpen, setMcqPanelOpen] = useState(false);
-  const [mcqPanelTimer, setMcqPanelTimer] = useState<number | null>(null);
-  const [referencePanelOpen, setReferencePanelOpen] = useState(false);
-  const [referencePanelTimer, setReferencePanelTimer] = useState<number | null>(null);
   const [analyticsPanelOpen, setAnalyticsPanelOpen] = useState(false);
+  const [railExpanded, setRailExpanded] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
-  function keepMcqPanelOpen() {
-    if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
-    setMcqPanelOpen(true);
-  }
-
-  function scheduleMcqPanelClose() {
-    if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
-    const timer = window.setTimeout(() => { setMcqPanelOpen(false); setMcqPanelTimer(null); }, 300);
-    setMcqPanelTimer(timer);
-  }
-
-  function keepReferencePanelOpen() {
-    if (referencePanelTimer !== null) window.clearTimeout(referencePanelTimer);
-    setReferencePanelOpen(true);
-  }
-
-  function scheduleReferencePanelClose() {
-    if (referencePanelTimer !== null) window.clearTimeout(referencePanelTimer);
-    const timer = window.setTimeout(() => { setReferencePanelOpen(false); setReferencePanelTimer(null); }, 300);
-    setReferencePanelTimer(timer);
-  }
+  const closeMobileDrawer = useCallback(() => {
+    onMobileOpenChange(false);
+    window.requestAnimationFrame(() => document.getElementById("studyhub-mobile-nav-trigger")?.focus());
+  }, [onMobileOpenChange]);
 
   function closeAnalyticsPanel() {
     setAnalyticsPanelOpen(false);
     onAnalyticsExpanded(false);
   }
 
-  function closeHoverPanels() {
-    if (mcqPanelTimer !== null) window.clearTimeout(mcqPanelTimer);
-    if (referencePanelTimer !== null) window.clearTimeout(referencePanelTimer);
-    setMcqPanelTimer(null);
-    setReferencePanelTimer(null);
-    setMcqPanelOpen(false);
-    setReferencePanelOpen(false);
-  }
-
   function handleSidebarMouseLeave() {
+    setRailExpanded(false);
     setHoveredTab(null);
-    if (mcqPanelOpen) scheduleMcqPanelClose();
-    if (referencePanelOpen) scheduleReferencePanelClose();
   }
 
   function handleTabClick(id: WorkspaceTab) {
     onChange(id);
-    if (id === "mcq") {
-      setMcqPanelOpen(true);
-      setReferencePanelOpen(false);
-      closeAnalyticsPanel();
-    } else if (id === "guidelines") {
-      setReferencePanelOpen(true);
-      setMcqPanelOpen(false);
-      closeAnalyticsPanel();
-    } else {
-      closeHoverPanels();
-    }
-  }
-
-  function handleMcqSectionChange(section: McqSection) {
-    onChange("mcq");
-    onMcqSectionChange(section);
-  }
-
-  function handleReferenceSectionChange(section: ReferenceSection) {
-    onChange("guidelines");
-    onReferenceSectionChange(section);
+    closeMobileDrawer();
+    closeAnalyticsPanel();
   }
 
   function handleAnalyticsExpanded(expanded: boolean) {
@@ -123,13 +76,71 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
     }
   }, [analyticsAdmin, onAnalyticsExpanded]);
 
-  const visualTab = hoveredTab || (mcqPanelOpen ? "mcq" : referencePanelOpen ? "guidelines" : activeTab);
+  useEffect(() => {
+    onSidebarExpandedChange(railExpanded || analyticsPanelOpen);
+  }, [analyticsPanelOpen, onSidebarExpandedChange, railExpanded]);
+
+  useEffect(() => () => {
+    onSidebarExpandedChange(false);
+  }, [onSidebarExpandedChange]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    const syncMobileAccessibility = () => {
+      const sidebar = sidebarRef.current;
+      if (!sidebar) return;
+      const hideFromMobileTabOrder = mediaQuery.matches && !mobileOpen;
+      if (hideFromMobileTabOrder) {
+        sidebar.setAttribute("inert", "");
+        sidebar.setAttribute("aria-hidden", "true");
+      } else {
+        sidebar.removeAttribute("inert");
+        sidebar.removeAttribute("aria-hidden");
+      }
+    };
+    syncMobileAccessibility();
+    mediaQuery.addEventListener("change", syncMobileAccessibility);
+    return () => mediaQuery.removeEventListener("change", syncMobileAccessibility);
+  }, [closeMobileDrawer, mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const closeOrTrapDrawer = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMobileDrawer();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const drawer = sidebarRef.current;
+      if (!drawer) return;
+      const focusable = Array.from(drawer.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter((element) => !element.hasAttribute("inert"));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", closeOrTrapDrawer);
+    window.requestAnimationFrame(() => sidebarRef.current?.querySelector<HTMLElement>("[data-mobile-drawer-close]")?.focus());
+    return () => window.removeEventListener("keydown", closeOrTrapDrawer);
+  }, [closeMobileDrawer, mobileOpen]);
+
+  const visualTab = hoveredTab || activeTab;
 
   return (
-    <div onMouseLeave={handleSidebarMouseLeave} className={`workspace-sidebar flex w-full flex-col px-5 pt-5 lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-[60] lg:w-20 lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:bg-white/80 lg:px-2 lg:py-6 lg:shadow-[8px_0_30px_rgba(15,23,42,.04)] ${mcqPanelOpen || referencePanelOpen ? "workspace-sidebar--panel-open" : ""}`}>
-      <div className="workspace-sidebar__brand hidden items-center gap-3 lg:flex">
-        <img src="/hoc-bai-icon.png" alt="StudyHub" className="h-11 w-11 rounded-xl object-contain" />
-        <div className="workspace-sidebar__brand-copy min-w-0"><p className="truncate text-lg font-extrabold tracking-tight text-rose-950">StudyHub</p><p className="text-xs font-medium text-rose-400">Học đều, nhớ lâu</p></div>
+    <>
+      {mobileOpen && <button type="button" aria-label="Đóng điều hướng" className="workspace-sidebar__backdrop lg:hidden" onClick={closeMobileDrawer} />}
+      <div id="studyhub-mobile-navigation" ref={sidebarRef} onMouseEnter={() => setRailExpanded(true)} onMouseLeave={handleSidebarMouseLeave} onFocusCapture={() => setRailExpanded(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setRailExpanded(false); }} className={`workspace-sidebar flex w-full flex-col px-5 pt-5 max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-[var(--z-drawer)] max-lg:w-[min(19rem,calc(100vw-3rem))] max-lg:overflow-y-auto max-lg:border-r max-lg:border-slate-200/80 max-lg:bg-white max-lg:shadow-2xl max-lg:transition-transform max-lg:duration-200 ${mobileOpen ? "max-lg:translate-x-0" : "max-lg:pointer-events-none max-lg:-translate-x-full"} lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-[var(--z-tooltip)] lg:w-20 lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:bg-white/80 lg:px-2 lg:py-6 lg:shadow-[8px_0_30px_rgba(15,23,42,.04)]`}>
+      <div className="workspace-sidebar__brand flex items-center justify-between lg:justify-center">
+        <StudyHubIcon size="md" className="workspace-sidebar__brand-icon" />
+        <StudyHubLogo size="md" className="workspace-sidebar__brand-logo" />
+        <button type="button" data-mobile-drawer-close onClick={closeMobileDrawer} aria-label="Đóng điều hướng" className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] lg:hidden"><X size={20} /></button>
       </div>
       <div className="workspace-sidebar__divider my-6 hidden border-t border-slate-200/80 lg:block" />
       <nav
@@ -144,33 +155,27 @@ export default function WorkspaceTabs({ activeTab, onChange, user, onUserChange,
           const active = visualTab === id;
           const distance = hoveredTab ? Math.abs(tabs.findIndex((tab) => tab.id === hoveredTab) - tabIndex) : 99;
           const dockClass = hoveredTab === id ? "workspace-tabs__button--dock-hover" : distance === 1 ? "workspace-tabs__button--dock-neighbor" : "";
-          const hasHoverPanel = id === "mcq" || id === "guidelines";
-          const panelOpen = id === "mcq" ? mcqPanelOpen : id === "guidelines" ? referencePanelOpen : false;
           return (
             <button
               key={id}
               type="button"
               onClick={() => handleTabClick(id)}
-              // Keep the last hovered tab across the small gap between buttons.
-              // The sidebar itself resets it only after the pointer leaves the whole rail.
-              onMouseLeave={() => { if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
-              onMouseEnter={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
-              onFocus={() => { setHoveredTab(id); if (id === "mcq") { setReferencePanelOpen(false); keepMcqPanelOpen(); } else if (id === "guidelines") { setMcqPanelOpen(false); keepReferencePanelOpen(); } else { closeHoverPanels(); } }}
-              onBlur={() => { if (id === "mcq") scheduleMcqPanelClose(); if (id === "guidelines") scheduleReferencePanelClose(); }}
+              title={label}
+              aria-label={label}
+              onMouseEnter={() => setHoveredTab(id)}
+              onFocus={() => setHoveredTab(id)}
               className={`workspace-tabs__button ${active ? "workspace-tabs__button--active" : ""} ${dockClass}`}
               aria-current={active ? "page" : undefined}
             >
               <span className="workspace-tabs__icon shrink-0"><Icon size={21} strokeWidth={2.2} /></span>
               <span className="workspace-tabs__label min-w-0 flex-1 text-left">{label}</span>
-              {hasHoverPanel && (panelOpen ? <ChevronRight size={15} aria-hidden="true" className="workspace-tabs__panel-arrow ml-auto w-4 shrink-0 text-slate-400" /> : <ChevronDown size={15} aria-hidden="true" className="workspace-tabs__panel-arrow ml-auto w-4 shrink-0 text-slate-400" />)}
             </button>
           );
         })}
       </nav>
       {analyticsAdmin && <SiteAnalytics userId={user?.id} visible placement="sidebar" panelOpen={analyticsPanelOpen} onExpandedChange={handleAnalyticsExpanded} />}
-      <McqSectionsPanel section={mcqSection} onChange={handleMcqSectionChange} open={mcqPanelOpen} onMouseEnter={keepMcqPanelOpen} onMouseLeave={scheduleMcqPanelClose} />
-      <ReferenceSectionsPanel section={referenceSection} onChange={handleReferenceSectionChange} open={referencePanelOpen} onMouseEnter={keepReferencePanelOpen} onMouseLeave={scheduleReferencePanelClose} />
-      <WorkspaceSettings user={user} onUserChange={onUserChange} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
-    </div>
+      <WorkspaceSettings user={user} onUserChange={onUserChange} canUseColorTheme={onColorThemeEligible} theme={theme} onThemeChange={onThemeChange} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={onSharedDeckNotificationsChange} />
+      </div>
+    </>
   );
 }

@@ -1,13 +1,15 @@
 import { useRef, useState } from "react";
-import { Bell, BellOff, Camera, ChevronLeft, ChevronRight, CircleHelp, LogOut, Moon, Palette, Sun, UserRound } from "lucide-react";
+import { Bell, BellOff, Camera, ChevronLeft, ChevronRight, CircleHelp, LogOut, Palette, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../services/supabase";
+import type { AppTheme } from "../theme/themeTypes";
 
 interface Props {
   user: User | null;
   onUserChange: (user: User | null) => void;
-  theme: "color" | "basic" | "test" | "test-light" | "green";
-  onThemeChange: (theme: "color" | "basic" | "test" | "test-light" | "green") => void;
+  canUseColorTheme: boolean;
+  theme: AppTheme;
+  onThemeChange: (theme: AppTheme) => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
 }
@@ -19,7 +21,7 @@ function AccountMenuArrow({ open }: { open: boolean }) {
   </svg>;
 }
 
-export default function WorkspaceSettings({ user, onUserChange, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange }: Props) {
+export default function WorkspaceSettings({ user, onUserChange, canUseColorTheme, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange }: Props) {
   const [open, setOpen] = useState(false);
   const [menuView, setMenuView] = useState<"root" | "theme" | "help" | "profile">("root");
   const [busy, setBusy] = useState(false);
@@ -68,9 +70,9 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
         <span className="workspace-settings__chevron ml-auto flex h-5 w-5 shrink-0 items-center justify-center text-slate-500"><AccountMenuArrow open={open} /></span>
       </button>
 
-      {open && <div className="glass-dialog absolute bottom-[calc(100%+.75rem)] left-0 z-[100] w-full rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.18)] backdrop-blur-xl">
+      {open && <div className="glass-dialog absolute bottom-[calc(100%+.75rem)] left-0 z-[var(--z-tooltip)] w-full rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.18)] backdrop-blur-xl">
         {menuView === "root" && <div className="space-y-1">
-          <button type="button" onClick={() => setMenuView("theme")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><Palette size={17} /><span className="flex-1">Giao diện background</span><ChevronRight size={16} className="text-slate-400" /></button>
+          {canUseColorTheme && <button type="button" onClick={() => setMenuView("theme")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><Palette size={17} /><span className="flex-1">Giao diện</span><ChevronRight size={16} className="text-slate-400" /></button>}
           <button type="button" onClick={() => setMenuView("help")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><CircleHelp size={17} /><span className="flex-1">Help center</span><ChevronRight size={16} className="text-slate-400" /></button>
           <button type="button" onClick={() => setMenuView("profile")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"><UserRound size={17} /><span className="flex-1">My Profile</span><ChevronRight size={16} className="text-slate-400" /></button>
           {user && <>
@@ -87,17 +89,11 @@ export default function WorkspaceSettings({ user, onUserChange, theme, onThemeCh
         {menuView !== "root" && <>
           <button type="button" onClick={() => setMenuView("root")} className="mb-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700"><ChevronLeft size={14} />Quay lại</button>
           {menuView === "theme" && <div>
-            <p className="px-2 pb-2 text-sm font-black text-slate-800">Giao diện background</p>
-            <div className="grid grid-cols-4 gap-1 rounded-xl bg-slate-50 p-1">
+            <p className="px-2 pb-2 text-sm font-black text-slate-800">Giao diện</p>
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-50 p-1" role="group" aria-label="Chọn giao diện">
+              <button type="button" onClick={() => onThemeChange("default")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "default" ? "bg-white text-[var(--primary)] shadow-sm" : "text-slate-500"}`}>Default</button>
               <button type="button" onClick={() => onThemeChange("color")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "color" ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>Color</button>
-              <button type="button" onClick={() => onThemeChange("basic")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button>
-              <button type="button" onClick={() => onThemeChange("test")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "test" ? "bg-slate-900 text-cyan-200 shadow-sm" : theme === "test-light" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Test</button>
-              <button type="button" onClick={() => onThemeChange("green")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "green" ? "bg-[#064E3B] text-[#F8E7C9] shadow-sm" : "text-slate-500"}`}>Green</button>
             </div>
-            {(theme === "test" || theme === "test-light") && <button type="button" onClick={() => onThemeChange(theme === "test" ? "test-light" : "test")} className="mt-2 flex w-full items-center justify-between rounded-xl border border-slate-200/70 px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50" aria-label={theme === "test" ? "Chuyển Test sang chế độ sáng" : "Chuyển Test sang chế độ tối"}>
-              <span className="flex items-center gap-2">{theme === "test" ? <Sun size={15} /> : <Moon size={15} />}Test {theme === "test" ? "sáng" : "tối"}</span>
-              <span className="text-[10px] text-slate-400">Đổi</span>
-            </button>}
           </div>}
           {menuView === "help" && <div className="px-2 pb-1"><p className="text-sm font-black text-slate-800">Help center</p><p className="mt-2 text-xs leading-5 text-slate-500">Trung tâm trợ giúp StudyHub.</p></div>}
           {menuView === "profile" && <div>

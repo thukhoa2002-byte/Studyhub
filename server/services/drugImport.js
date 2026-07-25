@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { generateStructuredFromFile } from "./gemini.js";
-import { buildDrugExtractionPrompt, buildGuidelineTableExtractionPrompt } from "../prompts/drugExtractionPrompt.js";
+import { buildDrugExtractionPrompt, buildGuidelineTableExtractionPrompt, normalizeOutputLanguage } from "../prompts/drugExtractionPrompt.js";
 
 const execFileAsync = promisify(execFile);
 export const DRUG_IMPORT_PROMPT_VERSION = "drug-extraction-v1";
@@ -14,15 +14,83 @@ const AI_CHUNK_CHARS = 180_000;
 const textFields = ["genericName", "titleVi", "drugClass", "indications", "contraindications", "dosing", "renalAdjustment", "hepaticAdjustment", "elderlyAdjustment", "pediatricAdjustment", "specialPopulationAdjustments", "pregnancy", "breastfeeding", "precautions", "adverseEffects", "interactions", "monitoring", "mechanism", "pharmacodynamics", "notes", "summary"];
 const arrayFields = ["aliases", "brandNames", "dosageForms", "routes", "specialties", "references", "guidelineReferences", "flashcardReferences", "quizReferences", "calculatorReferences", "flowchartReferences", "imageReferences"];
 const objectArrayFields = ["indicationsDetailed", "dosingRegimens", "sourceReferences", "guidelineLinks"];
-const drugProperties = { id: { type: "string" }, slug: { type: "string" }, genericName: { type: "string" }, titleVi: { type: "string" }, aliases: { type: "array", items: { type: "string" } }, brandNames: { type: "array", items: { type: "string" } }, drugClass: { type: "string" }, specialties: { type: "array", items: { type: "string" } }, indications: { type: "string" }, contraindications: { type: "string" }, dosing: { type: "string" }, renalAdjustment: { type: "string" }, hepaticAdjustment: { type: "string" }, pregnancy: { type: "string" }, breastfeeding: { type: "string" }, adverseEffects: { type: "string" }, interactions: { type: "string" }, monitoring: { type: "string" }, mechanism: { type: "string" }, references: { type: "array", items: { type: "string" } }, guidelineReferences: { type: "array", items: { type: "string" } }, flashcardReferences: { type: "array", items: { type: "string" } }, quizReferences: { type: "array", items: { type: "string" } }, calculatorReferences: { type: "array", items: { type: "string" } }, flowchartReferences: { type: "array", items: { type: "string" } }, imageReferences: { type: "array", items: { type: "string" } }, notes: { type: "string" }, summary: { type: "string" } };
+const localizedTextSchema = { type: "object", properties: { vi: { type: "string" }, en: { type: "string" } }, required: ["vi", "en"], additionalProperties: false };
+const localizedDrugContentSchema = { type: "object", properties: Object.fromEntries(["title", "subtitle", "summary", "drugClass", "specialties", "indications", "contraindications", "cautions", "dosing", "renalAdjustment", "hepaticAdjustment", "pregnancy", "breastfeeding", "adverseEffects", "interactions", "monitoring", "mechanism", "pharmacodynamics", "notes"].map((field) => [field, localizedTextSchema])), additionalProperties: false };
+const localizedGuidelineContentSchema = { type: "object", properties: { title: localizedTextSchema, subtitle: localizedTextSchema, summary: localizedTextSchema, tableName: localizedTextSchema, why: localizedTextSchema, indications: localizedTextSchema, contraindications: localizedTextSchema, cautions: localizedTextSchema, monitoring: localizedTextSchema, initiation: localizedTextSchema, titration: localizedTextSchema, problemSolving: localizedTextSchema }, additionalProperties: false };
+const localizedRowContentSchema = { type: "object", properties: Object.fromEntries(["drugClass", "indications", "dose", "startingDose", "targetDose", "frequency", "route", "notes", "renalAdjustment", "hepaticAdjustment", "contraindications", "monitoring", "clinicalContext"].map((field) => [field, localizedTextSchema])), additionalProperties: false };
+const drugProperties = { id: { type: "string" }, slug: { type: "string" }, genericName: { type: "string" }, titleVi: { type: "string" }, aliases: { type: "array", items: { type: "string" } }, brandNames: { type: "array", items: { type: "string" } }, drugClass: { type: "string" }, specialties: { type: "array", items: { type: "string" } }, indications: { type: "string" }, contraindications: { type: "string" }, dosing: { type: "string" }, renalAdjustment: { type: "string" }, hepaticAdjustment: { type: "string" }, pregnancy: { type: "string" }, breastfeeding: { type: "string" }, adverseEffects: { type: "string" }, interactions: { type: "string" }, monitoring: { type: "string" }, mechanism: { type: "string" }, references: { type: "array", items: { type: "string" } }, guidelineReferences: { type: "array", items: { type: "string" } }, flashcardReferences: { type: "array", items: { type: "string" } }, quizReferences: { type: "array", items: { type: "string" } }, calculatorReferences: { type: "array", items: { type: "string" } }, flowchartReferences: { type: "array", items: { type: "string" } }, imageReferences: { type: "array", items: { type: "string" } }, notes: { type: "string" }, summary: { type: "string" }, localizedContent: localizedDrugContentSchema };
 const drugSchema = { type: "object", properties: { drug: { type: "object", properties: drugProperties, required: Object.keys(drugProperties).filter((field) => !["id", "slug"].includes(field)), additionalProperties: false }, provenance: { type: "array", items: { type: "object", properties: { sourceId: { type: "string" }, title: { type: "string" }, organization: { type: "string" }, year: { type: "integer" }, url: { type: "string" }, pages: { type: "string" }, sections: { type: "array", items: { type: "string" } } }, required: ["sourceId", "title", "organization", "year", "url", "pages", "sections"], additionalProperties: false } } }, required: ["drug", "provenance"], additionalProperties: false };
 const tableCellSchema = { type: "object", properties: { text: { type: "string" }, colSpan: { type: "integer" }, rowSpan: { type: "integer" }, backgroundColor: { type: "string" }, textColor: { type: "string" }, textAlign: { type: "string", enum: ["left", "center", "right"] }, fontWeight: { type: "string", enum: ["normal", "bold"] } }, required: ["text", "colSpan", "rowSpan", "backgroundColor", "textColor", "textAlign", "fontWeight"], additionalProperties: false };
 const commonGuidanceSchema = { type: "object", properties: { why: { type: "string" }, indications: { type: "string" }, contraindications: { type: "string" }, cautions: { type: "string" }, monitoring: { type: "string" }, initiation: { type: "string" }, titration: { type: "string" }, problemSolving: { type: "string" } }, required: ["why", "indications", "contraindications", "cautions", "monitoring", "initiation", "titration", "problemSolving"], additionalProperties: false };
-const guidelineTableSchema = { type: "object", properties: { guideline: { type: "object", properties: { id: { type: "string" }, slug: { type: "string" }, title: { type: "string" }, titleVi: { type: "string" }, organization: { type: "string" }, publicationYear: { type: "integer" }, version: { type: "string" }, specialty: { type: "string" }, topics: { type: "array", items: { type: "string" } }, summary: { type: "string" }, sourceUrl: { type: "string" } }, required: ["id", "slug", "title", "titleVi", "organization", "publicationYear", "version", "specialty", "topics", "summary", "sourceUrl"], additionalProperties: false }, table: { type: "object", properties: { name: { type: "string" }, number: { type: "string" }, page: { type: "string" }, section: { type: "string" } }, required: ["name", "number", "page", "section"], additionalProperties: false }, commonGuidance: commonGuidanceSchema, rows: { type: "array", items: { type: "object", properties: { drugName: { type: "string" }, drugId: { type: "string" }, drugClass: { type: "string" }, brandNames: { type: "array", items: { type: "string" } }, indications: { type: "string" }, dose: { type: "string" }, startingDose: { type: "string" }, targetDose: { type: "string" }, frequency: { type: "string" }, route: { type: "string" }, notes: { type: "string" }, renalAdjustment: { type: "string" }, hepaticAdjustment: { type: "string" }, contraindications: { type: "string" }, monitoring: { type: "string" }, clinicalContext: { type: "string" }, relationType: { type: "string" }, page: { type: "string" }, section: { type: "string" }, tableCells: { type: "array", items: tableCellSchema } }, required: ["drugName", "drugId", "drugClass", "brandNames", "indications", "dose", "startingDose", "targetDose", "frequency", "route", "notes", "renalAdjustment", "hepaticAdjustment", "contraindications", "monitoring", "clinicalContext", "relationType", "page", "section", "tableCells"], additionalProperties: false } }, provenance: { type: "array", items: { type: "object", properties: { guidelineId: { type: "string" }, title: { type: "string" }, tableName: { type: "string" }, tableNumber: { type: "string" }, page: { type: "string" }, section: { type: "string" }, documentTitle: { type: "string" }, publicationYear: { type: "integer" }, organization: { type: "string" }, url: { type: "string" } }, required: ["guidelineId", "title", "tableName", "tableNumber", "page", "section", "documentTitle", "publicationYear", "organization", "url"], additionalProperties: false } } }, required: ["guideline", "table", "commonGuidance", "rows", "provenance"], additionalProperties: false };
+const guidelineTableSchema = { type: "object", properties: { guideline: { type: "object", properties: { id: { type: "string" }, slug: { type: "string" }, title: { type: "string" }, titleVi: { type: "string" }, organization: { type: "string" }, publicationYear: { type: "integer" }, version: { type: "string" }, specialty: { type: "string" }, topics: { type: "array", items: { type: "string" } }, summary: { type: "string" }, sourceUrl: { type: "string" } }, required: ["id", "slug", "title", "titleVi", "organization", "publicationYear", "version", "specialty", "topics", "summary", "sourceUrl"], additionalProperties: false }, table: { type: "object", properties: { name: { type: "string" }, number: { type: "string" }, page: { type: "string" }, section: { type: "string" } }, required: ["name", "number", "page", "section"], additionalProperties: false }, commonGuidance: commonGuidanceSchema, localizedContent: localizedGuidelineContentSchema, rows: { type: "array", items: { type: "object", properties: { drugName: { type: "string" }, drugId: { type: "string" }, drugClass: { type: "string" }, brandNames: { type: "array", items: { type: "string" } }, indications: { type: "string" }, dose: { type: "string" }, startingDose: { type: "string" }, targetDose: { type: "string" }, frequency: { type: "string" }, route: { type: "string" }, notes: { type: "string" }, renalAdjustment: { type: "string" }, hepaticAdjustment: { type: "string" }, contraindications: { type: "string" }, monitoring: { type: "string" }, clinicalContext: { type: "string" }, relationType: { type: "string" }, page: { type: "string" }, section: { type: "string" }, tableCells: { type: "array", items: tableCellSchema }, localizedContent: localizedRowContentSchema }, required: ["drugName", "drugId", "drugClass", "brandNames", "indications", "dose", "startingDose", "targetDose", "frequency", "route", "notes", "renalAdjustment", "hepaticAdjustment", "contraindications", "monitoring", "clinicalContext", "relationType", "page", "section", "tableCells"], additionalProperties: false } }, provenance: { type: "array", items: { type: "object", properties: { guidelineId: { type: "string" }, title: { type: "string" }, tableName: { type: "string" }, tableNumber: { type: "string" }, page: { type: "string" }, section: { type: "string" }, documentTitle: { type: "string" }, publicationYear: { type: "integer" }, organization: { type: "string" }, url: { type: "string" } }, required: ["guidelineId", "title", "tableName", "tableNumber", "page", "section", "documentTitle", "publicationYear", "organization", "url"], additionalProperties: false } } }, required: ["guideline", "table", "commonGuidance", "rows", "provenance"], additionalProperties: false };
 
 function decodeXml(value) { return String(value).replace(/&#x([0-9a-f]+);/gi, (_m, code) => String.fromCodePoint(Number.parseInt(code, 16))).replace(/&#(\d+);/g, (_m, code) => String.fromCodePoint(Number(code))).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'"); }
 function cleanName(value) { return String(value || "document").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 180); }
 function extension(file) { return String(file?.originalname || "").toLowerCase().split(".").pop(); }
+
+const detectedItemTypes = new Set(["table", "figure", "algorithm", "flowchart", "appendix", "document"]);
+const missingAiTextPattern = /^(?:not\s+(?:specified|mentioned|provided|available)|n\/a|none|unknown|chưa\s+(?:có|được\s+nêu)|không\s+(?:được\s+)?nêu)(?:\s+(?:in|trong|the|provided|source|text|tài liệu|nguồn).*)?[.!:]?$/i;
+
+function sanitizeAiText(value) {
+  if (typeof value !== "string") return value;
+  return value.split(/\r?\n/).filter((line) => !missingAiTextPattern.test(line.trim())).join("\n").trim();
+}
+
+function sanitizeRecord(record, fields) {
+  const next = { ...record };
+  for (const field of fields) if (typeof next[field] === "string") next[field] = sanitizeAiText(next[field]);
+  for (const field of Object.keys(next)) if (Array.isArray(next[field]) && next[field].every((item) => typeof item === "string")) next[field] = next[field].map((item) => sanitizeAiText(item)).filter(Boolean);
+  return next;
+}
+
+function mergeLocalizedContent(records) {
+  const fields = [...new Set(records.flatMap((record) => record?.localizedContent && typeof record.localizedContent === "object" ? Object.keys(record.localizedContent) : []))];
+  return Object.fromEntries(fields.map((field) => {
+    const values = records.map((record) => record?.localizedContent?.[field]).filter((value) => value && typeof value === "object" && !Array.isArray(value));
+    return [field, { vi: [...new Set(values.map((value) => String(value.vi || "").trim()).filter(Boolean))].join("\n\n"), en: [...new Set(values.map((value) => String(value.en || "").trim()).filter(Boolean))].join("\n\n") }];
+  }));
+}
+
+function itemTypeForLabel(label) {
+  const normalized = String(label || "").toLocaleLowerCase();
+  if (normalized.includes("table")) return "table";
+  if (normalized.includes("figure") || normalized.startsWith("fig")) return "figure";
+  if (normalized.includes("algorithm")) return "algorithm";
+  if (normalized.includes("flowchart")) return "flowchart";
+  if (normalized.includes("appendix")) return "appendix";
+  return "document";
+}
+
+export function detectDocumentItems(text) {
+  const source = String(text || "").trim();
+  if (!source) return [];
+  const headingPattern = /^\s*((?:supplementary|supplemental)\s+(?:table|figure)|table|figure|fig\.?|algorithm|flowchart|appendix)\s*(?:([A-Za-z]?\s*\d+(?:\.\d+)?)\s*)?[:.\-]?\s*(.*)$/i;
+  const lines = source.split("\n");
+  const matches = [];
+  let offset = 0;
+  for (const line of lines) {
+    const match = line.match(headingPattern);
+    if (match && !/table\s+of\s+contents/i.test(line)) {
+      const label = `${match[1]}${match[2] ? ` ${match[2].trim()}` : ""}`.trim();
+      matches.push({ start: offset, label, type: itemTypeForLabel(label), title: String(match[3] || "").trim() });
+    }
+    offset += line.length + 1;
+  }
+  if (!matches.length) return [{ id: "document-1", type: "document", label: "Toàn bộ tài liệu", title: "", pageStart: null, pageEnd: null, text: source }];
+  const positionedMatches = matches.map((match, index) => {
+    const segmentStart = matches[index - 1]?.start || 0;
+    const segment = source.slice(segmentStart, match.start);
+    const pageMarkers = [...segment.matchAll(/\[Trang\s+(\d+)\]/gi)];
+    const lastPageMarker = pageMarkers.at(-1);
+    return { ...match, contentStart: lastPageMarker ? segmentStart + Number(lastPageMarker.index) : match.start };
+  });
+  return positionedMatches.map((match, index) => {
+    const end = positionedMatches[index + 1]?.contentStart || source.length;
+    const itemText = source.slice(match.contentStart, end).trim();
+    const pages = [...itemText.matchAll(/\[Trang\s+(\d+)\]/gi)].map((item) => Number(item[1])).filter(Number.isInteger);
+    return { id: `document-item-${index + 1}`, type: detectedItemTypes.has(match.type) ? match.type : "document", label: match.label, title: match.title, pageStart: pages[0] || null, pageEnd: pages[pages.length - 1] || null, text: itemText };
+  });
+}
 
 async function extractDocxText(file) {
   let xml;
@@ -40,7 +108,17 @@ async function extractPdfText(file) {
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
     const page = await document.getPage(pageNumber);
     const content = await page.getTextContent();
-    pages.push(content.items.map((item) => item.str || "").join(" ").replace(/\s+/g, " ").trim());
+    const rows = [];
+    for (const item of content.items) {
+      const value = String(item.str || "").trim();
+      if (!value) continue;
+      const y = Number(item.transform?.[5] || 0);
+      const row = rows.find((candidate) => Math.abs(candidate.y - y) < 3);
+      if (row) row.parts.push(value);
+      else rows.push({ y, parts: [value] });
+    }
+    rows.sort((a, b) => b.y - a.y);
+    pages.push(`[Trang ${pageNumber}]\n${rows.map((row) => row.parts.join(" ")).join("\n")}`);
   }
   const text = pages.filter(Boolean).join("\n\n").trim();
   if (text) return { text, ocrUsed: false };
@@ -49,13 +127,13 @@ async function extractPdfText(file) {
     const { createWorker } = await import("tesseract.js");
     const worker = await createWorker("eng");
     const ocrPages = [];
-    for (let pageNumber = 1; pageNumber <= Math.min(document.numPages, 10); pageNumber += 1) {
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
       const page = await document.getPage(pageNumber);
       const viewport = page.getViewport({ scale: 1.6 });
       const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
       await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
       const result = await worker.recognize(canvas.toBuffer("image/png"));
-      if (result.data.text?.trim()) ocrPages.push(result.data.text.trim());
+      if (result.data.text?.trim()) ocrPages.push(`[Trang ${pageNumber}]\n${result.data.text.trim()}`);
     }
     await worker.terminate();
     const ocrText = ocrPages.join("\n\n").trim();
@@ -71,7 +149,7 @@ export async function extractDrugDocumentText(file) {
   const isDocx = ext === "docx" && bytes.subarray(0, 2).toString() === "PK";
   if (!isPdf && !isDocx) throw new Error("Chỉ hỗ trợ PDF hoặc DOCX hợp lệ.");
   const extracted = isPdf ? await extractPdfText(file) : { text: await extractDocxText(file), ocrUsed: false };
-  return { text: extracted.text, ocrUsed: extracted.ocrUsed, sourceType: isPdf ? "pdf" : "docx", originalFileName: cleanName(file.originalname), characterCount: extracted.text.length };
+  return { text: extracted.text, items: detectDocumentItems(extracted.text), ocrUsed: extracted.ocrUsed, sourceType: isPdf ? "pdf" : "docx", originalFileName: cleanName(file.originalname), characterCount: extracted.text.length };
 }
 
 export function validateDrugRecord(drug) {
@@ -110,7 +188,12 @@ export function validateGuidelineTableBundle(bundle) {
   const warnings = [];
   if (!bundle?.guideline || typeof bundle.guideline !== "object") errors.push("guideline: thiếu nội dung guideline chung.");
   if (!String(bundle?.guideline?.title || "").trim()) errors.push("guideline.title: bắt buộc.");
-  if (!Array.isArray(bundle?.rows) || bundle.rows.length === 0) errors.push("rows: không nhận diện được dòng thuốc nào.");
+  const itemType = String(bundle?.table?.type || "table").toLocaleLowerCase();
+  const allowsNoDrugRows = ["figure", "algorithm", "flowchart", "appendix", "document"].includes(itemType);
+  if (!Array.isArray(bundle?.rows) || bundle.rows.length === 0) {
+    if (allowsNoDrugRows) warnings.push(`${itemType}: không có dòng thuốc; chỉ tạo nội dung Guideline chung.`);
+    else errors.push("rows: không nhận diện được dòng thuốc nào.");
+  }
   const seen = new Set();
   for (const [index, row] of (Array.isArray(bundle?.rows) ? bundle.rows : []).entries()) {
     if (!String(row?.drugName || "").trim()) errors.push(`rows[${index}].drugName: bắt buộc.`);
@@ -139,7 +222,7 @@ function splitTextIntoChunks(text, maxChars) {
 }
 
 function mergeAiResults(results) {
-  const drugs = results.map((item) => item?.drug || {}).filter((drug) => drug && typeof drug === "object");
+  const drugs = results.map((item) => sanitizeRecord(item?.drug || {}, textFields)).filter((drug) => drug && typeof drug === "object");
   const merged = { ...(drugs[0] || {}) };
   const warnings = [];
   for (const field of textFields) {
@@ -148,13 +231,14 @@ function mergeAiResults(results) {
     if (values.length) merged[field] = values.join("\n\n");
   }
   for (const field of arrayFields) merged[field] = [...new Set(drugs.flatMap((drug) => Array.isArray(drug[field]) ? drug[field].filter((item) => typeof item === "string" && item.trim()) : []))];
+  merged.localizedContent = mergeLocalizedContent(drugs);
   const provenance = results.flatMap((item) => Array.isArray(item?.provenance) ? item.provenance : []);
   return { drug: merged, provenance, warnings };
 }
 
-function mergeGuidelineTableResults(results) {
+function mergeGuidelineTableResults(results, itemType = "table") {
   const first = results.find((item) => item?.guideline) || {};
-  const rows = results.flatMap((item) => Array.isArray(item?.rows) ? item.rows : []);
+  const rows = results.flatMap((item) => Array.isArray(item?.rows) ? item.rows.map((row) => sanitizeRecord(row, ["drugName", "drugClass", "indications", "dose", "startingDose", "targetDose", "frequency", "route", "notes", "renalAdjustment", "hepaticAdjustment", "contraindications", "monitoring", "clinicalContext", "relationType", "page", "section"])) : []);
   const seenRows = new Set();
   const uniqueRows = rows.filter((row) => {
     const key = [row.drugName, row.dose, row.page, row.section].map((value) => String(value || "").trim().toLocaleLowerCase()).join("|");
@@ -164,12 +248,14 @@ function mergeGuidelineTableResults(results) {
   });
   const provenance = results.flatMap((item) => Array.isArray(item?.provenance) ? item.provenance : []);
   const commonFields = ["why", "indications", "contraindications", "cautions", "monitoring", "initiation", "titration", "problemSolving"];
-  const commonGuidance = Object.fromEntries(commonFields.map((field) => [field, [...new Set(results.map((item) => String(item?.commonGuidance?.[field] || "").trim()).filter(Boolean))].join("\n\n")]));
+  const commonGuidance = Object.fromEntries(commonFields.map((field) => [field, [...new Set(results.map((item) => sanitizeAiText(String(item?.commonGuidance?.[field] || "")).trim()).filter(Boolean))].join("\n\n")]));
+  const localizedContent = mergeLocalizedContent(results);
   const seenProvenance = new Set();
   return {
-    guideline: first.guideline || {},
-    table: first.table || {},
+    guideline: sanitizeRecord(first.guideline || {}, ["title", "titleVi", "organization", "version", "specialty", "summary", "sourceUrl"]),
+    table: sanitizeRecord({ ...(first.table || {}), type: itemType }, ["name", "number", "page", "section"]),
     commonGuidance,
+    localizedContent,
     rows: uniqueRows,
     provenance: provenance.filter((item) => {
       const key = JSON.stringify(item);
@@ -180,14 +266,14 @@ function mergeGuidelineTableResults(results) {
   };
 }
 
-export async function extractDrugWithAi({ text, drugName, sourceMetadata = {} }) {
+export async function extractDrugWithAi({ text, drugName, sourceMetadata = {}, outputLanguage = "vi" }) {
   if (!String(text || "").trim()) throw Object.assign(new Error("Chưa có văn bản nguồn để AI trích xuất."), { status: 422 });
   if (String(text).length > MAX_AI_TEXT_CHARS) throw Object.assign(new Error("Văn bản quá dài cho một phiên xử lý. Hãy chia tài liệu thành các phần nhỏ hơn."), { status: 413 });
   const chunks = splitTextIntoChunks(String(text), AI_CHUNK_CHARS);
   const results = [];
   for (let index = 0; index < chunks.length; index += 1) {
     const chunk = chunks[index];
-    const prompt = buildDrugExtractionPrompt({ text: chunk, drugName, sourceMetadata, chunkIndex: index, chunkCount: chunks.length });
+    const prompt = buildDrugExtractionPrompt({ text: chunk, drugName, sourceMetadata, outputLanguage: normalizeOutputLanguage(outputLanguage), chunkIndex: index, chunkCount: chunks.length });
     const result = await generateStructuredFromFile({ file: { buffer: Buffer.from(chunk, "utf8"), size: Buffer.byteLength(chunk, "utf8"), mimetype: "text/plain", originalname: "drug-source.txt" }, prompt, schema: drugSchema, maxOutputTokens: 12_000, timeoutMs: 120_000 });
     results.push(result);
   }
@@ -195,15 +281,15 @@ export async function extractDrugWithAi({ text, drugName, sourceMetadata = {} })
   return { result: { drug: merged.drug, provenance: merged.provenance }, warnings: merged.warnings, chunksProcessed: chunks.length, aiModel: AI_MODEL, promptVersion: DRUG_IMPORT_PROMPT_VERSION };
 }
 
-export async function extractGuidelineTableWithAi({ text, sourceMetadata = {} }) {
+export async function extractGuidelineTableWithAi({ text, sourceMetadata = {}, itemType = "table", outputLanguage = "vi" }) {
   if (!String(text || "").trim()) throw Object.assign(new Error("Chưa có văn bản guideline để trích xuất."), { status: 422 });
   if (String(text).length > MAX_AI_TEXT_CHARS) throw Object.assign(new Error("Văn bản guideline quá dài cho một phiên xử lý. Hãy chia tài liệu thành các phần nhỏ hơn."), { status: 413 });
   const chunks = splitTextIntoChunks(String(text), AI_CHUNK_CHARS);
   const results = [];
   for (let index = 0; index < chunks.length; index += 1) {
     const chunk = chunks[index];
-    const prompt = buildGuidelineTableExtractionPrompt({ text: chunk, sourceMetadata, chunkIndex: index, chunkCount: chunks.length });
+    const prompt = buildGuidelineTableExtractionPrompt({ text: chunk, sourceMetadata, itemType, outputLanguage: normalizeOutputLanguage(outputLanguage), chunkIndex: index, chunkCount: chunks.length });
     results.push(await generateStructuredFromFile({ file: { buffer: Buffer.from(chunk, "utf8"), size: Buffer.byteLength(chunk, "utf8"), mimetype: "text/plain", originalname: "guideline-source.txt" }, prompt, schema: guidelineTableSchema, maxOutputTokens: 16_000, timeoutMs: 120_000 }));
   }
-  return { result: mergeGuidelineTableResults(results), chunksProcessed: chunks.length, aiModel: AI_MODEL, promptVersion: DRUG_IMPORT_PROMPT_VERSION };
+  return { result: mergeGuidelineTableResults(results, itemType), chunksProcessed: chunks.length, aiModel: AI_MODEL, promptVersion: DRUG_IMPORT_PROMPT_VERSION };
 }
