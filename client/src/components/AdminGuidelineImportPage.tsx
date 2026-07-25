@@ -76,7 +76,12 @@ export default function AdminGuidelineImportPage({ onNavigate }: { user: User; o
   async function processSelected() {
     if (!jobData || selectedItems.length === 0) return;
     setBusy(true); setNotice(null);
-    try { await processGuidelineImport(jobData.job.id, selectedItems); setNotice({ type: "info", text: "Đã bắt đầu xử lý nền. Bạn có thể chuyển tab và quay lại." }); await loadJobs(); }
+    try {
+      await processGuidelineImport(jobData.job.id, selectedItems);
+      setJobData(await getGuidelineImportJob(jobData.job.id));
+      await loadJobs();
+      setNotice({ type: "info", text: "Đã bắt đầu xử lý nền. Bạn có thể chuyển tab và quay lại." });
+    }
     catch (error) { setNotice({ type: "error", text: errorText(error) }); }
     finally { setBusy(false); }
   }
@@ -84,7 +89,12 @@ export default function AdminGuidelineImportPage({ onNavigate }: { user: User; o
   async function resume() {
     if (!jobData) return;
     setBusy(true);
-    try { await resumeGuidelineImport(jobData.job.id, selectedItems); setNotice({ type: "info", text: "Đã tiếp tục từ checkpoint gần nhất." }); }
+    try {
+      await resumeGuidelineImport(jobData.job.id, selectedItems);
+      setJobData(await getGuidelineImportJob(jobData.job.id));
+      await loadJobs();
+      setNotice({ type: "info", text: "Đã tiếp tục từ checkpoint gần nhất." });
+    }
     catch (error) { setNotice({ type: "error", text: errorText(error) }); }
     finally { setBusy(false); }
   }
