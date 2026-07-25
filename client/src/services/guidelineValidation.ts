@@ -70,18 +70,18 @@ export function validateRecommendationForPublication(
 }
 
 const guidelineTransitions: Record<GuidelineCoreStatus, GuidelineCoreStatus[]> = {
-  draft: ["draft", "in_review", "archived"],
-  in_review: ["in_review", "published", "draft", "archived"],
-  published: ["published", "in_review", "archived"],
-  archived: ["archived"],
+  draft: ["draft", "in_review", "published"],
+  in_review: ["in_review", "published", "draft"],
+  published: ["published", "archived"],
+  archived: ["archived", "draft", "published"],
 };
 
 const recommendationTransitions: Record<GuidelineRecommendationStatus, GuidelineRecommendationStatus[]> = {
-  draft: ["draft", "in_review", "archived"],
-  in_review: ["in_review", "reviewed", "draft", "archived"],
-  reviewed: ["reviewed", "published", "in_review", "archived"],
-  published: ["published", "in_review", "archived"],
-  archived: ["archived"],
+  draft: ["draft", "in_review", "reviewed", "published"],
+  in_review: ["in_review", "reviewed", "draft", "published"],
+  reviewed: ["reviewed", "published", "in_review", "draft"],
+  published: ["published", "archived"],
+  archived: ["archived", "draft", "published"],
 };
 
 export function validateGuidelineStatusTransition(from: GuidelineCoreStatus, to: GuidelineCoreStatus): string[] {

@@ -31,6 +31,19 @@ export interface GuidelineCoreDocument {
   updated_at: string;
 }
 
+export interface GuidelineCorePreview {
+  id: string;
+  title: string;
+  society: string;
+  condition: string;
+  publication_year: number | null;
+  version_label: string;
+  summary: string;
+  topics: unknown[];
+  status: "published";
+  published_at: string | null;
+}
+
 export interface GuidelineSectionRecord {
   id: string;
   guideline_id: string;

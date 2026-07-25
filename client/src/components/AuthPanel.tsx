@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, BellOff, Camera, LogOut, Moon, Sun, UserRound } from "lucide-react";
-import { flushSync } from "react-dom";
+import { useEffect, useRef, useState } from "react";
+import { Bell, BellOff, Camera, LogOut, UserRound } from "lucide-react";
 import { supabase } from "../services/supabase";
 import type { User } from "@supabase/supabase-js";
+import type { AppTheme } from "../theme/themeTypes";
 
 interface Props {
   onUserChange: (user: User | null) => void;
   specialUser?: boolean;
-  theme: "color" | "basic" | "test" | "test-light" | "green";
-  onThemeChange: (theme: "color" | "basic" | "test" | "test-light" | "green") => void;
+  canUseColorTheme: boolean;
+  theme: AppTheme;
+  onThemeChange: (theme: AppTheme) => void;
   sharedDeckNotificationsEnabled: boolean;
   onSharedDeckNotificationsChange: (enabled: boolean) => void;
   showMenu?: boolean;
+  showAuthenticatedControl?: boolean;
 }
 
 async function signInWithGoogle() {
@@ -23,51 +25,11 @@ async function signInWithGoogle() {
   if (error) alert(`${error.message}${error.status ? ` (mã ${error.status})` : ""}`);
 }
 
-export default function AuthPanel({ onUserChange, specialUser = false, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, showMenu = true }: Props) {
+export default function AuthPanel({ onUserChange, specialUser = false, canUseColorTheme, theme, onThemeChange, sharedDeckNotificationsEnabled, onSharedDeckNotificationsChange, showMenu = true, showAuthenticatedControl = true }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
-  const testThemeToggle = useRef<HTMLButtonElement>(null);
-
-  const toggleTestTheme = useCallback(async () => {
-    const button = testThemeToggle.current;
-    if (!button) return;
-
-    const nextTheme = theme === "test" ? "test-light" : "test";
-    const applyTheme = () => {
-      document.documentElement.dataset.theme = nextTheme;
-      localStorage.setItem("hocbai-theme", nextTheme);
-      flushSync(() => onThemeChange(nextTheme));
-    };
-    const startViewTransition = (document as Document & {
-      startViewTransition?: (update: () => void) => { ready: Promise<void> };
-    }).startViewTransition;
-
-    if (!startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      applyTheme();
-      return;
-    }
-
-    const { left, top, width, height } = button.getBoundingClientRect();
-    const x = left + width / 2;
-    const y = top + height / 2;
-    const radius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y),
-    );
-    const transition = startViewTransition.call(document, applyTheme);
-
-    await transition.ready;
-    document.documentElement.animate(
-      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
-      {
-        duration: 560,
-        easing: "cubic-bezier(.22, 1, .36, 1)",
-        pseudoElement: "::view-transition-new(root)",
-      } as KeyframeAnimationOptions & { pseudoElement: string },
-    );
-  }, [onThemeChange, theme]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -121,6 +83,13 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
   }
 
   if (user) {
+    if (!showAuthenticatedControl) {
+      return specialUser ? <div className="special-note hidden shrink-0 items-center gap-1 whitespace-nowrap text-center sm:flex" aria-label="Lời nhắn riêng">
+        <span className="hydrangea hydrangea-left" aria-hidden="true">✿</span>
+        <span>Tú ơii, cố lên.<br />Anh ở bên nèeee</span>
+        <span className="hydrangea hydrangea-right" aria-hidden="true">✿</span>
+      </div> : null;
+    }
     const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
     return (
       <div className="relative flex items-center gap-3">
@@ -144,19 +113,13 @@ export default function AuthPanel({ onUserChange, specialUser = false, theme, on
               <span className={`relative h-5 w-9 rounded-full transition ${sharedDeckNotificationsEnabled ? "bg-teal-400" : "bg-slate-200"}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${sharedDeckNotificationsEnabled ? "translate-x-[18px]" : "translate-x-0.5"}`} /></span>
             </button>
           </div>
-          <div className="mt-2 border-t border-slate-100 pt-2">
+          {canUseColorTheme && <div className="mt-2 border-t border-slate-100 pt-2">
             <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Giao diện</p>
-            <div className="grid grid-cols-4 gap-1 rounded-xl bg-slate-50 p-1">
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-50 p-1" role="group" aria-label="Chọn giao diện">
+              <button type="button" onClick={() => onThemeChange("default")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "default" ? "bg-white text-[var(--primary)] shadow-sm" : "text-slate-500"}`}>Default</button>
               <button type="button" onClick={() => onThemeChange("color")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "color" ? "bg-white text-teal-700 shadow-sm" : "text-slate-500"}`}>Color</button>
-              <button type="button" onClick={() => onThemeChange("basic")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "basic" ? "bg-slate-700 text-white shadow-sm" : "text-slate-500"}`}>Basic</button>
-              <button type="button" onClick={() => onThemeChange("test")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "test" ? "bg-slate-900 text-cyan-200 shadow-sm" : theme === "test-light" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Test</button>
-              <button type="button" onClick={() => onThemeChange("green")} className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${theme === "green" ? "bg-[#064E3B] text-[#F8E7C9] shadow-sm" : "text-slate-500"}`}>Green</button>
             </div>
-            {(theme === "test" || theme === "test-light") && <button ref={testThemeToggle} type="button" onClick={() => void toggleTestTheme()} className="mt-2 flex w-full items-center justify-between rounded-xl border border-slate-200/70 px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50" aria-label={theme === "test" ? "Chuyển Test sang chế độ sáng" : "Chuyển Test sang chế độ tối"}>
-              <span className="flex items-center gap-2">{theme === "test" ? <Sun size={15} /> : <Moon size={15} />} Test {theme === "test" ? "sáng" : "tối"}</span>
-              <span className="text-[10px] text-slate-400">Đổi</span>
-            </button>}
-          </div>
+          </div>}
         </div>}
       </div>
     );

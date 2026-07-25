@@ -1,5 +1,5 @@
 import { getGuidelineCoreDocument, updateGuidelineCoreDocument } from "./guidelineRepository";
-import { listGuidelineSections, getGuidelineSection, updateGuidelineSection } from "./guidelineSectionRepository";
+import { listGuidelineSections, getGuidelineSection, setGuidelineSectionStatus } from "./guidelineSectionRepository";
 import { listGuidelineRecommendations, getGuidelineRecommendation, updateGuidelineRecommendation } from "./guidelineRecommendationRepository";
 import { listGuidelineSourceDocuments } from "./guidelineSourceDocumentRepository";
 import { assertValidGuidelinePublication, assertValidRecommendationPublication, GuidelineValidationError, validateGuidelineStatusTransition, validateRecommendationStatusTransition } from "./guidelineValidation";
@@ -86,5 +86,5 @@ export async function archiveGuidelineRecommendation(recommendationId: string, a
 export async function publishGuidelineSection(sectionId: string) {
   const section = await getGuidelineSection(sectionId);
   if (!section) throw new Error("Section không tồn tại.");
-  return updateGuidelineSection(sectionId, { status: "published" });
+  return setGuidelineSectionStatus(sectionId, "published");
 }

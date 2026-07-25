@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { GuidelineCoreDocument, GuidelineCoreStatus, NewGuidelineCoreDocument } from "./guidelineCoreTypes";
+import type { GuidelineCoreDocument, GuidelineCorePreview, GuidelineCoreStatus, NewGuidelineCoreDocument } from "./guidelineCoreTypes";
 
 export function requireGuidelineClient() {
   if (!supabase) throw new Error("Supabase chưa được cấu hình.");
@@ -12,6 +12,17 @@ export async function listGuidelineCoreDocuments(options: { publicOnly?: boolean
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as GuidelineCoreDocument[];
+}
+
+export async function listGuidelineCoreDocumentPreviews(): Promise<GuidelineCorePreview[]> {
+  const { data, error } = await requireGuidelineClient()
+    .from("guideline_documents")
+    .select("id,title,society,condition,publication_year,version_label,summary,topics,status,published_at")
+    .eq("status", "published")
+    .order("publication_year", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as GuidelineCorePreview[];
 }
 
 export async function getGuidelineCoreDocument(id: string, options: { publicOnly?: boolean } = {}): Promise<GuidelineCoreDocument | null> {

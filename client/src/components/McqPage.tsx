@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Eye, Folder, Folder
 import { getMcqProgress, saveMcqProgress, type McqProgress } from "../services/supabase";
 import McqAdminStudio from "./McqAdminStudio";
 import McqAccessPanel from "./McqAccessPanel";
+import ProtectedContentGate from "./ProtectedContentGate";
 import McqIcon from "./McqIcon";
 import LungIcon from "./LungIcon";
 import type { McqSection } from "./McqSectionsPanel";
@@ -503,6 +504,8 @@ export default function McqPage({ userId, userEmail, onAiCallsRemaining, section
   const visibleFolders = canManage ? libraryFolders : libraryFolders.filter((folder) => folder.status === "published");
   const rootFolders = visibleFolders.filter((folder) => !folder.parent_id);
   const editableDecks = decks.filter((deck) => Boolean(deck.libraryBank || deck.managedBankId));
+
+  if (!userId) return <ProtectedContentGate compact />;
 
   function folderIdsInTree(folderId: string): Set<string> {
     const result = new Set<string>();

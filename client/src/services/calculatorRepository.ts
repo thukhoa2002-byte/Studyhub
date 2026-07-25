@@ -76,6 +76,21 @@ export class CalculatorRepository {
     if (error) throw error;
   }
 
+  async countDeleteDependencies(calculatorId: string): Promise<{ guidelineReferences: number; recommendationRelations: number }> {
+    const [guideline, recommendation] = await Promise.all([
+      client().from("calculator_guideline_references").select("id", { count: "exact", head: true }).eq("calculator_id", calculatorId),
+      client().from("recommendation_calculator_references").select("id", { count: "exact", head: true }).eq("calculator_id", calculatorId),
+    ]);
+    if (guideline.error) throw guideline.error;
+    if (recommendation.error) throw recommendation.error;
+    return { guidelineReferences: guideline.count || 0, recommendationRelations: recommendation.count || 0 };
+  }
+
+  async deletePermanently(id: string): Promise<void> {
+    const { error } = await client().from("calculators").delete().eq("id", id).in("status", ["draft", "archived"]);
+    if (error) throw error;
+  }
+
   async listGuidelineReferences(calculatorId: string, publicOnly = false): Promise<CalculatorGuidelineReferenceRow[]> {
     if (publicOnly && !(await this.findById(calculatorId, true))) return [];
     let query = client().from("calculator_guideline_references").select("*").eq("calculator_id", calculatorId).order("display_order", { ascending: true });

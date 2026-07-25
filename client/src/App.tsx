@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { User } from "@supabase/supabase-js";
 
@@ -17,8 +17,7 @@ import type { McqSection } from "./components/McqSectionsPanel";
 import DrugsPage from "./components/DrugsPage";
 import AdminPage from "./components/AdminPage";
 import AdminLayout from "./components/AdminLayout";
-import AdminDrugPage from "./components/AdminDrugPage";
-import AdminDrugImportPage from "./components/AdminDrugImportPage";
+const AdminDrugPage = lazy(() => import("./components/AdminDrugPage"));
 import AdminCalculatorPage from "./components/AdminCalculatorPage";
 import AdminGuidelinePage from "./components/AdminGuidelinePage";
 import CalculatorPublicPage from "./modules/calculators/CalculatorPublicPage";
@@ -26,8 +25,11 @@ import ReferenceLibraryPage from "./components/ReferenceLibraryPage";
 import type { ReferenceSection } from "./components/ReferenceSectionsPanel";
 import { canonicalDataPath, parseDataRoute, type DataRoute } from "./utils/dataRoutes";
 import McqPage from "./components/McqPage";
+import { AUTH_RETURN_PATH_KEY } from "./components/ProtectedContentGate";
 import Footer, { getDailyQuote } from "./components/Footer";
-import { isAnalyticsAdmin, isCalculatorAdmin, isDrugAdmin, isGuidelineAdmin, isSpecialUser } from "./config/access";
+import { canUseColorTheme, isAnalyticsAdmin, isCalculatorAdmin, isDrugAdmin, isGuidelineAdmin, isSpecialUser } from "./config/access";
+import { defaultTheme, type AppTheme } from "./theme/themeTypes";
+import { readThemePreference, writeThemePreference } from "./theme/themePreference";
 import { appendCardsToDeck, deleteDeck, dismissDeckActivityNotification, encodeCardCategory, getDeckNotificationsEnabled, listDeckActivityNotifications, listDecks, listDueCards, saveDeck, saveReview, setDeckNotificationsEnabled, shareDeckWithEmails, supabase, updateDeck, type DeckActivityNotification, type SavedDeck } from "./services/supabase";
 import { normalizeSubdeck, replaceSubdeckPrefix } from "./utils/subdeck";
 
@@ -50,11 +52,18 @@ function workspaceTabForPath(pathname: string): WorkspaceTab {
   return route.tab || "flashcards";
 }
 
+function requiresAuthenticatedContent(route: DataRoute): boolean {
+  return route.tab === "guidelines" && route.kind === "guideline-detail" ||
+    route.tab === "tools" && route.kind === "calculator-detail" ||
+    route.tab === "drugs" && route.kind === "drug-detail" ||
+    route.tab === "admin";
+}
+
 export default function App() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>(() => workspaceTabForPath(initialPath()));
   const [dataRoute, setDataRoute] = useState<DataRoute>(() => parseDataRoute(initialPath()));
   const [referenceSection, setReferenceSection] = useState<ReferenceSection>("guidelines");
-  const [mcqSection, setMcqSection] = useState<McqSection>("banks");
+  const mcqSection: McqSection = "banks";
   const [mode, setMode] = useState<"study" | "review">("study");
   const [studyCurrentId, setStudyCurrentId] = useState<string | null>(null);
 
@@ -87,14 +96,15 @@ export default function App() {
   const [loginRequiredOpen, setLoginRequiredOpen] = useState(false);
   const [welcomeClosing, setWelcomeClosing] = useState(false);
   const [aiCallsRemaining, setAiCallsRemaining] = useState(850);
-  const [theme, setTheme] = useState<"color" | "basic" | "test" | "test-light" | "green">(() => {
-    const savedTheme = localStorage.getItem("hocbai-theme");
-    return savedTheme === "basic" || savedTheme === "test" || savedTheme === "test-light" || savedTheme === "green" ? savedTheme : "color";
-  });
+  const [theme, setTheme] = useState<AppTheme>(defaultTheme);
   const [sharedDeckNotificationsEnabled, setSharedDeckNotificationsEnabled] = useState(true);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [deckActivityNotifications, setDeckActivityNotifications] = useState<DeckActivityNotification[]>([]);
   const specialUser = isSpecialUser(user?.email);
+  const colorThemeEligible = canUseColorTheme(user?.email);
+  const themeIdentity = user?.id || user?.email || null;
   const analyticsAdmin = isAnalyticsAdmin(user?.email);
   const [dailyQuote, dailyAuthor] = getDailyQuote();
 
@@ -116,8 +126,21 @@ export default function App() {
     if (canonicalPath !== window.location.pathname) window.history.replaceState({}, "", canonicalPath);
   }, []);
 
+  const applyTheme = useCallback((nextTheme: AppTheme) => {
+    const allowedTheme = nextTheme === "color" && colorThemeEligible ? "color" : defaultTheme;
+    setTheme(allowedTheme);
+    document.documentElement.dataset.theme = allowedTheme;
+    writeThemePreference(themeIdentity, allowedTheme, colorThemeEligible);
+  }, [colorThemeEligible, themeIdentity]);
+
+  useLayoutEffect(() => {
+    window.localStorage.removeItem("hocbai-theme");
+    const preferredTheme = readThemePreference(themeIdentity, colorThemeEligible);
+    setTheme(preferredTheme);
+    document.documentElement.dataset.theme = preferredTheme;
+  }, [colorThemeEligible, themeIdentity]);
+
   useEffect(() => {
-    localStorage.setItem("hocbai-theme", theme);
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
@@ -253,26 +276,40 @@ export default function App() {
     setWorkspaceTab(nextTab);
     if (nextTab === "guidelines") navigateDataPath("/guidelines");
     else if (nextTab === "drugs") navigateDataPath("/thuoc");
-    else if (nextTab === "tools") navigateDataPath("/");
+    else if (nextTab === "tools") navigateDataPath("/may-tinh-y-khoa");
   }
 
   function navigateDataPath(path: string) {
     const canonicalPath = canonicalDataPath(path);
     window.history.pushState({}, "", canonicalPath);
     const nextRoute = parseDataRoute(canonicalPath);
+    if (requiresAuthenticatedContent(nextRoute) && !user) {
+      window.history.back();
+      window.sessionStorage.setItem(AUTH_RETURN_PATH_KEY, canonicalPath);
+      setLoginRequiredOpen(true);
+      return;
+    }
     setDataRoute(nextRoute);
     if (nextRoute.tab) setWorkspaceTab(nextRoute.tab);
     if (nextRoute.tab === "guidelines") setReferenceSection("guidelines");
   }
 
-  function changeReferenceSection(nextSection: ReferenceSection) {
-    setReferenceSection(nextSection);
-    if (nextSection === "guidelines") navigateDataPath("/guidelines");
-  }
-
   useEffect(() => {
     if ((!user && workspaceTab === "mcq") || (workspaceTab === "admin" && !analyticsAdmin)) setWorkspaceTab("flashcards");
   }, [analyticsAdmin, user, workspaceTab]);
+
+  useEffect(() => {
+    if (!user) return;
+    const pendingPath = window.sessionStorage.getItem(AUTH_RETURN_PATH_KEY);
+    if (!pendingPath) return;
+    window.sessionStorage.removeItem(AUTH_RETURN_PATH_KEY);
+    const canonicalPath = canonicalDataPath(pendingPath);
+    window.history.pushState({}, "", canonicalPath);
+    const nextRoute = parseDataRoute(canonicalPath);
+    setDataRoute(nextRoute);
+    if (nextRoute.tab) setWorkspaceTab(nextRoute.tab);
+    if (nextRoute.tab === "guidelines") setReferenceSection("guidelines");
+  }, [user]);
 
   function continueWithGoogle() {
     setLoginRequiredOpen(false);
@@ -819,9 +856,11 @@ export default function App() {
         : adminRoute.kind.startsWith("admin-calculator")
           ? isCalculatorAdmin(user?.email)
         : adminAllowed;
-    return <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f3e8ff_0,#fff7fb_38%,#ecfdf5_100%)]">
+    return <main data-special-user={specialUser ? "true" : "false"} className="app-shell admin-shell min-h-screen">
       <AdminLayout user={user} route={adminRoute} onNavigate={navigateDataPath}>
-        {!user || !moduleAllowed ? <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không có quyền truy cập</h1><p className="mt-2 text-sm font-semibold text-rose-700">Khu vực này chỉ dành cho quản trị viên được cấp quyền.</p></section> : adminRoute.kind === "admin-dashboard" ? <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onOpenCalculators={() => navigateDataPath("/admin/may-tinh-y-khoa")} onAiCallsRemaining={setAiCallsRemaining} /> : adminRoute.kind.startsWith("admin-calculator") ? <AdminCalculatorPage route={adminRoute} onNavigate={navigateDataPath} /> : adminRoute.kind === "admin-drug-import" ? <AdminDrugImportPage user={user} onNavigate={navigateDataPath} /> : adminRoute.kind.startsWith("admin-drug") ? <AdminDrugPage route={adminRoute} onNavigate={navigateDataPath} /> : <AdminGuidelinePage user={user} route={adminRoute} onNavigate={navigateDataPath} />}
+        <Suspense fallback={<section className="rounded-3xl border border-slate-200 bg-white/80 p-8 text-center text-sm font-semibold text-slate-500">Đang tải khu vực quản trị...</section>}>
+          {!user || !moduleAllowed ? <section className="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Không có quyền truy cập</h1><p className="mt-2 text-sm font-semibold text-rose-700">Khu vực này chỉ dành cho quản trị viên được cấp quyền.</p></section> : adminRoute.kind === "admin-dashboard" ? <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onOpenCalculators={() => navigateDataPath("/admin/may-tinh-y-khoa")} onAiCallsRemaining={setAiCallsRemaining} /> : adminRoute.kind.startsWith("admin-calculator") ? <AdminCalculatorPage user={user} route={adminRoute} onNavigate={navigateDataPath} /> : adminRoute.kind.startsWith("admin-drug") ? <AdminDrugPage route={adminRoute} onNavigate={navigateDataPath} /> : <AdminGuidelinePage user={user} route={adminRoute} onNavigate={navigateDataPath} />}
+        </Suspense>
       </AdminLayout>
     </main>;
   }
@@ -830,7 +869,7 @@ export default function App() {
     <>
       {showWelcome && <div className={`welcome-screen${welcomeClosing ? " welcome-screen--closing" : ""}`} role="status" aria-live="polite">
         <div className="welcome-card">
-          <div className="welcome-icon"><img src="/hoc-bai-icon.png" alt="Cây viết, cuốn vở và ống nghe" /></div>
+          <div className="welcome-icon"><img src="/brand/studyhub-icon.svg" alt="StudyHub" /></div>
           <p className="welcome-kicker">StudyHub 🌸</p>
           <h1>Chào bạn!</h1>
           <p className="welcome-message">Mình cùng học một chút nhé.<br />Mỗi ngày tiến bộ một xíu là giỏi lắm rồi! 😊</p>
@@ -845,12 +884,12 @@ export default function App() {
       </div>}
       {loading && <LoadingOverlay title={loadingTitle} description={loadingDescription} imageSrc={preview || undefined} />}
 
-      <main data-special-user={specialUser ? "true" : "false"} className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe4ef_0,#fff7fb_34%,#eefcf6_100%)]">
+      <main data-special-user={specialUser ? "true" : "false"} className="app-shell min-h-screen">
 
-        <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} />
+        <Header onHome={goHome} onUserChange={refreshDecks} specialUser={specialUser} canUseColorTheme={colorThemeEligible} theme={theme} onThemeChange={applyTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} onOpenNavigation={() => setMobileSidebarOpen(true)} navigationOpen={mobileSidebarOpen} />
 
-        <div className={`relative min-h-[calc(100vh-4rem)] pb-8 ${analyticsOpen ? "lg:pl-[32rem]" : "lg:pl-20"}`}>
-          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={setTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} referenceSection={referenceSection} onReferenceSectionChange={changeReferenceSection} mcqSection={mcqSection} onMcqSectionChange={setMcqSection} />
+        <div className={`relative min-h-[calc(100vh-4rem)] pb-24 transition-[padding] duration-200 sm:pb-8 ${analyticsOpen ? "lg:pl-[32rem]" : sidebarExpanded ? "lg:pl-60" : "lg:pl-20"}`}>
+          <WorkspaceTabs activeTab={workspaceTab} onChange={changeWorkspaceTab} user={user} onUserChange={refreshDecks} theme={theme} onThemeChange={applyTheme} sharedDeckNotificationsEnabled={sharedDeckNotificationsEnabled} onSharedDeckNotificationsChange={changeSharedDeckNotifications} analyticsAdmin={analyticsAdmin} onAnalyticsExpanded={setAnalyticsOpen} onSidebarExpandedChange={setSidebarExpanded} mobileOpen={mobileSidebarOpen} onMobileOpenChange={setMobileSidebarOpen} onColorThemeEligible={colorThemeEligible} />
           <div className="min-w-0 flex-1">
 
         {workspaceTab === "flashcards" && questions.length > 0 && (
@@ -876,7 +915,7 @@ export default function App() {
         </div>
 
         {workspaceTab === "drugs" ? (
-          <DrugsPage route={dataRoute.tab === "drugs" ? dataRoute : { tab: "drugs", kind: "drug-list" }} onNavigate={navigateDataPath} />
+          <DrugsPage route={dataRoute.tab === "drugs" ? dataRoute : { tab: "drugs", kind: "drug-list" }} user={user} onNavigate={navigateDataPath} />
         ) : workspaceTab === "admin" ? (
           <AdminPage user={user} onOpenGuidelines={() => navigateDataPath("/admin/guidelines")} onOpenDrugs={() => navigateDataPath("/admin/thuoc")} onOpenCalculators={() => navigateDataPath("/admin/may-tinh-y-khoa")} onAiCallsRemaining={setAiCallsRemaining} />
         ) : workspaceTab !== "flashcards" ? null : editing && currentSavedDeck ? (
@@ -936,8 +975,8 @@ export default function App() {
           <div className="w-full max-w-md rounded-3xl border border-white/80 bg-gradient-to-br from-white via-rose-50/95 to-teal-50/90 p-7 text-center shadow-[0_28px_80px_rgba(136,19,55,.22)]">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm ring-1 ring-rose-100"><span className="font-black text-blue-600">G</span></div>
             <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.16em] text-rose-500">Cần đăng nhập</p>
-            <h2 id="login-required-title" className="mt-2 text-2xl font-bold text-rose-950">Đăng nhập để tạo bộ thẻ</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">Bạn cần đăng nhập Google trước khi nhập file, tạo thẻ mới hoặc sử dụng AI từ ảnh.</p>
+            <h2 id="login-required-title" className="mt-2 text-2xl font-bold text-rose-950">Đăng nhập để tiếp tục</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-500">Đăng nhập bằng Google để tiếp tục xem nội dung StudyHub.</p>
             <div className="mt-7 flex gap-3"><button type="button" onClick={() => setLoginRequiredOpen(false)} className="flex-1 rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50">Để sau</button><button type="button" onClick={continueWithGoogle} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-500"><span className="font-black">G</span> Đăng nhập Google</button></div>
           </div>
         </div>}

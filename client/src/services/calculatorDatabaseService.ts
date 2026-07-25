@@ -2,8 +2,13 @@ import { hasCalculatorHandler } from "../modules/calculators/engine.ts";
 import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineReferenceRow } from "../modules/calculators/databaseTypes.ts";
 import type { CalculatorDefinition } from "../modules/calculators/types.ts";
 import { calculatorRepository, type CalculatorInsert, type CalculatorListFilter, type CalculatorUpdate } from "./calculatorRepository.ts";
-import { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
+import { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateCalculatorStatusTransition, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
 import { supabase } from "./supabase.ts";
+
+function assertCalculatorTransition(from: DatabaseCalculatorStatus, to: DatabaseCalculatorStatus) {
+  const errors = validateCalculatorStatusTransition(from, to);
+  if (errors.length) throw new Error(errors[0]);
+}
 
 function text(value: unknown): string { return typeof value === "string" ? value.trim() : ""; }
 
@@ -58,6 +63,9 @@ export async function createCalculatorDraft(ownerId: string, input: CalculatorDr
 export async function updateCalculatorDraft(id: string, input: CalculatorUpdate): Promise<DatabaseCalculator> {
   const current = await calculatorRepository.findById(id);
   if (!current) throw new Error("Không tìm thấy calculator.");
+  if (input.status && input.status !== current.status) {
+    throw new Error("Hãy dùng thao tác lifecycle để thay đổi trạng thái Calculator.");
+  }
   if (current.status === "published" || current.published_at) {
     if (input.slug && input.slug !== current.slug) throw new Error("Không được đổi slug trực tiếp sau khi publish.");
   }
@@ -71,6 +79,7 @@ export async function updateCalculatorDraft(id: string, input: CalculatorUpdate)
 export async function publishCalculatorRecord(id: string, publisherId: string): Promise<DatabaseCalculator> {
   const current = await calculatorRepository.findById(id);
   if (!current) throw new Error("Không tìm thấy calculator.");
+  assertCalculatorTransition(current.status, "published");
   const check = validateCalculatorPublish(current);
   if (!check.canPublish) throw new Error(check.errors.join(" "));
   return calculatorRepository.update(id, { status: "published", published_by: publisherId, published_at: new Date().toISOString(), archived_by: null, archived_at: null });
@@ -79,14 +88,40 @@ export async function publishCalculatorRecord(id: string, publisherId: string): 
 export async function archiveCalculatorRecord(id: string, archivedBy: string): Promise<DatabaseCalculator> {
   const current = await calculatorRepository.findById(id);
   if (!current) throw new Error("Không tìm thấy calculator.");
+  assertCalculatorTransition(current.status, "archived");
   return calculatorRepository.update(id, { status: "archived", archived_by: archivedBy, archived_at: new Date().toISOString() });
 }
 
-export async function deleteCalculatorDraft(id: string): Promise<void> {
+export async function returnCalculatorToDraft(id: string): Promise<DatabaseCalculator> {
+  const current = await calculatorRepository.findById(id);
+  if (!current) throw new Error("Không tìm thấy calculator.");
+  assertCalculatorTransition(current.status, "draft");
+  return calculatorRepository.update(id, { status: "draft", archived_by: null, archived_at: null });
+}
+
+export async function restoreCalculatorToDraft(id: string): Promise<DatabaseCalculator> {
+  return returnCalculatorToDraft(id);
+}
+
+export async function getCalculatorDeleteBlockers(id: string): Promise<string[]> {
+  const dependencies = await calculatorRepository.countDeleteDependencies(id);
+  const blockers: string[] = [];
+  if (dependencies.guidelineReferences) blockers.push(`${dependencies.guidelineReferences} liên kết Calculator ↔ Guideline đang tồn tại.`);
+  if (dependencies.recommendationRelations) blockers.push(`${dependencies.recommendationRelations} liên kết Recommendation ↔ Calculator đang tồn tại.`);
+  return blockers;
+}
+
+export async function deleteCalculatorPermanently(id: string): Promise<void> {
   const current = await calculatorRepository.findById(id);
   if (!current) return;
-  if (current.status !== "draft" || current.published_at) throw new Error("Chỉ được xóa draft chưa từng publish.");
-  await calculatorRepository.deleteDraft(id);
+  if (current.status === "published") throw new Error("Calculator đã xuất bản phải được lưu trữ trước khi xóa.");
+  if (current.status !== "draft" && current.status !== "archived") throw new Error("Chỉ bản nháp hoặc Calculator đã lưu trữ mới được xóa vĩnh viễn.");
+  const blockers = await getCalculatorDeleteBlockers(id); if (blockers.length) throw new Error(`${blockers.join(" ")} Hãy gỡ các liên kết trước khi xóa.`);
+  await calculatorRepository.deletePermanently(id);
+}
+
+export async function deleteCalculatorDraft(id: string): Promise<void> {
+  await deleteCalculatorPermanently(id);
 }
 
 export async function listPublicCalculators(filter: Pick<CalculatorListFilter, "query" | "specialtyId" | "categoryId"> = {}): Promise<DatabaseCalculator[]> {
@@ -158,7 +193,7 @@ export async function deleteCalculatorGuidelineReference(id: string): Promise<vo
   return calculatorRepository.deleteGuidelineReference(id);
 }
 
-export { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
+export { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateCalculatorStatusTransition, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
 export { databaseCalculatorToDefinition, filterPublicDatabaseCalculators } from "./calculatorDatabaseAdapter.ts";
 export { hasCalculatorHandler };
 export type { DatabaseCalculatorStatus };

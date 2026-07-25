@@ -37,7 +37,10 @@ test("unverified Recommendation stays hidden from publication", () => {
   assert.ok(errors.some((error) => /verified/.test(error)));
 });
 
-test("archived Guideline and Recommendation cannot be reopened by direct status change", () => {
-  assert.deepEqual(validateGuidelineStatusTransition("archived", "published"), ["Invalid Guideline status transition: archived -> published."]);
-  assert.deepEqual(validateRecommendationStatusTransition("archived", "published"), ["Invalid Recommendation status transition: archived -> published."]);
+test("archived Guideline and Recommendation can be restored or republished through validation", () => {
+  assert.deepEqual(validateGuidelineStatusTransition("archived", "draft"), []);
+  assert.deepEqual(validateGuidelineStatusTransition("archived", "published"), []);
+  assert.deepEqual(validateRecommendationStatusTransition("archived", "draft"), []);
+  assert.deepEqual(validateRecommendationStatusTransition("archived", "published"), []);
+  assert.notDeepEqual(validateGuidelineStatusTransition("published", "draft"), []);
 });

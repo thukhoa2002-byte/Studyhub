@@ -1,5 +1,5 @@
 import { calculatorRegistry, getCalculatorTestCases, runCalculatorTestCases } from "../modules/calculators/engine.ts";
-import type { DatabaseCalculator, CalculatorGuidelineReferenceRow, CalculatorGuidelineRelationType } from "../modules/calculators/databaseTypes.ts";
+import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineReferenceRow, CalculatorGuidelineRelationType } from "../modules/calculators/databaseTypes.ts";
 import { calculatorGuidelineRelationTypes } from "../modules/calculators/databaseTypes.ts";
 import { databaseCalculatorToDefinition } from "./calculatorDatabaseAdapter.ts";
 
@@ -24,6 +24,18 @@ export function validateCalculatorSlug(slug: string): string[] {
   if (!slug) return ["Slug không được để trống."];
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return ["Slug chỉ được chứa chữ thường, số và dấu gạch ngang."];
   return [];
+}
+
+const calculatorStatusTransitions: Record<DatabaseCalculatorStatus, DatabaseCalculatorStatus[]> = {
+  draft: ["draft", "in_review", "published"],
+  in_review: ["in_review", "reviewed", "draft", "published"],
+  reviewed: ["reviewed", "published", "in_review", "draft"],
+  published: ["published", "archived"],
+  archived: ["archived", "draft", "published"],
+};
+
+export function validateCalculatorStatusTransition(from: DatabaseCalculatorStatus, to: DatabaseCalculatorStatus): string[] {
+  return calculatorStatusTransitions[from].includes(to) ? [] : [`Không thể chuyển trạng thái Calculator từ ${from} sang ${to}.`];
 }
 
 export interface CalculatorPublishCheck {

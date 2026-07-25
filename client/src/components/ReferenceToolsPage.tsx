@@ -1,7 +1,8 @@
-import { Calculator, Check, ChevronDown, ChevronRight, ClipboardList, Edit3, FilePlus2, FileUp, Save, Search, Table2, Trash2, UploadCloud, X } from "lucide-react";
+import { Calculator, ClipboardList, Edit3, FilePlus2, FileUp, Save, Table2, Trash2, UploadCloud, X } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { User } from "@supabase/supabase-js";
 import { deleteReferenceFormula, listReferenceFormulas, saveReferenceFormula, type ReferenceFormula } from "../services/referenceTools";
+import SharedSelect from "./SharedSelect";
 
 const OWNER_EMAIL = "thukhoa2002@gmail.com";
 type FormulaDraft = { title: string; usage: string; formula_html: string; status: "private" | "shared" };
@@ -215,63 +216,15 @@ function UnitValueField({ label, value, unit, units, onValueChange, onUnitChange
 }
 
 function AnimatedDropdown({ label, value, options, onChange, compact = false }: { label?: string; value: string; options: Array<{ value: string; label: string; description?: string }>; onChange: (value: string) => void; compact?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const selectedOption = options.find((option) => option.value === value) || options[0];
-
-  useEffect(() => {
-    if (!open) return;
-    function closeOnOutside(event: PointerEvent) {
-      if (!dropdownRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", closeOnOutside);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutside);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
-
-  return <div ref={dropdownRef} className={`relative min-w-0 ${compact ? "h-full w-24 shrink-0" : "w-full"}`}>
+  return <div className={`min-w-0 ${compact ? "h-full w-24 shrink-0" : "w-full"}`}>
     {label && <span className="block text-sm font-bold text-slate-700">{label}</span>}
-    <button type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)} className={`medical-dropdown__trigger medical-select flex items-center justify-between gap-2 text-left text-sm font-bold outline-none ${compact ? "h-full w-full rounded-none border-0 border-l border-slate-200 bg-slate-50 px-2 text-teal-700" : "mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-slate-700"} ${open ? "medical-dropdown__trigger--open" : ""}`}>
-      <span className="truncate">{selectedOption?.label}</span>
-      {open ? <ChevronRight size={17} className="shrink-0 text-teal-700" /> : <ChevronDown size={17} className="shrink-0 text-teal-700" />}
-    </button>
-    {open && <div className={`medical-dropdown__menu absolute top-full z-40 mt-2 overflow-hidden rounded-xl border border-teal-100 bg-white p-1.5 shadow-[0_16px_35px_rgba(15,118,110,.18)] ${compact ? "right-0 min-w-44" : "left-0 right-0"}`} role="listbox" aria-label={label || "Chọn đơn vị"}>
-      {options.map((option) => <button key={option.value} type="button" role="option" aria-selected={option.value === value} onClick={() => { onChange(option.value); setOpen(false); }} className={`medical-dropdown__option flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${option.value === value ? "medical-dropdown__option--selected" : "text-slate-600 hover:bg-teal-50 hover:text-teal-800"}`}><span className="min-w-0"><strong className="block truncate">{option.label}</strong>{option.description && <small className="mt-0.5 block truncate text-xs font-semibold text-slate-400">{option.description}</small>}</span>{option.value === value && <Check size={16} className="shrink-0" />}</button>)}
-    </div>}
+    <SharedSelect value={value} onValueChange={onChange} ariaLabel={label || "Chọn đơn vị"} options={options} triggerClassName={compact ? "h-full rounded-none border-0 border-l border-slate-200 bg-slate-50 px-2 text-teal-700" : "mt-1.5 h-11 rounded-xl border border-slate-200 bg-white px-3 text-slate-700"} />
   </div>;
 }
 
 function CalculatorSearch({ options, onSelect }: { options: Array<{ id: CalculatorType; label: string; description: string; interactive?: boolean }>; onSelect: (option: { id: CalculatorType; label: string; description: string; interactive?: boolean }) => void }) {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const filteredOptions = options.filter((option) => `${option.label} ${option.description}`.toLowerCase().includes(query.trim().toLowerCase()));
-
-  useEffect(() => {
-    if (!open) return;
-    function closeOnOutside(event: PointerEvent) {
-      if (!searchRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener("pointerdown", closeOnOutside);
-    return () => document.removeEventListener("pointerdown", closeOnOutside);
-  }, [open]);
-
-  return <div ref={searchRef} className="relative mt-4">
-    <div className={`medical-search__control flex h-11 items-center gap-2 rounded-xl border bg-white px-3 ${open ? "medical-search__control--open" : "border-slate-200"}`}>
-      <Search size={17} className="shrink-0 text-teal-600" />
-      <input value={query} onFocus={() => setOpen(true)} onChange={(event) => { setQuery(event.target.value); setOpen(true); }} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400" placeholder="Tìm công cụ: BMI, eGFR, CrCl..." aria-label="Tìm công cụ y khoa" />
-      {query && <button type="button" title="Xóa tìm kiếm" onClick={() => { setQuery(""); setOpen(true); }} className="rounded-md p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"><X size={15} /></button>}
-    </div>
-    {open && <div className="medical-search__menu absolute left-0 right-0 top-full z-40 mt-2 rounded-2xl border border-teal-100 bg-white p-2 shadow-[0_18px_40px_rgba(15,118,110,.16)]" role="listbox" aria-label="Công cụ y khoa">
-      {filteredOptions.length > 0 ? filteredOptions.map((option) => <button key={option.id} type="button" role="option" onClick={() => { onSelect(option); setQuery(option.label); setOpen(false); }} className="medical-search__option flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-teal-50"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><Calculator size={16} /></span><span><strong className="block text-sm font-extrabold text-slate-700">{option.label}</strong><small className="block text-xs font-semibold text-slate-400">{option.description}</small></span></button>) : <p className="px-3 py-3 text-sm font-semibold text-slate-500">Không tìm thấy công cụ phù hợp.</p>}
-    </div>}
-  </div>;
+  const [selectedId, setSelectedId] = useState("");
+  return <div className="mt-4"><SharedSelect value={selectedId} onValueChange={(value) => { setSelectedId(value); const option = options.find((item) => item.id === value); if (option) onSelect(option); }} ariaLabel="Tìm công cụ y khoa" placeholder="Tìm công cụ: BMI, eGFR, CrCl..." options={options.map((option) => ({ value: option.id, label: option.label, description: option.description }))} searchable allowClear /></div>;
 }
 
 function ReferenceChoiceField({ field, value, onChange }: { field: ReferenceField; value: string; onChange: (value: string) => void }) {

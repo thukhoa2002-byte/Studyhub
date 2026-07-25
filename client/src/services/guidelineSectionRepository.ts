@@ -1,4 +1,5 @@
 import { requireGuidelineClient } from "./guidelineRepository";
+import { validateGuidelineStatusTransition } from "./guidelineValidation";
 import type { GuidelineSectionRecord, NewGuidelineSection, GuidelineSectionStatus } from "./guidelineCoreTypes";
 
 export async function listGuidelineSections(guidelineId: string, options: { publicOnly?: boolean } = {}): Promise<GuidelineSectionRecord[]> {
@@ -36,6 +37,10 @@ export async function updateGuidelineSection(id: string, patch: Partial<Omit<Gui
 }
 
 export async function setGuidelineSectionStatus(id: string, status: GuidelineSectionStatus): Promise<GuidelineSectionRecord> {
+  const current = await getGuidelineSection(id);
+  if (!current) throw new Error("Section không tồn tại.");
+  const errors = validateGuidelineStatusTransition(current.status, status);
+  if (errors.length) throw new Error(errors.join(" "));
   return updateGuidelineSection(id, { status });
 }
 

@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import GuidelineDataPage from "./GuidelineDataPage";
+import CalculatorPublicPage from "../modules/calculators/CalculatorPublicPage";
 import FileDropZone from "./FileDropZone";
 import AnimatedDropdown from "./AnimatedDropdown";
 import type { ReferenceSection } from "./ReferenceSectionsPanel";
@@ -54,7 +55,13 @@ export default function ReferenceLibraryPage({ user, section, guidelineRoute, on
     }
   }, []);
 
-  useEffect(() => { void refreshBooks(); }, [refreshBooks, user]);
+  useEffect(() => {
+    if (section !== "books" || !user) {
+      setBooks([]);
+      return;
+    }
+    void refreshBooks();
+  }, [refreshBooks, section, user]);
   useEffect(() => {
     if (section === "tools") window.localStorage.removeItem("studyhub-reference-formula-overrides");
   }, [section]);
@@ -317,7 +324,7 @@ export default function ReferenceLibraryPage({ user, section, guidelineRoute, on
   }
 
   return <>
-    {section === "guidelines" ? <GuidelineDataPage route={guidelineRoute} onNavigate={onNavigate} onManage={() => onNavigate("/admin/guidelines")} /> : section === "tools" ? <section className="mode-panel mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 xl:px-8"><div className="glass-panel border border-teal-100 bg-white/75 p-8 text-center"><h1 className="text-xl font-extrabold text-rose-950">Máy tính y khoa</h1><p className="mt-2 text-sm font-semibold text-slate-500">Chưa có máy tính nào được cấu hình.</p></div></section> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
+    {section === "guidelines" ? <GuidelineDataPage user={user} route={guidelineRoute} onNavigate={onNavigate} onManage={() => onNavigate("/admin/guidelines")} /> : section === "tools" ? <CalculatorPublicPage user={user} route={{ kind: "calculator-list" }} onNavigate={onNavigate} /> : <section className="mode-panel mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 xl:px-8">
       <div className="glass-panel border border-rose-100 bg-white/75 p-5">
         <div className="flex items-center gap-3"><LibraryBig className="text-rose-500" size={28} /><div><h1 className="text-xl font-extrabold text-rose-950">Sách tham khảo</h1><p className="text-sm text-slate-500">Sách đã đăng công khai mới hiển thị cho mọi tài khoản.</p></div></div>
 

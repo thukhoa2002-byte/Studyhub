@@ -6,6 +6,10 @@ function slugify(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+export function guidelineCoreSlug(document: Pick<GuidelineCoreDocument, "id" | "society" | "title" | "publication_year" | "version_label">): string {
+  return slugify(`${document.society}-${document.title}-${document.publication_year ?? document.version_label}`) || document.id;
+}
+
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -97,7 +101,7 @@ export function mapPublishedCoreGuideline(
   const summary = text(document.summary);
   return {
     id: document.id,
-    slug: slugify(`${document.society}-${document.title}-${document.publication_year ?? document.version_label}`) || document.id,
+    slug: guidelineCoreSlug(document),
     title,
     titleVi: title,
     organization: text(document.society),
