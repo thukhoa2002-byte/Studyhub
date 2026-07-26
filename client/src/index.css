@@ -620,6 +620,15 @@ html[data-theme="default"] .workspace-tabs__glider {
   .workspace-sidebar:focus-within { width: 15rem; }
   .workspace-sidebar.workspace-sidebar--panel-open { width: 15rem; }
   .workspace-sidebar:has(.site-analytics--sidebar-open) { width: 15rem; }
+  /* The full mark is only shown when the desktop rail expands. Override the
+     shared md size without changing the collapsed icon or other brand uses. */
+  .workspace-sidebar__brand-logo {
+    width: min(12.5rem, calc(100% - 1.25rem));
+    max-width: 100%;
+    max-height: 4.5rem;
+    height: auto;
+    object-fit: contain;
+  }
   .site-analytics--sidebar-open { position: fixed; top: 6rem; left: 15rem; z-index: var(--z-tooltip); width: 15rem !important; max-height: calc(100vh - 7rem); margin-top: 0 !important; overflow-y: auto; }
   .mcq-access-popover,
   .mcq-sections-popover { top: 11.5rem; left: 15rem; width: 15rem; }
