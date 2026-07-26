@@ -116,6 +116,11 @@ function calculateFromPlatform(definition: CalculatorDefinition, inputs: Calcula
       interpretationKey: result.classification,
       interpretation: result.interpretation,
       warnings: [...result.warnings, ...result.applicabilityWarnings],
+      applicabilityWarnings: result.applicabilityWarnings,
+      criterionResults: result.criterionResults,
+      methodKey: result.methodKey,
+      implementationVersion: result.implementationVersion,
+      sourceReference: result.sourceReference,
     };
   } catch (error) {
     return invalid([error instanceof Error ? error.message : "Không thể tính bằng phương thức đã chọn."]);

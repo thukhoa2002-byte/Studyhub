@@ -1,6 +1,7 @@
 import { calculatorMethodRegistry } from "./methodRegistry.ts";
 import type { CalculatorImplementation, CalculatorResult, CalculatorValidationResult } from "./platformTypes.ts";
 import { calculateRenalReference, toStructuredReferenceResult, type ReferenceCrclVariant, type ReferenceEgfrMethod } from "./referenceToolRuntime.ts";
+import { registerContentPackV2 } from "./contentPackV2.ts";
 
 type Sex = "male" | "female";
 type RenalInput = { age: number; sex: Sex; weightKg?: number; heightM?: number; creatinineMgDl?: number; cystatinCMgL?: number };
@@ -220,9 +221,10 @@ export function registerBuiltInCalculatorMethods(): void {
   calculatorMethodRegistry.register(childPughInrScaffold);
   calculatorMethodRegistry.register(childPughPtScaffold);
   calculatorMethodRegistry.register(ckdEpi2021CombinedScaffold);
+  registerContentPackV2(calculatorMethodRegistry);
 }
 
 registerBuiltInCalculatorMethods();
 
-const legacyImplementationKeys = new Set(["bmi", "bmi_adult", "cockcroft-gault", "curb-65", "egfr_ckd_epi_2021_creatinine", "egfr_ckd_epi_2021_creatinine_cystatin_c", "egfr_ckd_epi_2012_creatinine_cystatin_c", "egfr_ckd_epi_2012_cystatin_c", "egfr_mdrd_4_variable_idms", "crcl_cockcroft_gault", "child_pugh_inr", "child_pugh_pt_prolongation"]);
+const legacyImplementationKeys = new Set(["bmi", "bmi_adult", "cockcroft-gault", "curb-65", "egfr_ckd_epi_2021_creatinine", "egfr_ckd_epi_2021_creatinine_cystatin_c", "egfr_ckd_epi_2012_creatinine_cystatin_c", "egfr_ckd_epi_2012_cystatin_c", "egfr_mdrd_4_variable_idms", "crcl_cockcroft_gault", "child_pugh_inr", "child_pugh_pt_prolongation", "cha2ds2_vasc", "has_bled", "curb_65", "qsofa", "heart_score", "qtc_bazett", "qtc_fridericia", "qtc_framingham", "qtc_hodges", "meld_original"]);
 export function isSupportedCalculatorImplementationKey(key: string | null | undefined): boolean { return Boolean(key && legacyImplementationKeys.has(key)); }

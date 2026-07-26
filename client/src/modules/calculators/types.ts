@@ -93,6 +93,17 @@ export interface CalculatorCalculationResult {
   interpretation?: string;
   warnings: string[];
   validationErrors?: string[];
+  criterionResults?: Array<{
+    criterionKey: string;
+    enteredValue: unknown;
+    normalizedValue: unknown;
+    matchedRule?: string;
+    pointsAwarded?: number;
+  }>;
+  applicabilityWarnings?: string[];
+  methodKey?: string;
+  implementationVersion?: string;
+  sourceReference?: string;
 }
 
 export interface CalculatorDefinition {
