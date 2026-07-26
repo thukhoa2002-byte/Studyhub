@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { extractDrugDocumentText } from "./drugImport.js";
-import { generateStructuredFromFile } from "./gemini.js";
 import { supabaseTableRequest } from "./guidelineImportStore.js";
+import { classifyGuidelineItems } from "./guidelineTranslationPolicy.js";
+import { generateGuidelineStructured } from "./guidelineTranslationProvider.js";
 
-export const GUIDELINE_IMPORT_PROMPT_VERSION = "guideline-import-v1";
+export const GUIDELINE_IMPORT_PROMPT_VERSION = "guideline-import-v2-selective";
 export const GUIDELINE_IMPORT_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
 const supportedExtensions = new Set(["pdf", "docx", "md", "markdown", "html", "htm", "txt"]);
@@ -66,10 +67,19 @@ const importSchema = {
         displayOrder: { type: "integer" },
       }, required: ["sourceKey", "sectionSourceKey", "titleOriginal", "recommendationTextOriginal", "recommendationTextVi", "rationaleVi", "recommendationClass", "evidenceLevel", "evidenceSystem", "population", "intervention", "comparator", "outcome", "conditions", "contraindications", "sourcePage", "sourceQuote", "sourceAnchor", "coordinates", "confidence", "displayOrder"], additionalProperties: false },
     },
+    tables: {
+      type: "array",
+      items: { type: "object", properties: {
+        sourceKey: { type: "string" }, titleOriginal: { type: "string" }, titleVi: { type: "string" },
+        headersOriginal: { type: "array", items: { type: "string" } }, headersVi: { type: "array", items: { type: "string" } },
+        rows: { type: "array", items: { type: "object", properties: { cellsOriginal: { type: "array", items: { type: "string" } }, cellsVi: { type: "array", items: { type: "string" } } }, required: ["cellsOriginal", "cellsVi"], additionalProperties: false } },
+        footnotesOriginal: { type: "array", items: { type: "string" } }, footnotesVi: { type: "array", items: { type: "string" } }, sourcePage: { type: "integer" },
+      }, required: ["sourceKey", "titleOriginal", "titleVi", "headersOriginal", "headersVi", "rows", "footnotesOriginal", "footnotesVi", "sourcePage"], additionalProperties: false },
+    },
     terminology: { type: "array", items: { type: "object", properties: { sourceTerm: { type: "string" }, preferredTranslation: { type: "string" } }, required: ["sourceTerm", "preferredTranslation"], additionalProperties: false } },
     issues: { type: "array", items: { type: "object", properties: { severity: { type: "string", enum: ["info", "warning", "error", "blocking"] }, code: { type: "string" }, message: { type: "string" }, sourcePage: { type: "integer" } }, required: ["severity", "code", "message", "sourcePage"], additionalProperties: false } },
   },
-  required: ["document", "sections", "recommendations", "terminology", "issues"],
+  required: ["document", "sections", "recommendations", "tables", "terminology", "issues"],
   additionalProperties: false,
 };
 
@@ -105,18 +115,20 @@ export async function extractGuidelineInput(file) {
 }
 
 export function buildImportPrompt({ text, item, sourceMetadata, sourceLanguage = "en", targetLanguage = "vi", preserveAbbreviations = true, preserveEnglishTerminology = true }) {
-  return `Bạn là nhóm biên tập viên guideline y khoa. Trích xuất một mục tài liệu đã được chọn, không bịa và không tóm tắt quá mức.
+  return `Bạn là nhóm biên tập viên guideline y khoa. Chỉ dịch/trích xuất đúng mục lâm sàng đã được chọn, không bịa và không tóm tắt quá mức.
 
 TÀI LIỆU: ${sourceMetadata.fileName || "không rõ"}
 MỤC: ${item.label || "toàn bộ tài liệu"}; trang ${item.pageStart || "?"}-${item.pageEnd || item.pageStart || "?"}
+PHÂN LOẠI: ${item.contentType || "recommendation"}; mức quan trọng: ${item.clinicalImportance || "required"}.
 NGÔN NGỮ NGUỒN: ${sourceLanguage}; NGÔN NGỮ ĐÍCH: ${targetLanguage}.
 
 YÊU CẦU:
-- Tách cấu trúc section/subsection và khuyến cáo độc lập.
+- Tách cấu trúc section/subsection và khuyến cáo độc lập. Không trả recommendation cho danh mục, bibliography, figure caption, glossary hay diagnostics.
 - Một khuyến cáo phải giữ nguyên nội dung gốc trong recommendationTextOriginal và bản dịch đầy đủ trong recommendationTextVi.
 - Giữ nguyên mọi số liệu, ngưỡng, đơn vị, liều, tên thuốc, viết tắt y khoa, Class/Level/LoE. ${preserveAbbreviations ? "Không dịch viết tắt chuẩn." : "Có thể diễn giải viết tắt khi nguồn có giải thích."}
 - ${preserveEnglishTerminology ? "Giữ thuật ngữ tiếng Anh cạnh bản dịch khi cần." : "Ưu tiên tiếng Việt y khoa."}
-- Không đưa hàng bảng dữ liệu hoặc đoạn văn không phải khuyến cáo vào recommendations; đưa chúng vào issues hoặc summary section để người dùng rà soát.
+- Với bảng lâm sàng: luôn trả một phần tử đầy đủ trong mảng tables, gồm tiêu đề, headers, rows, footnotes và sourcePage. Giữ nguyên tiêu đề, header, thứ tự hàng, quan hệ ô, đơn vị, liều, ngưỡng, Class/LoE và chú thích cần thiết. Không suy đoán ô/hàng thiếu, không làm phẳng bảng phức tạp thành đoạn văn không liên quan.
+- Nếu bảng chỉ có tiêu đề hoặc thiếu hàng, trả issue missing_content và không tạo recommendation từ dữ liệu thiếu.
 - Nếu không có dữ liệu, để chuỗi rỗng, không viết câu “Not specified in the provided text”.
 - Ghi sourcePage, sourceAnchor và coordinates nếu xác định được. confidence từ 0 đến 1.
 - Mọi nội dung AI đều là draft, không tự publish.
@@ -127,8 +139,9 @@ NỘI DUNG MỤC:
 ${String(text || "").slice(0, 260000)}`;
 }
 
-export async function analyzeGuidelineItem({ text, item, sourceMetadata, sourceLanguage, targetLanguage, preserveAbbreviations, preserveEnglishTerminology }) {
-  const result = await generateStructuredFromFile({
+export async function analyzeGuidelineItem({ text, item, sourceMetadata, sourceLanguage, targetLanguage, preserveAbbreviations, preserveEnglishTerminology, provider = "gemini" }) {
+  const result = await generateGuidelineStructured({
+    provider,
     file: { buffer: Buffer.from(String(text || ""), "utf8"), size: Buffer.byteLength(String(text || "")), mimetype: "text/plain", originalname: `${sourceMetadata.fileName || "guideline"}.txt` },
     prompt: buildImportPrompt({ text, item, sourceMetadata, sourceLanguage, targetLanguage, preserveAbbreviations, preserveEnglishTerminology }),
     schema: importSchema,
@@ -142,12 +155,23 @@ export function normalizeImportResult(result) {
   const document = result?.document && typeof result.document === "object" ? result.document : {};
   const sections = Array.isArray(result?.sections) ? result.sections : [];
   const recommendations = Array.isArray(result?.recommendations) ? result.recommendations : [];
+  const tables = Array.isArray(result?.tables) ? result.tables : [];
   const terminology = Array.isArray(result?.terminology) ? result.terminology : [];
   const issues = Array.isArray(result?.issues) ? result.issues : [];
   const normalized = {
     document: { title: cleanText(document.title), organization: cleanText(document.organization), year: Number.isInteger(document.year) ? document.year : null, version: cleanText(document.version), sourceLanguage: cleanText(document.sourceLanguage) },
-    sections: sections.map((section, index) => ({ ...section, sourceKey: String(section.sourceKey || `section-${index + 1}`), parentSourceKey: String(section.parentSourceKey || ""), titleOriginal: cleanText(section.titleOriginal), titleVi: cleanText(section.titleVi), summaryOriginal: cleanText(section.summaryOriginal), summaryVi: cleanText(section.summaryVi), level: Number.isInteger(section.level) ? Math.max(0, section.level) : 0, sourcePage: Number.isInteger(section.sourcePage) ? section.sourcePage : null, displayOrder: Number.isInteger(section.displayOrder) ? Math.max(0, section.displayOrder) : index })),
-    recommendations: recommendations.map((recommendation, index) => ({ ...recommendation, sourceKey: String(recommendation.sourceKey || `recommendation-${index + 1}`), sectionSourceKey: String(recommendation.sectionSourceKey || ""), titleOriginal: cleanText(recommendation.titleOriginal), recommendationTextOriginal: cleanText(recommendation.recommendationTextOriginal), recommendationTextVi: cleanText(recommendation.recommendationTextVi), rationaleVi: cleanText(recommendation.rationaleVi), recommendationClass: cleanText(recommendation.recommendationClass), evidenceLevel: cleanText(recommendation.evidenceLevel), evidenceSystem: cleanText(recommendation.evidenceSystem), sourcePage: Number.isInteger(recommendation.sourcePage) ? recommendation.sourcePage : null, sourceQuote: cleanText(recommendation.sourceQuote), sourceAnchor: cleanText(recommendation.sourceAnchor), confidence: typeof recommendation.confidence === "number" ? Math.max(0, Math.min(1, recommendation.confidence)) : null, displayOrder: Number.isInteger(recommendation.displayOrder) ? Math.max(0, recommendation.displayOrder) : index })),
+    sections: sections.map((section, index) => ({ ...section, sourceKey: String(section.sourceKey || `section-${index + 1}`), parentSourceKey: String(section.parentSourceKey || ""), titleOriginal: cleanText(section.titleOriginal), titleVi: cleanText(section.titleVi), summaryOriginal: cleanText(section.summaryOriginal), summaryVi: cleanText(section.summaryVi), level: Number.isInteger(section.level) ? Math.max(0, section.level) : 0, sourcePage: Number.isInteger(section.sourcePage) && section.sourcePage > 0 ? section.sourcePage : null, displayOrder: Number.isInteger(section.displayOrder) ? Math.max(0, section.displayOrder) : index })),
+    recommendations: recommendations.map((recommendation, index) => ({ ...recommendation, sourceKey: String(recommendation.sourceKey || `recommendation-${index + 1}`), sectionSourceKey: String(recommendation.sectionSourceKey || ""), titleOriginal: cleanText(recommendation.titleOriginal), recommendationTextOriginal: cleanText(recommendation.recommendationTextOriginal), recommendationTextVi: cleanText(recommendation.recommendationTextVi), rationaleVi: cleanText(recommendation.rationaleVi), recommendationClass: cleanText(recommendation.recommendationClass), evidenceLevel: cleanText(recommendation.evidenceLevel), evidenceSystem: cleanText(recommendation.evidenceSystem), sourcePage: Number.isInteger(recommendation.sourcePage) && recommendation.sourcePage > 0 ? recommendation.sourcePage : null, sourceQuote: cleanText(recommendation.sourceQuote), sourceAnchor: cleanText(recommendation.sourceAnchor), confidence: typeof recommendation.confidence === "number" ? Math.max(0, Math.min(1, recommendation.confidence)) : null, displayOrder: Number.isInteger(recommendation.displayOrder) ? Math.max(0, recommendation.displayOrder) : index })),
+    tables: tables.map((table, index) => ({
+      sourceKey: String(table?.sourceKey || `table-${index + 1}`),
+      titleOriginal: cleanText(table?.titleOriginal), titleVi: cleanText(table?.titleVi),
+      headersOriginal: Array.isArray(table?.headersOriginal) ? table.headersOriginal.map(cleanText) : [],
+      headersVi: Array.isArray(table?.headersVi) ? table.headersVi.map(cleanText) : [],
+      rows: Array.isArray(table?.rows) ? table.rows.map((row) => ({ cellsOriginal: Array.isArray(row?.cellsOriginal) ? row.cellsOriginal.map(cleanText) : [], cellsVi: Array.isArray(row?.cellsVi) ? row.cellsVi.map(cleanText) : [] })) : [],
+      footnotesOriginal: Array.isArray(table?.footnotesOriginal) ? table.footnotesOriginal.map(cleanText) : [],
+      footnotesVi: Array.isArray(table?.footnotesVi) ? table.footnotesVi.map(cleanText) : [],
+      sourcePage: Number.isInteger(table?.sourcePage) && table.sourcePage > 0 ? table.sourcePage : null,
+    })),
     terminology: terminology.filter((term) => term?.sourceTerm).map((term) => ({ sourceTerm: cleanText(term.sourceTerm), preferredTranslation: cleanText(term.preferredTranslation) })),
     issues: issues.map((issue) => ({ severity: ["info", "warning", "error", "blocking"].includes(issue?.severity) ? issue.severity : "warning", code: String(issue?.code || "manual_review"), message: cleanText(issue?.message), sourcePage: Number.isInteger(issue?.sourcePage) ? issue.sourcePage : null })),
   };
@@ -174,8 +198,8 @@ export function createDocumentItems(text) {
     }
     offset += line.length + 1;
   }
-  if (!matches.length) return [{ id: "document-1", type: "document", label: "Toàn bộ tài liệu", title: "", pageStart: null, pageEnd: null, startOffset: 0, endOffset: source.length, text: source }];
-  return matches.map((match, index) => {
+  if (!matches.length) return classifyGuidelineItems([{ id: "document-1", type: "document", label: "Toàn bộ tài liệu", title: "", pageStart: null, pageEnd: null, startOffset: 0, endOffset: source.length, text: source }]);
+  const rawItems = matches.map((match, index) => {
     const end = matches[index + 1]?.start || source.length;
     const text = source.slice(match.start, end).trim();
     const pages = [...text.matchAll(/\[Trang\s+(\d+)\]/gi)].map((item) => Number(item[1])).filter(Number.isInteger);
@@ -183,6 +207,18 @@ export function createDocumentItems(text) {
     const type = label.includes("table") ? "table" : label.includes("figure") ? "figure" : label.includes("algorithm") ? "algorithm" : label.includes("flowchart") ? "flowchart" : label.includes("appendix") ? "appendix" : "document";
     return { id: `document-item-${index + 1}`, type, label: match.label, title: match.title, pageStart: pages[0] || null, pageEnd: pages.at(-1) || null, startOffset: match.start, endOffset: end, text };
   });
+  const mergedItems = [];
+  for (const item of rawItems) {
+    const previous = mergedItems.at(-1);
+    const continuation = item.type === "table" && /\b(?:continued|continuation|cont\.?|tiếp theo)\b/i.test(`${item.label} ${item.title}`);
+    if (continuation && previous?.type === "table") {
+      previous.text = `${previous.text}\n${item.text}`;
+      previous.endOffset = item.endOffset;
+      previous.pageEnd = item.pageEnd || previous.pageEnd;
+      previous.continuationCount = Number(previous.continuationCount || 0) + 1;
+    } else mergedItems.push(item);
+  }
+  return classifyGuidelineItems(mergedItems);
 }
 
 export function validateImportForBulkImport(job, sections, recommendations, issues) {

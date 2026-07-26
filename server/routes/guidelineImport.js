@@ -17,6 +17,8 @@ import {
   GUIDELINE_IMPORT_PROMPT_VERSION,
 } from "../services/guidelineImport.js";
 import { deleteImportObject, supabaseTableRequest, tokenFromRequest, uploadImportObject } from "../services/guidelineImportStore.js";
+import { TRANSLATION_PROVIDERS, TRANSLATION_SCOPES, defaultSelection, groupedLocalDiagnostics, initializeItemStates, mandatoryRecommendationCompletion, selectTranslationItems, translationSummary } from "../services/guidelineTranslationPolicy.js";
+import { isProviderQuotaError } from "../services/guidelineTranslationProvider.js";
 
 const router = express.Router();
 const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
@@ -27,6 +29,15 @@ function text(value) { return String(value ?? "").trim(); }
 function safeFileName(value) { return path.basename(String(value || "document")).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 160) || "document"; }
 function errorMessage(error) { return error?.message || "Không thể xử lý phiên import Guideline."; }
 function statusCode(error) { return Number.isInteger(error?.status) ? error.status : 422; }
+function translationScope(value) { return TRANSLATION_SCOPES.includes(value) ? value : "clinical_essentials"; }
+function translationProvider(value) { return TRANSLATION_PROVIDERS.includes(value) ? value : "gemini"; }
+function itemStates(metadata) { return metadata?.itemStates && typeof metadata.itemStates === "object" ? metadata.itemStates : {}; }
+function parseResumeToken(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? { itemIds: parsed, translationScope: "clinical_essentials", translationProvider: "gemini" } : { itemIds: Array.isArray(parsed?.itemIds) ? parsed.itemIds : [], translationScope: translationScope(parsed?.translationScope), translationProvider: translationProvider(parsed?.translationProvider) };
+  } catch { return { itemIds: [], translationScope: "clinical_essentials", translationProvider: "gemini" }; }
+}
 
 async function readJobData(req, id) {
   const token = tokenFromRequest(req);
@@ -59,15 +70,37 @@ function slugify(value) {
   return String(value || "guideline").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "guideline";
 }
 
-async function processJob(req, jobId, selectedItemIds) {
+async function processJob(req, jobId, selectedItemIds, requestedScope = "clinical_essentials", requestedProvider = "gemini") {
   const token = tokenFromRequest(req);
   const data = await readJobData(req, jobId);
   if (!data?.document) throw new Error("Không tìm thấy tài liệu import.");
   const items = Array.isArray(data.job.analysis_metadata?.items) ? data.job.analysis_metadata.items : [];
-  const selected = items.filter((item) => selectedItemIds.includes(item.id));
-  if (!selected.length) throw new Error("Hãy chọn ít nhất một mục tài liệu để xử lý.");
-  await updateJob(req, jobId, { status: "processing", current_stage: "ai_extraction", progress: 5, error_message: "", started_at: new Date().toISOString(), analysis_metadata: { ...(data.job.analysis_metadata || {}), selectedItemIds } });
-  await addEvent(req, jobId, "processing_started", "ai_extraction", { itemCount: selected.length, model: GUIDELINE_IMPORT_MODEL, promptVersion: GUIDELINE_IMPORT_PROMPT_VERSION });
+  const scope = translationScope(requestedScope);
+  const provider = translationProvider(requestedProvider);
+  const states = { ...itemStates(data.job.analysis_metadata) };
+  const selected = selectTranslationItems(items, selectedItemIds, scope, states);
+  const persistMetadata = (extra = {}) => ({
+    ...(data.job.analysis_metadata || {}),
+    ...extra,
+    translationScope: scope,
+    translationProvider: provider,
+    selectedItemIds,
+    itemStates: states,
+    translationSummary: translationSummary(items, selectedItemIds, scope, states),
+  });
+  if (!selected.length) {
+    const completion = mandatoryRecommendationCompletion(items, states);
+    await updateJob(req, jobId, {
+      status: completion.complete ? "ready_for_review" : "paused",
+      current_stage: completion.complete ? "review" : "mandatory_tables_pending",
+      progress: completion.complete ? 100 : Math.max(25, data.job.progress || 0),
+      analysis_metadata: persistMetadata(),
+    });
+    return;
+  }
+  for (const item of selected) states[item.id] = { ...(states[item.id] || {}), status: "queued", selected: true, sourceHash: item.sourceHash, provider, model: provider === "openai" ? (process.env.OPENAI_GUIDELINE_MODEL || process.env.OPENAI_MODEL || "gpt-5-mini") : GUIDELINE_IMPORT_MODEL, attemptCount: Number(states[item.id]?.attemptCount || 0) };
+  await updateJob(req, jobId, { status: "processing", current_stage: "ai_extraction", progress: 5, error_message: "", started_at: new Date().toISOString(), resume_token: JSON.stringify({ itemIds: selectedItemIds, translationScope: scope, translationProvider: provider }), analysis_metadata: persistMetadata() });
+  await addEvent(req, jobId, "processing_started", "ai_extraction", { itemCount: selected.length, translationScope: scope, provider, model: GUIDELINE_IMPORT_MODEL, promptVersion: GUIDELINE_IMPORT_PROMPT_VERSION });
 
   const sourceText = String(data.document.extracted_text || "");
   let discoveredDocument = { ...(data.job.analysis_metadata?.document || {}) };
@@ -75,19 +108,33 @@ async function processJob(req, jobId, selectedItemIds) {
   const sectionByKey = new Map((existingSections || []).map((section) => [section.source_key, section]));
   const sectionByTitle = new Map((existingSections || []).map((section) => [text(section.title_original).toLocaleLowerCase(), section]));
   let latestRecommendations = await supabaseTableRequest("guideline_import_recommendations", token, { query: { job_id: `eq.${jobId}`, select: "*" } });
+  let tableTranslations = { ...(data.job.analysis_metadata?.tableTranslations || {}) };
 
   for (const [index, item] of selected.entries()) {
     try {
+      states[item.id] = { ...(states[item.id] || {}), status: "processing", attemptCount: Number(states[item.id]?.attemptCount || 0) + 1 };
+      await updateJob(req, jobId, { analysis_metadata: persistMetadata({ tableTranslations }) });
       const itemText = sourceText.slice(Number(item.startOffset || 0), Number(item.endOffset || sourceText.length));
-      const result = normalizeImportResult(await analyzeGuidelineItem({
-        text: itemText,
-        item,
-        sourceMetadata: { fileName: data.document.original_filename },
-        sourceLanguage: data.job.source_language,
-        targetLanguage: data.job.target_language,
-        preserveAbbreviations: data.job.preserve_abbreviations,
-        preserveEnglishTerminology: data.job.preserve_english_terminology,
-      }));
+      let result;
+      let usedProvider = provider;
+      try {
+        result = normalizeImportResult(await analyzeGuidelineItem({
+          text: itemText, item, sourceMetadata: { fileName: data.document.original_filename },
+          sourceLanguage: data.job.source_language, targetLanguage: data.job.target_language,
+          preserveAbbreviations: data.job.preserve_abbreviations, preserveEnglishTerminology: data.job.preserve_english_terminology,
+          provider: provider === "gemini_then_openai" ? "gemini" : provider,
+        }));
+      } catch (error) {
+        if (provider === "gemini_then_openai" && isProviderQuotaError(error)) {
+          usedProvider = "openai";
+          await addEvent(req, jobId, "provider_fallback", "ai_extraction", { itemId: item.id, from: "gemini", to: "openai", reason: "quota_exhausted" });
+          result = normalizeImportResult(await analyzeGuidelineItem({
+            text: itemText, item, sourceMetadata: { fileName: data.document.original_filename },
+            sourceLanguage: data.job.source_language, targetLanguage: data.job.target_language,
+            preserveAbbreviations: data.job.preserve_abbreviations, preserveEnglishTerminology: data.job.preserve_english_terminology, provider: "openai",
+          }));
+        } else throw error;
+      }
       discoveredDocument = {
         ...discoveredDocument,
         title: result.document.title || discoveredDocument.title || "",
@@ -96,7 +143,9 @@ async function processJob(req, jobId, selectedItemIds) {
         version: result.document.version || discoveredDocument.version || "",
         sourceLanguage: result.document.sourceLanguage || discoveredDocument.sourceLanguage || data.job.source_language,
       };
-      await updateJob(req, jobId, { analysis_metadata: { ...(data.job.analysis_metadata || {}), document: discoveredDocument, selectedItemIds } });
+      tableTranslations = { ...tableTranslations, [item.id]: result.tables || [] };
+      states[item.id] = { ...(states[item.id] || {}), status: "translated", translatedAt: new Date().toISOString(), provider: usedProvider, model: usedProvider === "openai" ? (process.env.OPENAI_GUIDELINE_MODEL || process.env.OPENAI_MODEL || "gpt-5-mini") : GUIDELINE_IMPORT_MODEL, errorCode: null, errorMessage: null };
+      await updateJob(req, jobId, { analysis_metadata: persistMetadata({ document: discoveredDocument, tableTranslations }) });
       for (const [sectionIndex, section] of result.sections.entries()) {
         const key = `${item.id}:${section.sourceKey}`;
         const titleKey = text(section.titleOriginal || section.titleVi).toLocaleLowerCase();
@@ -172,14 +221,24 @@ async function processJob(req, jobId, selectedItemIds) {
       const duplicates = await findDuplicateRecommendations(token, data.job.target_guideline_id, latestRecommendations || []);
       for (const recommendation of latestRecommendations || []) if (duplicates.get(recommendation.id)) await supabaseTableRequest("guideline_import_recommendations", token, { method: "PATCH", query: { id: `eq.${recommendation.id}` }, body: { duplicate_status: "exact", duplicate_target_id: duplicates.get(recommendation.id) } });
       await updateJob(req, jobId, { progress: Math.min(95, Math.round(((index + 1) / selected.length) * 90) + 5), processed_pages: item.pageEnd || item.pageStart || 0, current_stage: "review" });
-      await addEvent(req, jobId, "item_processed", "review", { itemId: item.id, sections: result.sections.length, recommendations: result.recommendations.length, issues: result.issues.length });
+      await addEvent(req, jobId, "item_processed", "review", { itemId: item.id, provider: usedProvider, sections: result.sections.length, recommendations: result.recommendations.length, tables: result.tables.length, issues: result.issues.length });
     } catch (error) {
-      await supabaseTableRequest("guideline_import_issues", token, { method: "POST", body: { job_id: jobId, severity: "blocking", issue_code: "processing_error", message: errorMessage(error) } }).catch(() => null);
-      throw error;
+      const quotaExhausted = isProviderQuotaError(error);
+      states[item.id] = { ...(states[item.id] || {}), status: "failed_retryable", errorCode: quotaExhausted ? "provider_quota_exhausted" : "provider_error", errorMessage: errorMessage(error) };
+      await updateJob(req, jobId, { analysis_metadata: persistMetadata({ tableTranslations }) }).catch(() => null);
+      await supabaseTableRequest("guideline_import_issues", token, { method: "POST", body: { job_id: jobId, severity: quotaExhausted ? "warning" : "error", issue_code: quotaExhausted ? "provider_quota_exhausted" : "processing_error", message: errorMessage(error) } }).catch(() => null);
+      await addEvent(req, jobId, quotaExhausted ? "processing_paused_quota" : "item_processing_failed", quotaExhausted ? "quota_paused" : "review", { itemId: item.id, message: errorMessage(error) }).catch(() => null);
+      if (quotaExhausted) {
+        await updateJob(req, jobId, { status: "paused", current_stage: "quota_paused", error_message: errorMessage(error), analysis_metadata: persistMetadata({ tableTranslations }) }).catch(() => null);
+        return;
+      }
     }
   }
-  await updateJob(req, jobId, { status: "ready_for_review", current_stage: "review", progress: 100, completed_at: new Date().toISOString(), resume_token: "" });
-  await addEvent(req, jobId, "processing_completed", "review", { selectedItemIds: selectedItemIds.length });
+  const finalData = await readJobData(req, jobId);
+  const completion = mandatoryRecommendationCompletion(items, itemStates(finalData?.job?.analysis_metadata));
+  const pending = selectTranslationItems(items, selectedItemIds, scope, itemStates(finalData?.job?.analysis_metadata));
+  await updateJob(req, jobId, { status: completion.complete && pending.length === 0 ? "ready_for_review" : "paused", current_stage: completion.complete && pending.length === 0 ? "review" : "mandatory_tables_pending", progress: completion.complete && pending.length === 0 ? 100 : 95, completed_at: completion.complete && pending.length === 0 ? new Date().toISOString() : null });
+  await addEvent(req, jobId, "processing_completed", "review", { selectedItemIds: selectedItemIds.length, pendingItemIds: pending.map((item) => item.id) });
 }
 
 async function importAccepted(req, jobId) {
@@ -285,12 +344,26 @@ router.post("/jobs", upload.single("file"), async (req, res) => {
     const fileBytes = await readFile(file.path);
     const extracted = await extractGuidelineInput(file);
     if (!extracted.text) throw new Error("Không đọc được văn bản trong tài liệu.");
+    const scope = translationScope(req.body?.translationScope);
+    const provider = translationProvider(req.body?.translationProvider);
     const job = first(await supabaseTableRequest("guideline_import_jobs", token, { method: "POST", body: { owner_id: req.guidelineAdmin.id, target_guideline_id: text(req.body?.targetGuidelineId) || null, import_mode: req.body?.targetGuidelineId ? "existing_guideline" : "create_new", source_language: text(req.body?.sourceLanguage) || "en", target_language: text(req.body?.targetLanguage) || "vi", preserve_english_terminology: req.body?.preserveEnglishTerminology !== "false", preserve_abbreviations: req.body?.preserveAbbreviations !== "false", status: "analysing", current_stage: "document_analysis", progress: 10, source_metadata: { fileName: file.originalname, mimeType: file.mimetype, note: text(req.body?.note) } } }));
     const storagePath = `${req.guidelineAdmin.id}/${job.id}/${safeFileName(file.originalname)}`;
     try { await uploadImportObject(storagePath, { ...file, buffer: fileBytes, size: fileBytes.length }, token); } catch (error) { await supabaseTableRequest("guideline_import_jobs", token, { method: "DELETE", query: { id: `eq.${job.id}` } }).catch(() => null); throw error; }
     const items = createDocumentItems(extracted.text);
-    const updatedJob = first(await supabaseTableRequest("guideline_import_jobs", token, { method: "PATCH", query: { id: `eq.${job.id}` }, body: { status: "ready_for_review", current_stage: "document_analysis", progress: 25, total_pages: extracted.pageCount || items.at(-1)?.pageEnd || null, analysis_metadata: { items: items.map(({ text: _text, ...item }) => item), document: { title: "", organization: "", year: null, version: "", condition: "" }, ocrUsed: Boolean(extracted.ocrUsed), sourceType: extracted.sourceType } } }));
+    const selectedItemIds = defaultSelection(items, scope);
+    const states = initializeItemStates(items, selectedItemIds);
+    const diagnostics = groupedLocalDiagnostics(items, states);
+    const updatedJob = first(await supabaseTableRequest("guideline_import_jobs", token, { method: "PATCH", query: { id: `eq.${job.id}` }, body: { status: "ready_for_review", current_stage: "selection", progress: 25, total_pages: extracted.pageCount || items.at(-1)?.pageEnd || null, analysis_metadata: { items: items.map(({ text: _text, ...item }) => item), document: { title: "", organization: "", year: null, version: "", condition: "" }, ocrUsed: Boolean(extracted.ocrUsed), sourceType: extracted.sourceType, translationScope: scope, translationProvider: provider, selectedItemIds, itemStates: states, translationSummary: translationSummary(items, selectedItemIds, scope, states), localDiagnostics: diagnostics } } }));
     await supabaseTableRequest("guideline_import_documents", token, { method: "POST", body: { job_id: job.id, owner_id: req.guidelineAdmin.id, original_filename: file.originalname, mime_type: file.mimetype || "application/octet-stream", source_language: text(req.body?.sourceLanguage) || "en", storage_path: storagePath, checksum: checksumFor(fileBytes), file_size: fileBytes.length, page_count: extracted.pageCount || items.at(-1)?.pageEnd || null, ocr_required: Boolean(extracted.ocrUsed), ocr_status: extracted.ocrUsed ? "completed" : "not_started", extracted_text: extracted.text, page_metadata: [] } });
+    for (const diagnostic of diagnostics) {
+      const mandatoryIncomplete = diagnostic.code === "recommendation_table_incomplete";
+      const message = mandatoryIncomplete
+        ? `${diagnostic.count} bảng khuyến cáo thiếu nội dung hoặc trang tiếp theo. Cần khôi phục/trà soát trước khi hoàn tất.`
+        : diagnostic.code === "duplicate_content"
+          ? `${diagnostic.count} mục trùng nội dung được dùng lại checkpoint thay vì gọi AI lần nữa.`
+          : `${diagnostic.count} mục không đủ nội dung lâm sàng để dịch tự động.`;
+      await supabaseTableRequest("guideline_import_issues", token, { method: "POST", body: { job_id: job.id, severity: mandatoryIncomplete ? "blocking" : "info", issue_code: diagnostic.code, message } });
+    }
     await addEvent(req, job.id, "uploaded", "document_analysis", { fileName: file.originalname, itemCount: items.length, ocrUsed: Boolean(extracted.ocrUsed) });
     return res.status(201).json({ success: true, job: updatedJob, items: items.map(({ text: _text, ...item }) => item) });
   } catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
@@ -305,18 +378,54 @@ router.get("/jobs/:jobId", async (req, res) => {
 router.post("/jobs/:jobId/process", async (req, res) => {
   const selectedItemIds = Array.isArray(req.body?.itemIds) ? req.body.itemIds.map(String) : [];
   if (!selectedItemIds.length) return res.status(422).json({ success: false, message: "Hãy chọn ít nhất một mục tài liệu." });
-  try { await updateJob(req, req.params.jobId, { status: "processing", current_stage: "queued", resume_token: JSON.stringify(selectedItemIds) }); void processJob(req, req.params.jobId, selectedItemIds).catch(async (error) => { await updateJob(req, req.params.jobId, { status: "failed", current_stage: "error", error_message: errorMessage(error) }).catch(() => null); }); return res.status(202).json({ success: true, status: "processing", message: "Đã bắt đầu xử lý nền. Có thể đóng tab và quay lại phiên import." }); }
+  const scope = translationScope(req.body?.translationScope);
+  const provider = translationProvider(req.body?.translationProvider);
+  try { await updateJob(req, req.params.jobId, { status: "processing", current_stage: "queued", resume_token: JSON.stringify({ itemIds: selectedItemIds, translationScope: scope, translationProvider: provider }) }); void processJob(req, req.params.jobId, selectedItemIds, scope, provider).catch(async (error) => { await updateJob(req, req.params.jobId, { status: "failed", current_stage: "error", error_message: errorMessage(error) }).catch(() => null); }); return res.status(202).json({ success: true, status: "processing", message: "Đã bắt đầu xử lý nền. Có thể đóng tab và quay lại phiên import." }); }
   catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
 });
 
 router.post("/jobs/:jobId/resume", async (req, res) => {
   try {
     const job = first(await supabaseTableRequest("guideline_import_jobs", tokenFromRequest(req), { query: jobQuery(req, req.params.jobId) }));
-    const itemIds = Array.isArray(req.body?.itemIds) ? req.body.itemIds.map(String) : JSON.parse(job?.resume_token || "[]");
+    const checkpoint = parseResumeToken(job?.resume_token);
+    const itemIds = Array.isArray(req.body?.itemIds) ? req.body.itemIds.map(String) : checkpoint.itemIds;
     if (!itemIds.length) return res.status(422).json({ success: false, message: "Không có checkpoint để tiếp tục." });
     await updateJob(req, req.params.jobId, { status: "processing", current_stage: "resuming", error_message: "" });
-    void processJob(req, req.params.jobId, itemIds).catch(async (error) => { await updateJob(req, req.params.jobId, { status: "failed", current_stage: "error", error_message: errorMessage(error) }).catch(() => null); });
+    void processJob(req, req.params.jobId, itemIds, translationScope(req.body?.translationScope || checkpoint.translationScope), translationProvider(req.body?.translationProvider || checkpoint.translationProvider)).catch(async (error) => { await updateJob(req, req.params.jobId, { status: "failed", current_stage: "error", error_message: errorMessage(error) }).catch(() => null); });
     return res.status(202).json({ success: true, status: "processing" });
+  } catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
+});
+
+router.post("/jobs/:jobId/items/:itemId/classification", async (req, res) => {
+  try {
+    const reason = text(req.body?.reason);
+    const classification = text(req.body?.classification || "not_recommendation_table");
+    if (!reason) return res.status(422).json({ success: false, message: "Cần ghi rõ lý do điều chỉnh phân loại." });
+    if (!["not_recommendation_table", "clinically_important_table"].includes(classification)) return res.status(422).json({ success: false, message: "Loại điều chỉnh phân loại không hợp lệ." });
+    const data = await readJobData(req, req.params.jobId);
+    if (!data) return res.status(404).json({ success: false, message: "Không tìm thấy phiên import." });
+    const items = Array.isArray(data.job.analysis_metadata?.items) ? [...data.job.analysis_metadata.items] : [];
+    const index = items.findIndex((item) => item.id === req.params.itemId);
+    if (index < 0) return res.status(404).json({ success: false, message: "Không tìm thấy mục cần điều chỉnh." });
+    const item = items[index];
+    if (item.type !== "table") return res.status(422).json({ success: false, message: "Chỉ bảng mới có thể điều chỉnh phân loại." });
+    if (classification === "not_recommendation_table" && !item.mandatory) return res.status(422).json({ success: false, message: "Mục này không phải bảng khuyến cáo bắt buộc." });
+    if (classification === "clinically_important_table" && item.mandatory) return res.status(422).json({ success: false, message: "Bảng khuyến cáo đã là nội dung bắt buộc." });
+    items[index] = classification === "clinically_important_table"
+      ? { ...item, contentType: "clinically_important_table", clinicalImportance: "important", translationEligibility: "automatic", manualReviewRequired: false, mandatory: false, diagnosticCode: "classification_corrected", classificationCorrection: { classification, reason, actorId: req.guidelineAdmin.id, correctedAt: new Date().toISOString() } }
+      : { ...item, contentType: "general_table", clinicalImportance: "optional", translationEligibility: "manual_only", manualReviewRequired: true, mandatory: false, diagnosticCode: "classification_corrected", classificationCorrection: { classification, reason, actorId: req.guidelineAdmin.id, correctedAt: new Date().toISOString() } };
+    const states = { ...itemStates(data.job.analysis_metadata), [item.id]: { ...(itemStates(data.job.analysis_metadata)[item.id] || {}), status: "pending", errorCode: "classification_corrected", errorMessage: reason, selected: false } };
+    const selectedItemIds = classification === "clinically_important_table"
+      ? [...new Set([...(data.job.analysis_metadata?.selectedItemIds || []), item.id])]
+      : (data.job.analysis_metadata?.selectedItemIds || []).filter((id) => id !== item.id);
+    const completion = mandatoryRecommendationCompletion(items, states);
+    await updateJob(req, req.params.jobId, { status: data.job.status === "paused" && completion.complete ? "ready_for_review" : data.job.status, current_stage: data.job.status === "paused" && completion.complete ? "selection" : data.job.current_stage, analysis_metadata: { ...(data.job.analysis_metadata || {}), items, itemStates: states, selectedItemIds, translationSummary: translationSummary(items, selectedItemIds, translationScope(data.job.analysis_metadata?.translationScope), states), localDiagnostics: groupedLocalDiagnostics(items, states) } });
+    const diagnostics = groupedLocalDiagnostics(items, states);
+    await supabaseTableRequest("guideline_import_issues", tokenFromRequest(req), { method: "DELETE", query: { job_id: `eq.${req.params.jobId}`, issue_code: "eq.recommendation_table_incomplete" } }).catch(() => null);
+    const remainingMandatoryDiagnostic = diagnostics.find((diagnostic) => diagnostic.code === "recommendation_table_incomplete");
+    if (remainingMandatoryDiagnostic) await supabaseTableRequest("guideline_import_issues", tokenFromRequest(req), { method: "POST", body: { job_id: req.params.jobId, severity: "blocking", issue_code: "recommendation_table_incomplete", message: `${remainingMandatoryDiagnostic.count} bảng khuyến cáo thiếu nội dung hoặc trang tiếp theo. Cần khôi phục/trà soát trước khi hoàn tất.` } });
+    await addEvent(req, req.params.jobId, "classification_corrected", "selection", { itemId: item.id, from: item.contentType, to: items[index].contentType, reason });
+    return res.json({ success: true, item: items[index] });
   } catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
 });
 

@@ -16,7 +16,17 @@ export interface GuidelineImportItem {
   pageEnd: number | null;
   startOffset?: number;
   endOffset?: number;
+  contentType?: string;
+  clinicalImportance?: "required" | "important" | "optional" | "exclude";
+  translationEligibility?: "automatic" | "manual_only" | "not_required" | "blocked_pending_extraction";
+  manualReviewRequired?: boolean;
+  mandatory?: boolean;
+  sourceHash?: string;
+  translationStatus?: string;
 }
+
+export type GuidelineTranslationScope = "clinical_essentials" | "recommendations_only" | "selected_content" | "full_translation";
+export type GuidelineTranslationProvider = "gemini" | "openai" | "gemini_then_openai";
 
 export interface GuidelineImportJob {
   id: string;
@@ -33,7 +43,7 @@ export interface GuidelineImportJob {
   total_pages: number | null;
   processed_pages: number;
   source_metadata: Record<string, unknown>;
-  analysis_metadata: { items?: GuidelineImportItem[]; document?: Record<string, unknown>; selectedItemIds?: string[]; [key: string]: unknown };
+  analysis_metadata: { items?: GuidelineImportItem[]; document?: Record<string, unknown>; selectedItemIds?: string[]; translationScope?: GuidelineTranslationScope; translationProvider?: GuidelineTranslationProvider; itemStates?: Record<string, { status?: string; selected?: boolean; [key: string]: unknown }>; translationSummary?: Record<string, number>; localDiagnostics?: Array<{ code: string; count: number; itemIds: string[] }>; tableTranslations?: Record<string, unknown>; [key: string]: unknown };
   imported_guideline_id: string | null;
   error_message: string;
   created_at: string;
@@ -150,7 +160,7 @@ export async function listGuidelineImportJobs(): Promise<GuidelineImportJob[]> {
   return ((await response.json()) as { jobs?: GuidelineImportJob[] }).jobs || [];
 }
 
-export async function uploadGuidelineImport(input: { file: File; targetGuidelineId?: string; sourceLanguage: string; targetLanguage: string; preserveEnglishTerminology: boolean; preserveAbbreviations: boolean; note?: string }): Promise<{ job: GuidelineImportJob; items: GuidelineImportItem[] }> {
+export async function uploadGuidelineImport(input: { file: File; targetGuidelineId?: string; sourceLanguage: string; targetLanguage: string; preserveEnglishTerminology: boolean; preserveAbbreviations: boolean; translationScope: GuidelineTranslationScope; translationProvider: GuidelineTranslationProvider; note?: string }): Promise<{ job: GuidelineImportJob; items: GuidelineImportItem[] }> {
   const body = new FormData();
   body.append("file", input.file);
   if (input.targetGuidelineId) body.append("targetGuidelineId", input.targetGuidelineId);
@@ -158,6 +168,8 @@ export async function uploadGuidelineImport(input: { file: File; targetGuideline
   body.append("targetLanguage", input.targetLanguage);
   body.append("preserveEnglishTerminology", String(input.preserveEnglishTerminology));
   body.append("preserveAbbreviations", String(input.preserveAbbreviations));
+  body.append("translationScope", input.translationScope);
+  body.append("translationProvider", input.translationProvider);
   if (input.note) body.append("note", input.note);
   const response = await request("/api/admin/guideline-import/jobs", { method: "POST", body });
   return await response.json() as { job: GuidelineImportJob; items: GuidelineImportItem[] };
@@ -168,12 +180,17 @@ export async function getGuidelineImportJob(jobId: string): Promise<GuidelineImp
   return await response.json() as GuidelineImportJobData;
 }
 
-export async function processGuidelineImport(jobId: string, itemIds: string[]): Promise<void> {
-  await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/process`, { method: "POST", body: JSON.stringify({ itemIds }) });
+export async function processGuidelineImport(jobId: string, itemIds: string[], translationScope: GuidelineTranslationScope, translationProvider: GuidelineTranslationProvider): Promise<void> {
+  await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/process`, { method: "POST", body: JSON.stringify({ itemIds, translationScope, translationProvider }) });
 }
 
-export async function resumeGuidelineImport(jobId: string, itemIds?: string[]): Promise<void> {
-  await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/resume`, { method: "POST", body: JSON.stringify({ itemIds }) });
+export async function resumeGuidelineImport(jobId: string, itemIds: string[] | undefined, translationScope: GuidelineTranslationScope, translationProvider: GuidelineTranslationProvider): Promise<void> {
+  await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/resume`, { method: "POST", body: JSON.stringify({ itemIds, translationScope, translationProvider }) });
+}
+
+export async function correctGuidelineImportItemClassification(jobId: string, itemId: string, reason: string, classification: "not_recommendation_table" | "clinically_important_table" = "not_recommendation_table"): Promise<GuidelineImportItem> {
+  const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/items/${encodeURIComponent(itemId)}/classification`, { method: "POST", body: JSON.stringify({ reason, classification }) });
+  return ((await response.json()) as { item: GuidelineImportItem }).item;
 }
 
 export async function updateGuidelineImportSection(sectionId: string, patch: Partial<GuidelineImportSection>): Promise<GuidelineImportSection> {
