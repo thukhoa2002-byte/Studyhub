@@ -30,7 +30,7 @@ test("publication blockers remain visible until Guideline Core requirements are 
   const blockers = validateGuidelineForPublication(document, [], [], []);
   assert.ok(blockers.some((item) => /Publication year or version/.test(item)));
   assert.ok(blockers.some((item) => /Source traceability/.test(item)));
-  assert.ok(blockers.some((item) => /eligible published/.test(item)));
+  assert.ok(blockers.some((item) => /eligible recommendation table row/.test(item)));
 });
 
 test("single-admin recommendation publication keeps source-backed parent context without a review gate", () => {

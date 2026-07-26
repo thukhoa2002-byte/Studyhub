@@ -2,20 +2,44 @@ import { requireGuidelineClient } from "./guidelineRepository";
 import { validateGuidelineStatusTransition } from "./guidelineValidation";
 import type { GuidelineSectionRecord, NewGuidelineSection, GuidelineSectionStatus } from "./guidelineCoreTypes";
 
+const publicSectionColumns = "id,guideline_id,parent_section_id,slug,section_number,title,title_vi,summary,display_order,status,created_at,updated_at";
+const sectionColumns = "id,guideline_id,owner_id,parent_section_id,slug,section_number,title,title_vi,summary,display_order,status,created_at,updated_at";
+
 export async function listGuidelineSections(guidelineId: string, options: { publicOnly?: boolean } = {}): Promise<GuidelineSectionRecord[]> {
-  let query = requireGuidelineClient().from("guideline_sections").select("*").eq("guideline_id", guidelineId).order("display_order", { ascending: true });
+  let query = requireGuidelineClient().from("guideline_sections").select(sectionColumns).eq("guideline_id", guidelineId).order("display_order", { ascending: true }).limit(1000);
   if (options.publicOnly) query = query.eq("status", "published");
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as GuidelineSectionRecord[];
 }
 
+export async function listPublishedGuidelineSectionsForPublic(guidelineIds: string[]): Promise<GuidelineSectionRecord[]> {
+  if (guidelineIds.length === 0) return [];
+  const { data, error } = await requireGuidelineClient()
+    .from("guideline_sections")
+    .select(publicSectionColumns)
+    .in("guideline_id", guidelineIds)
+    .eq("status", "published")
+    .order("display_order", { ascending: true })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []) as GuidelineSectionRecord[];
+}
+
 export async function getGuidelineSection(id: string, options: { publicOnly?: boolean } = {}): Promise<GuidelineSectionRecord | null> {
-  let query = requireGuidelineClient().from("guideline_sections").select("*").eq("id", id);
+  let query = requireGuidelineClient().from("guideline_sections").select(sectionColumns).eq("id", id);
   if (options.publicOnly) query = query.eq("status", "published");
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return (data as GuidelineSectionRecord | null) ?? null;
+}
+
+export async function getGuidelineSectionsByIds(ids: string[]): Promise<GuidelineSectionRecord[]> {
+  const uniqueIds = [...new Set(ids)].filter(Boolean);
+  if (uniqueIds.length === 0) return [];
+  const { data, error } = await requireGuidelineClient().from("guideline_sections").select(sectionColumns).in("id", uniqueIds).limit(uniqueIds.length);
+  if (error) throw error;
+  return (data ?? []) as GuidelineSectionRecord[];
 }
 
 export async function createGuidelineSection(ownerId: string, input: NewGuidelineSection): Promise<GuidelineSectionRecord> {

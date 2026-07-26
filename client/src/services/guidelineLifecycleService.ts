@@ -21,11 +21,11 @@ export async function restoreGuidelineRecommendationToDraft(id: string, actorId:
 export async function republishGuidelineRecommendation(id: string, actorId: string) { return publishGuidelineRecommendation(id, actorId); }
 
 export async function getGuidelineDeleteBlockers(id: string): Promise<string[]> {
-  const [sections, recommendations, sources, entries, calculatorReferences] = await Promise.all([
-    count("guideline_sections", "guideline_id", id), count("guideline_recommendations", "guideline_id", id), count("guideline_source_documents", "guideline_id", id), count("guideline_entries", "document_id", id), count("calculator_guideline_references", "guideline_id", id),
+  const [sections, tables, groups, recommendations, sources, entries, calculatorReferences] = await Promise.all([
+    count("guideline_sections", "guideline_id", id), count("guideline_recommendation_tables", "guideline_id", id), count("guideline_recommendation_groups", "guideline_id", id), count("guideline_recommendations", "guideline_id", id), count("guideline_source_documents", "guideline_id", id), count("guideline_entries", "document_id", id), count("calculator_guideline_references", "guideline_id", id),
   ]);
   return [
-    sections && `${sections} section đang phụ thuộc.`, recommendations && `${recommendations} khuyến cáo đang phụ thuộc.`, sources && `${sources} source document đang phụ thuộc.`, entries && `${entries} dữ liệu legacy guideline_entries đang phụ thuộc.`, calculatorReferences && `${calculatorReferences} liên kết Calculator ↔ Guideline đang phụ thuộc.`,
+    sections && `${sections} Mục nguồn đang phụ thuộc.`, tables && `${tables} Bảng khuyến cáo đang phụ thuộc.`, groups && `${groups} Mục khuyến cáo đang phụ thuộc.`, recommendations && `${recommendations} khuyến cáo đang phụ thuộc.`, sources && `${sources} source document đang phụ thuộc.`, entries && `${entries} dữ liệu legacy guideline_entries đang phụ thuộc.`, calculatorReferences && `${calculatorReferences} liên kết Calculator ↔ Guideline đang phụ thuộc.`,
   ].filter(Boolean) as string[];
 }
 
@@ -44,10 +44,10 @@ export async function restoreGuidelineSectionToDraft(id: string) {
 }
 export async function republishGuidelineSection(id: string) { return publishGuidelineSection(id); }
 export async function getGuidelineSectionDeleteBlockers(id: string): Promise<string[]> {
-  const [children, recommendations, entries, calculatorReferences] = await Promise.all([
-    count("guideline_sections", "parent_section_id", id), count("guideline_recommendations", "section_id", id), count("guideline_entries", "section_id", id), count("calculator_guideline_references", "section_id", id),
+  const [children, tables, groups, recommendations, entries, calculatorReferences] = await Promise.all([
+    count("guideline_sections", "parent_section_id", id), count("guideline_recommendation_tables", "section_id", id), count("guideline_recommendation_groups", "section_id", id), count("guideline_recommendations", "section_id", id), count("guideline_entries", "section_id", id), count("calculator_guideline_references", "section_id", id),
   ]);
-  return [children && `${children} section con đang phụ thuộc.`, recommendations && `${recommendations} khuyến cáo đang phụ thuộc.`, entries && `${entries} dữ liệu legacy đang phụ thuộc.`, calculatorReferences && `${calculatorReferences} liên kết Calculator ↔ Guideline đang phụ thuộc.`].filter(Boolean) as string[];
+  return [children && `${children} Mục nguồn con đang phụ thuộc.`, tables && `${tables} Bảng khuyến cáo đang phụ thuộc.`, groups && `${groups} Mục khuyến cáo đang phụ thuộc.`, recommendations && `${recommendations} khuyến cáo đang phụ thuộc.`, entries && `${entries} dữ liệu legacy đang phụ thuộc.`, calculatorReferences && `${calculatorReferences} liên kết Calculator ↔ Guideline đang phụ thuộc.`].filter(Boolean) as string[];
 }
 export async function deleteGuidelineSectionPermanently(id: string): Promise<void> {
   const section = await getGuidelineSection(id); if (!section) return;

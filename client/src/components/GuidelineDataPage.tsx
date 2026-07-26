@@ -3,15 +3,16 @@ import type { User } from "@supabase/supabase-js";
 import { ArrowLeft, BookOpenCheck, ExternalLink, Search, ShieldAlert } from "lucide-react";
 import type { DataRoute } from "../utils/dataRoutes";
 import { guidelinePath } from "../utils/dataRoutes";
-import { findPublishedCoreGuidelineBySlug, listPublishedGuidelinePreviews, loadPublishedCoreGuidelines, type PublicGuidelinePreview } from "../services/guidelineCorePublicService";
-import type { Guideline, GuidelineRecommendation } from "../types/guideline";
+import { findPublishedTableFirstGuidelineBySlug, listPublishedGuidelinePreviews, loadPublishedTableFirstGuidelines, type PublicGuidelinePreview } from "../services/guidelineCorePublicService";
+import type { PublicGuidelineTableFirst, PublicRecommendationTable } from "../services/guidelineTableFirstPublicAdapter";
 import { listPublicCalculatorRecordsForGuideline } from "../services/calculatorDatabaseService";
 import type { DatabaseCalculator } from "../modules/calculators/databaseTypes";
-import { LanguageToggle, LocalizedTextView, useLanguageMode } from "../utils/language";
+import { LanguageToggle, useLanguageMode } from "../utils/language";
 import type { LanguageMode } from "../types/language";
 import ProtectedContentGate from "./ProtectedContentGate";
 import SharedSelect from "./SharedSelect";
 import { deepLinkScrollBehavior, resolveGuidelineDeepLink } from "../utils/recommendationDeepLink";
+import GuidelineTableFirstView from "./GuidelineTableFirstView";
 
 type GuidelineRoute = Extract<DataRoute, { tab: "guidelines"; kind: "guideline-list" | "guideline-detail" }>;
 
@@ -22,48 +23,33 @@ interface Props {
   onManage?: () => void;
 }
 
-function statusLabel(status: Guideline["status"]): string {
-  return status === "draft" ? "Bản nháp" : status === "reviewed" ? "Đã rà soát" : status === "published" ? "Đã công khai" : "Lưu trữ";
-}
-
-function RecommendationCard({ guideline, sectionId, recommendation, onNavigate, languageMode, highlighted }: { guideline: Guideline; sectionId: string; recommendation: GuidelineRecommendation; onNavigate: (path: string) => void; languageMode: LanguageMode; highlighted: boolean }) {
-  return (
-    <article id={`recommendation-${recommendation.id}`} tabIndex={highlighted ? -1 : undefined} aria-label={`Khuyến cáo: ${recommendation.title || "không có tiêu đề"}`} className={`scroll-mt-8 rounded-2xl border bg-white/85 p-4 shadow-sm ${highlighted ? "recommendation--deep-link" : "border-slate-200"}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-extrabold text-slate-800"><LocalizedTextView value={recommendation.localizedContent?.title || recommendation.title} mode={languageMode} /></h3>
-          {recommendation.isPlaceholder && <span className="mt-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">Dữ liệu mẫu · bản nháp</span>}
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-1.5 text-[11px] font-bold">
-          <span className="rounded-full bg-violet-50 px-2.5 py-1 text-violet-700">Class: {recommendation.classOfRecommendation}</span>
-          <span className="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700">Evidence: {recommendation.levelOfEvidence}</span>
-        </div>
-      </div>
-      <p className="mt-3 text-sm leading-6 text-slate-600"><LocalizedTextView value={recommendation.localizedContent?.content || recommendation.content} mode={languageMode} /></p>
-      {(recommendation.population || recommendation.clinicalContext) && <div className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
-        {recommendation.population && <p><strong className="text-slate-700">Đối tượng:</strong> {recommendation.population}</p>}
-        {recommendation.clinicalContext && <p><strong className="text-slate-700">Bối cảnh:</strong> {recommendation.clinicalContext}</p>}
-      </div>}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
-        <span>{recommendation.source.page ? `Trang ${recommendation.source.page}` : "Nguồn trang sẽ được bổ sung"}</span>
-        <button type="button" onClick={() => onNavigate(guidelinePath(guideline.slug, sectionId, recommendation.id))} className="font-bold text-violet-700 hover:text-violet-900">Mở liên kết trực tiếp</button>
-      </div>
-    </article>
-  );
-}
-
-function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguageChange, relatedCalculators }: { guideline: Guideline; route: Extract<GuidelineRoute, { kind: "guideline-detail" }>; onNavigate: (path: string) => void; languageMode: LanguageMode; onLanguageChange: (mode: LanguageMode) => void; relatedCalculators: DatabaseCalculator[] }) {
+function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguageChange, relatedCalculators }: { guideline: PublicGuidelineTableFirst; route: Extract<GuidelineRoute, { kind: "guideline-detail" }>; onNavigate: (path: string) => void; languageMode: LanguageMode; onLanguageChange: (mode: LanguageMode) => void; relatedCalculators: DatabaseCalculator[] }) {
   const [highlightedRecommendationId, setHighlightedRecommendationId] = useState("");
+  const deepLinkSections = useMemo(() => {
+    const items = new Map<string, { id: string; slug: string; recommendations: Array<{ id: string }> }>();
+    guideline.recommendationTables.forEach((table) => {
+      // A table is now the public content owner. Source Section metadata may be
+      // absent and must not control deep links.
+      const current = items.get(table.id) ?? { id: table.id, slug: table.id, recommendations: [] };
+      table.groups.forEach((group) => group.rows.forEach((row) => current.recommendations.push({ id: row.id })));
+      items.set(table.id, current);
+    });
+    return [...items.values()];
+  }, [guideline.recommendationTables]);
   const deepLinkTarget = useMemo(() => resolveGuidelineDeepLink(
-    guideline.sections.map((section) => ({ id: section.id, slug: section.slug, recommendations: section.recommendations.map((recommendation) => ({ id: recommendation.id })) })),
+    deepLinkSections,
     route.sectionSlug,
     route.recommendationId,
-  ), [guideline.sections, route.recommendationId, route.sectionSlug]);
+  ), [deepLinkSections, route.recommendationId, route.sectionSlug]);
 
   useEffect(() => {
     if (route.recommendationId) {
       if (!deepLinkTarget?.ok) { setHighlightedRecommendationId(""); return; }
-      const element = document.getElementById(`recommendation-${deepLinkTarget.recommendationId}`);
+      const elements = [
+        document.getElementById(`recommendation-${deepLinkTarget.recommendationId}`),
+        document.getElementById(`recommendation-mobile-${deepLinkTarget.recommendationId}`),
+      ].filter((element): element is HTMLElement => Boolean(element));
+      const element = elements.find((item) => item.getClientRects().length > 0) ?? elements[0];
       if (!element) return;
       const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
       setHighlightedRecommendationId(deepLinkTarget.recommendationId);
@@ -73,12 +59,12 @@ function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguag
       return () => window.clearTimeout(removeHighlight);
     }
     if (!route.sectionSlug) return;
-    const section = guideline.sections.find((item) => item.id === route.sectionSlug || item.slug === route.sectionSlug);
-    const element = section ? document.getElementById(`section-${section.id}`) : null;
+    const table = guideline.recommendationTables.find((item) => item.id === route.sectionSlug || item.sourceSection?.id === route.sectionSlug);
+    const element = table ? document.getElementById(`recommendation-table-${table.id}`) : null;
     if (!element) return;
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     element.scrollIntoView({ block: "start", behavior: deepLinkScrollBehavior(reducedMotion) });
-  }, [deepLinkTarget, guideline.sections, route.recommendationId, route.sectionSlug]);
+  }, [deepLinkTarget, guideline.recommendationTables, route.recommendationId, route.sectionSlug]);
 
   const deepLinkError = route.recommendationId && deepLinkTarget && !deepLinkTarget.ok
     ? deepLinkTarget.reason === "section-unavailable" ? "Section của khuyến cáo không còn khả dụng."
@@ -91,32 +77,24 @@ function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguag
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <button type="button" onClick={() => onNavigate("/guidelines")} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-violet-700 hover:text-violet-900"><ArrowLeft size={16} />Danh sách guideline</button>
-          <div className="flex items-start gap-3"><span className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><BookOpenCheck size={23} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">{guideline.organization} · {guideline.publicationYear} · {statusLabel(guideline.status)}</p><h1 id="guideline-detail-title" className="mt-1 text-2xl font-extrabold tracking-tight text-rose-950"><LocalizedTextView value={guideline.localizedContent?.title || { vi: guideline.titleVi, en: guideline.title }} mode={languageMode} /></h1></div></div>
+          <div className="flex items-start gap-3"><span className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><BookOpenCheck size={23} /></span><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-violet-600">{guideline.society} · {guideline.publicationYear ?? guideline.versionLabel} · Đã công khai</p><h1 id="guideline-detail-title" className="mt-1 text-2xl font-extrabold tracking-tight text-rose-950">{languageMode === "en" ? guideline.title : guideline.title}</h1></div></div>
         </div>
         <div className="flex flex-wrap items-start gap-2"><LanguageToggle value={languageMode} onChange={onLanguageChange} />{guideline.sourceUrl && <a href={guideline.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><ExternalLink size={16} />Nguồn gốc</a>}</div>
       </div>
-      <div className="mt-5 grid gap-4 lg:grid-cols-[220px_1fr]">
-        <aside className="h-fit rounded-2xl border border-slate-200 bg-white/80 p-3 lg:sticky lg:top-4"><p className="px-2 pb-2 text-xs font-extrabold uppercase tracking-[.12em] text-slate-400">Mục guideline</p><nav className="grid gap-1">{guideline.sections.slice().sort((a, b) => a.order - b.order).map((section) => <button key={section.id} type="button" onClick={() => onNavigate(guidelinePath(guideline.slug, section.id))} className="rounded-xl px-2 py-2 text-left text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-700"><LocalizedTextView value={section.localizedContent?.title || { vi: section.titleVi, en: section.title }} mode={languageMode} /></button>)}</nav></aside>
-        <div className="min-w-0">
-          {deepLinkError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{deepLinkError}</p>}
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-800"><div className="flex items-start gap-2"><ShieldAlert className="mt-0.5 shrink-0" size={18} /><p><LocalizedTextView value={guideline.localizedContent?.summary || guideline.summary} mode={languageMode} /> Chưa hiển thị nhãn đã xác minh vì dữ liệu mẫu chưa có nguồn được đối chiếu.</p></div></div>
-          {relatedCalculators.length > 0 && <section className="mt-4 rounded-2xl border border-teal-200 bg-teal-50/50 p-4"><h2 className="text-sm font-extrabold text-teal-800">Máy tính liên quan</h2><div className="mt-2 flex flex-wrap gap-2">{relatedCalculators.map((calculator) => <button key={calculator.id} type="button" onClick={() => onNavigate(`/may-tinh-y-khoa/${calculator.slug}`)} className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-bold text-teal-700">{calculator.name?.vi || calculator.name?.en || calculator.short_name}</button>)}</div></section>}
-          <div className="mt-4 space-y-4">{guideline.sections.slice().sort((a, b) => a.order - b.order).map((section) => <section key={section.id} id={`section-${section.id}`} className="scroll-mt-5 rounded-2xl border border-slate-200 bg-white/75 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-extrabold uppercase tracking-[.12em] text-violet-500">Mục {section.order}</p><h2 className="mt-1 text-lg font-extrabold text-slate-800"><LocalizedTextView value={section.localizedContent?.title || { vi: section.titleVi, en: section.title }} mode={languageMode} /></h2></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">{section.recommendations.length} khuyến cáo</span></div><p className="mt-3 text-sm leading-6 text-slate-600"><LocalizedTextView value={section.localizedContent?.summary || section.summary} mode={languageMode} /></p>{section.recommendations.length > 0 && <div className="mt-4 space-y-3">{section.recommendations.map((recommendation) => <RecommendationCard key={recommendation.id} guideline={guideline} sectionId={section.id} recommendation={recommendation} onNavigate={onNavigate} languageMode={languageMode} highlighted={highlightedRecommendationId === recommendation.id} />)}</div>}</section>)}</div>
-        </div>
-      </div>
+      {deepLinkError && <p role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{deepLinkError}</p>}
+      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-800"><div className="flex items-start gap-2"><ShieldAlert className="mt-0.5 shrink-0" size={18} /><p>{guideline.summary || "Bảng khuyến cáo đã được cấu trúc để tra cứu nhanh."}</p></div></div>
+      {relatedCalculators.length > 0 && <section className="mt-4 rounded-2xl border border-teal-200 bg-teal-50/50 p-4"><h2 className="text-sm font-extrabold text-teal-800">Máy tính liên quan</h2><div className="mt-2 flex flex-wrap gap-2">{relatedCalculators.map((calculator) => <button key={calculator.id} type="button" onClick={() => onNavigate(`/may-tinh-y-khoa/${calculator.slug}`)} className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-bold text-teal-700">{calculator.name?.vi || calculator.name?.en || calculator.short_name}</button>)}</div></section>}
+      <GuidelineTableFirstView guideline={guideline} languageMode={languageMode} highlightedRecommendationId={highlightedRecommendationId} onNavigateToTable={(table: PublicRecommendationTable) => {
+        onNavigate(guidelinePath(guideline.slug, table.id));
+        window.setTimeout(() => document.getElementById(`recommendation-table-${table.id}`)?.scrollIntoView({ behavior: deepLinkScrollBehavior(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false), block: "start" }), 0);
+      }} />
     </div>
   </section>;
 }
 
-type GuidelineListItem = Guideline | PublicGuidelinePreview;
+type GuidelineListItem = PublicGuidelinePreview;
 
-function isFullGuideline(item: GuidelineListItem): item is Guideline {
-  return "sections" in item;
-}
-
-function itemTitle(item: GuidelineListItem): string {
-  return isFullGuideline(item) ? item.titleVi || item.title : item.title;
-}
+function itemTitle(item: GuidelineListItem): string { return item.title; }
 
 function itemTopics(item: GuidelineListItem): string[] {
   return Array.isArray(item.topics) ? Array.from(item.topics).filter((topic): topic is string => typeof topic === "string") : [];
@@ -129,11 +107,19 @@ export default function GuidelineDataPage({ user, route, onNavigate, onManage }:
   const [year, setYear] = useState("");
   const [languageMode, setLanguageMode] = useLanguageMode();
   const [allGuidelines, setAllGuidelines] = useState<GuidelineListItem[]>([]);
+  const [tableFirstGuidelines, setTableFirstGuidelines] = useState<PublicGuidelineTableFirst[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [relatedCalculators, setRelatedCalculators] = useState<DatabaseCalculator[]>([]);
-  useEffect(() => { let active = true; setLoading(true); const load = user ? loadPublishedCoreGuidelines() : listPublishedGuidelinePreviews(); void load.then((items) => { if (active) { setAllGuidelines(items); setLoadError(""); } }).catch((reason) => { if (active) setLoadError(reason instanceof Error ? reason.message : "Không thể tải Guideline."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [user]);
-  const selectedGuideline = route.kind === "guideline-detail" && user ? findPublishedCoreGuidelineBySlug(allGuidelines.filter(isFullGuideline), route.slug) : undefined;
+  useEffect(() => { let active = true; setLoading(true); const load = async () => {
+    // The catalog is always a public-preview DTO. Detailed table content is
+    // loaded only for an authenticated visitor opening a specific guideline.
+    const items = await listPublishedGuidelinePreviews();
+    const tableItems = user ? await loadPublishedTableFirstGuidelines() : [] as PublicGuidelineTableFirst[];
+    return { items, tableItems };
+  };
+  void load().then(({ items, tableItems }) => { if (active) { setAllGuidelines(items); setTableFirstGuidelines(tableItems); setLoadError(""); } }).catch((reason) => { if (active) setLoadError(reason instanceof Error ? reason.message : "Không thể tải Guideline."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [user]);
+  const selectedGuideline = route.kind === "guideline-detail" && user ? findPublishedTableFirstGuidelineBySlug(tableFirstGuidelines, route.slug) : undefined;
   useEffect(() => { let active = true; if (!selectedGuideline) { setRelatedCalculators([]); return () => { active = false; }; } void listPublicCalculatorRecordsForGuideline(selectedGuideline.id).then((items) => { if (active) setRelatedCalculators(items); }).catch(() => { if (active) setRelatedCalculators([]); }); return () => { active = false; }; }, [selectedGuideline]);
   const filtered = useMemo(() => allGuidelines.filter((guideline) => {
     const haystack = `${itemTitle(guideline)} ${guidelineTitle(guideline)} ${itemTopics(guideline).join(" ")}`.toLowerCase();
@@ -160,12 +146,12 @@ export default function GuidelineDataPage({ user, route, onNavigate, onManage }:
   </section>;
 }
 
-function guidelineTitle(item: GuidelineListItem): string { return isFullGuideline(item) ? item.title : item.title; }
+function guidelineTitle(item: GuidelineListItem): string { return item.title; }
 function guidelineSummary(item: GuidelineListItem): string { return item.summary || ""; }
-function guidelineCondition(item: GuidelineListItem): string { return isFullGuideline(item) ? item.specialty : item.condition; }
-function guidelineOrganization(item: GuidelineListItem): string { return isFullGuideline(item) ? item.organization : item.society; }
-function guidelineYear(item: GuidelineListItem): number { return isFullGuideline(item) ? item.publicationYear : item.publication_year || 0; }
-function guidelineSlug(item: GuidelineListItem): string { return isFullGuideline(item) ? item.slug : slugForPreview(item); }
+function guidelineCondition(item: GuidelineListItem): string { return item.condition; }
+function guidelineOrganization(item: GuidelineListItem): string { return item.society; }
+function guidelineYear(item: GuidelineListItem): number { return item.publication_year || 0; }
+function guidelineSlug(item: GuidelineListItem): string { return slugForPreview(item); }
 function slugForPreview(item: PublicGuidelinePreview): string {
   return `${item.society}-${item.title}-${item.publication_year ?? item.version_label}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || item.id;
 }

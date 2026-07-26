@@ -6,6 +6,10 @@ function client() {
   return supabase;
 }
 
+const calculatorListColumns = "id,owner_id,slug,short_name,name,description,calculator_type,specialty_id,category_id,handler_key,calculator_topic_key,default_method_key,enabled_method_keys,comparison_enabled,calculation_mode,version,calculation_version,content_revision,status,source_verified,reviewed_at,published_at,archived_at,created_at,updated_at";
+const calculatorDetailColumns = `${calculatorListColumns},input_fields,scoring_rules,formula_display,formula_variables,result_definitions,when_to_use,when_not_to_use,limitations,warnings,evidence_references,reviewed_by,published_by,archived_by`;
+const calculatorGuidelineReferenceColumns = "id,calculator_id,guideline_id,section_id,recommendation_id,relation_type,context,required,display_order,owner_id,created_at,updated_at";
+
 export interface CalculatorListFilter {
   publicOnly?: boolean;
   status?: DatabaseCalculator["status"];
@@ -20,7 +24,7 @@ export type CalculatorUpdate = Partial<Omit<DatabaseCalculator, "id" | "created_
 
 export class CalculatorRepository {
   async list(filter: CalculatorListFilter = {}): Promise<DatabaseCalculator[]> {
-    let query = client().from("calculators").select("*").order("updated_at", { ascending: false });
+    let query = client().from("calculators").select(calculatorListColumns).order("updated_at", { ascending: false }).limit(filter.limit ?? 200);
     if (filter.publicOnly) query = query.eq("status", "published");
     if (filter.status) query = query.eq("status", filter.status);
     if (filter.specialtyId) query = query.eq("specialty_id", filter.specialtyId);
@@ -29,7 +33,6 @@ export class CalculatorRepository {
       const value = filter.query.trim().replace(/[%(),]/g, " ");
       query = query.or(`slug.ilike.%${value}%,short_name.ilike.%${value}%`);
     }
-    if (filter.limit) query = query.limit(filter.limit);
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as DatabaseCalculator[];
@@ -44,7 +47,7 @@ export class CalculatorRepository {
   }
 
   async findById(id: string, publicOnly = false): Promise<DatabaseCalculator | null> {
-    let query = client().from("calculators").select("*").eq("id", id);
+    let query = client().from("calculators").select(calculatorDetailColumns).eq("id", id);
     if (publicOnly) query = query.eq("status", "published");
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
@@ -52,7 +55,7 @@ export class CalculatorRepository {
   }
 
   async findBySlug(slug: string, publicOnly = false): Promise<DatabaseCalculator | null> {
-    let query = client().from("calculators").select("*").eq("slug", slug);
+    let query = client().from("calculators").select(calculatorDetailColumns).eq("slug", slug);
     if (publicOnly) query = query.eq("status", "published");
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
@@ -60,13 +63,13 @@ export class CalculatorRepository {
   }
 
   async create(input: CalculatorInsert): Promise<DatabaseCalculator> {
-    const { data, error } = await client().from("calculators").insert(input).select("*").single();
+    const { data, error } = await client().from("calculators").insert(input).select(calculatorDetailColumns).single();
     if (error) throw error;
     return data as DatabaseCalculator;
   }
 
   async update(id: string, input: CalculatorUpdate): Promise<DatabaseCalculator> {
-    const { data, error } = await client().from("calculators").update({ ...input, updated_at: new Date().toISOString() }).eq("id", id).select("*").single();
+    const { data, error } = await client().from("calculators").update({ ...input, updated_at: new Date().toISOString() }).eq("id", id).select(calculatorDetailColumns).single();
     if (error) throw error;
     return data as DatabaseCalculator;
   }
@@ -93,14 +96,14 @@ export class CalculatorRepository {
 
   async listGuidelineReferences(calculatorId: string, publicOnly = false): Promise<CalculatorGuidelineReferenceRow[]> {
     if (publicOnly && !(await this.findById(calculatorId, true))) return [];
-    let query = client().from("calculator_guideline_references").select("*").eq("calculator_id", calculatorId).order("display_order", { ascending: true });
+    let query = client().from("calculator_guideline_references").select(calculatorGuidelineReferenceColumns).eq("calculator_id", calculatorId).order("display_order", { ascending: true });
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as CalculatorGuidelineReferenceRow[];
   }
 
   async listAllGuidelineReferences(): Promise<CalculatorGuidelineReferenceRow[]> {
-    const { data, error } = await client().from("calculator_guideline_references").select("*").order("display_order", { ascending: true });
+    const { data, error } = await client().from("calculator_guideline_references").select(calculatorGuidelineReferenceColumns).order("display_order", { ascending: true }).limit(1000);
     if (error) throw error;
     return (data ?? []) as CalculatorGuidelineReferenceRow[];
   }
@@ -108,7 +111,7 @@ export class CalculatorRepository {
   async listPublishedGuidelineReferencesForGuideline(guidelineId: string): Promise<CalculatorGuidelineReferenceRow[]> {
     const { data, error } = await client()
       .from("calculator_guideline_references")
-      .select("*, calculators!inner(status)")
+      .select(`${calculatorGuidelineReferenceColumns}, calculators!inner(status)`)
       .eq("guideline_id", guidelineId)
       .eq("calculators.status", "published")
       .order("display_order", { ascending: true });
@@ -117,13 +120,13 @@ export class CalculatorRepository {
   }
 
   async createGuidelineReference(input: Omit<CalculatorGuidelineReferenceRow, "id" | "created_at" | "updated_at">): Promise<CalculatorGuidelineReferenceRow> {
-    const { data, error } = await client().from("calculator_guideline_references").insert(input).select("*").single();
+    const { data, error } = await client().from("calculator_guideline_references").insert(input).select(calculatorGuidelineReferenceColumns).single();
     if (error) throw error;
     return data as CalculatorGuidelineReferenceRow;
   }
 
   async updateGuidelineReference(id: string, input: Partial<Omit<CalculatorGuidelineReferenceRow, "id" | "created_at" | "updated_at" | "owner_id">>): Promise<CalculatorGuidelineReferenceRow> {
-    const { data, error } = await client().from("calculator_guideline_references").update({ ...input, updated_at: new Date().toISOString() }).eq("id", id).select("*").single();
+    const { data, error } = await client().from("calculator_guideline_references").update({ ...input, updated_at: new Date().toISOString() }).eq("id", id).select(calculatorGuidelineReferenceColumns).single();
     if (error) throw error;
     return data as CalculatorGuidelineReferenceRow;
   }

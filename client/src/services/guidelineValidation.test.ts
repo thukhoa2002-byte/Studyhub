@@ -15,8 +15,8 @@ test("new Guideline writes normalize unsupported or empty condition values to Kh
 test("manual Guideline can be validated without a source document when citation exists", () => {
   const errors = validateGuidelineForPublication(
     { title: "STAGING_TEST_Guideline", publication_year: 2026, version_label: "1.0", ...source },
-    [{ status: "published" }],
     [],
+    [{ status: "draft", verification_status: "unverified", title: "Bảng 1", recommendation_text_original: "Source", recommendation_text_vi: "Dịch" }],
   );
   assert.deepEqual(errors, []);
 });
@@ -24,16 +24,21 @@ test("manual Guideline can be validated without a source document when citation 
 test("Guideline publication requires source traceability and an eligible child", () => {
   const errors = validateGuidelineForPublication(
     { title: "STAGING_TEST_Guideline", publication_year: null, version_label: "", source_url: null, doi: null, citation: null, file_path: null, provenance: [] },
-    [{ status: "draft" }],
+    [],
     [],
   );
   assert.equal(errors.length, 3);
 });
 
-test("verified Recommendation requires the matching published Guideline and Section", () => {
+test("published Recommendation keeps optional Source Section provenance consistent", () => {
   const recommendation = { title: "Recommendation", recommendation_text_original: "Do this", recommendation_text_vi: "Làm điều này", section_id: "section-1", source_page: 2, source_quote: "quote", source_anchor: "p2", verification_status: "verified" as const };
   assert.deepEqual(validateRecommendationForPublication(recommendation, { id: "guideline-1", status: "published" }, { id: "section-1", guideline_id: "guideline-1", status: "published" }), []);
   assert.ok(validateRecommendationForPublication(recommendation, { id: "guideline-2", status: "published" }, { id: "section-1", guideline_id: "guideline-1", status: "published" }).some((error) => /same Guideline/.test(error)));
+});
+
+test("Recommendation Table workflow permits a row without a Source Section", () => {
+  const recommendation = { title: "Recommendation", recommendation_text_original: "Do this", recommendation_text_vi: "Làm điều này", section_id: null, source_page: 2, source_quote: "quote", source_anchor: "p2", verification_status: "verified" as const };
+  assert.deepEqual(validateRecommendationForPublication(recommendation, { id: "guideline-1", status: "published" }, null), []);
 });
 
 test("single-admin publication does not require a separate verification state", () => {

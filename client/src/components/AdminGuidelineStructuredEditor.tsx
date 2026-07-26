@@ -33,6 +33,8 @@ import {
   setGuidelineRecommendationStatus,
   updateGuidelineRecommendation,
 } from "../services/guidelineRecommendationRepository";
+import { listGuidelineRecommendationGroups, listGuidelineRecommendationTables } from "../services/guidelineRecommendationTableRepository";
+import { listGuidelineClinicalTables } from "../services/guidelineClinicalTableRepository";
 import {
   createGuidelineSourceDocument,
   deleteGuidelineSourceDocument,
@@ -45,7 +47,7 @@ import {
   publishGuidelineSection,
   setGuidelineStatus,
 } from "../services/guidelinePublicationService";
-import { publishGuidelineEligibleContent, publishSectionEligibleContent, summarizeSectionBulkPublication } from "../services/guidelineBulkPublicationService";
+import { publishGuidelineEligibleContent } from "../services/guidelineBulkPublicationService";
 import {
   archiveGuideline,
   deleteGuidelinePermanently,
@@ -61,9 +63,12 @@ import { validateSectionParentChange } from "../services/guidelineSectionValidat
 import { validateGuidelineForPublication, validateRecommendationForPublication, GuidelineValidationError } from "../services/guidelineValidation";
 import type {
   GuidelineCoreDocument,
+  GuidelineClinicalTableRecord,
   GuidelineCoreCondition,
   GuidelineCoreStatus,
   GuidelineRecommendationRecord,
+  GuidelineRecommendationGroupRecord,
+  GuidelineRecommendationTableRecord,
   GuidelineRecommendationStatus,
   GuidelineSectionRecord,
   GuidelineSourceDocumentRecord,
@@ -71,10 +76,12 @@ import type {
   NewGuidelineRecommendation,
 } from "../services/guidelineCoreTypes";
 import RecommendationKnowledgeRelations from "./RecommendationKnowledgeRelations";
+import GuidelineRecommendationTablesPanel from "./GuidelineRecommendationTablesPanel";
+import GuidelineClinicalTablesPanel from "./GuidelineClinicalTablesPanel";
 import SharedSelect from "./SharedSelect";
 
 type AdminRoute = Extract<DataRoute, { tab: "admin" }>;
-type Tab = "overview" | "sections" | "recommendations" | "sources";
+type Tab = "overview" | "recommendation_tables" | "clinical_tables" | "sources";
 type Notice = { type: "error" | "success" | "info"; text: string; details?: string[] } | null;
 type DocumentFormState = {
   title: string;
@@ -204,7 +211,7 @@ function topicsFromForm(value: string): string[] {
 export default function AdminGuidelineStructuredEditor({ user, route, onNavigate }: { user: User; route: AdminRoute; onNavigate: (path: string) => void }) {
   if (route.kind === "admin-guideline-list") return <GuidelineList onNavigate={onNavigate} />;
   if (route.kind === "admin-guideline-new") return <GuidelineDocumentEditor user={user} onNavigate={onNavigate} />;
-  return <GuidelineWorkspace user={user} guidelineId={route.guidelineId || ""} initialTab={route.kind === "admin-guideline-sections" ? "sections" : route.kind === "admin-guideline-recommendations" ? "recommendations" : "overview"} onNavigate={onNavigate} />;
+  return <GuidelineWorkspace user={user} guidelineId={route.guidelineId || ""} initialTab={route.kind === "admin-guideline-sections" || route.kind === "admin-guideline-recommendations" ? "recommendation_tables" : "overview"} onNavigate={onNavigate} />;
 }
 
 function GuidelineList({ onNavigate }: { onNavigate: (path: string) => void }) {
@@ -223,7 +230,7 @@ function GuidelineList({ onNavigate }: { onNavigate: (path: string) => void }) {
   const filtered = useMemo(() => items.filter((item) => `${item.title} ${item.society} ${item.condition}`.toLowerCase().includes(query.toLowerCase())), [items, query]);
 
   return <section aria-labelledby="admin-guideline-title">
-    <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.16em] text-violet-600">Quản trị Guideline</p><h1 id="admin-guideline-title" className="mt-1 text-2xl font-extrabold text-rose-950">Guideline Core</h1><p className="mt-1 text-sm font-semibold text-slate-500">Biên tập Guideline, section và khuyến cáo có cấu trúc.</p></div><button type="button" onClick={() => onNavigate("/admin/guidelines/new")} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-extrabold text-white"><Plus size={17} />Thêm guideline</button></div>
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[.16em] text-violet-600">Quản trị Guideline</p><h1 id="admin-guideline-title" className="mt-1 text-2xl font-extrabold text-rose-950">Guideline Core</h1><p className="mt-1 text-sm font-semibold text-slate-500">Biên tập bảng khuyến cáo, khuyến cáo và nguồn có cấu trúc.</p></div><button type="button" onClick={() => onNavigate("/admin/guidelines/new")} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-extrabold text-white"><Plus size={17} />Thêm guideline</button></div>
     {notice && <Notice notice={notice} />}
     <div className="mt-5 rounded-2xl border border-slate-200 bg-white/80 p-4"><input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-violet-400" placeholder="Tìm guideline theo tên, hiệp hội hoặc bệnh..." /></div>
     {loading ? <Loading /> : filtered.length === 0 ? <Empty text="Chưa có guideline phù hợp." /> : <div className="mt-4 grid gap-3 md:grid-cols-2">{filtered.map((item) => <button key={item.id} type="button" onClick={() => onNavigate(`/admin/guidelines/${item.id}/edit`)} className="rounded-2xl border border-violet-100 bg-white/85 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-base font-extrabold text-slate-800">{item.title || "Chưa đặt tên"}</h2><p className="mt-1 text-xs font-semibold text-slate-500">{item.society || "Chưa có hiệp hội"} · {item.condition || "Chưa phân loại"}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${statusClass(item.status)}`}>{statusLabels[item.status]}</span></div><p className="mt-3 text-xs font-semibold text-slate-400">{item.publication_year || item.version_label || "Chưa có năm/phiên bản"} · {item.visibility === "shared" ? "Có thể chia sẻ" : "Riêng tư"}</p></button>)}</div>}
@@ -249,6 +256,11 @@ function GuidelineDocumentEditor({ user, onNavigate }: { user: User; onNavigate:
 function GuidelineWorkspace({ user, guidelineId, initialTab, onNavigate }: { user: User; guidelineId: string; initialTab: Tab; onNavigate: (path: string) => void }) {
   const [document, setDocument] = useState<GuidelineCoreDocument | null>(null);
   const [sections, setSections] = useState<GuidelineSectionRecord[]>([]);
+  const [tables, setTables] = useState<GuidelineRecommendationTableRecord[]>([]);
+  const [clinicalTables, setClinicalTables] = useState<GuidelineClinicalTableRecord[]>([]);
+  const [groups, setGroups] = useState<GuidelineRecommendationGroupRecord[]>([]);
+  const [recommendationTableStorageReady, setRecommendationTableStorageReady] = useState(true);
+  const [clinicalTableStorageReady, setClinicalTableStorageReady] = useState(true);
   const [recommendations, setRecommendations] = useState<GuidelineRecommendationRecord[]>([]);
   const [sources, setSources] = useState<GuidelineSourceDocumentRecord[]>([]);
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -260,23 +272,29 @@ function GuidelineWorkspace({ user, guidelineId, initialTab, onNavigate }: { use
   const load = useCallback(async () => {
     if (!guidelineId) { setNotice({ type: "error", text: "Thiếu ID Guideline." }); setLoading(false); return; }
     setLoading(true);
+    setRecommendationTableStorageReady(true);
+    setClinicalTableStorageReady(true);
     try {
-      const [nextDocument, nextSections, nextRecommendations, nextSources] = await Promise.all([getGuidelineCoreDocument(guidelineId), listGuidelineSections(guidelineId), listGuidelineRecommendations(guidelineId), listGuidelineSourceDocuments(guidelineId)]);
+      const [nextDocument, nextSections, nextRecommendations, nextSources, nextTables, nextGroups, nextClinicalTables] = await Promise.all([
+        getGuidelineCoreDocument(guidelineId), listGuidelineSections(guidelineId), listGuidelineRecommendations(guidelineId), listGuidelineSourceDocuments(guidelineId), listGuidelineRecommendationTables(guidelineId).catch(() => { setRecommendationTableStorageReady(false); return []; }),
+        listGuidelineRecommendationGroups(guidelineId).catch(() => []),
+        listGuidelineClinicalTables(guidelineId).catch(() => { setClinicalTableStorageReady(false); return []; }),
+      ]);
       if (!nextDocument) { setNotice({ type: "error", text: "Không tìm thấy Guideline hoặc bạn không có quyền truy cập." }); return; }
-      setDocument(nextDocument); setSections(nextSections); setRecommendations(nextRecommendations); setSources(nextSources); setNotice(null);
-      setBaseline(JSON.stringify({ nextDocument, nextSections, nextRecommendations, nextSources })); setDirty(false);
+      setDocument(nextDocument); setSections(nextSections); setRecommendations(nextRecommendations); setSources(nextSources); setTables(nextTables); setGroups(nextGroups); setClinicalTables(nextClinicalTables); setNotice(null);
+      setBaseline(JSON.stringify({ nextDocument, nextSections, nextRecommendations, nextSources, nextTables, nextGroups, nextClinicalTables })); setDirty(false);
     } catch (error) { setNotice({ type: "error", text: errorText(error), details: validationDetails(error) }); }
     finally { setLoading(false); }
   }, [guidelineId]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { const onBeforeUnload = (event: BeforeUnloadEvent) => { if (!dirty) return; event.preventDefault(); event.returnValue = ""; }; window.addEventListener("beforeunload", onBeforeUnload); return () => window.removeEventListener("beforeunload", onBeforeUnload); }, [dirty]);
-  useEffect(() => { if (document && baseline) setDirty(JSON.stringify({ nextDocument: document, nextSections: sections, nextRecommendations: recommendations, nextSources: sources }) !== baseline); }, [document, sections, recommendations, sources, baseline]);
+  useEffect(() => { if (document && baseline) setDirty(JSON.stringify({ nextDocument: document, nextSections: sections, nextRecommendations: recommendations, nextSources: sources, nextTables: tables, nextGroups: groups, nextClinicalTables: clinicalTables }) !== baseline); }, [document, sections, recommendations, sources, tables, groups, clinicalTables, baseline]);
   useEffect(() => {
     if (notice?.type !== "success" || !document) return;
-    const snapshot = JSON.stringify({ nextDocument: document, nextSections: sections, nextRecommendations: recommendations, nextSources: sources });
+    const snapshot = JSON.stringify({ nextDocument: document, nextSections: sections, nextRecommendations: recommendations, nextSources: sources, nextTables: tables, nextGroups: groups, nextClinicalTables: clinicalTables });
     setBaseline(snapshot);
     setDirty(false);
-  }, [notice, document, sections, recommendations, sources]);
+  }, [notice, document, sections, recommendations, sources, tables, groups, clinicalTables]);
 
   if (loading) return <Loading />;
   if (!document) return <><Notice notice={notice} /><button type="button" onClick={() => onNavigate("/admin/guidelines")} className="mt-4 font-bold text-violet-700">Quay về danh sách</button></>;
@@ -310,19 +328,19 @@ function GuidelineWorkspace({ user, guidelineId, initialTab, onNavigate }: { use
     try {
       const result = await publishGuidelineEligibleContent(document!.id, user.id);
       await load();
-      setNotice({ type: result.blocked.length ? "info" : "success", text: `Đã xuất bản ${result.publishedSectionIds.length} mục và ${result.publishedRecommendationIds.length} khuyến cáo. ${result.alreadyPublishedRecommendationIds.length} khuyến cáo đã có sẵn.`, details: result.blocked.flatMap((item) => item.reasons.map((reason) => `${item.title || "Mục chưa có tên"}: ${reason}`)) });
+      setNotice({ type: result.blocked.length ? "info" : "success", text: `Đã xuất bản ${result.publishedRecommendationIds.length} khuyến cáo. ${result.alreadyPublishedRecommendationIds.length} khuyến cáo đã có sẵn.`, details: result.blocked.flatMap((item) => item.reasons.map((reason) => `${item.title || "Bảng khuyến cáo chưa có tên"}: ${reason}`)) });
     } catch (error) { setNotice({ type: "error", text: errorText(error), details: validationDetails(error) }); }
   }
   const blockers = validateGuidelineForPublication(document, sections, recommendations, sources);
   return <section>
     <EditorHeader title={document.title || "Guideline chưa đặt tên"} onBack={() => onNavigate("/admin/guidelines")} />
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-violet-100 bg-white/80 p-3"><div className="flex items-center gap-2"><span className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${statusClass(document.status)}`}>{statusLabels[document.status]}</span><span className="text-xs font-semibold text-slate-400">UUID giữ nguyên: {document.id}</span></div><div className="flex flex-wrap gap-2">{document.status !== "archived" && <button type="button" onClick={() => void publishAllEligible()} className="rounded-xl bg-violet-600 px-3 py-2 text-xs font-extrabold text-white">Xuất bản tất cả mục hợp lệ</button>}{document.status !== "archived" && <button type="button" onClick={() => window.confirm("Xuất bản Guideline theo chính sách hiện tại?") && void changeStatus("published")} className="rounded-xl bg-teal-600 px-3 py-2 text-xs font-extrabold text-white">Xuất bản</button>}{document.status === "published" && <button type="button" onClick={() => window.confirm("Lưu trữ Guideline này? Nội dung sẽ không còn công khai.") && void changeStatus("archived")} className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-extrabold text-rose-700"><Archive size={14} />Lưu trữ</button>}{document.status === "archived" && <><button type="button" onClick={() => void changeStatus("draft")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-700">Khôi phục về nháp</button><button type="button" onClick={() => void removePermanently()} className="ml-2 inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-extrabold text-rose-700"><Trash2 size={14} />Xóa vĩnh viễn</button></>}{document.status === "draft" && <button type="button" onClick={() => void removePermanently()} className="ml-2 inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-extrabold text-rose-700"><Trash2 size={14} />Xóa</button>}</div></div>
-    {dirty && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">Có thay đổi chưa lưu. Hãy lưu từng section hoặc khuyến cáo trước khi rời trang.</div>}
+    {dirty && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">Có thay đổi chưa lưu. Hãy lưu Bảng khuyến cáo, Khuyến cáo hoặc Nguồn trước khi rời trang.</div>}
     {notice && <Notice notice={notice} />}
-    <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2 md:grid-cols-4">{(["overview", "sections", "recommendations", "sources"] as Tab[]).map((item) => <button key={item} type="button" onClick={() => setTab(item)} className={`rounded-xl px-3 py-2.5 text-sm font-extrabold ${tab === item ? "bg-violet-100 text-violet-800" : "text-slate-600 hover:bg-violet-50"}`}>{item === "overview" ? "Thông tin chung" : item === "sections" ? `Sections (${sections.length})` : item === "recommendations" ? `Khuyến cáo (${recommendations.length})` : `Nguồn (${sources.length})`}</button>)}</div>
+    <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2 md:grid-cols-4">{(["overview", "recommendation_tables", "clinical_tables", "sources"] as Tab[]).map((item) => <button key={item} type="button" onClick={() => setTab(item)} className={`rounded-xl px-3 py-2.5 text-sm font-extrabold ${tab === item ? "bg-violet-100 text-violet-800" : "text-slate-600 hover:bg-violet-50"}`}>{item === "overview" ? "Thông tin chung" : item === "recommendation_tables" ? `Bảng khuyến cáo (${tables.length})` : item === "clinical_tables" ? `Bảng lâm sàng (${clinicalTables.length})` : `Nguồn (${sources.length})`}</button>)}</div>
     {tab === "overview" && <OverviewPanel document={document} onSave={updateDocument} blockers={blockers} />}
-    {tab === "sections" && <SectionsPanel guidelineId={document.id} sections={sections} recommendations={recommendations} setSections={setSections} setNotice={setNotice} user={user} onBulkPublished={() => void load()} />}
-    {tab === "recommendations" && <RecommendationsPanel document={document} sections={sections} recommendations={recommendations} setRecommendations={setRecommendations} setNotice={setNotice} user={user} />}
+    {tab === "recommendation_tables" && <GuidelineRecommendationTablesPanel guidelineId={document.id} user={user} tables={tables} groups={groups} sections={sections} recommendations={recommendations} storageReady={recommendationTableStorageReady} setTables={setTables} setGroups={setGroups} setRecommendations={setRecommendations} setNotice={setNotice} onBulkPublished={() => void load()} onOpenRecommendation={(id) => { const target = recommendations.find((item) => item.id === id); if (target) window.history.replaceState({}, "", `${window.location.pathname}?recommendation=${target.id}`); }} />}
+    {tab === "clinical_tables" && <GuidelineClinicalTablesPanel guidelineId={document.id} user={user} tables={clinicalTables} sections={sections} storageReady={clinicalTableStorageReady} setTables={setClinicalTables} setNotice={setNotice} />}
     {tab === "sources" && <SourcesPanel guidelineId={document.id} sources={sources} setSources={setSources} setNotice={setNotice} user={user} />}
   </section>;
 }
@@ -357,18 +375,18 @@ function SectionsPanel({ guidelineId, sections, recommendations, setSections, se
     try { const [current, next] = await Promise.all([updateGuidelineSection(section.id, { display_order: target.display_order }), updateGuidelineSection(target.id, { display_order: section.display_order })]); setSections(sections.map((item) => item.id === current.id ? current : item.id === next.id ? next : item)); }
     catch (error) { setNotice({ type: "error", text: errorText(error) }); }
   }
-  const parentOptions = [{ value: "", label: "Section gốc" }, ...ordered.filter((item) => item.status !== "archived").map((item) => ({ value: item.id, label: item.title_vi || item.title }))];
-  return <div className="mt-4 space-y-4"><div className="rounded-2xl border border-teal-100 bg-teal-50/40 p-4"><h2 className="text-base font-extrabold text-teal-900">Tạo section</h2><div className="mt-3 grid gap-3 md:grid-cols-2"><input value={title} onChange={(event) => setTitle(event.target.value)} className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold" placeholder="Tên section" /><input value={titleVi} onChange={(event) => setTitleVi(event.target.value)} className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold" placeholder="Tên tiếng Việt (tùy chọn)" /><div className="md:col-span-2"><SharedSelect value={parentId} onValueChange={setParentId} ariaLabel="Section cha" options={parentOptions} searchable /></div><textarea value={summary} onChange={(event) => setSummary(event.target.value)} className="min-h-20 rounded-xl border border-slate-200 p-3 text-sm font-semibold md:col-span-2" placeholder="Tóm tắt section" /></div><button type="button" disabled={saving} onClick={() => void add()} className="mt-3 inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50"><Plus size={16} />Thêm section</button></div><div className="rounded-2xl border border-slate-200 bg-white/80 p-4"><h2 className="text-base font-extrabold text-slate-800">Cấu trúc section</h2>{ordered.length === 0 ? <Empty text="Chưa có section." /> : <div className="mt-3 space-y-2">{ordered.map((section, index) => <SectionRow key={section.id} section={section} sections={sections} recommendations={recommendations} actorId={user.id} onBulkPublished={onBulkPublished} setSections={setSections} setNotice={setNotice} onMoveUp={() => void move(section, -1)} onMoveDown={() => void move(section, 1)} isFirst={index === 0} isLast={index === ordered.length - 1} />)}</div>}</div></div>;
+  const parentOptions = [{ value: "", label: "Mục nguồn gốc" }, ...ordered.filter((item) => item.status !== "archived").map((item) => ({ value: item.id, label: item.title_vi || item.title }))];
+  return <div className="mt-4 space-y-4"><div className="rounded-2xl border border-teal-100 bg-teal-50/40 p-4"><h2 className="text-base font-extrabold text-teal-900">Tạo Mục nguồn</h2><p className="mt-1 text-xs font-semibold text-slate-500">Khu vực phụ để tạo cấu trúc chương/mục của tài liệu nguồn. Không dùng để tạo Bảng khuyến cáo.</p><div className="mt-3 grid gap-3 md:grid-cols-2"><input value={title} onChange={(event) => setTitle(event.target.value)} className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold" placeholder="Tên Mục nguồn" /><input value={titleVi} onChange={(event) => setTitleVi(event.target.value)} className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold" placeholder="Tên tiếng Việt (tùy chọn)" /><div className="md:col-span-2"><SharedSelect value={parentId} onValueChange={setParentId} ariaLabel="Mục nguồn cha" options={parentOptions} searchable /></div><textarea value={summary} onChange={(event) => setSummary(event.target.value)} className="min-h-20 rounded-xl border border-slate-200 p-3 text-sm font-semibold md:col-span-2" placeholder="Tóm tắt Mục nguồn" /></div><button type="button" disabled={saving} onClick={() => void add()} className="mt-3 inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50"><Plus size={16} />Thêm Mục nguồn</button></div><div className="rounded-2xl border border-slate-200 bg-white/80 p-4"><h2 className="text-base font-extrabold text-slate-800">Cấu trúc Mục nguồn</h2>{ordered.length === 0 ? <Empty text="Chưa có Mục nguồn." /> : <div className="mt-3 space-y-2">{ordered.map((section, index) => <SectionRow key={section.id} section={section} sections={sections} recommendations={recommendations} actorId={user.id} onBulkPublished={onBulkPublished} setSections={setSections} setNotice={setNotice} onMoveUp={() => void move(section, -1)} onMoveDown={() => void move(section, 1)} isFirst={index === 0} isLast={index === ordered.length - 1} />)}</div>}</div></div>;
 }
 
-function SectionRow({ section, sections, recommendations, actorId, onBulkPublished, setSections, setNotice, onMoveUp, onMoveDown, isFirst, isLast }: { section: GuidelineSectionRecord; sections: GuidelineSectionRecord[]; recommendations: GuidelineRecommendationRecord[]; actorId: string; onBulkPublished: () => void; setSections: (items: GuidelineSectionRecord[]) => void; setNotice: (notice: Notice) => void; onMoveUp: () => void; onMoveDown: () => void; isFirst: boolean; isLast: boolean }) {
+function SectionRow({ section, sections, recommendations: _recommendations, actorId: _actorId, onBulkPublished: _onBulkPublished, setSections, setNotice, onMoveUp, onMoveDown, isFirst, isLast }: { section: GuidelineSectionRecord; sections: GuidelineSectionRecord[]; recommendations: GuidelineRecommendationRecord[]; actorId: string; onBulkPublished: () => void; setSections: (items: GuidelineSectionRecord[]) => void; setNotice: (notice: Notice) => void; onMoveUp: () => void; onMoveDown: () => void; isFirst: boolean; isLast: boolean }) {
   const [editing, setEditing] = useState(false); const [title, setTitle] = useState(section.title); const [titleVi, setTitleVi] = useState(section.title_vi); const [summary, setSummary] = useState(section.summary); const [parent, setParent] = useState(section.parent_section_id || "");
   async function save() {
     const errors = validateSectionParentChange(section.id, section.guideline_id, parent || null, sections); if (errors.length) { setNotice({ type: "error", text: errors[0], details: errors }); return; }
     try { const updated = await updateGuidelineSection(section.id, { title: title.trim(), title_vi: titleVi.trim() || title.trim(), summary: summary.trim(), parent_section_id: parent || null }); setSections(sections.map((item) => item.id === updated.id ? updated : item)); setEditing(false); setNotice({ type: "success", text: "Đã lưu section." }); } catch (error) { setNotice({ type: "error", text: errorText(error) }); }
   }
   async function publish() { try { const updated = await publishGuidelineSection(section.id); setSections(sections.map((item) => item.id === updated.id ? updated : item)); setNotice({ type: "success", text: "Đã xuất bản section." }); } catch (error) { setNotice({ type: "error", text: errorText(error) }); } }
-  async function publishAll() { const summary = summarizeSectionBulkPublication(section.id, sections, recommendations); if (!window.confirm(`Mục này có ${summary.draft} khuyến cáo bản nháp, ${summary.published} đã xuất bản. Xuất bản tất cả khuyến cáo hợp lệ?`)) return; try { const result = await publishSectionEligibleContent(section.id, actorId); onBulkPublished(); setNotice({ type: result.blocked.length ? "info" : "success", text: `Đã xuất bản ${result.publishedRecommendationIds.length} khuyến cáo.`, details: result.blocked.flatMap((item) => item.reasons.map((reason) => `${item.title}: ${reason}`)) }); } catch (error) { setNotice({ type: "error", text: errorText(error), details: validationDetails(error) }); } }
+  async function publishAll() { setNotice({ type: "info", text: "Mục nguồn chỉ còn metadata. Hãy xuất bản theo Bảng khuyến cáo." }); }
   async function archive() { if (!window.confirm(`Lưu trữ section “${section.title}”?`)) return; try { const updated = await setGuidelineSectionStatus(section.id, "archived"); setSections(sections.map((item) => item.id === updated.id ? updated : item)); } catch (error) { setNotice({ type: "error", text: errorText(error) }); } }
   async function restore() { try { const updated = await restoreGuidelineSectionToDraft(section.id); setSections(sections.map((item) => item.id === updated.id ? updated : item)); setNotice({ type: "success", text: "Đã khôi phục section về bản nháp." }); } catch (error) { setNotice({ type: "error", text: errorText(error) }); } }
   async function remove() { if (window.prompt(`Nhập DELETE để xóa vĩnh viễn section “${section.title}”.`) !== "DELETE") return; try { await deleteGuidelineSectionPermanently(section.id); setSections(sections.filter((item) => item.id !== section.id)); setNotice({ type: "success", text: "Đã xóa section." }); } catch (error) { setNotice({ type: "error", text: errorText(error) }); } }
@@ -407,6 +425,11 @@ function RecommendationForm({ form, setForm, sections }: { form: NewGuidelineRec
   const verificationOptions = [{ value: "unverified", label: "Chưa xác minh" }, { value: "needs_review", label: "Cần rà soát" }, { value: "verified", label: "Đã xác minh" }, { value: "rejected", label: "Từ chối" }];
   return <div className="mt-4 grid gap-3 md:grid-cols-2">{input("title", "Tiêu đề")}{input("recommendation_class", "Phân loại / strength")}{area("recommendation_text_vi", "Nội dung tiếng Việt")}{area("recommendation_text_original", "Nội dung nguyên bản")}{area("rationale_vi", "Lý do / rationale")}{input("evidence_level", "Mức chứng cứ")}{input("evidence_system", "Hệ thống chứng cứ")}{input("population", "Quần thể")}{input("intervention", "Can thiệp")}{input("comparator", "So sánh")}{input("outcome", "Kết cục")}{input("conditions", "Điều kiện")}{input("contraindications", "Chống chỉ định")}{input("source_page", "Trang nguồn")}{input("source_anchor", "Mốc nguồn")}{input("source_quote", "Trích dẫn nguồn", true)}<label className="md:col-span-2"><span className="mb-1.5 block text-xs font-extrabold text-slate-700">Section</span><SharedSelect value={form.section_id || ""} onValueChange={(sectionId) => setForm({ ...form, section_id: sectionId || null })} ariaLabel="Section của khuyến cáo" options={sectionOptions} searchable /></label><label><span className="mb-1.5 block text-xs font-extrabold text-slate-700">Xác minh</span><SharedSelect value={form.verification_status} onValueChange={(verificationStatus) => setForm({ ...form, verification_status: verificationStatus as NewGuidelineRecommendation["verification_status"] })} ariaLabel="Trạng thái xác minh" options={verificationOptions} /></label>{area("review_note", "Ghi chú rà soát")}</div>;
 }
+
+// Legacy source-section and detached recommendation editors stay out of the
+// primary workflow while existing records remain readable for provenance.
+void SectionsPanel;
+void RecommendationsPanel;
 
 function SourcesPanel({ guidelineId, sources, setSources, setNotice, user }: { guidelineId: string; sources: GuidelineSourceDocumentRecord[]; setSources: (items: GuidelineSourceDocumentRecord[]) => void; setNotice: (notice: Notice) => void; user: User }) {
   const [form, setForm] = useState({ original_filename: "", storage_path: "", mime_type: "application/pdf", source_kind: "supporting" as GuidelineSourceKind, checksum: "", page_count: "" });

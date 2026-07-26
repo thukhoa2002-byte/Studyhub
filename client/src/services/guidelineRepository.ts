@@ -7,8 +7,11 @@ export function requireGuidelineClient() {
   return supabase;
 }
 
+const publicGuidelineColumns = "id,title,society,condition,publication_year,version_label,summary,topics,source_url,status,published_at,updated_at";
+const guidelineColumns = "id,owner_id,title,society,condition,publication_year,version_label,summary,topics,source_url,doi,citation,file_path,supplement_file_path,provenance,visibility,status,review_note,published_at,archived_at,published_by,archived_by,created_at,updated_at";
+
 export async function listGuidelineCoreDocuments(options: { publicOnly?: boolean } = {}): Promise<GuidelineCoreDocument[]> {
-  let query = requireGuidelineClient().from("guideline_documents").select("*").order("publication_year", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
+  let query = requireGuidelineClient().from("guideline_documents").select(guidelineColumns).order("publication_year", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).limit(200);
   if (options.publicOnly) query = query.eq("status", "published");
   const { data, error } = await query;
   if (error) throw error;
@@ -26,12 +29,32 @@ export async function listGuidelineCoreDocumentPreviews(): Promise<GuidelineCore
   return (data ?? []) as GuidelineCorePreview[];
 }
 
+export async function listPublishedGuidelineCoreDocumentsForPublic(): Promise<GuidelineCoreDocument[]> {
+  const { data, error } = await requireGuidelineClient()
+    .from("guideline_documents")
+    .select(publicGuidelineColumns)
+    .eq("status", "published")
+    .order("publication_year", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return (data ?? []) as GuidelineCoreDocument[];
+}
+
 export async function getGuidelineCoreDocument(id: string, options: { publicOnly?: boolean } = {}): Promise<GuidelineCoreDocument | null> {
-  let query = requireGuidelineClient().from("guideline_documents").select("*").eq("id", id);
+  let query = requireGuidelineClient().from("guideline_documents").select(guidelineColumns).eq("id", id);
   if (options.publicOnly) query = query.eq("status", "published");
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return (data as GuidelineCoreDocument | null) ?? null;
+}
+
+export async function getGuidelineCoreDocumentsByIds(ids: string[]): Promise<GuidelineCoreDocument[]> {
+  const uniqueIds = [...new Set(ids)].filter(Boolean);
+  if (uniqueIds.length === 0) return [];
+  const { data, error } = await requireGuidelineClient().from("guideline_documents").select(guidelineColumns).in("id", uniqueIds).limit(uniqueIds.length);
+  if (error) throw error;
+  return (data ?? []) as GuidelineCoreDocument[];
 }
 
 export async function createGuidelineCoreDocument(ownerId: string, input: NewGuidelineCoreDocument): Promise<GuidelineCoreDocument> {

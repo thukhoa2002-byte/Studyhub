@@ -1,8 +1,8 @@
 import { getCalculatorRecord } from "./calculatorDatabaseService.ts";
 import { getDrugById } from "./drugDatabaseService.ts";
-import { getGuidelineRecommendation } from "./guidelineRecommendationRepository.ts";
-import { getGuidelineSection } from "./guidelineSectionRepository.ts";
-import { getGuidelineCoreDocument } from "./guidelineRepository.ts";
+import { getGuidelineRecommendation, getGuidelineRecommendationsByIds } from "./guidelineRecommendationRepository.ts";
+import { getGuidelineSection, getGuidelineSectionsByIds } from "./guidelineSectionRepository.ts";
+import { getGuidelineCoreDocument, getGuidelineCoreDocumentsByIds } from "./guidelineRepository.ts";
 import { guidelineCoreSlug } from "./guidelineCorePublicMapper.ts";
 import {
   knowledgeRelationRepository,
@@ -81,17 +81,23 @@ export async function listCalculatorRecommendationRelations(calculatorId: string
 
 export async function resolveRecommendationLocations(recommendationIds: string[]) {
   const uniqueIds = [...new Set(recommendationIds)];
-  const items = await Promise.all(uniqueIds.map(async (id) => {
-    const recommendation = await getGuidelineRecommendation(id);
-    if (!recommendation) return null;
-    const [guideline, section] = await Promise.all([getGuidelineCoreDocument(recommendation.guideline_id), recommendation.section_id ? getGuidelineSection(recommendation.section_id) : Promise.resolve(null)]);
+  const recommendations = await getGuidelineRecommendationsByIds(uniqueIds);
+  const [guidelines, sections] = await Promise.all([
+    getGuidelineCoreDocumentsByIds(recommendations.map((item) => item.guideline_id)),
+    getGuidelineSectionsByIds(recommendations.flatMap((item) => item.section_id ? [item.section_id] : [])),
+  ]);
+  const guidelineById = new Map(guidelines.map((item) => [item.id, item]));
+  const sectionById = new Map(sections.map((item) => [item.id, item]));
+  const items = recommendations.map((recommendation) => {
+    const guideline = guidelineById.get(recommendation.guideline_id);
     if (!guideline) return null;
+    const section = recommendation.section_id ? sectionById.get(recommendation.section_id) || null : null;
     const publicEligible = guideline.status === "published"
       && section?.status === "published"
       && recommendation.status === "published"
       && recommendation.verification_status === "verified";
     return { recommendation, guideline, section, publicEligible };
-  }));
+  });
   return items.filter((item): item is RecommendationLocation => item !== null);
 }
 

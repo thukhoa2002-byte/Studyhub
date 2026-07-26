@@ -83,10 +83,82 @@ export interface GuidelineSourceDocumentRecord {
   updated_at: string;
 }
 
+export type GuidelineRecommendationTableStatus = "draft" | "published" | "archived";
+export type GuidelineClinicalTableStatus = "draft" | "in_review" | "published" | "archived";
+
+export interface GuidelineRecommendationTableRecord {
+  id: string;
+  guideline_id: string;
+  // Source Section is provenance only. A table remains a valid primary
+  // resource when the original document has no recoverable section mapping.
+  section_id: string | null;
+  owner_id: string | null;
+  table_number: string;
+  source_table_number?: string;
+  title: string;
+  title_vi: string;
+  short_description?: string;
+  source_page: number | null;
+  source_page_start?: number | null;
+  source_page_end?: number | null;
+  source_quote: string;
+  source_anchor: string;
+  source_order?: number;
+  display_order: number;
+  is_complete: boolean;
+  translation_status?: "pending" | "blocked_pending_extraction" | "translated" | "reviewed";
+  status: GuidelineRecommendationTableStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GuidelineRecommendationGroupRecord {
+  id: string;
+  guideline_id: string;
+  section_id: string | null;
+  recommendation_table_id: string;
+  owner_id: string | null;
+  source_heading: string;
+  title_vi: string;
+  context: string;
+  source_page: number | null;
+  group_order: number;
+  status: GuidelineRecommendationTableStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A non-recommendation clinical table. Its rows must never be promoted to recommendations automatically. */
+export interface GuidelineClinicalTableRecord {
+  id: string;
+  guideline_id: string;
+  section_id: string | null;
+  owner_id: string | null;
+  table_number: string;
+  title: string;
+  title_vi: string;
+  short_description: string;
+  source_page_start: number | null;
+  source_page_end: number | null;
+  source_order: number;
+  headers_original: string[];
+  headers_vi: string[];
+  rows_original: string[][];
+  rows_vi: string[][];
+  footnotes_original: string[];
+  footnotes_vi: string[];
+  is_complete: boolean;
+  status: GuidelineClinicalTableStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GuidelineRecommendationRecord {
   id: string;
   guideline_id: string;
   section_id: string | null;
+  recommendation_table_id?: string | null;
+  recommendation_group_id?: string | null;
   owner_id: string | null;
   title: string;
   recommendation_text_original: string;
@@ -113,6 +185,20 @@ export interface GuidelineRecommendationRecord {
   created_at: string;
   updated_at: string;
 }
+
+export type NewGuidelineRecommendationTable = Pick<GuidelineRecommendationTableRecord,
+  "guideline_id" | "section_id" | "table_number" | "title" | "title_vi" | "source_quote" | "source_anchor" | "is_complete" | "display_order"
+> & Partial<Pick<GuidelineRecommendationTableRecord,
+  "source_table_number" | "short_description" | "source_page" | "source_page_start" | "source_page_end" | "source_order" | "translation_status" | "status"
+>>;
+
+export type NewGuidelineRecommendationGroup = Pick<GuidelineRecommendationGroupRecord,
+  "guideline_id" | "section_id" | "recommendation_table_id" | "source_heading" | "title_vi" | "context" | "group_order"
+> & Partial<Pick<GuidelineRecommendationGroupRecord, "source_page" | "status">>;
+
+export type NewGuidelineClinicalTable = Pick<GuidelineClinicalTableRecord,
+  "guideline_id" | "section_id" | "table_number" | "title" | "title_vi" | "source_order" | "headers_original" | "headers_vi" | "rows_original" | "rows_vi" | "footnotes_original" | "footnotes_vi" | "is_complete"
+> & Partial<Pick<GuidelineClinicalTableRecord, "short_description" | "source_page_start" | "source_page_end" | "status">>;
 
 export type NewGuidelineCoreDocument = Omit<Pick<GuidelineCoreDocument, "title" | "society" | "condition" | "version_label" | "visibility">, "condition"> & {
   condition: GuidelineCoreCondition;

@@ -23,6 +23,8 @@ export interface GuidelineImportItem {
   translationEligibility?: "automatic" | "manual_only" | "not_required" | "blocked_pending_extraction";
   manualReviewRequired?: boolean;
   mandatory?: boolean;
+  sourceTableNumber?: string;
+  sourceOrder?: number;
   sourceHash?: string;
   translationStatus?: string;
   figure?: GuidelineImportFigure;
@@ -75,7 +77,7 @@ export interface GuidelineImportJob {
   total_pages: number | null;
   processed_pages: number;
   source_metadata: Record<string, unknown>;
-  analysis_metadata: { items?: GuidelineImportItem[]; document?: Record<string, unknown>; selectedItemIds?: string[]; translationScope?: GuidelineTranslationScope; translationProvider?: GuidelineTranslationProvider; itemStates?: Record<string, { status?: string; selected?: boolean; [key: string]: unknown }>; translationSummary?: Record<string, unknown>; localDiagnostics?: Array<{ code: string; count?: number; itemIds?: string[]; message?: string; [key: string]: unknown }>; tableTranslations?: Record<string, unknown>; figureResources?: Record<string, GuidelineImportFigure>; [key: string]: unknown };
+  analysis_metadata: { items?: GuidelineImportItem[]; document?: Record<string, unknown>; selectedItemIds?: string[]; translationScope?: GuidelineTranslationScope; translationProvider?: GuidelineTranslationProvider; itemStates?: Record<string, { status?: string; selected?: boolean; [key: string]: unknown }>; translationSummary?: Record<string, unknown>; localDiagnostics?: Array<{ code: string; count?: number; itemIds?: string[]; message?: string; [key: string]: unknown }>; structuralDiagnostics?: Array<{ severity: "blocking" | "error" | "warning" | "info"; code: string; message: string; sourcePage?: number | null; itemId?: string }>; tableTranslations?: Record<string, unknown>; figureResources?: Record<string, GuidelineImportFigure>; [key: string]: unknown };
   imported_guideline_id: string | null;
   error_message: string;
   created_at: string;
@@ -109,6 +111,7 @@ export interface GuidelineImportSection {
   display_order: number;
   review_status: "pending" | "accepted" | "rejected" | "needs_review";
   duplicate_status: "new" | "exact" | "possible" | "update";
+  original_payload?: Record<string, unknown>;
 }
 
 export interface GuidelineImportRecommendation {
@@ -210,6 +213,12 @@ export async function uploadGuidelineImport(input: { file: File; targetGuideline
 export async function getGuidelineImportJob(jobId: string): Promise<GuidelineImportJobData> {
   const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}`);
   return await response.json() as GuidelineImportJobData;
+}
+
+export async function getGuidelineImportJobStatus(jobId: string): Promise<Pick<GuidelineImportJob, "id" | "status" | "progress" | "current_stage" | "error_message" | "imported_guideline_id" | "updated_at">> {
+  const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}?view=status`);
+  const body = await response.json() as { job: Pick<GuidelineImportJob, "id" | "status" | "progress" | "current_stage" | "error_message" | "imported_guideline_id" | "updated_at"> };
+  return body.job;
 }
 
 export async function processGuidelineImport(jobId: string, itemIds: string[], translationScope: GuidelineTranslationScope, translationProvider: GuidelineTranslationProvider): Promise<void> {

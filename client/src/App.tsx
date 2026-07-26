@@ -166,8 +166,16 @@ export default function App() {
       } catch (error) { console.warn("Shared deck notifications are not available yet", error); }
     };
     void refreshNotifications();
-    const timer = window.setInterval(() => void refreshNotifications(), 15000);
-    return () => { active = false; window.clearInterval(timer); };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshNotifications();
+    };
+    const timer = window.setInterval(refreshWhenVisible, 60000);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [user]);
 
   async function changeSharedDeckNotifications(enabled: boolean) {
@@ -237,7 +245,10 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     const refresh = () => void refreshDecks(user);
-    const timer = window.setInterval(refresh, 15000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const timer = window.setInterval(refreshWhenVisible, 60000);
     window.addEventListener("focus", refresh);
     const onVisibilityChange = () => { if (document.visibilityState === "visible") refresh(); };
     document.addEventListener("visibilitychange", onVisibilityChange);

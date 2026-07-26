@@ -67,6 +67,7 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
   }, [panelOpen, placement]);
 
   useEffect(() => {
+    if (!visible || (placement === "sidebar" && panelOpen === false)) return;
     const client = supabase;
     if (!client) return;
     const visitorKey = getVisitorKey(userId);
@@ -119,24 +120,25 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
         }
       });
 
-    const timer = window.setInterval(updateOnlineVisitors, 10_000);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") updateOnlineVisitors();
+    }, 60_000);
     return () => {
       window.clearInterval(timer);
       if (recordTimer !== undefined) window.clearTimeout(recordTimer);
       void channel.untrack();
       void client.removeChannel(channel);
     };
-  }, [userId]);
+  }, [panelOpen, placement, userId, visible]);
 
   useEffect(() => {
     if (!visible) return;
     let active = true;
     const refresh = async () => {
       try {
-        const [nextSummary, nextDetails] = await Promise.all([getSiteAnalytics(), getSiteAnalyticsDetails()]);
+        const nextSummary = await getSiteAnalytics();
         if (active) {
           setSummary(nextSummary);
-          setDetails(nextDetails);
           setUnavailable(false);
         }
       } catch (error) {
@@ -145,12 +147,23 @@ export default function SiteAnalytics({ userId, visible, placement = "content", 
       }
     };
     void refresh();
-    const timer = window.setInterval(refresh, 30_000);
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, 60_000);
     return () => {
       active = false;
       window.clearInterval(timer);
     };
   }, [analyticsRefreshVersion, visible]);
+
+  useEffect(() => {
+    if (!visible || !activePanel) return;
+    let active = true;
+    void getSiteAnalyticsDetails().then((nextDetails) => {
+      if (active) setDetails(nextDetails);
+    }).catch(() => {
+      if (active) setUnavailable(true);
+    });
+    return () => { active = false; };
+  }, [activePanel, visible]);
 
   if (!visible) return null;
 

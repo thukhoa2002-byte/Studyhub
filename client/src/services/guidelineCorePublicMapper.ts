@@ -44,7 +44,7 @@ function mapRecommendation(
     clinicalContext: text(record.conditions),
     tags: [document.condition, ...stringArray(document.topics)].filter(Boolean),
     drugReferences: [],
-    source: { guidelineId: document.id, sectionId: section.id, page: record.source_page, table: "", figure: "" },
+    source: { guidelineId: document.id, sectionId: section.id, page: record.source_page, table: record.recommendation_table_id || "", figure: "" },
     status: "published",
     reviewedBy: record.reviewed_by ?? undefined,
     reviewedAt: record.reviewed_at ?? undefined,

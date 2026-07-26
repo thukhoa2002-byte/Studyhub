@@ -21,12 +21,14 @@ import { TRANSLATION_PROVIDERS, TRANSLATION_SCOPES, defaultSelection, expectedIn
 import { isProviderQuotaError } from "../services/guidelineTranslationProvider.js";
 import { renderOriginalFigureCrop, normalizeFigureCropBox } from "../services/guidelineFigureAssets.js";
 import { figureDisplayModel, normalizeFigurePermissionStatus } from "../services/guidelineFigurePolicy.js";
+import { sourceSectionIdentity, validSourcePage, structuralImportDiagnostics } from "../services/guidelineExtractionRecovery.js";
 
 const router = express.Router();
 const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
 
 function first(payload) { return Array.isArray(payload) ? payload[0] : payload; }
 function jobQuery(req, id) { return { id: `eq.${id}`, owner_id: `eq.${req.guidelineAdmin.id}`, select: "*" }; }
+const importJobStatusColumns = "id,status,progress,current_stage,error_message,imported_guideline_id,updated_at";
 function text(value) { return String(value ?? "").trim(); }
 function safeFileName(value) { return path.basename(String(value || "document")).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 160) || "document"; }
 function errorMessage(error) { return error?.message || "Không thể xử lý phiên import Guideline."; }
@@ -127,7 +129,6 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
   let discoveredDocument = { ...(data.job.analysis_metadata?.document || {}) };
   const existingSections = await supabaseTableRequest("guideline_import_sections", token, { query: { job_id: `eq.${jobId}`, select: "*", order: "display_order.asc" } });
   const sectionByKey = new Map((existingSections || []).map((section) => [section.source_key, section]));
-  const sectionByTitle = new Map((existingSections || []).map((section) => [text(section.title_original).toLocaleLowerCase(), section]));
   let latestRecommendations = await supabaseTableRequest("guideline_import_recommendations", token, { query: { job_id: `eq.${jobId}`, select: "*" } });
   let tableTranslations = { ...(data.job.analysis_metadata?.tableTranslations || {}) };
   let figureResources = { ...(data.job.analysis_metadata?.figureResources || {}) };
@@ -177,7 +178,19 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
         version: result.document.version || discoveredDocument.version || "",
         sourceLanguage: result.document.sourceLanguage || discoveredDocument.sourceLanguage || data.job.source_language,
       };
-      tableTranslations = { ...tableTranslations, [item.id]: result.tables || [] };
+      const sourceOrder = Number.isInteger(item.sourceOrder) ? item.sourceOrder : index;
+      const sourceTableNumber = item.sourceTableNumber || item.label || "";
+      const orderedTables = (result.tables || []).map((table) => ({
+        ...table,
+        itemId: item.id,
+        tableNumber: table.tableNumber || sourceTableNumber,
+        sourceTableNumber: table.tableNumber || sourceTableNumber,
+        sourceOrder,
+        sourcePage: validSourcePage(table.sourcePage) || validSourcePage(item.pageStart),
+        sourcePageEnd: validSourcePage(table.sourcePageEnd) || validSourcePage(item.pageEnd),
+        rows: (table.rows || []).map((row, rowIndex) => ({ ...row, groupOrder: Number.isInteger(row.groupOrder) ? row.groupOrder : 0, rowOrder: Number.isInteger(row.rowOrder) ? row.rowOrder : rowIndex })),
+      }));
+      tableTranslations = { ...tableTranslations, [item.id]: orderedTables };
       if (item.resourceType === "figure") {
         const extractedFigure = result.figures?.[0] || {};
         const baseFigure = item.figure || {};
@@ -213,12 +226,14 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
         errorMessage: null,
       };
       await updateJob(req, jobId, { analysis_metadata: persistMetadata({ document: discoveredDocument, tableTranslations, figureResources }) });
-      for (const [sectionIndex, section] of result.sections.entries()) {
-        const key = `${item.id}:${section.sourceKey}`;
-        const titleKey = text(section.titleOriginal || section.titleVi).toLocaleLowerCase();
-        let current = sectionByKey.get(key) || (titleKey && sectionByTitle.get(titleKey));
+      const resolvedSectionKeys = new Map();
+      for (const [sectionIndex, section] of [...result.sections].sort((a, b) => a.level - b.level || a.displayOrder - b.displayOrder).entries()) {
+        const identity = sourceSectionIdentity(section);
+        const key = identity.canonicalKey || `${item.id}:${section.sourceKey}`;
+        let current = sectionByKey.get(key);
         if (!current) {
-          const parent = section.parentSourceKey ? sectionByKey.get(`${item.id}:${section.parentSourceKey}`) : null;
+          const parentKey = section.parentSourceKey ? (resolvedSectionKeys.get(section.parentSourceKey) || `${item.id}:${section.parentSourceKey}`) : null;
+          const parent = parentKey ? sectionByKey.get(parentKey) : null;
           current = first(await supabaseTableRequest("guideline_import_sections", token, { method: "POST", body: {
             job_id: jobId,
             parent_section_id: parent?.id || null,
@@ -228,19 +243,20 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
             summary_original: section.summaryOriginal,
             summary_vi: section.summaryVi,
             level: section.level,
-            source_page: section.sourcePage,
+            source_page: validSourcePage(section.sourcePage),
             source_anchor: section.sourceAnchor,
             display_order: section.displayOrder + index * 1000 + sectionIndex,
             review_status: "pending",
-            original_payload: section,
+            original_payload: { ...section, sourceNumber: identity.number, temporaryIdentity: identity.temporary, canonicalSourceKey: key },
           } }));
           sectionByKey.set(key, current);
-          if (titleKey) sectionByTitle.set(titleKey, current);
         }
+        resolvedSectionKeys.set(section.sourceKey, key);
+        if (identity.temporary) result.issues.push({ severity: "blocking", code: "temporary_section_identity", message: `Section ${section.sourceKey || section.titleOriginal} chưa có số mục nguồn ổn định.`, sourcePage: section.sourcePage });
       }
       const insertedRecommendations = [];
       for (const [recommendationIndex, recommendation] of result.recommendations.entries()) {
-        const section = sectionByKey.get(`${item.id}:${recommendation.sectionSourceKey}`) || sectionByTitle.get(text(recommendation.sectionSourceKey).toLocaleLowerCase());
+        const section = sectionByKey.get(resolvedSectionKeys.get(recommendation.sectionSourceKey) || `${item.id}:${recommendation.sectionSourceKey}`);
         const sourceKey = `${item.id}:${recommendation.sourceKey}`;
         const existingRecommendation = (latestRecommendations || []).find((candidate) => candidate.source_key === sourceKey);
         const recommendationPayload = {
@@ -259,26 +275,42 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
           outcome: recommendation.outcome || "",
           conditions: recommendation.conditions || "",
           contraindications: recommendation.contraindications || "",
-          source_page: recommendation.sourcePage,
+          source_page: validSourcePage(recommendation.sourcePage),
           source_quote: recommendation.sourceQuote,
           source_anchor: recommendation.sourceAnchor,
           coordinates: recommendation.coordinates || {},
           confidence: recommendation.confidence,
           review_status: existingRecommendation?.review_status || "pending",
           verification_status: existingRecommendation?.verification_status || "unverified",
-          display_order: recommendation.displayOrder + index * 1000 + recommendationIndex,
-          original_payload: recommendation,
+          display_order: sourceOrder * 1000000 + recommendation.groupOrder * 1000 + recommendation.rowOrder,
+          original_payload: {
+            ...recommendation,
+            sourceTitle: recommendation.titleOriginal,
+            translatedTitle: recommendation.titleVi || recommendation.titleOriginal,
+            sourceText: recommendation.recommendationTextOriginal,
+            translatedText: recommendation.recommendationTextVi,
+            sourceAudience: recommendation.population || "",
+            translatedAudience: recommendation.population || "",
+            sourceContext: recommendation.conditions || "",
+            translatedContext: recommendation.conditions || "",
+            tableSourceKey: recommendation.tableSourceKey || "",
+            sourceTableNumber,
+            sourceOrder,
+            groupOrder: recommendation.groupOrder,
+            rowOrder: recommendation.rowOrder,
+          },
         };
         const created = first(await supabaseTableRequest("guideline_import_recommendations", token, existingRecommendation
           ? { method: "PATCH", query: { id: `eq.${existingRecommendation.id}` }, body: recommendationPayload }
           : { method: "POST", body: { job_id: jobId, ...recommendationPayload } }));
         insertedRecommendations.push(created);
-        if (!section) result.issues.push({ severity: "blocking", code: "missing_section", message: `Không ghép được section cho ${recommendation.sourceKey}.`, sourcePage: recommendation.sourcePage });
+        if (!section) result.issues.push({ severity: "blocking", code: "missing_section", message: `Không ghép được Section nguồn cho ${recommendation.sourceKey}; hệ thống không gắn tạm vào mục gần nhất.`, sourcePage: recommendation.sourcePage });
+        if (!validSourcePage(recommendation.sourcePage)) result.issues.push({ severity: "blocking", code: "missing_source_page", message: `Khuyến cáo ${recommendation.sourceKey} thiếu trang nguồn.`, sourcePage: null });
         if (recommendation.confidence != null && recommendation.confidence < 0.75) result.issues.push({ severity: "warning", code: "low_confidence", message: `Độ tin cậy thấp ở ${recommendation.sourceKey}.`, sourcePage: recommendation.sourcePage });
         if (recommendation.recommendationTextOriginal && recommendation.recommendationTextVi && /\d/.test(recommendation.recommendationTextOriginal) && !/\d/.test(recommendation.recommendationTextVi)) result.issues.push({ severity: "blocking", code: "number_mismatch", message: `Bản dịch của ${recommendation.sourceKey} không giữ số liệu nguồn.`, sourcePage: recommendation.sourcePage });
       }
       for (const issue of result.issues) {
-        await supabaseTableRequest("guideline_import_issues", token, { method: "POST", body: { job_id: jobId, recommendation_id: insertedRecommendations[0]?.id || null, severity: issue.severity, issue_code: issue.code, message: issue.message, source_page: issue.sourcePage } });
+        await supabaseTableRequest("guideline_import_issues", token, { method: "POST", body: { job_id: jobId, recommendation_id: insertedRecommendations[0]?.id || null, severity: issue.severity, issue_code: issue.code, message: issue.message, source_page: validSourcePage(issue.sourcePage) } });
       }
       for (const term of result.terminology) {
         const existing = await supabaseTableRequest("guideline_import_terminology", token, { query: { job_id: `eq.${jobId}`, source_term: `eq.${term.sourceTerm}`, select: "id,locked" } });
@@ -310,7 +342,22 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
   const finalData = await readJobData(req, jobId);
   const completion = mandatoryRecommendationCompletion(items, itemStates(finalData?.job?.analysis_metadata));
   const pending = selectTranslationItems(items, selectedItemIds, scope, itemStates(finalData?.job?.analysis_metadata));
-  await updateJob(req, jobId, { status: completion.complete && pending.length === 0 ? "ready_for_review" : "paused", current_stage: completion.complete && pending.length === 0 ? "review" : "mandatory_tables_pending", progress: completion.complete && pending.length === 0 ? 100 : 95, completed_at: completion.complete && pending.length === 0 ? new Date().toISOString() : null });
+  const structuralDiagnostics = structuralImportDiagnostics({
+    items,
+    sections: finalData?.sections || [],
+    recommendations: finalData?.recommendations || [],
+    tables: Object.entries(tableTranslations).flatMap(([itemId, tables]) => (Array.isArray(tables) ? tables : []).map((table) => ({ ...table, itemId }))),
+    issues: finalData?.issues || [],
+  });
+  const structurallyReady = structuralDiagnostics.length === 0;
+  const ready = completion.complete && pending.length === 0 && structurallyReady;
+  await updateJob(req, jobId, {
+    status: ready ? "ready_for_review" : "paused",
+    current_stage: ready ? "review" : structurallyReady ? "mandatory_tables_pending" : "structural_repair_required",
+    progress: ready ? 100 : 95,
+    completed_at: ready ? new Date().toISOString() : null,
+    analysis_metadata: persistMetadata({ tableTranslations, figureResources, structuralDiagnostics }),
+  });
   await addEvent(req, jobId, "processing_completed", "review", { selectedItemIds: selectedItemIds.length, pendingItemIds: pending.map((item) => item.id) });
 }
 
@@ -347,33 +394,137 @@ async function importAccepted(req, jobId) {
     guidelineId = created?.id;
   }
   if (!guidelineId) throw new Error("Không tạo được Guideline Core draft.");
-  const acceptedSections = data.sections.filter((section) => section.review_status === "accepted");
+  // Source sections are persisted only as optional provenance. They are never
+  // a translation, review, or publication prerequisite for table-first content.
+  const sourceSections = data.sections;
   const acceptedRecommendations = data.recommendations.filter((recommendation) => recommendation.review_status === "accepted");
   const coreSectionByImportId = new Map();
   const coreSectionBySourceKey = new Map();
-  for (const section of [...acceptedSections].sort((a, b) => a.level - b.level || a.display_order - b.display_order)) {
+  for (const section of [...sourceSections].sort((a, b) => a.level - b.level || a.display_order - b.display_order)) {
     const parentId = section.parent_section_id ? coreSectionByImportId.get(section.parent_section_id) || null : null;
+    const sourceIdentity = sourceSectionIdentity({
+      sourceKey: section.original_payload?.canonicalSourceKey || section.source_key,
+      titleOriginal: section.title_original,
+      titleVi: section.title_vi,
+    });
     const created = first(await supabaseTableRequest("guideline_sections", token, { method: "POST", body: {
       guideline_id: guidelineId,
       owner_id: req.guidelineAdmin.id,
       parent_section_id: parentId,
       slug: slugify(section.title_vi || section.title_original),
-      section_number: "",
+      section_number: sourceIdentity.number,
       title: section.title_original || section.title_vi || "Section",
-      title_vi: section.title_vi || section.title_original || "Section",
-      summary: section.summary_vi || section.summary_original || "",
+      title_vi: section.title_original || section.title_vi || "Source section",
+      summary: section.summary_original || "",
       display_order: section.display_order,
       status: "draft",
     } }));
     coreSectionByImportId.set(section.id, created?.id);
     coreSectionBySourceKey.set(section.source_key, created?.id);
+    coreSectionBySourceKey.set(section.original_payload?.sourceKey, created?.id);
+    coreSectionBySourceKey.set(sourceIdentity.canonicalKey, created?.id);
+  }
+  const coreTableBySourceKey = new Map();
+  const coreGroupByTableSourceKey = new Map();
+  const importItemById = new Map((metadata.items || []).map((item) => [item.id, item]));
+  const importedTables = Object.entries(metadata.tableTranslations || {})
+    .flatMap(([itemId, tables]) => importItemById.get(itemId)?.resourceType === "recommendation_table" && Array.isArray(tables)
+      ? tables.map((table) => ({ ...table, itemId }))
+      : [])
+    .sort((left, right) => Number(left.sourceOrder || 0) - Number(right.sourceOrder || 0)
+      || Number(left.sourcePage || Number.MAX_SAFE_INTEGER) - Number(right.sourcePage || Number.MAX_SAFE_INTEGER));
+  for (const table of importedTables) {
+    const sectionId = coreSectionBySourceKey.get(table.sectionSourceKey) || null;
+    if (!table.sourceKey) continue;
+    const sourceOrder = Number.isInteger(table.sourceOrder) ? table.sourceOrder : 0;
+    const created = first(await supabaseTableRequest("guideline_recommendation_tables", token, { method: "POST", body: {
+      guideline_id: guidelineId,
+      section_id: sectionId,
+      owner_id: req.guidelineAdmin.id,
+      table_number: text(table.tableNumber || table.sourceTableNumber),
+      title: text(table.titleOriginal),
+      title_vi: text(table.titleVi || table.titleOriginal),
+      source_page: validSourcePage(table.sourcePage),
+      source_quote: text(table.sourceQuote),
+      source_anchor: text(table.sourceAnchor),
+      source_table_number: text(table.sourceTableNumber || table.tableNumber),
+      source_page_start: validSourcePage(table.sourcePage),
+      source_page_end: validSourcePage(table.sourcePageEnd),
+      source_order: sourceOrder,
+      is_complete: Array.isArray(table.rows) && table.rows.length > 0,
+      status: "draft",
+      display_order: sourceOrder,
+    } }));
+    coreTableBySourceKey.set(table.sourceKey, created?.id);
+    if (created?.id) {
+      const createdGroup = first(await supabaseTableRequest("guideline_recommendation_groups", token, { method: "POST", body: {
+        guideline_id: guidelineId,
+        section_id: sectionId,
+        recommendation_table_id: created.id,
+        owner_id: req.guidelineAdmin.id,
+        source_heading: "",
+        title_vi: "Khuyến cáo",
+        context: "",
+        source_page: validSourcePage(table.sourcePage),
+        group_order: 0,
+        status: "draft",
+      } }));
+      coreGroupByTableSourceKey.set(table.sourceKey, createdGroup?.id || null);
+    }
+  }
+  // Clinical tables are stored as their own canonical resource. They retain
+  // source order and provenance, but never generate Recommendation rows.
+  const importedClinicalTables = Object.entries(metadata.tableTranslations || {})
+    .flatMap(([itemId, tables]) => importItemById.get(itemId)?.resourceType === "clinical_table" && Array.isArray(tables)
+      ? tables.map((table) => ({ ...table, itemId }))
+      : [])
+    .sort((left, right) => Number(left.sourceOrder || 0) - Number(right.sourceOrder || 0)
+      || Number(left.sourcePage || Number.MAX_SAFE_INTEGER) - Number(right.sourcePage || Number.MAX_SAFE_INTEGER));
+  for (const table of importedClinicalTables) {
+    const sourceRows = Array.isArray(table.rows) ? table.rows : [];
+    const headersOriginal = Array.isArray(table.headersOriginal) ? table.headersOriginal : [];
+    const headersVi = Array.isArray(table.headersVi) ? table.headersVi : headersOriginal;
+    const rowsOriginal = sourceRows.map((row) => Array.isArray(row?.cellsOriginal) ? row.cellsOriginal : []);
+    const rowsVi = sourceRows.map((row) => Array.isArray(row?.cellsVi) && row.cellsVi.length ? row.cellsVi : (Array.isArray(row?.cellsOriginal) ? row.cellsOriginal : []));
+    await supabaseTableRequest("guideline_clinical_tables", token, { method: "POST", body: {
+      guideline_id: guidelineId,
+      section_id: coreSectionBySourceKey.get(table.sectionSourceKey) || null,
+      owner_id: req.guidelineAdmin.id,
+      table_number: text(table.tableNumber || table.sourceTableNumber),
+      title: text(table.titleOriginal),
+      title_vi: text(table.titleVi || table.titleOriginal),
+      short_description: text(table.summaryVi || table.summaryOriginal),
+      source_page_start: validSourcePage(table.sourcePage),
+      source_page_end: validSourcePage(table.sourcePageEnd),
+      source_order: Number.isInteger(table.sourceOrder) ? table.sourceOrder : 0,
+      headers_original: headersOriginal,
+      headers_vi: headersVi,
+      rows_original: rowsOriginal,
+      rows_vi: rowsVi,
+      footnotes_original: Array.isArray(table.footnotesOriginal) ? table.footnotesOriginal : [],
+      footnotes_vi: Array.isArray(table.footnotesVi) ? table.footnotesVi : (Array.isArray(table.footnotesOriginal) ? table.footnotesOriginal : []),
+      is_complete: Boolean(headersOriginal.length && rowsOriginal.length),
+      status: "draft",
+    } });
   }
   const coreRecommendationBySourceKey = new Map();
-  for (const recommendation of acceptedRecommendations) {
+  const sourceSortOrder = (recommendation) => {
+    const payload = recommendation.original_payload || {};
+    const sourceOrder = Number(payload.sourceOrder);
+    const groupOrder = Number(payload.groupOrder);
+    const rowOrder = Number(payload.rowOrder);
+    return (Number.isFinite(sourceOrder) ? sourceOrder : Number(recommendation.display_order || 0)) * 1000000
+      + (Number.isFinite(groupOrder) ? groupOrder : 0) * 1000
+      + (Number.isFinite(rowOrder) ? rowOrder : 0);
+  };
+  for (const recommendation of [...acceptedRecommendations].sort((left, right) => sourceSortOrder(left) - sourceSortOrder(right))) {
+    const tableSourceKey = recommendation.original_payload?.tableSourceKey || "";
     const sectionId = recommendation.import_section_id ? coreSectionByImportId.get(recommendation.import_section_id) || null : null;
     const created = first(await supabaseTableRequest("guideline_recommendations", token, { method: "POST", body: {
       guideline_id: guidelineId,
       section_id: sectionId,
+      recommendation_table_id: coreTableBySourceKey.get(tableSourceKey) || null,
+      recommendation_group_id: coreGroupByTableSourceKey.get(tableSourceKey) || null,
       owner_id: req.guidelineAdmin.id,
       title: recommendation.title_original,
       recommendation_text_original: recommendation.recommendation_text_original,
@@ -394,7 +545,7 @@ async function importAccepted(req, jobId) {
       verification_status: "unverified",
       review_note: "Imported as draft; human review required.",
       status: "draft",
-      sort_order: recommendation.created_at ? 0 : 0,
+      sort_order: sourceSortOrder(recommendation),
     } }));
     coreRecommendationBySourceKey.set(recommendation.source_key, created?.id);
   }
@@ -407,7 +558,7 @@ async function importAccepted(req, jobId) {
   }]));
   await supabaseTableRequest("guideline_source_documents", token, { method: "POST", body: { guideline_id: guidelineId, owner_id: req.guidelineAdmin.id, original_filename: document.original_filename, storage_path: `guideline-imports/${document.storage_path}`, mime_type: document.mime_type, source_kind: "primary", checksum: document.checksum, page_count: document.page_count, extraction_status: "completed" } }).catch(() => null);
   await updateJob(req, jobId, { status: "completed", current_stage: "completed", progress: 100, imported_guideline_id: guidelineId, completed_at: new Date().toISOString(), analysis_metadata: { ...metadata, figureResources } });
-  await addEvent(req, jobId, "bulk_import_completed", "completed", { guidelineId, sections: acceptedSections.length, recommendations: acceptedRecommendations.length });
+  await addEvent(req, jobId, "bulk_import_completed", "completed", { guidelineId, sourceSections: sourceSections.length, recommendationTables: importedTables.length, clinicalTables: importedClinicalTables.length, recommendations: acceptedRecommendations.length });
   return guidelineId;
 }
 
@@ -466,7 +617,14 @@ router.post("/jobs", upload.single("file"), async (req, res) => {
 });
 
 router.get("/jobs/:jobId", async (req, res) => {
-  try { const data = await readJobData(req, req.params.jobId); if (!data) return res.status(404).json({ success: false, message: "Không tìm thấy phiên import." }); return res.json({ success: true, ...data }); }
+  try {
+    if (req.query.view === "status") {
+      const job = first(await supabaseTableRequest("guideline_import_jobs", tokenFromRequest(req), { query: { id: `eq.${req.params.jobId}`, owner_id: `eq.${req.guidelineAdmin.id}`, select: importJobStatusColumns } }));
+      if (!job) return res.status(404).json({ success: false, message: "Không tìm thấy phiên import." });
+      return res.json({ success: true, job });
+    }
+    const data = await readJobData(req, req.params.jobId); if (!data) return res.status(404).json({ success: false, message: "Không tìm thấy phiên import." }); return res.json({ success: true, ...data });
+  }
   catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
 });
 

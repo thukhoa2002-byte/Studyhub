@@ -28,6 +28,9 @@ function client() {
   return supabase;
 }
 
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const signedUrlCacheTtlMs = 55 * 60 * 1000;
+
 export async function listReferenceBooks() {
   const { data, error } = await client().from("reference_books").select("*").order("created_at", { ascending: false });
   if (error) throw error;
@@ -114,8 +117,11 @@ export async function updateReferenceBookStatus(bookId: string, status: Referenc
 }
 
 export async function getReferenceBookUrl(path: string) {
+  const cached = signedUrlCache.get(path);
+  if (cached && cached.expiresAt > Date.now()) return cached.url;
   const { data, error } = await client().storage.from("reference-books").createSignedUrl(path, 3600);
   if (error || !data?.signedUrl) throw error || new Error("Không thể mở sách.");
+  signedUrlCache.set(path, { url: data.signedUrl, expiresAt: Date.now() + signedUrlCacheTtlMs });
   return data.signedUrl;
 }
 

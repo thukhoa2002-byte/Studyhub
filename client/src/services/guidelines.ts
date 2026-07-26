@@ -74,6 +74,9 @@ function requireSupabase() {
   return supabase;
 }
 
+const guidelineSignedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const guidelineSignedUrlCacheTtlMs = 4 * 60 * 1000;
+
 export async function listGuidelineDocuments(): Promise<GuidelineDocument[]> {
   const client = requireSupabase();
   const { data, error } = await client
@@ -159,9 +162,12 @@ export async function setGuidelineDocumentVisibility(documentId: string, visibil
 }
 
 export async function getGuidelineFileUrl(filePath: string): Promise<string> {
+  const cached = guidelineSignedUrlCache.get(filePath);
+  if (cached && cached.expiresAt > Date.now()) return cached.url;
   const client = requireSupabase();
   const { data, error } = await client.storage.from("guideline-files").createSignedUrl(filePath, 300);
   if (error) throw error;
+  guidelineSignedUrlCache.set(filePath, { url: data.signedUrl, expiresAt: Date.now() + guidelineSignedUrlCacheTtlMs });
   return data.signedUrl;
 }
 

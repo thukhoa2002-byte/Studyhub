@@ -20,7 +20,7 @@ test("normalizes AI output and creates review issues without inventing content",
     issues: [],
   });
   assert.equal(result.terminology[0].sourceTerm, "HFrEF");
-  assert.ok(result.issues.some((issue) => issue.code === "missing_section"));
+  assert.equal(result.issues.some((issue) => issue.code === "missing_section"), false);
   assert.ok(result.issues.some((issue) => issue.code === "empty_recommendation"));
 });
 
@@ -32,6 +32,16 @@ test("bulk import blocks unresolved quality issues and duplicate accepted record
     [],
   );
   assert.match(errors.join(" "), /trùng/);
+});
+
+test("bulk import does not require an accepted source Section", () => {
+  const errors = validateImportForBulkImport(
+    { id: "job-1", analysis_metadata: { items: [] } },
+    [],
+    [{ review_status: "accepted", recommendation_text_vi: "Nội dung", duplicate_status: "new" }],
+    [],
+  );
+  assert.equal(errors.some((error) => /section/i.test(error)), false);
 });
 
 test("prompt preserves source facts and forbids automatic publication", () => {
@@ -132,6 +142,8 @@ test("merges table continuation pages before classification", () => {
   assert.equal(items[0].contentType, "recommendation_table");
   assert.match(items[0].text, /Continue therapy/);
   assert.equal(items[0].pageEnd, 11);
+  assert.equal(items[0].sourceOrder, 0);
+  assert.equal(items[0].sourceTableNumber, "Table 3");
 });
 
 test("merges repeated table labels across continuation pages without relying on continuation wording", () => {
@@ -144,6 +156,7 @@ test("table normalization preserves table cells and rejects invalid source page 
   const normalized = normalizeImportResult({ document: {}, sections: [], recommendations: [], terminology: [], issues: [], tables: [{ sourceKey: "table-1", titleOriginal: "Dose", titleVi: "Liều", headersOriginal: ["Drug", "Dose"], headersVi: ["Thuốc", "Liều"], rows: [{ cellsOriginal: ["Aspirin", "75 mg"], cellsVi: ["Aspirin", "75 mg"] }], footnotesOriginal: ["a"], footnotesVi: ["a"], sourcePage: 0 }] });
   assert.deepEqual(normalized.tables[0].rows[0].cellsOriginal, ["Aspirin", "75 mg"]);
   assert.equal(normalized.tables[0].sourcePage, null);
+  assert.equal(normalized.tables[0].rows[0].rowOrder, 0);
 });
 
 test("keeps recommendation tables, clinical tables, and figures as distinct canonical resources", () => {

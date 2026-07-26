@@ -38,9 +38,12 @@ function client() {
   return supabase;
 }
 
+const drugListColumns = "id,owner_id,slug,generic_name,title_vi,drug_class,specialties,status,source_verified,reviewed_at,published_at,archived_at,created_at,updated_at";
+const drugDetailColumns = `${drugListColumns},content,reviewed_by,published_by,archived_by`;
+
 export class DrugRepository {
   async list(options: { query?: string; status?: DrugStatus; publishedOnly?: boolean } = {}): Promise<DatabaseDrug[]> {
-    let query = client().from("drugs").select("*").order("updated_at", { ascending: false });
+    let query = client().from("drugs").select(drugListColumns).order("updated_at", { ascending: false }).limit(200);
     if (options.publishedOnly) query = query.eq("status", "published");
     if (options.status) query = query.eq("status", options.status);
     if (options.query?.trim()) {
@@ -59,13 +62,13 @@ export class DrugRepository {
   }
 
   async findById(id: string): Promise<DatabaseDrug | null> {
-    const { data, error } = await client().from("drugs").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await client().from("drugs").select(drugDetailColumns).eq("id", id).maybeSingle();
     if (error) throw error;
     return data as DatabaseDrug | null;
   }
 
   async findBySlug(slug: string, publishedOnly = false): Promise<DatabaseDrug | null> {
-    let query = client().from("drugs").select("*").eq("slug", slug);
+    let query = client().from("drugs").select(drugDetailColumns).eq("slug", slug);
     if (publishedOnly) query = query.eq("status", "published");
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
@@ -73,13 +76,13 @@ export class DrugRepository {
   }
 
   async create(input: Omit<DatabaseDrug, "id" | "created_at" | "updated_at">): Promise<DatabaseDrug> {
-    const { data, error } = await client().from("drugs").insert(input).select("*").single();
+    const { data, error } = await client().from("drugs").insert(input).select(drugDetailColumns).single();
     if (error) throw error;
     return data as DatabaseDrug;
   }
 
   async update(id: string, input: Partial<Omit<DatabaseDrug, "id" | "owner_id" | "created_at" | "updated_at">>): Promise<DatabaseDrug> {
-    const { data, error } = await client().from("drugs").update({ ...input, updated_at: new Date().toISOString() }).eq("id", id).select("*").single();
+    const { data, error } = await client().from("drugs").update({ ...input, updated_at: new Date().toISOString() }).eq("id", id).select(drugDetailColumns).single();
     if (error) throw error;
     return data as DatabaseDrug;
   }
