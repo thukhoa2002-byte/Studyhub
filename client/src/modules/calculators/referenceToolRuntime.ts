@@ -26,7 +26,6 @@ const referenceFormulaDefinitions: Partial<Record<ReferenceToolCalculatorType, R
   bsa: { title: "BSA · Body Surface Area", description: "Diện tích da cơ thể theo công thức Mosteller", formula: "BSA (m<sup>2</sup>) = √[(Chiều cao (cm) × Cân nặng (kg)) / 3600]", variables: "Dùng chiều cao theo cm và cân nặng theo kg.", source: "https://pubmed.ncbi.nlm.nih.gov/?term=Mosteller+body+surface+area+formula", sourceLabel: "Mosteller · PubMed" },
   "wells-pe": { title: "Wells' Score · Pulmonary Embolism", description: "Thang điểm Wells đánh giá khả năng thuyên tắc phổi", formula: "Dấu hiệu DVT 3 điểm; PE có khả năng nhất 3; nhịp tim >100 1.5; bất động/phẫu thuật 4 tuần 1.5; tiền sử DVT/PE 1.5; ho ra máu 1; ung thư 1.<br />Tổng điểm ≤4: PE unlikely; >4: PE likely.", variables: "Đây là phiên bản Wells cho PE; cần kết hợp xác suất trước xét nghiệm và hướng dẫn chẩn đoán.", source: "https://pubmed.ncbi.nlm.nih.gov/?term=Wells+clinical+model+pulmonary+embolism", sourceLabel: "Wells PE · PubMed" },
   "cha2ds2-vasc": { title: "CHA₂DS₂-VASc Score", description: "Nguy cơ đột quỵ ở bệnh nhân rung nhĩ", formula: "C: suy tim 1; H: tăng huyết áp 1; A<sub>2</sub>: tuổi ≥75 là 2; D: đái tháo đường 1; S<sub>2</sub>: đột quỵ/TIA/thuyên tắc 2; V: bệnh mạch máu 1; A: tuổi 65–74 là 1; Sc: nữ 1.", variables: "Tổng điểm dùng để phân tầng nguy cơ và quyết định điều trị theo hướng dẫn rung nhĩ.", source: "https://pubmed.ncbi.nlm.nih.gov/?term=CHA2DS2-VASc+score+atrial+fibrillation", sourceLabel: "CHA₂DS₂-VASc · PubMed" },
-  "child-pugh": { title: "Child-Pugh Score", description: "Đánh giá mức độ nặng bệnh gan mạn", formula: "5 tiêu chí, mỗi tiêu chí 1–3 điểm: bilirubin, albumin, INR/thời gian prothrombin, cổ trướng và bệnh não gan.<br />A: 5–6; B: 7–9; C: 10–15 điểm.", variables: "Ngưỡng bilirubin có thể khác trong bệnh ứ mật; cần dùng bảng tiêu chuẩn của chuyên ngành gan mật.", source: "https://pubmed.ncbi.nlm.nih.gov/?term=Child-Pugh+score+cirrhosis", sourceLabel: "Child-Pugh · PubMed" },
   timi: { title: "TIMI Risk Score · UA/NSTEMI", description: "Nguy cơ biến cố tim mạch trong hội chứng vành cấp", formula: "7 yếu tố, mỗi yếu tố 1 điểm: tuổi ≥65; ≥3 yếu tố nguy cơ CAD; CAD đã biết ≥50%; dùng aspirin trong 7 ngày; ≥2 cơn đau ngực trong 24 giờ; ST chênh ≥0.5 mm; biomarker tim tăng.", variables: "Tổng điểm 0–7; đây là phiên bản TIMI cho UA/NSTEMI, không phải TIMI STEMI.", source: "https://pubmed.ncbi.nlm.nih.gov/?term=TIMI+risk+score+unstable+angina+non-ST-segment", sourceLabel: "TIMI · PubMed" },
   "has-bled": { title: "HAS-BLED Score", description: "Nguy cơ chảy máu ở bệnh nhân rung nhĩ", formula: "H: tăng huyết áp 1; A: bất thường thận 1 + gan 1; S: tiền sử đột quỵ 1; B: chảy máu 1; L: INR không ổn định 1; E: tuổi >65 1; D: thuốc 1 + rượu 1.", variables: "Điểm tối đa 9; điểm cao là tín hiệu cần rà soát yếu tố nguy cơ, không tự động chống chỉ định chống đông.", source: "https://pubmed.ncbi.nlm.nih.gov/?term=HAS-BLED+score+atrial+fibrillation", sourceLabel: "HAS-BLED · PubMed" },
   centor: { title: "Centor / McIsaac Score", description: "Khả năng viêm họng do liên cầu nhóm A", formula: "Không ho 1; hạch cổ trước đau 1; sốt 1; amidan xuất tiết/sưng 1; tuổi 3–14 cộng 1; tuổi 15–44 cộng 0; tuổi ≥45 trừ 1.", variables: "Điểm dùng để hỗ trợ quyết định xét nghiệm liên cầu, không thay thế thăm khám.", source: "https://pubmed.ncbi.nlm.nih.gov/?term=McIsaac+modified+Centor+score", sourceLabel: "Centor/McIsaac · PubMed" },
@@ -64,13 +63,7 @@ export const referenceCalculatorFields: Partial<Record<ReferenceToolCalculatorTy
   "cha2ds2-vasc": [
     ["chf", "Suy tim", "1"], ["hypertension", "Tăng huyết áp", "1"], ["age75", "Tuổi ≥75", "2"], ["diabetes", "Đái tháo đường", "1"], ["stroke", "Đột quỵ/TIA/thuyên tắc", "2"], ["vascular", "Bệnh mạch máu", "1"], ["age65", "Tuổi 65–74", "1"], ["female", "Giới nữ", "1"],
   ].map(([key, label, points]) => ({ key, label, options: points === "1" ? binary : [{ value: "0", label: "Không · 0" }, { value: points, label: `Có · ${points}` }] })),
-  "child-pugh": [
-    { key: "bilirubin", label: "Bilirubin", options: [{ value: "1", label: "<2 mg/dL · 1" }, { value: "2", label: "2–3 mg/dL · 2" }, { value: "3", label: ">3 mg/dL · 3" }] },
-    { key: "albumin", label: "Albumin", options: [{ value: "1", label: ">3,5 g/dL · 1" }, { value: "2", label: "2,8–3,5 g/dL · 2" }, { value: "3", label: "<2,8 g/dL · 3" }] },
-    { key: "inr", label: "INR", options: [{ value: "1", label: "<1,7 · 1" }, { value: "2", label: "1,7–2,3 · 2" }, { value: "3", label: ">2,3 · 3" }] },
-    { key: "ascites", label: "Cổ trướng", options: [{ value: "1", label: "Không · 1" }, { value: "2", label: "Nhẹ/kiểm soát · 2" }, { value: "3", label: "Vừa-nặng/khó kiểm soát · 3" }] },
-    { key: "encephalopathy", label: "Bệnh não gan", options: [{ value: "1", label: "Không · 1" }, { value: "2", label: "Độ I–II · 2" }, { value: "3", label: "Độ III–IV · 3" }] },
-  ],
+  // Child-Pugh remains unavailable until an approved threshold table exists.
   timi: ["Tuổi ≥65", "≥3 yếu tố nguy cơ CAD", "CAD đã biết ≥50%", "Dùng aspirin trong 7 ngày", "≥2 cơn đau ngực trong 24 giờ", "ST chênh ≥0,5 mm", "Biomarker tim tăng"].map((label, index) => ({ key: ["age65", "riskFactors", "knownCad", "aspirin", "angina", "stDeviation", "biomarker"][index], label, options: binary })),
   "has-bled": ["Tăng huyết áp", "Bất thường thận", "Bất thường gan", "Tiền sử đột quỵ", "Tiền sử chảy máu", "INR không ổn định", "Tuổi >65", "Thuốc làm tăng nguy cơ chảy máu", "Rượu"].map((label, index) => ({ key: ["hypertension", "renal", "liver", "stroke", "bleeding", "labileInr", "age65", "drugs", "alcohol"][index], label, options: binary })),
   centor: ["Không ho", "Hạch cổ trước đau", "Sốt", "Amidan xuất tiết/sưng"].map((label, index) => ({ key: ["noCough", "tenderNodes", "fever", "exudate"][index], label, options: binary })).concat([{ key: "ageAdjustment", label: "Điều chỉnh theo tuổi", options: [{ value: "-1", label: "≥45 tuổi · −1" }, { value: "0", label: "15–44 tuổi · 0" }, { value: "1", label: "3–14 tuổi · +1" }] }]),
@@ -97,6 +90,7 @@ function numeric(values: ReferenceInputValues, key: string): number | null {
 function missingResult(label = "Kết quả", unit = ""): ReferenceToolResult { return { rawValue: null, label, unit, interpretation: "Nhập đủ dữ liệu để tính." }; }
 
 export function calculateReferenceTool(type: ReferenceToolCalculatorType, values: ReferenceInputValues): ReferenceToolResult {
+  if (type === "child-pugh") return { rawValue: null, label: "Child-Pugh Score", unit: "", interpretation: "Chưa có bảng ngưỡng Child-Pugh được phê duyệt để tính tự động." };
   const fields = referenceCalculatorFields[type] || [];
   const allFilled = fields.every((field) => numeric(values, field.key) !== null);
   const sumScore = () => fields.reduce((total, field) => total + (numeric(values, field.key) || 0), 0);
@@ -104,9 +98,8 @@ export function calculateReferenceTool(type: ReferenceToolCalculatorType, values
     const value = Math.sqrt((numeric(values, "heightCm")! * numeric(values, "weightKg")!) / 3600);
     return { rawValue: value, label: "BSA · Body Surface Area", unit: "m²", interpretation: "Mosteller; dùng chiều cao cm và cân nặng kg." };
   }
-  if (["wells-pe", "cha2ds2-vasc", "child-pugh", "timi", "has-bled", "centor", "sirs", "curb-65"].includes(type) && allFilled) {
+  if (["wells-pe", "cha2ds2-vasc", "timi", "has-bled", "centor", "sirs", "curb-65"].includes(type) && allFilled) {
     const value = sumScore();
-    if (type === "child-pugh") return { rawValue: value, label: "Child-Pugh Score", unit: "điểm", interpretation: value <= 6 ? "Child-Pugh A · 5–6 điểm" : value <= 9 ? "Child-Pugh B · 7–9 điểm" : "Child-Pugh C · 10–15 điểm", details: fields.map((field) => ({ key: field.key, label: field.label, value: numeric(values, field.key) || 0 })) };
     if (type === "sirs") return { rawValue: value, label: "SIRS Criteria", unit: "tiêu chí", interpretation: value >= 2 ? "Đạt ≥2 tiêu chí SIRS" : "Chưa đạt 2 tiêu chí SIRS" };
     return { rawValue: value, label: type === "wells-pe" ? "Wells' Score" : type, unit: "điểm", interpretation: "Cần đối chiếu ngưỡng diễn giải theo hướng dẫn tương ứng." };
   }

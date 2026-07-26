@@ -78,6 +78,7 @@ export interface CalculatorPrimaryMetric {
 export interface CalculatorCriterionResult {
   criterionKey: string;
   enteredValue: unknown;
+  enteredUnit?: string;
   normalizedValue: unknown;
   matchedRule?: string;
   pointsAwarded?: number;

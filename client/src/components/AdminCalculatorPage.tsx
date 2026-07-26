@@ -6,6 +6,8 @@ import AdminCalculatorImportPage from "./AdminCalculatorImportPage";
 import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineReferenceRow, CalculatorGuidelineRelationType } from "../modules/calculators/databaseTypes";
 import { calculatorGuidelineRelationTypes } from "../modules/calculators/databaseTypes";
 import { calculateCalculator, calculatorRegistry, runCalculatorTestCases } from "../modules/calculators/engine";
+import { calculatorMethodRegistry } from "../modules/calculators/methodRegistry";
+import "../modules/calculators/platformRegistry";
 import type { CalculatorDefinition, CalculatorInputField } from "../modules/calculators/types";
 import {
   archiveCalculatorRecord,
@@ -44,6 +46,10 @@ type FormState = {
   specialty: string;
   category: string;
   handlerKey: string;
+  topicKey: string;
+  defaultMethodKey: string;
+  enabledMethodKeys: string[];
+  comparisonEnabled: boolean;
   version: string;
   status: DatabaseCalculatorStatus;
   sourceVerified: boolean;
@@ -57,7 +63,7 @@ type FormState = {
 type Notice = { type: "error" | "success"; text: string } | null;
 
 function emptyForm(): FormState {
-  return { slug: "", shortName: "", nameVi: "", nameEn: "", description: "", purpose: "", type: "equation", specialty: "", category: "", handlerKey: "", version: "1.0.0", status: "draft", sourceVerified: false, inputFields: "[]", scoringRules: "[]", resultDefinitions: "[]", references: "[]", testCases: "[]" };
+  return { slug: "", shortName: "", nameVi: "", nameEn: "", description: "", purpose: "", type: "equation", specialty: "", category: "", handlerKey: "", topicKey: "", defaultMethodKey: "", enabledMethodKeys: [], comparisonEnabled: false, version: "1.0.0", status: "draft", sourceVerified: false, inputFields: "[]", scoringRules: "[]", resultDefinitions: "[]", references: "[]", testCases: "[]" };
 }
 
 function formFromRecord(record: DatabaseCalculator): FormState {
@@ -72,6 +78,10 @@ function formFromRecord(record: DatabaseCalculator): FormState {
     specialty: record.specialty_id || "",
     category: record.category_id || "",
     handlerKey: record.handler_key || "",
+    topicKey: record.calculator_topic_key || "",
+    defaultMethodKey: record.default_method_key || record.handler_key || "",
+    enabledMethodKeys: Array.isArray(record.enabled_method_keys) ? record.enabled_method_keys : [],
+    comparisonEnabled: record.comparison_enabled ?? false,
     version: record.version,
     status: record.status,
     sourceVerified: record.source_verified,
@@ -102,6 +112,10 @@ function draftInputFromForm(form: FormState): CalculatorDraftInput {
     specialty_id: form.specialty || null,
     category_id: form.category || null,
     handler_key: form.handlerKey || null,
+    calculator_topic_key: form.topicKey || null,
+    default_method_key: form.defaultMethodKey || form.handlerKey || null,
+    enabled_method_keys: form.enabledMethodKeys,
+    comparison_enabled: form.comparisonEnabled,
     calculation_mode: "automatic",
     input_fields: parseJson(form.inputFields, "Input fields"),
     scoring_rules: parseJson(form.scoringRules, "Scoring rules"),
@@ -187,7 +201,38 @@ function CalculatorEditor({ calculatorId, user, onNavigate }: { calculatorId?: s
 
   const sections = useMemo(() => targets.sections.filter((item) => item.guideline_id === relationDraft.guideline_id), [relationDraft.guideline_id, targets.sections]);
   const recommendations = useMemo(() => targets.recommendations.filter((item) => item.guideline_id === relationDraft.guideline_id && (!relationDraft.section_id || item.section_id === relationDraft.section_id)), [relationDraft.guideline_id, relationDraft.section_id, targets.recommendations]);
+  const registryTopics = useMemo(() => calculatorMethodRegistry.listTopics().filter((topic) => topic.topicKey !== "body_size"), []);
+  const registryMethods = useMemo(() => {
+    if (!form.topicKey) return [];
+    const preferred = new Map<string, ReturnType<typeof calculatorMethodRegistry.listMethods>[number]>();
+    for (const method of calculatorMethodRegistry.listMethods(form.topicKey, true)) {
+      const current = preferred.get(method.methodKey);
+      if (!current || (!current.source.verified && method.source.verified) || (current.status !== "published" && method.status === "published")) preferred.set(method.methodKey, method);
+    }
+    return [...preferred.values()];
+  }, [form.topicKey]);
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
+
+  function selectTopic(topicKey: string) {
+    const topic = calculatorMethodRegistry.getTopic(topicKey);
+    const fallback = topic?.defaultMethodKey || "";
+    setForm((current) => ({ ...current, topicKey, defaultMethodKey: fallback, handlerKey: fallback || current.handlerKey, enabledMethodKeys: fallback ? [fallback] : [], comparisonEnabled: Boolean(topic?.comparisonEnabled) }));
+  }
+
+  function selectMethod(methodKey: string) {
+    const implementation = registryMethods.find((item) => item.methodKey === methodKey);
+    setForm((current) => ({ ...current, defaultMethodKey: methodKey, handlerKey: methodKey, enabledMethodKeys: methodKey ? Array.from(new Set([...current.enabledMethodKeys, methodKey])) : [], sourceVerified: implementation?.source.verified ?? false }));
+  }
+
+  function toggleMethod(methodKey: string, enabled: boolean) {
+    setForm((current) => {
+      const enabledMethodKeys = enabled
+        ? Array.from(new Set([...current.enabledMethodKeys, methodKey]))
+        : current.enabledMethodKeys.filter((key) => key !== methodKey);
+      const defaultMethodKey = enabledMethodKeys.includes(current.defaultMethodKey) ? current.defaultMethodKey : (enabledMethodKeys[0] || "");
+      return { ...current, enabledMethodKeys, defaultMethodKey, handlerKey: defaultMethodKey || current.handlerKey };
+    });
+  }
 
   async function save(continueEditing: boolean) {
     setSaving(true); setNotice(null);
@@ -241,7 +286,7 @@ function CalculatorEditor({ calculatorId, user, onNavigate }: { calculatorId?: s
 
   if (loading) return <p className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm font-semibold text-slate-500">Đang tải calculator...</p>;
   return <section aria-labelledby="calculator-editor-title"><div className="flex flex-wrap items-start justify-between gap-4"><div><button type="button" onClick={() => onNavigate("/admin/may-tinh-y-khoa")} className="text-sm font-bold text-teal-700">← Danh sách máy tính</button><p className="mt-5 text-xs font-extrabold uppercase tracking-[.16em] text-teal-700">{record ? "Chỉnh sửa calculator database" : "Thêm calculator database"}</p><h1 id="calculator-editor-title" className="mt-1 text-2xl font-black text-rose-950">{form.nameVi || form.nameEn || "Máy tính y khoa mới"}</h1></div><div className="flex flex-wrap gap-2">{record && <button type="button" onClick={runTests} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700">Chạy ca kiểm thử</button>}<button type="button" disabled={saving} onClick={() => void save(false)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"><Save size={16} />Lưu nháp</button><button type="button" disabled={saving} onClick={() => void save(true)} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-3 py-2 text-sm font-bold text-white"><Save size={16} />Lưu và tiếp tục</button>{record?.status === "draft" && <><button type="button" onClick={() => void publish()} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700"><Upload size={16} />Xuất bản</button><button type="button" onClick={() => void removePermanently()} className="ml-2 inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-bold text-rose-700"><Trash2 size={16} />Xóa</button></>}{record?.status === "published" && <button type="button" onClick={() => void archive()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-bold text-rose-700"><Archive size={16} />Lưu trữ</button>}{record?.status === "archived" && <><button type="button" onClick={() => void restore()} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700">Khôi phục về nháp</button><button type="button" onClick={() => void publish()} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-3 py-2 text-sm font-bold text-white"><Upload size={16} />Xuất bản lại</button><button type="button" onClick={() => void removePermanently()} className="ml-2 inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-bold text-rose-700"><Trash2 size={16} />Xóa vĩnh viễn</button></>}</div></div>{notice && <NoticeView notice={notice} />}
-    <div className="mt-6 grid gap-4"><Panel title="Thông tin chung"><div className="grid gap-4 md:grid-cols-2"><Field label="Tên tiếng Việt" value={form.nameVi} onChange={(value) => setField("nameVi", value)} /><Field label="Tên tiếng Anh" value={form.nameEn} onChange={(value) => setField("nameEn", value)} /><Field label="Slug" value={form.slug} onChange={(value) => setField("slug", value)} /><Field label="Tên ngắn" value={form.shortName} onChange={(value) => setField("shortName", value)} /><Field label="Chuyên khoa" value={form.specialty} onChange={(value) => setField("specialty", value)} /><Field label="Nhóm" value={form.category} onChange={(value) => setField("category", value)} /><Field label="Version" value={form.version} onChange={(value) => setField("version", value)} /><label className="block text-sm font-bold text-slate-700">Loại<SharedSelect value={form.type} onValueChange={(value) => setField("type", value as FormState["type"])} ariaLabel="Loại calculator" options={[{ value: "equation", label: "Equation" }, { value: "score", label: "Score" }, { value: "criteria", label: "Criteria" }, { value: "algorithm", label: "Algorithm" }]} className="mt-1.5" /></label></div><TextArea label="Mô tả" value={form.description} onChange={(value) => setField("description", value)} /><TextArea label="Mục đích" value={form.purpose} onChange={(value) => setField("purpose", value)} /></Panel><Panel title="Cấu hình tính toán"><div className="grid gap-4 md:grid-cols-2"><label className="block text-sm font-bold text-slate-700">Handler<SharedSelect value={form.handlerKey} onValueChange={(value) => setField("handlerKey", value)} ariaLabel="Handler calculator" options={[{ value: "", label: "Chưa chọn" }, ...Object.keys(calculatorRegistry).map((key) => ({ value: key, label: key }))]} searchable className="mt-1.5" /></label><div className="block text-sm font-bold text-slate-700">Trạng thái<div className="mt-1.5 flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">{statusLabels[form.status]}</div></div></div><TextArea label="Input fields (JSON)" value={form.inputFields} onChange={(value) => setField("inputFields", value)} /><TextArea label="Scoring rules (JSON)" value={form.scoringRules} onChange={(value) => setField("scoringRules", value)} /><TextArea label="Result definitions (JSON)" value={form.resultDefinitions} onChange={(value) => setField("resultDefinitions", value)} /><TextArea label="Ca kiểm thử lâm sàng (JSON)" value={form.testCases} onChange={(value) => setField("testCases", value)} /><TextArea label="Nguồn tham khảo (JSON)" value={form.references} onChange={(value) => setField("references", value)} /><label className="flex items-center gap-2 text-sm font-bold text-slate-700"><input type="checkbox" checked={form.sourceVerified} onChange={(event) => setField("sourceVerified", event.target.checked)} className="h-4 w-4 accent-teal-600" />Đã xác minh nguồn</label><p className="text-xs font-semibold text-slate-500">Xuất bản cần input, diễn giải, nguồn tham khảo, ca kiểm thử, handler/scoring rule và xác minh nguồn hợp lệ.</p></Panel>{record && <CalculatorPreview definition={databaseCalculatorToDefinition(record, references)} />}{record && <RecommendationReverseLookup calculatorId={record.id} onNavigate={onNavigate} />}{record && <RelationPanel references={references} targets={targets} draft={relationDraft} setDraft={setRelationDraft} sections={sections} recommendations={recommendations} onAdd={() => void addReference()} onDelete={async (id) => { try { await deleteCalculatorGuidelineReference(id); setReferences((current) => current.filter((item) => item.id !== id)); setNotice({ type: "success", text: "Đã xóa liên kết." }); } catch (error) { setNotice({ type: "error", text: errorText(error) }); } }} onChange={(id, patch) => setReferences((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))} onSave={saveReference} />}</div>
+    <div className="mt-6 grid gap-4"><Panel title="Thông tin chung"><div className="grid gap-4 md:grid-cols-2"><Field label="Tên tiếng Việt" value={form.nameVi} onChange={(value) => setField("nameVi", value)} /><Field label="Tên tiếng Anh" value={form.nameEn} onChange={(value) => setField("nameEn", value)} /><Field label="Slug" value={form.slug} onChange={(value) => setField("slug", value)} /><Field label="Tên ngắn" value={form.shortName} onChange={(value) => setField("shortName", value)} /><Field label="Chuyên khoa" value={form.specialty} onChange={(value) => setField("specialty", value)} /><Field label="Nhóm" value={form.category} onChange={(value) => setField("category", value)} /><Field label="Version" value={form.version} onChange={(value) => setField("version", value)} /><label className="block text-sm font-bold text-slate-700">Loại<SharedSelect value={form.type} onValueChange={(value) => setField("type", value as FormState["type"])} ariaLabel="Loại calculator" options={[{ value: "equation", label: "Equation" }, { value: "score", label: "Score" }, { value: "criteria", label: "Criteria" }, { value: "algorithm", label: "Algorithm" }]} className="mt-1.5" /></label></div><TextArea label="Mô tả" value={form.description} onChange={(value) => setField("description", value)} /><TextArea label="Mục đích" value={form.purpose} onChange={(value) => setField("purpose", value)} /></Panel><Panel title="Cấu hình tính toán"><div className="grid gap-4 md:grid-cols-2"><label className="block text-sm font-bold text-slate-700">Calculator topic<SharedSelect value={form.topicKey} onValueChange={selectTopic} ariaLabel="Calculator topic" options={[{ value: "", label: "Chọn topic đã đăng ký" }, ...registryTopics.map((topic) => ({ value: topic.topicKey, label: topic.title, description: topic.comparisonEnabled ? "Có so sánh phương thức" : undefined }))]} searchable className="mt-1.5" /></label><label className="block text-sm font-bold text-slate-700">Method mặc định<SharedSelect value={form.defaultMethodKey} onValueChange={selectMethod} ariaLabel="Method calculator" options={[{ value: "", label: "Chọn method" }, ...registryMethods.map((method) => ({ value: method.methodKey, label: `${method.formulaName} · v${method.implementationVersion}`, description: `${method.calculationModelType} · ${method.source.verified ? "Đã xác minh" : "Thiếu nguồn"} · ${method.status}` }))]} searchable className="mt-1.5" /></label><label className="flex items-center gap-2 text-sm font-bold text-slate-700"><input type="checkbox" checked={form.comparisonEnabled} onChange={(event) => setField("comparisonEnabled", event.target.checked)} className="h-4 w-4 accent-teal-600" />Bật so sánh method</label><div className="block text-sm font-bold text-slate-700">Trạng thái<div className="mt-1.5 flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">{statusLabels[form.status]}</div></div></div><p className="rounded-xl border border-teal-100 bg-teal-50/50 px-3 py-2 text-xs font-semibold text-teal-800">Method lấy từ Calculator Registry. Admin chỉ chọn method; công thức, hệ số, ngưỡng và logic không được sửa trong web.</p>{form.topicKey && <fieldset className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"><legend className="px-1 text-sm font-bold text-slate-700">Method được bật</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{registryMethods.map((method) => <label key={method.methodKey} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={form.enabledMethodKeys.includes(method.methodKey)} onChange={(event) => toggleMethod(method.methodKey, event.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-600" /><span>{method.formulaName}<span className="block text-slate-500">v{method.implementationVersion} · {method.source.verified ? "Đã xác minh" : "Thiếu nguồn"} · {method.status}</span></span></label>)}</div>{registryMethods.length === 0 && <p className="mt-2 text-xs font-semibold text-amber-700">Topic này chưa có method có thể bật.</p>}</fieldset>}<label className="flex items-center gap-2 text-sm font-bold text-slate-700"><input type="checkbox" checked={form.sourceVerified} onChange={(event) => setField("sourceVerified", event.target.checked)} className="h-4 w-4 accent-teal-600" />Đã xác minh nguồn hồ sơ</label><label className="block text-sm font-bold text-slate-700">Handler legacy (chỉ dùng khi chưa có topic)<SharedSelect value={form.handlerKey} onValueChange={(value) => setField("handlerKey", value)} ariaLabel="Handler calculator legacy" options={[{ value: "", label: "Chưa chọn" }, ...Object.keys(calculatorRegistry).map((key) => ({ value: key, label: key }))]} searchable className="mt-1.5" /></label><TextArea label="Input fields (JSON)" value={form.inputFields} onChange={(value) => setField("inputFields", value)} /><TextArea label="Scoring rules (JSON)" value={form.scoringRules} onChange={(value) => setField("scoringRules", value)} /><TextArea label="Result definitions (JSON)" value={form.resultDefinitions} onChange={(value) => setField("resultDefinitions", value)} /><TextArea label="Ca kiểm thử lâm sàng (JSON)" value={form.testCases} onChange={(value) => setField("testCases", value)} /><TextArea label="Nguồn tham khảo (JSON)" value={form.references} onChange={(value) => setField("references", value)} /><p className="text-xs font-semibold text-slate-500">Xuất bản cần input, diễn giải, nguồn tham khảo, ca kiểm thử, method/handler và xác minh nguồn hợp lệ.</p></Panel>{record && <CalculatorPreview definition={databaseCalculatorToDefinition(record, references)} />}{record && <RecommendationReverseLookup calculatorId={record.id} onNavigate={onNavigate} />}{record && <RelationPanel references={references} targets={targets} draft={relationDraft} setDraft={setRelationDraft} sections={sections} recommendations={recommendations} onAdd={() => void addReference()} onDelete={async (id) => { try { await deleteCalculatorGuidelineReference(id); setReferences((current) => current.filter((item) => item.id !== id)); setNotice({ type: "success", text: "Đã xóa liên kết." }); } catch (error) { setNotice({ type: "error", text: errorText(error) }); } }} onChange={(id, patch) => setReferences((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))} onSave={saveReference} />}</div>
   </section>;
 }
 

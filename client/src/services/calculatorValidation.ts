@@ -1,5 +1,6 @@
 import { calculatorRegistry, getCalculatorTestCases, runCalculatorTestCases } from "../modules/calculators/engine.ts";
 import { isSupportedCalculatorImplementationKey } from "../modules/calculators/platformRegistry.ts";
+import { calculatorMethodRegistry } from "../modules/calculators/methodRegistry.ts";
 import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineReferenceRow, CalculatorGuidelineRelationType } from "../modules/calculators/databaseTypes.ts";
 import { calculatorGuidelineRelationTypes } from "../modules/calculators/databaseTypes.ts";
 import { databaseCalculatorToDefinition } from "./calculatorDatabaseAdapter.ts";
@@ -53,7 +54,7 @@ const requiredHandlerInputs: Record<string, string[]> = {
 
 export function validateCalculatorPublish(
   record: Pick<DatabaseCalculator, "slug" | "name" | "calculator_type" | "handler_key" | "input_fields" | "scoring_rules" | "source_verified" | "version">
-    & Partial<Pick<DatabaseCalculator, "result_definitions" | "evidence_references" | "formula_variables">>,
+    & Partial<Pick<DatabaseCalculator, "result_definitions" | "evidence_references" | "formula_variables" | "calculator_topic_key" | "default_method_key" | "enabled_method_keys" | "comparison_enabled">>,
 ): CalculatorPublishCheck {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -79,6 +80,27 @@ export function validateCalculatorPublish(
   if (getCalculatorTestCases(definition).length === 0) errors.push("Calculator phải có bộ ca kiểm thử lâm sàng.");
   else if (runCalculatorTestCases(definition).some((testCase) => !testCase.pass)) errors.push("Calculator còn ca kiểm thử lâm sàng không đạt.");
   if (!record.source_verified) errors.push("Calculator chưa được xác minh nguồn.");
+  if (record.calculator_topic_key) {
+    const topic = calculatorMethodRegistry.getTopic(record.calculator_topic_key);
+    if (!topic) errors.push("Calculator topic key chưa được đăng ký trong Calculator Registry.");
+    const defaultMethodKey = record.default_method_key;
+    const enabledMethodKeys = Array.isArray(record.enabled_method_keys) ? record.enabled_method_keys : [];
+    if (!defaultMethodKey) errors.push("Calculator theo topic phải chọn method mặc định.");
+    if (defaultMethodKey && !enabledMethodKeys.includes(defaultMethodKey)) errors.push("Method mặc định phải nằm trong danh sách method được bật.");
+    for (const methodKey of enabledMethodKeys) {
+      const implementations = topic ? calculatorMethodRegistry.listMethods(topic.topicKey, true).filter((item) => item.methodKey === methodKey) : [];
+      if (implementations.length === 0) { errors.push(`Method ${methodKey} chưa được đăng ký.`); continue; }
+      if (implementations.every((item) => item.status === "retired")) errors.push(`Method ${methodKey} đã retired.`);
+      if (implementations.every((item) => item.status === "draft" || !item.source.verified)) errors.push(`Method ${methodKey} chưa có nguồn hoặc chưa sẵn sàng xuất bản.`);
+    }
+  }
+  if (!record.calculator_topic_key && record.handler_key) {
+    const legacyImplementations = calculatorMethodRegistry.listTopics()
+      .flatMap((topic) => calculatorMethodRegistry.listMethods(topic.topicKey, true))
+      .filter((item) => item.methodKey === record.handler_key);
+    if (legacyImplementations.length > 0 && legacyImplementations.every((item) => item.status === "draft" || !item.source.verified)) errors.push(`Method ${record.handler_key} chưa có nguồn hoặc chưa sẵn sàng xuất bản.`);
+    if (legacyImplementations.length > 0 && legacyImplementations.every((item) => item.status === "retired")) errors.push(`Method ${record.handler_key} đã retired.`);
+  }
   if (record.handler_key && !Object.hasOwn(calculatorRegistry, record.handler_key) && !isSupportedCalculatorImplementationKey(record.handler_key)) warnings.push("handlerKey chưa có trong registry hiện tại.");
   return { errors, warnings, canPublish: errors.length === 0 };
 }

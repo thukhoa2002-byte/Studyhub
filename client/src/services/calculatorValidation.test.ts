@@ -81,6 +81,32 @@ test("publication is blocked when a handler is missing a required input or a tes
   assert.match(failedCase.errors.join(" "), /kiểm thử/);
 });
 
+test("topic-backed publication requires a registered enabled and source-verified method", () => {
+  const publishedBmi = validateCalculatorPublish({
+    ...checkRecord(),
+    handler_key: "bmi_adult",
+    calculator_topic_key: "bmi",
+    default_method_key: "bmi_adult",
+    enabled_method_keys: ["bmi_adult"],
+    result_definitions: [{ key: "normal", label: "Bình thường", description: "" }],
+    evidence_references: ["WHO"],
+    formula_variables: [{ key: "clinical_test_cases", cases: [{ id: "bmi", label: "BMI", inputs: { weightKg: 70, heightCm: 175 }, expected: { rawValue: 22.8571428571, valid: true } }] }],
+  });
+  assert.equal(publishedBmi.canPublish, true);
+
+  const missingDefault = validateCalculatorPublish({ ...checkRecord(), calculator_topic_key: "bmi", default_method_key: "bmi_adult", enabled_method_keys: [] });
+  assert.equal(missingDefault.canPublish, false);
+  assert.match(missingDefault.errors.join(" "), /Method mặc định/);
+
+  const sourceRequired = validateCalculatorPublish({ ...checkRecord(), calculator_topic_key: "child_pugh", default_method_key: "child_pugh_inr", enabled_method_keys: ["child_pugh_inr"] });
+  assert.equal(sourceRequired.canPublish, false);
+  assert.match(sourceRequired.errors.join(" "), /chưa có nguồn/);
+
+  const legacyBypass = validateCalculatorPublish({ ...checkRecord(), handler_key: "child_pugh_inr" });
+  assert.equal(legacyBypass.canPublish, false);
+  assert.match(legacyBypass.errors.join(" "), /chưa có nguồn/);
+});
+
 function checkRecord() {
   return {
     slug: "bmi",

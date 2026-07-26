@@ -9,6 +9,9 @@
 | Automatic execution snapshot | `platformRegistry.test.ts` | PASS locally |
 | Semantic implementation-version ordering | `platformRegistry.test.ts` | PASS locally |
 | Compatibility engine delegation | `platformRegistry.test.ts` | PASS locally |
+| Content Pack BMI unit/threshold behavior | `contentPackV1.test.ts` | PASS locally |
+| Renal unit conversion and metric separation | `contentPackV1.test.ts` | PASS locally |
+| Unverified Child-Pugh / 2021 combined scaffold blocked | `contentPackV1.test.ts` | PASS locally |
 | Unit conversion | `unitConversion.test.ts` | PASS locally |
 | Publication/lifecycle validation | `calculatorValidation.test.ts` | PASS locally |
 | Database metadata migration | staging preflight/migration | NOT RUN |

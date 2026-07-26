@@ -21,12 +21,12 @@ test("CKD-EPI 2021 result stores method and implementation version", () => {
   assert.ok((result.primary.rawValue || 0) > 0);
 });
 
-test("Cockcroft-Gault variants remain separate implementations", () => {
+test("Cockcroft-Gault exposes verified actual-body-weight without silently enabling other policies", () => {
   const actual = calculatorMethodRegistry.calculate("renal_function", "crcl_cockcroft_gault", { age: 60, sex: "female", weightKg: 60, creatinineMgDl: 1 }, "actual-body-weight");
-  const normalized = calculatorMethodRegistry.calculate("renal_function", "crcl_cockcroft_gault", { age: 60, sex: "female", weightKg: 60, heightM: 1.6, creatinineMgDl: 1 }, "bsa-normalized");
   assert.equal(actual.primary.indexingStatus, "absolute_ml_min");
-  assert.equal(normalized.primary.indexingStatus, "indexed_to_1_73m2");
-  assert.notEqual(actual.primary.unit, normalized.primary.unit);
+  assert.equal(actual.primary.unit, "mL/min");
+  assert.equal(calculatorMethodRegistry.get("renal_function", "crcl_cockcroft_gault", "bsa-normalized")?.source.verified, false);
+  assert.throws(() => calculatorMethodRegistry.calculate("renal_function", "crcl_cockcroft_gault", { age: 60, sex: "female", weightKg: 60, heightM: 1.6, creatinineMgDl: 1 }, "bsa-normalized"), /chưa được xác minh nguồn/);
 });
 
 test("result snapshots preserve reproducibility metadata", () => {

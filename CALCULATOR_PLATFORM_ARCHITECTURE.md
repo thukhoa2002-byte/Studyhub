@@ -32,11 +32,13 @@ The first registered source methods use `equation`. The existing declarative sco
 | Topic | Method | Variant | Version | Status |
 | --- | --- | --- | --- | --- |
 | renal_function | egfr_ckd_epi_2021_creatinine | - | 1.0.0 | published |
-| renal_function | egfr_ckd_epi_2021_creatinine_cystatin_c | - | 1.0.0 | published |
+| renal_function | egfr_ckd_epi_2012_creatinine_cystatin_c | - | 1.0.0 | published |
 | renal_function | egfr_ckd_epi_2012_cystatin_c | - | 1.0.0 | published |
 | renal_function | egfr_mdrd_4_variable_idms | - | 1.0.0 | published |
-| renal_function | crcl_cockcroft_gault | actual/ideal/adjusted/BSA-normalized | 1.0.0 | published |
-| body_size | bmi_adult | - | 1.0.0 | published |
+| renal_function | crcl_cockcroft_gault | actual-body-weight | 1.0.0 | published |
+| bmi | bmi_adult | - | 1.0.0 | published |
+
+`egfr_ckd_epi_2021_creatinine_cystatin_c`, `child_pugh_inr` và `child_pugh_pt_prolongation` chỉ là scaffold `draft/source_required`: chúng không thể tính hoặc xuất bản. Project hiện chưa có đặc tả nguồn đủ để đưa hệ số CKD-EPI combined 2021 hoặc bảng ngưỡng Child-Pugh INR/PT vào production. Các variant Cockcroft-Gault khác actual body weight cũng bị khóa cho đến khi có chính sách chọn cân nặng/BSA được phê duyệt trong project.
 
 Additional score cards shown by the legacy reference interface are not promoted to source-backed Calculator methods until their source, scoring tables, validation and reference cases have been independently verified.
 

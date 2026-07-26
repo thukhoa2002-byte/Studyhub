@@ -94,10 +94,11 @@ function calculateFromScoringRules(definition: CalculatorDefinition, inputs: Cal
 const platformMethodTopics: Record<string, string> = {
   egfr_ckd_epi_2021_creatinine: "renal_function",
   egfr_ckd_epi_2021_creatinine_cystatin_c: "renal_function",
+  egfr_ckd_epi_2012_creatinine_cystatin_c: "renal_function",
   egfr_ckd_epi_2012_cystatin_c: "renal_function",
   egfr_mdrd_4_variable_idms: "renal_function",
   crcl_cockcroft_gault: "renal_function",
-  bmi_adult: "body_size",
+  bmi_adult: "bmi",
 };
 
 function calculateFromPlatform(definition: CalculatorDefinition, inputs: CalculatorInputs): CalculatorCalculationResult | null {
