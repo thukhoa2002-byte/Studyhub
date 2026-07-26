@@ -2,8 +2,9 @@ import { hasCalculatorHandler } from "../modules/calculators/engine.ts";
 import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineReferenceRow } from "../modules/calculators/databaseTypes.ts";
 import type { CalculatorDefinition } from "../modules/calculators/types.ts";
 import { calculatorRepository, type CalculatorInsert, type CalculatorListFilter, type CalculatorUpdate } from "./calculatorRepository.ts";
-import { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateCalculatorStatusTransition, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
+import { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorConfiguration, validateCalculatorPublish, validateCalculatorSlug, validateCalculatorStatusTransition, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
 import { supabase } from "./supabase.ts";
+import { withLegacyCalculatorMode } from "./calculatorConfigurationMode.ts";
 
 function assertCalculatorTransition(from: DatabaseCalculatorStatus, to: DatabaseCalculatorStatus) {
   const errors = validateCalculatorStatusTransition(from, to);
@@ -22,6 +23,7 @@ export async function getCurrentCalculatorActorId(): Promise<string> {
 export type CalculatorDraftInput = Omit<CalculatorInsert, "owner_id" | "status" | "source_verified" | "published_at" | "published_by" | "archived_at" | "archived_by" | "reviewed_by" | "reviewed_at" | "slug"> & { slug?: string };
 
 export function calculatorDefinitionToDraftInput(definition: CalculatorDefinition): CalculatorDraftInput {
+  const registryMode = Boolean(definition.calculation.topicKey);
   return {
     slug: definition.slug,
     short_name: definition.shortName,
@@ -31,24 +33,24 @@ export function calculatorDefinitionToDraftInput(definition: CalculatorDefinitio
     calculator_type: "equation",
     specialty_id: definition.specialty || null,
     category_id: definition.category || null,
-    handler_key: definition.calculation.handlerId || null,
+    handler_key: registryMode ? null : definition.calculation.handlerId || null,
     calculator_topic_key: definition.calculation.topicKey || null,
-    default_method_key: definition.calculation.methodKey || definition.calculation.handlerId || null,
-    enabled_method_keys: definition.calculation.methodKey ? [definition.calculation.methodKey] : [],
+    default_method_key: registryMode ? definition.calculation.methodKey || null : null,
+    enabled_method_keys: registryMode && definition.calculation.methodKey ? [definition.calculation.methodKey] : [],
     comparison_enabled: definition.calculation.comparisonEnabled || false,
     calculation_mode: "automatic",
-    input_fields: definition.inputFields,
-    scoring_rules: definition.scoringRules || [],
+    input_fields: registryMode ? [] : definition.inputFields,
+    scoring_rules: registryMode ? [] : definition.scoringRules || [],
     formula_display: { vi: "", en: "" },
-    formula_variables: definition.testCases.length ? [{ key: "clinical_test_cases", cases: definition.testCases }] : [],
-    result_definitions: definition.resultDefinitions,
+    formula_variables: registryMode ? [] : withLegacyCalculatorMode(definition.testCases.length ? [{ key: "clinical_test_cases", cases: definition.testCases }] : [], true),
+    result_definitions: registryMode ? [] : definition.resultDefinitions,
     when_to_use: { vi: definition.whenToUse, en: definition.whenToUse },
     when_not_to_use: { vi: definition.whenNotToUse, en: definition.whenNotToUse },
     limitations: { vi: definition.limitations, en: definition.limitations },
     warnings: { vi: [], en: [] },
-    evidence_references: definition.references,
+    evidence_references: registryMode ? [] : definition.references,
     version: definition.version,
-    calculation_version: definition.version,
+    calculation_version: definition.calculation.implementationVersion || definition.version,
     content_revision: 1,
   };
 }
@@ -58,6 +60,8 @@ export async function createCalculatorDraft(ownerId: string, input: CalculatorDr
   const baseSlug = normalizeCalculatorSlug(requestedSlug);
   const slugErrors = validateCalculatorSlug(baseSlug);
   if (slugErrors.length) throw new Error(slugErrors.join(" "));
+  const configurationErrors = validateCalculatorConfiguration(input);
+  if (configurationErrors.length) throw new Error(configurationErrors.join(" "));
   let slug = baseSlug;
   let suffix = 2;
   while (await calculatorRepository.findBySlug(slug)) slug = `${baseSlug}-${suffix++}`;
@@ -77,6 +81,8 @@ export async function updateCalculatorDraft(id: string, input: CalculatorUpdate)
     const slugErrors = validateCalculatorSlug(input.slug || "");
     if (slugErrors.length) throw new Error(slugErrors.join(" "));
   }
+  const configurationErrors = validateCalculatorConfiguration({ ...current, ...input });
+  if (configurationErrors.length) throw new Error(configurationErrors.join(" "));
   return calculatorRepository.update(id, input);
 }
 
@@ -197,7 +203,7 @@ export async function deleteCalculatorGuidelineReference(id: string): Promise<vo
   return calculatorRepository.deleteGuidelineReference(id);
 }
 
-export { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorPublish, validateCalculatorSlug, validateCalculatorStatusTransition, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
+export { isDuplicateGuidelineReference, normalizeCalculatorSlug, validateCalculatorConfiguration, validateCalculatorPublish, validateCalculatorSlug, validateCalculatorStatusTransition, validateGuidelineReferenceInput, validateGuidelineReferenceTargets } from "./calculatorValidation.ts";
 export { databaseCalculatorToDefinition, filterPublicDatabaseCalculators } from "./calculatorDatabaseAdapter.ts";
 export { hasCalculatorHandler };
 export type { DatabaseCalculatorStatus };

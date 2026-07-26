@@ -40,7 +40,7 @@ export class CalculatorMethodRegistry {
   }
 
   get(topicKey: string, methodKey: string, variantKey?: string, implementationVersion?: string): CalculatorImplementation | undefined {
-    const candidates = this.listMethods(topicKey, true).filter((item) => item.methodKey === methodKey && item.variantKey === variantKey);
+    const candidates = this.listMethods(topicKey, true).filter((item) => item.methodKey === methodKey && (variantKey === undefined || item.variantKey === variantKey));
     return implementationVersion
       ? candidates.find((item) => item.implementationVersion === implementationVersion)
       : candidates.sort((a, b) => compareSemanticVersions(b.implementationVersion, a.implementationVersion))[0];

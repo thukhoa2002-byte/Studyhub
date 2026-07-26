@@ -1,5 +1,8 @@
 import type { DatabaseCalculator, CalculatorGuidelineReferenceRow } from "../modules/calculators/databaseTypes.ts";
 import type { CalculatorClinicalTestCase, CalculatorDefinition, CalculatorScoringRule } from "../modules/calculators/types.ts";
+import { calculatorMethodRegistry } from "../modules/calculators/methodRegistry.ts";
+import "../modules/calculators/platformRegistry.ts";
+import { registryImplementationFor, registryInputFields } from "./calculatorConfigurationMode.ts";
 
 function localized(value: unknown, fallback = ""): { vi: string; en: string } {
   if (!value || typeof value !== "object") return { vi: fallback, en: fallback };
@@ -28,6 +31,11 @@ export function databaseCalculatorToDefinition(record: DatabaseCalculator, guide
   const whenToUse = localizedList(record.when_to_use);
   const whenNotToUse = localizedList(record.when_not_to_use);
   const limitations = localizedList(record.limitations);
+  const registryImplementation = registryImplementationFor(record.calculator_topic_key, record.default_method_key, record.calculation_version);
+  const evidence = registryImplementation ? calculatorMethodRegistry.evidenceFor(registryImplementation) : undefined;
+  const sourceReferences = registryImplementation
+    ? evidence?.records.map((item) => item.citationText).filter(Boolean) || []
+    : stringList(record.evidence_references);
   return {
     id: record.id,
     slug: record.slug,
@@ -41,7 +49,7 @@ export function databaseCalculatorToDefinition(record: DatabaseCalculator, guide
     whenToUse: whenToUse.vi.length ? whenToUse.vi : whenToUse.en,
     whenNotToUse: whenNotToUse.vi.length ? whenNotToUse.vi : whenNotToUse.en,
     limitations: limitations.vi.length ? limitations.vi : limitations.en,
-    inputFields: Array.isArray(record.input_fields) ? record.input_fields as CalculatorDefinition["inputFields"] : [],
+    inputFields: registryImplementation ? registryInputFields(registryImplementation) : Array.isArray(record.input_fields) ? record.input_fields as CalculatorDefinition["inputFields"] : [],
     calculation: {
       handlerId: record.handler_key || "",
       topicKey: record.calculator_topic_key || undefined,
@@ -49,8 +57,8 @@ export function databaseCalculatorToDefinition(record: DatabaseCalculator, guide
       implementationVersion: record.calculation_version || undefined,
       comparisonEnabled: record.comparison_enabled ?? false,
     },
-    scoringRules: Array.isArray(record.scoring_rules) ? record.scoring_rules as CalculatorScoringRule[] : [],
-    resultDefinitions: Array.isArray(record.result_definitions) ? record.result_definitions as CalculatorDefinition["resultDefinitions"] : [],
+    scoringRules: registryImplementation ? [] : Array.isArray(record.scoring_rules) ? record.scoring_rules as CalculatorScoringRule[] : [],
+    resultDefinitions: registryImplementation ? [] : Array.isArray(record.result_definitions) ? record.result_definitions as CalculatorDefinition["resultDefinitions"] : [],
     interpretations: stringList(record.warnings),
     guidelineReferences: guidelineReferences.map((reference) => ({
       id: reference.id,
@@ -63,11 +71,16 @@ export function databaseCalculatorToDefinition(record: DatabaseCalculator, guide
     flashcardReferences: [],
     quizReferences: [],
     relatedCalculatorReferences: [],
-    references: stringList(record.evidence_references),
-    testCases: clinicalTestCases(record.formula_variables),
+    references: sourceReferences,
+    testCases: registryImplementation ? evidence?.fixtures.filter((item) => item.fixtureKind === "clinical_reference").map((item) => ({
+      id: item.fixtureId,
+      label: item.fixtureId,
+      inputs: item.rawInputs,
+      expected: { rawValue: item.expectedRawOutput, valid: true },
+    })) || [] : clinicalTestCases(record.formula_variables),
     status: record.status,
     version: record.version,
-    sourceVerified: record.source_verified,
+    sourceVerified: registryImplementation ? Boolean(registryImplementation.source.verified) : record.source_verified,
     createdAt: record.created_at,
     updatedAt: record.updated_at,
   };
