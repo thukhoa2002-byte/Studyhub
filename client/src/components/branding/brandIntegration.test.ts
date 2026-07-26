@@ -14,13 +14,13 @@ test("official StudyHub brand assets are the approved PNG files", () => {
     "../../../public/branding/studyhub-icon-180.png",
     "../../../public/branding/studyhub-icon-192.png",
     "../../../public/branding/studyhub-icon-512.png",
-    "../../../public/branding/studyhub-favicon-v2.ico",
-    "../../../public/branding/studyhub-favicon-v2-16.png",
-    "../../../public/branding/studyhub-favicon-v2-32.png",
-    "../../../public/branding/studyhub-favicon-v2-48.png",
-    "../../../public/branding/studyhub-apple-touch-v2.png",
-    "../../../public/branding/studyhub-pwa-192-v2.png",
-    "../../../public/branding/studyhub-pwa-512-v2.png",
+    "../../../public/branding/studyhub-favicon-v3.ico",
+    "../../../public/branding/studyhub-favicon-v3-16.png",
+    "../../../public/branding/studyhub-favicon-v3-32.png",
+    "../../../public/branding/studyhub-favicon-v3-48.png",
+    "../../../public/branding/studyhub-apple-touch-icon-v3.png",
+    "../../../public/branding/studyhub-pwa-icon-v3-192.png",
+    "../../../public/branding/studyhub-pwa-icon-v3-512.png",
   ]) assert.equal(existsSync(new URL(asset, import.meta.url)), true, `${asset} is missing`);
 });
 
@@ -46,10 +46,10 @@ test("shells and metadata reference the approved assets", () => {
   assert.match(sidebar, /StudyHubIcon[\s\S]*StudyHubLogo/);
   assert.match(admin, /StudyHubLogo/);
   assert.match(app, /BrandLogo variant="full"/);
-  assert.match(html, /\/branding\/studyhub-favicon-v2\.ico/);
-  assert.match(html, /\/branding\/studyhub-favicon-v2-32\.png/);
-  assert.match(html, /\/branding\/studyhub-apple-touch-v2\.png/);
-  assert.match(manifest, /\/branding\/studyhub-pwa-192-v2\.png/);
-  assert.match(manifest, /\/branding\/studyhub-pwa-512-v2\.png/);
+  assert.match(html, /\/branding\/studyhub-favicon-v3\.ico/);
+  assert.match(html, /\/branding\/studyhub-favicon-v3-32\.png/);
+  assert.match(html, /\/branding\/studyhub-apple-touch-icon-v3\.png/);
+  assert.match(manifest, /\/branding\/studyhub-pwa-icon-v3-192\.png/);
+  assert.match(manifest, /\/branding\/studyhub-pwa-icon-v3-512\.png/);
   assert.doesNotMatch(`${header}\n${sidebar}\n${admin}`, /hoc-bai-icon|brain-learning-icon/);
 });

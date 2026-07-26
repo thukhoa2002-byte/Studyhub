@@ -4,11 +4,11 @@ export const brandAssets = {
 } as const;
 
 export const brandIconAssets = {
-  favicon: "/branding/studyhub-favicon-v2.ico",
-  favicon16: "/branding/studyhub-favicon-v2-16.png",
-  favicon32: "/branding/studyhub-favicon-v2-32.png",
-  favicon48: "/branding/studyhub-favicon-v2-48.png",
-  appleTouch: "/branding/studyhub-apple-touch-v2.png",
-  pwa192: "/branding/studyhub-pwa-192-v2.png",
-  pwa512: "/branding/studyhub-pwa-512-v2.png",
+  favicon: "/branding/studyhub-favicon-v3.ico",
+  favicon16: "/branding/studyhub-favicon-v3-16.png",
+  favicon32: "/branding/studyhub-favicon-v3-32.png",
+  favicon48: "/branding/studyhub-favicon-v3-48.png",
+  appleTouch: "/branding/studyhub-apple-touch-icon-v3.png",
+  pwa192: "/branding/studyhub-pwa-icon-v3-192.png",
+  pwa512: "/branding/studyhub-pwa-icon-v3-512.png",
 } as const;
