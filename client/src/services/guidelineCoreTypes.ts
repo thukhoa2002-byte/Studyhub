@@ -1,4 +1,12 @@
 export type GuidelineCoreStatus = "draft" | "in_review" | "published" | "archived";
+export type GuidelineCoreCondition = "ACS" | "HF" | "AF" | "Khác";
+export const guidelineCoreConditions: readonly GuidelineCoreCondition[] = ["ACS", "HF", "AF", "Khác"];
+
+export function normalizeGuidelineCoreCondition(value: unknown): GuidelineCoreCondition {
+  return typeof value === "string" && guidelineCoreConditions.includes(value as GuidelineCoreCondition)
+    ? value as GuidelineCoreCondition
+    : "Khác";
+}
 export type GuidelineSectionStatus = GuidelineCoreStatus;
 export type GuidelineRecommendationStatus = "draft" | "in_review" | "reviewed" | "published" | "archived";
 export type GuidelineVerificationStatus = "unverified" | "needs_review" | "verified" | "rejected";
@@ -106,7 +114,8 @@ export interface GuidelineRecommendationRecord {
   updated_at: string;
 }
 
-export type NewGuidelineCoreDocument = Pick<GuidelineCoreDocument, "title" | "society" | "condition" | "version_label" | "visibility"> & {
+export type NewGuidelineCoreDocument = Omit<Pick<GuidelineCoreDocument, "title" | "society" | "condition" | "version_label" | "visibility">, "condition"> & {
+  condition: GuidelineCoreCondition;
   summary?: string;
   topics?: unknown[];
   publication_year?: number | null;

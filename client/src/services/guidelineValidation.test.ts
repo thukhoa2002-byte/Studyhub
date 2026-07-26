@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { normalizeGuidelineCoreCondition } from "./guidelineCoreTypes.ts";
 import { validateGuidelineForPublication, validateRecommendationForPublication, validateGuidelineStatusTransition, validateRecommendationStatusTransition } from "./guidelineValidation.ts";
 
 const source = { source_url: "https://example.test/guideline", doi: null, citation: "Example", file_path: null, provenance: [] };
+
+test("new Guideline writes normalize unsupported or empty condition values to Khác", () => {
+  assert.equal(normalizeGuidelineCoreCondition("ACS"), "ACS");
+  assert.equal(normalizeGuidelineCoreCondition(""), "Khác");
+  assert.equal(normalizeGuidelineCoreCondition("Heart failure"), "Khác");
+});
 
 test("manual Guideline can be validated without a source document when citation exists", () => {
   const errors = validateGuidelineForPublication(

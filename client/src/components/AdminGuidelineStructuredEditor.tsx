@@ -61,6 +61,7 @@ import { validateSectionParentChange } from "../services/guidelineSectionValidat
 import { validateGuidelineForPublication, validateRecommendationForPublication, GuidelineValidationError } from "../services/guidelineValidation";
 import type {
   GuidelineCoreDocument,
+  GuidelineCoreCondition,
   GuidelineCoreStatus,
   GuidelineRecommendationRecord,
   GuidelineRecommendationStatus,
@@ -78,7 +79,7 @@ type Notice = { type: "error" | "success" | "info"; text: string; details?: stri
 type DocumentFormState = {
   title: string;
   society: string;
-  condition: string;
+  condition: GuidelineCoreCondition;
   summary: string;
   topics: string;
   publication_year: string;
@@ -99,6 +100,18 @@ const statusLabels: Record<GuidelineCoreStatus | GuidelineRecommendationStatus, 
 };
 
 const sourceKinds: GuidelineSourceKind[] = ["manual", "primary", "supplement", "supporting", "html", "xml"];
+const guidelineConditionOptions: Array<{ value: GuidelineCoreCondition; label: string }> = [
+  { value: "ACS", label: "ACS" },
+  { value: "HF", label: "HF" },
+  { value: "AF", label: "AF" },
+  { value: "Khác", label: "Khác" },
+];
+
+function guidelineCondition(value: string): GuidelineCoreCondition {
+  return guidelineConditionOptions.some((option) => option.value === value)
+    ? value as GuidelineCoreCondition
+    : "Khác";
+}
 
 function errorText(error: unknown): string {
   if (error instanceof GuidelineValidationError) return error.errors[0] || error.message;
@@ -115,7 +128,7 @@ function emptyDocument(): DocumentFormState {
   return {
     title: "",
     society: "",
-    condition: "",
+    condition: "Khác",
     summary: "",
     topics: "",
     publication_year: "",
@@ -133,7 +146,7 @@ function documentForm(record: GuidelineCoreDocument | null): DocumentFormState {
   return {
     title: record.title,
     society: record.society,
-    condition: record.condition,
+    condition: guidelineCondition(record.condition),
     summary: record.summary || "",
     topics: Array.isArray(record.topics) ? record.topics.map(String).join(", ") : "",
     publication_year: record.publication_year == null ? "" : String(record.publication_year),
@@ -314,7 +327,7 @@ function OverviewPanel({ document, onSave, blockers }: { document: GuidelineCore
 
 function DocumentForm({ form, setForm }: { form: DocumentFormState; setForm: (value: DocumentFormState) => void }) {
   const field = (key: keyof ReturnType<typeof emptyDocument>, label: string, placeholder = "", wide = false) => <label className={wide ? "md:col-span-2" : ""}><span className="mb-1.5 block text-sm font-extrabold text-slate-700">{label}</span><input value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} placeholder={placeholder} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-violet-400" /></label>;
-  return <div className="rounded-2xl border border-violet-100 bg-white/80 p-4"><div className="grid gap-4 md:grid-cols-2">{field("title", "Tên Guideline", "Có thể tạo mà không cần PDF hoặc URL", true)}{field("society", "Hiệp hội / tổ chức")}{field("condition", "Bệnh / chuyên khoa")}{field("topics", "Chuyên khoa / danh mục", "Nhập nhiều mục, ngăn cách bằng dấu phẩy", true)}{field("version_label", "Phiên bản")}{field("publication_year", "Năm xuất bản")}{field("source_url", "URL nguồn (tùy chọn)")}{field("doi", "DOI (tùy chọn)")}{field("summary", "Tóm tắt", "Tóm tắt Guideline (tùy chọn)", true)}{field("citation", "Trích dẫn (tùy chọn)", "Nguồn traceability nếu không có file", true)}{field("review_note", "Ghi chú rà soát", "Ghi chú nội bộ", true)}<label><span className="mb-1.5 block text-sm font-extrabold text-slate-700">Phạm vi hiển thị</span><SharedSelect value={form.visibility} onValueChange={(visibility) => setForm({ ...form, visibility: visibility as "private" | "shared" })} ariaLabel="Phạm vi hiển thị" options={[{ value: "private", label: "Riêng tư" }, { value: "shared", label: "Chia sẻ" }]} /></label></div></div>;
+  return <div className="rounded-2xl border border-violet-100 bg-white/80 p-4"><div className="grid gap-4 md:grid-cols-2">{field("title", "Tên Guideline", "Có thể tạo mà không cần PDF hoặc URL", true)}{field("society", "Hiệp hội / tổ chức")}<label><span className="mb-1.5 block text-sm font-extrabold text-slate-700">Bệnh / chuyên khoa</span><SharedSelect value={form.condition} onValueChange={(condition) => setForm({ ...form, condition: condition as GuidelineCoreCondition })} ariaLabel="Bệnh hoặc chuyên khoa" options={guidelineConditionOptions} /></label>{field("topics", "Chuyên khoa / danh mục", "Nhập nhiều mục, ngăn cách bằng dấu phẩy", true)}{field("version_label", "Phiên bản")}{field("publication_year", "Năm xuất bản")}{field("source_url", "URL nguồn (tùy chọn)")}{field("doi", "DOI (tùy chọn)")}{field("summary", "Tóm tắt", "Tóm tắt Guideline (tùy chọn)", true)}{field("citation", "Trích dẫn (tùy chọn)", "Nguồn traceability nếu không có file", true)}{field("review_note", "Ghi chú rà soát", "Ghi chú nội bộ", true)}<label><span className="mb-1.5 block text-sm font-extrabold text-slate-700">Phạm vi hiển thị</span><SharedSelect value={form.visibility} onValueChange={(visibility) => setForm({ ...form, visibility: visibility as "private" | "shared" })} ariaLabel="Phạm vi hiển thị" options={[{ value: "private", label: "Riêng tư" }, { value: "shared", label: "Chia sẻ" }]} /></label></div></div>;
 }
 
 function SectionsPanel({ guidelineId, sections, setSections, setNotice, user }: { guidelineId: string; sections: GuidelineSectionRecord[]; setSections: (items: GuidelineSectionRecord[]) => void; setNotice: (notice: Notice) => void; user: User }) {

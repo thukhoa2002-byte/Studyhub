@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { normalizeGuidelineCoreCondition } from "./guidelineCoreTypes";
 import type { GuidelineCoreDocument, GuidelineCorePreview, GuidelineCoreStatus, NewGuidelineCoreDocument } from "./guidelineCoreTypes";
 
 export function requireGuidelineClient() {
@@ -38,7 +39,7 @@ export async function createGuidelineCoreDocument(ownerId: string, input: NewGui
     owner_id: ownerId,
     title: input.title.trim(),
     society: input.society.trim(),
-    condition: input.condition,
+    condition: normalizeGuidelineCoreCondition(input.condition),
     summary: input.summary?.trim() ?? "",
     topics: input.topics ?? [],
     publication_year: input.publication_year ?? null,
@@ -56,7 +57,10 @@ export async function createGuidelineCoreDocument(ownerId: string, input: NewGui
 }
 
 export async function updateGuidelineCoreDocument(id: string, patch: Partial<Omit<GuidelineCoreDocument, "id" | "owner_id" | "created_at" | "updated_at">>): Promise<GuidelineCoreDocument> {
-  const { data, error } = await requireGuidelineClient().from("guideline_documents").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select("*").single();
+  const normalizedPatch = "condition" in patch
+    ? { ...patch, condition: normalizeGuidelineCoreCondition(patch.condition) }
+    : patch;
+  const { data, error } = await requireGuidelineClient().from("guideline_documents").update({ ...normalizedPatch, updated_at: new Date().toISOString() }).eq("id", id).select("*").single();
   if (error) throw error;
   return data as GuidelineCoreDocument;
 }
