@@ -76,10 +76,18 @@ const importSchema = {
         footnotesOriginal: { type: "array", items: { type: "string" } }, footnotesVi: { type: "array", items: { type: "string" } }, sourcePage: { type: "integer" },
       }, required: ["sourceKey", "titleOriginal", "titleVi", "headersOriginal", "headersVi", "rows", "footnotesOriginal", "footnotesVi", "sourcePage"], additionalProperties: false },
     },
+    figures: {
+      type: "array",
+      items: { type: "object", properties: {
+        sourceKey: { type: "string" }, figureNumber: { type: "string" }, sourceTitle: { type: "string" }, translatedTitle: { type: "string" },
+        sourceCaption: { type: "string" }, translatedCaption: { type: "string" }, sourcePages: { type: "array", items: { type: "integer" } },
+        altText: { type: "string" }, attribution: { type: "string" }, sectionSourceKey: { type: "string" }, relatedRecommendationSourceKeys: { type: "array", items: { type: "string" } }, relatedTableSourceKeys: { type: "array", items: { type: "string" } },
+      }, required: ["sourceKey", "figureNumber", "sourceTitle", "translatedTitle", "sourceCaption", "translatedCaption", "sourcePages", "altText", "attribution", "sectionSourceKey", "relatedRecommendationSourceKeys", "relatedTableSourceKeys"], additionalProperties: false },
+    },
     terminology: { type: "array", items: { type: "object", properties: { sourceTerm: { type: "string" }, preferredTranslation: { type: "string" } }, required: ["sourceTerm", "preferredTranslation"], additionalProperties: false } },
     issues: { type: "array", items: { type: "object", properties: { severity: { type: "string", enum: ["info", "warning", "error", "blocking"] }, code: { type: "string" }, message: { type: "string" }, sourcePage: { type: "integer" } }, required: ["severity", "code", "message", "sourcePage"], additionalProperties: false } },
   },
-  required: ["document", "sections", "recommendations", "tables", "terminology", "issues"],
+  required: ["document", "sections", "recommendations", "tables", "figures", "terminology", "issues"],
   additionalProperties: false,
 };
 
@@ -123,12 +131,13 @@ PHÂN LOẠI: ${item.contentType || "recommendation"}; mức quan trọng: ${ite
 NGÔN NGỮ NGUỒN: ${sourceLanguage}; NGÔN NGỮ ĐÍCH: ${targetLanguage}.
 
 YÊU CẦU:
-- Tách cấu trúc section/subsection và khuyến cáo độc lập. Không trả recommendation cho danh mục, bibliography, figure caption, glossary hay diagnostics.
+- Tách cấu trúc section/subsection và khuyến cáo độc lập. Chỉ tạo recommendation từ một bảng khuyến cáo chính thức hoặc một đoạn có câu khuyến cáo rõ ràng. Không tạo recommendation từ bảng lâm sàng thông thường, danh mục, bibliography, figure caption, glossary hay diagnostics.
 - Một khuyến cáo phải giữ nguyên nội dung gốc trong recommendationTextOriginal và bản dịch đầy đủ trong recommendationTextVi.
 - Giữ nguyên mọi số liệu, ngưỡng, đơn vị, liều, tên thuốc, viết tắt y khoa, Class/Level/LoE. ${preserveAbbreviations ? "Không dịch viết tắt chuẩn." : "Có thể diễn giải viết tắt khi nguồn có giải thích."}
 - ${preserveEnglishTerminology ? "Giữ thuật ngữ tiếng Anh cạnh bản dịch khi cần." : "Ưu tiên tiếng Việt y khoa."}
 - Với bảng lâm sàng: luôn trả một phần tử đầy đủ trong mảng tables, gồm tiêu đề, headers, rows, footnotes và sourcePage. Giữ nguyên tiêu đề, header, thứ tự hàng, quan hệ ô, đơn vị, liều, ngưỡng, Class/LoE và chú thích cần thiết. Không suy đoán ô/hàng thiếu, không làm phẳng bảng phức tạp thành đoạn văn không liên quan.
-- Nếu bảng chỉ có tiêu đề hoặc thiếu hàng, trả issue missing_content và không tạo recommendation từ dữ liệu thiếu.
+- Bảng khuyến cáo: dịch trọn đơn vị bảng gồm số bảng, tiêu đề, cột, nhãn hàng, mọi hàng/cell, Class/LoE và footnote. Nếu bảng chỉ có tiêu đề hoặc thiếu hàng, trả issue recommendation_table_incomplete và không tạo recommendation từ dữ liệu thiếu.
+- Với Figure: không dịch, vẽ lại hoặc ghi chữ trực tiếp lên ảnh. Chỉ trả metadata cho mảng figures: số Figure, tiêu đề/caption gốc và dịch, attribution, sectionSourceKey và liên kết sourceKey của recommendation/bảng nếu có bằng chứng rõ ràng. Không tạo Recommendation mới từ Figure. Giữ asset gốc, tỉ lệ ảnh và bản quyền để hệ thống crop/rà soát riêng.
 - Nếu không có dữ liệu, để chuỗi rỗng, không viết câu “Not specified in the provided text”.
 - Ghi sourcePage, sourceAnchor và coordinates nếu xác định được. confidence từ 0 đến 1.
 - Mọi nội dung AI đều là draft, không tự publish.
@@ -156,6 +165,7 @@ export function normalizeImportResult(result) {
   const sections = Array.isArray(result?.sections) ? result.sections : [];
   const recommendations = Array.isArray(result?.recommendations) ? result.recommendations : [];
   const tables = Array.isArray(result?.tables) ? result.tables : [];
+  const figures = Array.isArray(result?.figures) ? result.figures : [];
   const terminology = Array.isArray(result?.terminology) ? result.terminology : [];
   const issues = Array.isArray(result?.issues) ? result.issues : [];
   const normalized = {
@@ -171,6 +181,20 @@ export function normalizeImportResult(result) {
       footnotesOriginal: Array.isArray(table?.footnotesOriginal) ? table.footnotesOriginal.map(cleanText) : [],
       footnotesVi: Array.isArray(table?.footnotesVi) ? table.footnotesVi.map(cleanText) : [],
       sourcePage: Number.isInteger(table?.sourcePage) && table.sourcePage > 0 ? table.sourcePage : null,
+    })),
+    figures: figures.map((figure, index) => ({
+      sourceKey: String(figure?.sourceKey || `figure-${index + 1}`),
+      figureNumber: cleanText(figure?.figureNumber),
+      sourceTitle: cleanText(figure?.sourceTitle),
+      translatedTitle: cleanText(figure?.translatedTitle),
+      sourceCaption: cleanText(figure?.sourceCaption),
+      translatedCaption: cleanText(figure?.translatedCaption),
+      sourcePages: Array.isArray(figure?.sourcePages) ? figure.sourcePages.filter((page) => Number.isInteger(page) && page > 0) : [],
+      altText: cleanText(figure?.altText),
+      attribution: cleanText(figure?.attribution),
+      sectionSourceKey: cleanText(figure?.sectionSourceKey),
+      relatedRecommendationSourceKeys: Array.isArray(figure?.relatedRecommendationSourceKeys) ? figure.relatedRecommendationSourceKeys.map(String).filter(Boolean) : [],
+      relatedTableSourceKeys: Array.isArray(figure?.relatedTableSourceKeys) ? figure.relatedTableSourceKeys.map(String).filter(Boolean) : [],
     })),
     terminology: terminology.filter((term) => term?.sourceTerm).map((term) => ({ sourceTerm: cleanText(term.sourceTerm), preferredTranslation: cleanText(term.preferredTranslation) })),
     issues: issues.map((issue) => ({ severity: ["info", "warning", "error", "blocking"].includes(issue?.severity) ? issue.severity : "warning", code: String(issue?.code || "manual_review"), message: cleanText(issue?.message), sourcePage: Number.isInteger(issue?.sourcePage) ? issue.sourcePage : null })),
@@ -211,7 +235,9 @@ export function createDocumentItems(text) {
   for (const item of rawItems) {
     const previous = mergedItems.at(-1);
     const continuation = item.type === "table" && /\b(?:continued|continuation|cont\.?|tiếp theo)\b/i.test(`${item.label} ${item.title}`);
-    if (continuation && previous?.type === "table") {
+    const repeatedTableLabel = item.type === "table" && previous?.type === "table"
+      && String(item.label || "").trim().toLowerCase() === String(previous.label || "").trim().toLowerCase();
+    if ((continuation || repeatedTableLabel) && previous?.type === "table") {
       previous.text = `${previous.text}\n${item.text}`;
       previous.endOffset = item.endOffset;
       previous.pageEnd = item.pageEnd || previous.pageEnd;

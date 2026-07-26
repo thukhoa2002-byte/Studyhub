@@ -17,12 +17,44 @@ export interface GuidelineImportItem {
   startOffset?: number;
   endOffset?: number;
   contentType?: string;
+  resourceType?: "recommendation_table" | "clinical_table" | "figure";
+  clinicalTableSubtype?: "framework" | "evidence" | "definitions" | "new_revised" | "dosing" | "safety" | "evidence_gap" | "key_message" | "other";
   clinicalImportance?: "required" | "important" | "optional" | "exclude";
   translationEligibility?: "automatic" | "manual_only" | "not_required" | "blocked_pending_extraction";
   manualReviewRequired?: boolean;
   mandatory?: boolean;
   sourceHash?: string;
   translationStatus?: string;
+  figure?: GuidelineImportFigure;
+}
+
+export interface GuidelineImportFigure {
+  id: string;
+  guidelineId: string | null;
+  sectionId: string | null;
+  figureNumber: string;
+  sourceTitle: string;
+  translatedTitle: string;
+  sourceCaption: string;
+  translatedCaption: string;
+  sourcePages: number[];
+  originalAssetPath: string;
+  assetMimeType: string;
+  width: number | null;
+  height: number | null;
+  checksum: string;
+  cropBox?: { x: number; y: number; width: number; height: number };
+  altText: string;
+  officialSourceUrl?: string;
+  sectionSourceKey?: string;
+  publicationStatus: "ready_private" | "ready_public";
+  permissionStatus: "private_educational_use" | "permission_pending" | "permission_granted" | "link_only" | "public_not_allowed";
+  attribution: string;
+  relatedRecommendationIds: string[];
+  relatedTableIds: string[];
+  extractionStatus: "detected" | "extracted" | "needs_crop_review" | "caption_extracted" | "related" | "permission_pending" | "ready_private" | "ready_public" | "failed";
+  relatedRecommendationSourceKeys?: string[];
+  relatedTableSourceKeys?: string[];
 }
 
 export type GuidelineTranslationScope = "clinical_essentials" | "recommendations_only" | "selected_content" | "full_translation";
@@ -43,7 +75,7 @@ export interface GuidelineImportJob {
   total_pages: number | null;
   processed_pages: number;
   source_metadata: Record<string, unknown>;
-  analysis_metadata: { items?: GuidelineImportItem[]; document?: Record<string, unknown>; selectedItemIds?: string[]; translationScope?: GuidelineTranslationScope; translationProvider?: GuidelineTranslationProvider; itemStates?: Record<string, { status?: string; selected?: boolean; [key: string]: unknown }>; translationSummary?: Record<string, number>; localDiagnostics?: Array<{ code: string; count: number; itemIds: string[] }>; tableTranslations?: Record<string, unknown>; [key: string]: unknown };
+  analysis_metadata: { items?: GuidelineImportItem[]; document?: Record<string, unknown>; selectedItemIds?: string[]; translationScope?: GuidelineTranslationScope; translationProvider?: GuidelineTranslationProvider; itemStates?: Record<string, { status?: string; selected?: boolean; [key: string]: unknown }>; translationSummary?: Record<string, unknown>; localDiagnostics?: Array<{ code: string; count?: number; itemIds?: string[]; message?: string; [key: string]: unknown }>; tableTranslations?: Record<string, unknown>; figureResources?: Record<string, GuidelineImportFigure>; [key: string]: unknown };
   imported_guideline_id: string | null;
   error_message: string;
   created_at: string;
@@ -191,6 +223,20 @@ export async function resumeGuidelineImport(jobId: string, itemIds: string[] | u
 export async function correctGuidelineImportItemClassification(jobId: string, itemId: string, reason: string, classification: "not_recommendation_table" | "clinically_important_table" = "not_recommendation_table"): Promise<GuidelineImportItem> {
   const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/items/${encodeURIComponent(itemId)}/classification`, { method: "POST", body: JSON.stringify({ reason, classification }) });
   return ((await response.json()) as { item: GuidelineImportItem }).item;
+}
+
+export async function reviewGuidelineImportRecommendationTable(jobId: string, itemId: string): Promise<void> {
+  await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/items/${encodeURIComponent(itemId)}/review`, { method: "POST", body: JSON.stringify({}) });
+}
+
+export async function cropGuidelineImportFigure(jobId: string, figureId: string, input: { pageNumber: number; cropBox: { x: number; y: number; width: number; height: number } }): Promise<GuidelineImportFigure> {
+  const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/figures/${encodeURIComponent(figureId)}/crop`, { method: "POST", body: JSON.stringify(input) });
+  return ((await response.json()) as { figure: GuidelineImportFigure }).figure;
+}
+
+export async function getGuidelineImportFigureAsset(jobId: string, figureId: string): Promise<string> {
+  const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/figures/${encodeURIComponent(figureId)}/asset`);
+  return URL.createObjectURL(await response.blob());
 }
 
 export async function updateGuidelineImportSection(sectionId: string, patch: Partial<GuidelineImportSection>): Promise<GuidelineImportSection> {

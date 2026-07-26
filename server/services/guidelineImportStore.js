@@ -48,14 +48,14 @@ export async function supabaseTableRequest(table, token, { method = "GET", query
   return payload;
 }
 
-export async function uploadImportObject(path, file, token) {
+export async function uploadImportObject(path, file, token, { upsert = false } = {}) {
   const { url } = config();
   const response = await fetch(`${url}/storage/v1/object/guideline-imports/${path}`, {
     method: "POST",
     headers: headers(token, {
       "Content-Type": file.mimetype || "application/octet-stream",
       "Content-Length": String(file.size || file.buffer?.length || 0),
-      "x-upsert": "false",
+      "x-upsert": String(upsert),
     }),
     body: file.buffer,
   });
@@ -67,6 +67,21 @@ export async function uploadImportObject(path, file, token) {
     throw error;
   }
   return payload;
+}
+
+export async function downloadImportObject(path, token) {
+  const { url } = config();
+  const response = await fetch(`${url}/storage/v1/object/guideline-imports/${path}`, {
+    headers: headers(token),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    const error = new Error(payload?.message || `Không thể đọc Figure gốc (${response.status}).`);
+    error.status = response.status;
+    error.supabase = payload;
+    throw error;
+  }
+  return Buffer.from(await response.arrayBuffer());
 }
 
 export async function deleteImportObject(path, token) {

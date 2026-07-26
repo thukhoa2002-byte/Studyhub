@@ -13,6 +13,7 @@ import LoadingOverlay from "./components/LoadingOverlay";
 import PandaAssistant from "./components/PandaAssistant";
 import SharedDeckNotification from "./components/SharedDeckNotification";
 import WorkspaceTabs, { type WorkspaceTab } from "./components/WorkspaceTabs";
+import BrandLogo from "./components/branding/BrandLogo";
 import type { McqSection } from "./components/McqSectionsPanel";
 import DrugsPage from "./components/DrugsPage";
 import AdminPage from "./components/AdminPage";
@@ -869,7 +870,7 @@ export default function App() {
     <>
       {showWelcome && <div className={`welcome-screen${welcomeClosing ? " welcome-screen--closing" : ""}`} role="status" aria-live="polite">
         <div className="welcome-card">
-          <div className="welcome-icon"><img src="/brand/studyhub-icon.svg" alt="StudyHub" /></div>
+          <div className="welcome-icon"><BrandLogo variant="icon" size="lg" priority /></div>
           <p className="welcome-kicker">StudyHub 🌸</p>
           <h1>Chào bạn!</h1>
           <p className="welcome-message">Mình cùng học một chút nhé.<br />Mỗi ngày tiến bộ một xíu là giỏi lắm rồi! 😊</p>
@@ -973,7 +974,7 @@ export default function App() {
       <PandaAssistant />
         {loginRequiredOpen && <div className="fixed inset-0 z-[160] flex items-center justify-center bg-rose-950/25 px-4 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-labelledby="login-required-title">
           <div className="w-full max-w-md rounded-3xl border border-white/80 bg-gradient-to-br from-white via-rose-50/95 to-teal-50/90 p-7 text-center shadow-[0_28px_80px_rgba(136,19,55,.22)]">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm ring-1 ring-rose-100"><span className="font-black text-blue-600">G</span></div>
+            <BrandLogo variant="full" size="md" priority className="mx-auto" />
             <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.16em] text-rose-500">Cần đăng nhập</p>
             <h2 id="login-required-title" className="mt-2 text-2xl font-bold text-rose-950">Đăng nhập để tiếp tục</h2>
             <p className="mt-3 text-sm leading-6 text-slate-500">Đăng nhập bằng Google để tiếp tục xem nội dung StudyHub.</p>
