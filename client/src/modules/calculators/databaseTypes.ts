@@ -16,6 +16,10 @@ export interface DatabaseCalculator {
   specialty_id: string | null;
   category_id: string | null;
   handler_key: string | null;
+  calculator_topic_key?: string | null;
+  default_method_key?: string | null;
+  enabled_method_keys?: string[] | null;
+  comparison_enabled?: boolean | null;
   calculation_mode: CalculationMode;
   input_fields: unknown[];
   scoring_rules: unknown[];

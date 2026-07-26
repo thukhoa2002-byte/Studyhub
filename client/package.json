@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "npm run test:calculators && npm run test:calculator-units && npm run test:calculator-validation && npm run test:calculator-integrity && npm run test:guideline-core && npm run test:guideline-publication && npm run test:guideline-public && npm run test:visibility && npm run test:knowledge-relationships && npm run test:deep-links && npm run test:theme && npm run test:brand && npm run test:ui",
-    "test:calculators": "node --experimental-strip-types --test src/modules/calculators/engine.test.ts",
+    "test:calculators": "node --experimental-strip-types --test src/modules/calculators/engine.test.ts src/modules/calculators/platformRegistry.test.ts",
     "test:calculator-units": "node --experimental-strip-types --test src/modules/calculators/unitConversion.test.ts",
     "test:calculator-validation": "node --experimental-strip-types --test src/services/calculatorValidation.test.ts",
     "test:calculator-integrity": "node --experimental-strip-types --test src/services/calculatorGuidelineIntegrity.test.ts src/services/calculatorMigrationPolicy.test.ts",

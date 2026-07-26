@@ -109,7 +109,14 @@ export interface CalculatorDefinition {
   whenNotToUse: string[];
   limitations: string[];
   inputFields: CalculatorInputField[];
-  calculation: { handlerId: string };
+  calculation: {
+    handlerId: string;
+    topicKey?: string;
+    methodKey?: string;
+    variantKey?: string;
+    implementationVersion?: string;
+    comparisonEnabled?: boolean;
+  };
   scoringRules?: CalculatorScoringRule[];
   resultDefinitions: CalculatorResultDefinition[];
   interpretations: string[];

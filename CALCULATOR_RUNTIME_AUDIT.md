@@ -15,12 +15,14 @@ Date: 2026-07-24
 
 ## Runtime and dependencies
 
-- Canonical engine: `client/src/modules/calculators/engine.ts`.
+- Compatibility engine: `client/src/modules/calculators/engine.ts`. It continues to run existing handlers and declarative scoring rules, then delegates versioned `methodKey` entries to the typed platform registry.
+- Versioned method registry: `client/src/modules/calculators/methodRegistry.ts` with built-ins registered by `client/src/modules/calculators/platformRegistry.ts`.
+- Formula/reference source module: `client/src/modules/calculators/referenceToolRuntime.ts`; `ReferenceToolsPage` renders metadata and results from this module rather than implementing renal equations inline.
 - Unit conversion: `client/src/modules/calculators/unitConversion.ts`.
 - Database adapter: `client/src/services/calculatorDatabaseAdapter.ts` converts database JSON into a `CalculatorDefinition`.
 - UI pages call `calculatorDatabaseService`, not Supabase or `calculatorService` directly.
 - `client/src/services/calculatorService.ts` remains only as legacy code for reset-policy tests; no active Calculator page imports it.
-- No active Calculator React component contains a formula implementation.
+- No active Calculator React component contains an executable renal equation. Formula metadata and calculations are source-owned.
 - Admin preview, the public detail page, and automated clinical cases all execute `calculateCalculator()`.
 
 ## Publication and access behavior
@@ -36,7 +38,8 @@ Date: 2026-07-24
 
 ## Test coverage
 
-- Formula handlers: BMI, Cockcroft-Gault, CURB-65.
+- Legacy formula handlers: BMI, Cockcroft-Gault, CURB-65.
+- Versioned platform registry: CKD-EPI source/method resolution, Cockcroft-Gault variants, BMI, immutable result snapshots, and compatibility-engine delegation.
 - Generic score runtime and threshold classification.
 - Missing/invalid value validation.
 - Unit conversion and unsupported-unit rejection.

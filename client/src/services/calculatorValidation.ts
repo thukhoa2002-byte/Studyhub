@@ -1,4 +1,5 @@
 import { calculatorRegistry, getCalculatorTestCases, runCalculatorTestCases } from "../modules/calculators/engine.ts";
+import { isSupportedCalculatorImplementationKey } from "../modules/calculators/platformRegistry.ts";
 import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineReferenceRow, CalculatorGuidelineRelationType } from "../modules/calculators/databaseTypes.ts";
 import { calculatorGuidelineRelationTypes } from "../modules/calculators/databaseTypes.ts";
 import { databaseCalculatorToDefinition } from "./calculatorDatabaseAdapter.ts";
@@ -70,15 +71,15 @@ export function validateCalculatorPublish(
   for (const requiredInput of requiredHandlerInputs[record.handler_key || ""] || []) {
     if (!configuredInputIds.has(requiredInput)) errors.push(`Calculator thiếu input bắt buộc cho handler: ${requiredInput}.`);
   }
-  if (record.calculator_type === "equation" && (!record.handler_key || !Object.hasOwn(calculatorRegistry, record.handler_key))) errors.push("Equation phải có handlerKey hợp lệ trong calculatorRegistry.");
-  if (["score", "criteria", "algorithm"].includes(record.calculator_type) && (!Array.isArray(record.scoring_rules) || record.scoring_rules.length === 0) && (!record.handler_key || !Object.hasOwn(calculatorRegistry, record.handler_key))) errors.push("Calculator dạng điểm, tiêu chí hoặc thuật toán phải có scoring rules hoặc handler hợp lệ.");
+  if (record.calculator_type === "equation" && (!record.handler_key || (!Object.hasOwn(calculatorRegistry, record.handler_key) && !isSupportedCalculatorImplementationKey(record.handler_key)))) errors.push("Equation phải có handlerKey hoặc methodKey hợp lệ trong Calculator registry.");
+  if (["score", "criteria", "algorithm"].includes(record.calculator_type) && (!Array.isArray(record.scoring_rules) || record.scoring_rules.length === 0) && (!record.handler_key || (!Object.hasOwn(calculatorRegistry, record.handler_key) && !isSupportedCalculatorImplementationKey(record.handler_key)))) errors.push("Calculator dạng điểm, tiêu chí hoặc thuật toán phải có scoring rules hoặc method hợp lệ.");
   if (!Array.isArray(record.result_definitions) || record.result_definitions.length === 0) errors.push("Calculator phải có định nghĩa kết quả và diễn giải.");
   if (!Array.isArray(record.evidence_references) || !record.evidence_references.some((reference) => typeof reference === "string" && reference.trim())) errors.push("Calculator phải có ít nhất một nguồn tham khảo uy tín.");
   const definition = databaseCalculatorToDefinition({ ...record, result_definitions: record.result_definitions || [], evidence_references: record.evidence_references || [], formula_variables: record.formula_variables || [], id: "validation", owner_id: null, short_name: "", description: { vi: "", en: "" }, purpose: { vi: "", en: "" }, specialty_id: null, category_id: null, calculation_mode: "automatic", formula_display: { vi: "", en: "" }, when_to_use: { vi: [], en: [] }, when_not_to_use: { vi: [], en: [] }, limitations: { vi: [], en: [] }, warnings: { vi: [], en: [] }, calculation_version: record.version || "1.0.0", content_revision: 1, status: "draft", reviewed_by: null, reviewed_at: null, published_by: null, published_at: null, archived_by: null, archived_at: null, created_at: "", updated_at: "" });
   if (getCalculatorTestCases(definition).length === 0) errors.push("Calculator phải có bộ ca kiểm thử lâm sàng.");
   else if (runCalculatorTestCases(definition).some((testCase) => !testCase.pass)) errors.push("Calculator còn ca kiểm thử lâm sàng không đạt.");
   if (!record.source_verified) errors.push("Calculator chưa được xác minh nguồn.");
-  if (record.handler_key && !Object.hasOwn(calculatorRegistry, record.handler_key)) warnings.push("handlerKey chưa có trong registry hiện tại.");
+  if (record.handler_key && !Object.hasOwn(calculatorRegistry, record.handler_key) && !isSupportedCalculatorImplementationKey(record.handler_key)) warnings.push("handlerKey chưa có trong registry hiện tại.");
   return { errors, warnings, canPublish: errors.length === 0 };
 }
 

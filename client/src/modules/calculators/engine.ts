@@ -1,5 +1,7 @@
 import { canonicalizeInputs, unitForField } from "./unitConversion.ts";
 import type { CalculatorCalculationResult, CalculatorClinicalTestCase, CalculatorDefinition, CalculatorScoringRule } from "./types.ts";
+import { calculatorMethodRegistry } from "./methodRegistry.ts";
+import { isSupportedCalculatorImplementationKey } from "./platformRegistry.ts";
 
 export type CalculatorInputs = Record<string, unknown>;
 export type CalculatorHandler = (inputs: CalculatorInputs) => CalculatorCalculationResult;
@@ -89,6 +91,36 @@ function calculateFromScoringRules(definition: CalculatorDefinition, inputs: Cal
   };
 }
 
+const platformMethodTopics: Record<string, string> = {
+  egfr_ckd_epi_2021_creatinine: "renal_function",
+  egfr_ckd_epi_2021_creatinine_cystatin_c: "renal_function",
+  egfr_ckd_epi_2012_cystatin_c: "renal_function",
+  egfr_mdrd_4_variable_idms: "renal_function",
+  crcl_cockcroft_gault: "renal_function",
+  bmi_adult: "body_size",
+};
+
+function calculateFromPlatform(definition: CalculatorDefinition, inputs: CalculatorInputs): CalculatorCalculationResult | null {
+  const methodKey = definition.calculation.methodKey || definition.calculation.handlerId;
+  const topicKey = definition.calculation.topicKey || platformMethodTopics[methodKey];
+  if (!topicKey || !methodKey || !isSupportedCalculatorImplementationKey(methodKey)) return null;
+  try {
+    const result = calculatorMethodRegistry.calculate(topicKey, methodKey, inputs, definition.calculation.variantKey, definition.calculation.implementationVersion);
+    return {
+      rawValue: result.primary.rawValue,
+      score: result.calculationModelType.includes("point") ? result.primary.rawValue : null,
+      displayValue: result.primary.displayValue,
+      unit: result.primary.unit,
+      category: result.category,
+      interpretationKey: result.classification,
+      interpretation: result.interpretation,
+      warnings: [...result.warnings, ...result.applicabilityWarnings],
+    };
+  } catch (error) {
+    return invalid([error instanceof Error ? error.message : "Không thể tính bằng phương thức đã chọn."]);
+  }
+}
+
 export function validateCalculatorInputs(definition: CalculatorDefinition, inputs: CalculatorInputs): string[] {
   return definition.inputFields.flatMap((field) => {
     const value = inputs[field.id];
@@ -118,8 +150,9 @@ export function calculateCalculator(definition: CalculatorDefinition, inputs: Ca
   let canonical: CalculatorInputs;
   try { canonical = canonicalizeInputs(definition.inputFields, inputs); }
   catch (error) { return invalid([error instanceof Error ? error.message : "Không thể quy đổi đơn vị."]); }
-  const handler = calculatorRegistry[definition.calculation.handlerId];
-  const result = handler ? handler(canonical) : calculateFromScoringRules(definition, canonical);
+  const handler = Object.hasOwn(calculatorRegistry, definition.calculation.handlerId) ? calculatorRegistry[definition.calculation.handlerId] : undefined;
+  const platformResult = handler ? null : calculateFromPlatform(definition, canonical);
+  const result = handler ? handler(canonical) : platformResult || calculateFromScoringRules(definition, canonical);
   if (!Number.isFinite(result.rawValue ?? 0) && result.rawValue !== null) return invalid(["Kết quả tính không hợp lệ."]);
   return result;
 }
@@ -162,5 +195,5 @@ export function runCalculatorTestCases(definition: CalculatorDefinition) {
 }
 
 export function hasCalculatorHandler(definition: CalculatorDefinition): boolean {
-  return typeof calculatorRegistry[definition.calculation.handlerId] === "function";
+  return typeof calculatorRegistry[definition.calculation.handlerId] === "function" || isSupportedCalculatorImplementationKey(definition.calculation.methodKey || definition.calculation.handlerId);
 }
