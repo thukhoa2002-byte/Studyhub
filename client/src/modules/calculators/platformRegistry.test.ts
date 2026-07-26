@@ -36,6 +36,8 @@ test("result snapshots preserve reproducibility metadata", () => {
   assert.equal(snapshot.methodKey, "bmi_adult");
   assert.equal(snapshot.implementationVersion, "1.0.0");
   assert.equal(snapshot.outputUnit, "kg/m²");
+  assert.equal(snapshot.primaryEvidenceId, "spec-who-bmi-adult");
+  assert.equal(snapshot.sourceVersion, "WHO adult BMI classification");
 });
 
 test("registry returns an immutable normalized snapshot with every execution", () => {

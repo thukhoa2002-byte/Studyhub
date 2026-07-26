@@ -14,6 +14,73 @@ export type CalculationModelType =
 
 export type CalculatorImplementationStatus = "draft" | "verified" | "published" | "deprecated" | "retired";
 export type IndexingStatus = "indexed_to_1_73m2" | "absolute_ml_min" | "not_indexed" | "not_applicable";
+export type CalculatorEvidenceRole =
+  | "original_derivation"
+  | "original_score_publication"
+  | "external_validation"
+  | "authoritative_specification"
+  | "clinical_guideline"
+  | "regulatory_source"
+  | "dataset_source"
+  | "implementation_fixture";
+
+export type CalculatorEvidenceVerificationStatus = "source_required" | "verification_pending" | "verified" | "conflicted_source";
+export type CalculatorEvidenceClaim = "formula" | "coefficients" | "scoring_thresholds" | "point_assignments" | "units" | "population" | "applicability" | "classification_boundaries" | "interpretation" | "reference_result" | "dataset_version";
+
+export interface CalculatorEvidenceRecord {
+  evidenceId: string;
+  role: CalculatorEvidenceRole;
+  title: string;
+  authors?: string;
+  organization?: string;
+  journal?: string;
+  year?: number;
+  doi?: string;
+  pmid?: string;
+  url?: string;
+  citationText: string;
+  sourceVersion?: string;
+  accessedAt?: string;
+  supportedClaims: readonly CalculatorEvidenceClaim[];
+  verificationStatus: CalculatorEvidenceVerificationStatus;
+  verifiedAt?: string;
+  notes?: string;
+}
+
+export interface CalculatorSourceVerification {
+  formulaTranscriptionVerified: boolean;
+  unitsVerified: boolean;
+  boundaryRulesVerified: boolean;
+  referenceFixturesVerified: boolean;
+  sourceConsistencyVerified: boolean;
+  lastVerifiedAt?: string;
+  verifiedByRole?: "code_review" | "clinical_reviewer";
+  conflictNote?: string;
+}
+
+export interface CalculatorReferenceFixture {
+  fixtureId: string;
+  methodKey: string;
+  variantKey?: string;
+  implementationVersion: string;
+  sourceEvidenceId: string;
+  fixtureKind: "clinical_reference" | "synthetic";
+  rawInputs: Record<string, unknown>;
+  enteredUnits?: Record<string, string>;
+  normalizedInputs: Record<string, unknown>;
+  expectedRawOutput: number | null;
+  acceptedTolerance: number;
+  expectedClassification?: string;
+  notes?: string;
+}
+
+export interface CalculatorEvidenceProfile {
+  primaryEvidenceId?: string;
+  sourceVersion?: string;
+  records: readonly CalculatorEvidenceRecord[];
+  fixtures: readonly CalculatorReferenceFixture[];
+  verification: CalculatorSourceVerification;
+}
 
 export interface CalculatorSourceMetadata {
   primarySource: string;
@@ -93,6 +160,8 @@ export interface CalculatorResult {
   formulaName: string;
   formulaYear?: number;
   sourceReference: string;
+  primaryEvidenceId?: string;
+  sourceVersion?: string;
   primary: CalculatorPrimaryMetric;
   category?: string;
   classification?: string;
@@ -140,6 +209,8 @@ export interface CalculatorImplementation<TInput = Record<string, unknown>> {
   effectiveTo?: string;
   inputSchema: CalculatorInputDefinition[];
   source: CalculatorSourceMetadata;
+  /** Bound by CalculatorMethodRegistry; implementation code cannot receive it from Admin input. */
+  evidence?: CalculatorEvidenceProfile;
   changelog: string[];
   backwardCompatibilityNotes?: string;
   validate: (input: unknown) => CalculatorValidationResult<TInput>;
@@ -155,6 +226,8 @@ export interface CalculatorResultSnapshot {
   calculationModelType: CalculationModelType;
   formulaName: string;
   formulaYear?: number;
+  primaryEvidenceId?: string;
+  sourceVersion?: string;
   inputSnapshot: Record<string, unknown>;
   normalizedInputSnapshot: Record<string, unknown>;
   rawResult: number | null;

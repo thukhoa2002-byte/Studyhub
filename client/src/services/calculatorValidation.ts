@@ -1,6 +1,7 @@
 import { calculatorRegistry, getCalculatorTestCases, runCalculatorTestCases } from "../modules/calculators/engine.ts";
 import { isSupportedCalculatorImplementationKey } from "../modules/calculators/platformRegistry.ts";
 import { calculatorMethodRegistry } from "../modules/calculators/methodRegistry.ts";
+import { isEvidencePublishable } from "../modules/calculators/evidenceRegistry.ts";
 import type { DatabaseCalculator, DatabaseCalculatorStatus, CalculatorGuidelineReferenceRow, CalculatorGuidelineRelationType } from "../modules/calculators/databaseTypes.ts";
 import { calculatorGuidelineRelationTypes } from "../modules/calculators/databaseTypes.ts";
 import { databaseCalculatorToDefinition } from "./calculatorDatabaseAdapter.ts";
@@ -91,14 +92,14 @@ export function validateCalculatorPublish(
       const implementations = topic ? calculatorMethodRegistry.listMethods(topic.topicKey, true).filter((item) => item.methodKey === methodKey) : [];
       if (implementations.length === 0) { errors.push(`Method ${methodKey} chưa được đăng ký.`); continue; }
       if (implementations.every((item) => item.status === "retired")) errors.push(`Method ${methodKey} đã retired.`);
-      if (implementations.every((item) => item.status === "draft" || !item.source.verified)) errors.push(`Method ${methodKey} chưa có nguồn hoặc chưa sẵn sàng xuất bản.`);
+      if (implementations.every((item) => item.status === "draft" || !item.source.verified || isEvidencePublishable(calculatorMethodRegistry.evidenceFor(item)).length > 0)) errors.push(`Method ${methodKey} chưa có nguồn evidence hoặc chưa sẵn sàng xuất bản.`);
     }
   }
   if (!record.calculator_topic_key && record.handler_key) {
     const legacyImplementations = calculatorMethodRegistry.listTopics()
       .flatMap((topic) => calculatorMethodRegistry.listMethods(topic.topicKey, true))
       .filter((item) => item.methodKey === record.handler_key);
-    if (legacyImplementations.length > 0 && legacyImplementations.every((item) => item.status === "draft" || !item.source.verified)) errors.push(`Method ${record.handler_key} chưa có nguồn hoặc chưa sẵn sàng xuất bản.`);
+    if (legacyImplementations.length > 0 && legacyImplementations.every((item) => item.status === "draft" || !item.source.verified || isEvidencePublishable(calculatorMethodRegistry.evidenceFor(item)).length > 0)) errors.push(`Method ${record.handler_key} chưa có nguồn evidence hoặc chưa sẵn sàng xuất bản.`);
     if (legacyImplementations.length > 0 && legacyImplementations.every((item) => item.status === "retired")) errors.push(`Method ${record.handler_key} đã retired.`);
   }
   if (record.handler_key && !Object.hasOwn(calculatorRegistry, record.handler_key) && !isSupportedCalculatorImplementationKey(record.handler_key)) warnings.push("handlerKey chưa có trong registry hiện tại.");
