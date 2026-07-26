@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeGuidelineCoreCondition } from "./guidelineCoreTypes.ts";
 import { validateGuidelineForPublication, validateRecommendationForPublication, validateGuidelineStatusTransition, validateRecommendationStatusTransition } from "./guidelineValidation.ts";
+import { summarizeSectionBulkPublication } from "./guidelineBulkPublicationPolicy.ts";
 
 const source = { source_url: "https://example.test/guideline", doi: null, citation: "Example", file_path: null, provenance: [] };
 
@@ -35,13 +36,23 @@ test("verified Recommendation requires the matching published Guideline and Sect
   assert.ok(validateRecommendationForPublication(recommendation, { id: "guideline-2", status: "published" }, { id: "section-1", guideline_id: "guideline-1", status: "published" }).some((error) => /same Guideline/.test(error)));
 });
 
-test("unverified Recommendation stays hidden from publication", () => {
+test("single-admin publication does not require a separate verification state", () => {
   const errors = validateRecommendationForPublication(
     { title: "Recommendation", recommendation_text_original: "Do this", recommendation_text_vi: "", section_id: "section-1", source_page: 2, source_quote: "", source_anchor: "", verification_status: "needs_review" },
     { id: "guideline-1", status: "published" },
     { id: "section-1", guideline_id: "guideline-1", status: "published" },
   );
-  assert.ok(errors.some((error) => /verified/.test(error)));
+  assert.deepEqual(errors, []);
+});
+
+test("section bulk summary is scoped and does not count published rows as drafts", () => {
+  const recommendations = [
+    { id: "draft", section_id: "section-1", status: "draft" },
+    { id: "published", section_id: "section-1", status: "published" },
+    { id: "other", section_id: "section-2", status: "draft" },
+    { id: "archived", section_id: "section-1", status: "archived" },
+  ] as never[];
+  assert.deepEqual(summarizeSectionBulkPublication("section-1", [], recommendations), { total: 3, draft: 1, published: 1, blocked: 1 });
 });
 
 test("archived Guideline and Recommendation can be restored or republished through validation", () => {

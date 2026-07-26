@@ -3,7 +3,7 @@ import type { GuidelineRecommendationRecord, GuidelineRecommendationStatus, Guid
 
 export async function listGuidelineRecommendations(guidelineId: string, options: { publicOnly?: boolean } = {}): Promise<GuidelineRecommendationRecord[]> {
   let query = requireGuidelineClient().from("guideline_recommendations").select("*").eq("guideline_id", guidelineId).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
-  if (options.publicOnly) query = query.eq("status", "published").eq("verification_status", "verified");
+  if (options.publicOnly) query = query.eq("status", "published");
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as GuidelineRecommendationRecord[];
@@ -11,7 +11,7 @@ export async function listGuidelineRecommendations(guidelineId: string, options:
 
 export async function getGuidelineRecommendation(id: string, options: { publicOnly?: boolean } = {}): Promise<GuidelineRecommendationRecord | null> {
   let query = requireGuidelineClient().from("guideline_recommendations").select("*").eq("id", id);
-  if (options.publicOnly) query = query.eq("status", "published").eq("verification_status", "verified");
+  if (options.publicOnly) query = query.eq("status", "published");
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return (data as GuidelineRecommendationRecord | null) ?? null;

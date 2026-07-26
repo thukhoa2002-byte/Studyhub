@@ -47,7 +47,7 @@ export function validateGuidelineForPublication(
   if (document.publication_year == null && !hasText(document.version_label)) errors.push("Publication year or version is required.");
   if (!hasGuidelineSourceTraceability(document, sourceDocuments)) errors.push("Source traceability is required.");
   const hasEligibleChild = sections.some((section) => section.status === "published")
-    || recommendations.some((recommendation) => recommendation.status === "published" && recommendation.verification_status === "verified");
+    || recommendations.some((recommendation) => recommendation.status === "published");
   if (!hasEligibleChild) errors.push("At least one eligible published section or recommendation is required.");
   return errors;
 }
@@ -64,7 +64,6 @@ export function validateRecommendationForPublication(
   if (!section || section.id !== recommendation.section_id || section.guideline_id !== document.id) errors.push("Recommendation section must belong to the same Guideline.");
   if (document.status !== "published") errors.push("Parent Guideline must be published first.");
   if (section?.status !== "published") errors.push("Parent Section must be published first.");
-  if (recommendation.verification_status !== "verified") errors.push("Recommendation must be verified before publication.");
   if (sourceDocuments.length === 0 && recommendation.source_page == null && !hasText(recommendation.source_quote) && !hasText(recommendation.source_anchor)) errors.push("Recommendation source traceability is required.");
   return errors;
 }

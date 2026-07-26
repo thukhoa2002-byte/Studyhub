@@ -31,7 +31,7 @@ export async function publishGuideline(guidelineId: string, actorId: string) {
   });
 }
 
-export async function publishGuidelineRecommendation(recommendationId: string, actorId: string) {
+export async function publishGuidelineRecommendation(recommendationId: string, _actorId: string) {
   const recommendation = await getGuidelineRecommendation(recommendationId);
   if (!recommendation) throw new Error("Recommendation không tồn tại.");
   const [document, section, sourceDocuments] = await Promise.all([
@@ -44,9 +44,6 @@ export async function publishGuidelineRecommendation(recommendationId: string, a
   assertValidRecommendationPublication(recommendation, document, section, sourceDocuments);
   return updateGuidelineRecommendation(recommendationId, {
     status: "published",
-    verification_status: "verified",
-    reviewed_by: actorId,
-    reviewed_at: new Date().toISOString(),
   });
 }
 
