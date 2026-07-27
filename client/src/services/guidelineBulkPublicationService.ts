@@ -1,7 +1,7 @@
 import { getGuidelineCoreDocument } from "./guidelineRepository.ts";
 import { listGuidelineRecommendations } from "./guidelineRecommendationRepository.ts";
 import { listGuidelineSourceDocuments } from "./guidelineSourceDocumentRepository.ts";
-import { getGuidelineRecommendationGroup, getGuidelineRecommendationTable, updateGuidelineRecommendationGroup, updateGuidelineRecommendationTable } from "./guidelineRecommendationTableRepository.ts";
+import { getGuidelineRecommendationGroup, getGuidelineRecommendationTable, listGuidelineRecommendationTables, updateGuidelineRecommendationGroup, updateGuidelineRecommendationTable } from "./guidelineRecommendationTableRepository.ts";
 import { publishGuideline, publishGuidelineRecommendation } from "./guidelinePublicationService.ts";
 import { validateRecommendationForPublication } from "./guidelineValidation.ts";
 
@@ -20,6 +20,17 @@ export async function publishSectionEligibleContent(sectionId: string, _actorId:
 }
 
 export async function publishGuidelineEligibleContent(guidelineId: string, actorId: string): Promise<BulkPublicationResult> {
+  const [document, tables, recommendations] = await Promise.all([
+    getGuidelineCoreDocument(guidelineId),
+    listGuidelineRecommendationTables(guidelineId),
+    listGuidelineRecommendations(guidelineId),
+  ]);
+  if (!document) throw new Error("Guideline không tồn tại.");
+  if (document.status !== "published") await publishGuideline(guidelineId, actorId);
+  const rowTableIds = new Set(recommendations.filter((item) => item.status !== "archived" && item.recommendation_table_id).map((item) => item.recommendation_table_id));
+  await Promise.all(tables
+    .filter((table) => table.status === "draft" && table.is_complete && rowTableIds.has(table.id))
+    .map((table) => updateGuidelineRecommendationTable(table.id, { status: "published" })));
   return publishScopedEligibleContent(guidelineId, actorId, null);
 }
 
@@ -30,23 +41,29 @@ export async function publishRecommendationTableEligibleContent(tableId: string,
   if (!table.is_complete) {
     return { publishedSectionIds: [], publishedRecommendationIds: [], alreadyPublishedRecommendationIds: [], blocked: [{ id: table.id, title: table.title_vi || table.title || "Bảng khuyến cáo", reasons: ["Bảng khuyến cáo chưa được đánh dấu hoàn chỉnh."] }] };
   }
-  const result = await publishScopedEligibleContent(table.guideline_id, actorId, table.id);
+  const tableRows = (await listGuidelineRecommendations(table.guideline_id)).filter((item) => item.recommendation_table_id === table.id && item.status !== "archived");
+  if (tableRows.length === 0) {
+    return { publishedSectionIds: [], publishedRecommendationIds: [], alreadyPublishedRecommendationIds: [], blocked: [{ id: table.id, title: table.title_vi || table.title || "Bảng khuyến cáo", reasons: ["Bảng khuyến cáo cần ít nhất một Khuyến cáo hợp lệ."] }] };
+  }
   await updateGuidelineRecommendationTable(table.id, { status: "published" });
-  return result;
+  return publishScopedEligibleContent(table.guideline_id, actorId, table.id);
 }
 
 export async function publishRecommendationGroupEligibleContent(groupId: string, actorId: string): Promise<BulkPublicationResult> {
   const group = await getGuidelineRecommendationGroup(groupId);
   if (!group) throw new Error("Không tìm thấy Mục khuyến cáo.");
   if (group.status === "archived") throw new Error("Mục khuyến cáo đã lưu trữ.");
+  const table = await getGuidelineRecommendationTable(group.recommendation_table_id);
+  if (!table || table.guideline_id !== group.guideline_id || table.status === "archived" || !table.is_complete) throw new Error("Bảng khuyến cáo sở hữu chưa hợp lệ hoặc chưa hoàn chỉnh.");
+  if (table.status !== "published") await updateGuidelineRecommendationTable(table.id, { status: "published" });
   const result = await publishScopedEligibleContent(group.guideline_id, actorId, group.recommendation_table_id, group.id);
   await updateGuidelineRecommendationGroup(group.id, { status: "published" });
   return result;
 }
 
 async function publishScopedEligibleContent(guidelineId: string, actorId: string, recommendationTableId: string | null = null, recommendationGroupId: string | null = null): Promise<BulkPublicationResult> {
-  const [document, recommendations, sourceDocuments] = await Promise.all([
-    getGuidelineCoreDocument(guidelineId), listGuidelineRecommendations(guidelineId), listGuidelineSourceDocuments(guidelineId),
+  const [document, recommendations, sourceDocuments, tables] = await Promise.all([
+    getGuidelineCoreDocument(guidelineId), listGuidelineRecommendations(guidelineId), listGuidelineSourceDocuments(guidelineId), listGuidelineRecommendationTables(guidelineId),
   ]);
   if (!document) throw new Error("Guideline không tồn tại.");
   const result: BulkPublicationResult = { publishedSectionIds: [], publishedRecommendationIds: [], alreadyPublishedRecommendationIds: [], blocked: [] };
@@ -55,10 +72,12 @@ async function publishScopedEligibleContent(guidelineId: string, actorId: string
   if (document.status !== "published") await publishGuideline(guidelineId, actorId);
   const currentDocument = document.status === "published" ? document : await getGuidelineCoreDocument(guidelineId);
   if (!currentDocument) throw new Error("Không thể đọc Guideline sau khi xuất bản.");
+  const tablesById = new Map(tables.map((table) => [table.id, table]));
   for (const recommendation of recommendations.filter((item) => (!recommendationTableId || item.recommendation_table_id === recommendationTableId) && (!recommendationGroupId || item.recommendation_group_id === recommendationGroupId))) {
     if (recommendation.status === "published") { result.alreadyPublishedRecommendationIds.push(recommendation.id); continue; }
     if (recommendation.status !== "draft") { result.blocked.push({ id: recommendation.id, title: recommendation.title, reasons: ["Khuyến cáo không còn ở trạng thái bản nháp."] }); continue; }
-    const errors = validateRecommendationForPublication(recommendation, currentDocument, null, sourceDocuments);
+    const table = recommendation.recommendation_table_id ? tablesById.get(recommendation.recommendation_table_id) ?? null : null;
+    const errors = validateRecommendationForPublication(recommendation, currentDocument, table, sourceDocuments);
     if (errors.length) { result.blocked.push({ id: recommendation.id, title: recommendation.title, reasons: errors }); continue; }
     try { await publishGuidelineRecommendation(recommendation.id, actorId); result.publishedRecommendationIds.push(recommendation.id); }
     catch (error) { result.blocked.push({ id: recommendation.id, title: recommendation.title, reasons: [error instanceof Error ? error.message : "Không thể xuất bản khuyến cáo."] }); }

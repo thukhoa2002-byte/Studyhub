@@ -49,11 +49,10 @@ function groupsForTable(table: GuidelineRecommendationTableRecord, groups: Guide
 }
 
 export default function GuidelineRecommendationTablesPanel({ guidelineId, user, tables, groups, sections, recommendations, storageReady, setTables, setGroups, setRecommendations, setNotice, onOpenRecommendation, onBulkPublished }: Props) {
-  const [tableForm, setTableForm] = useState({ table_number: "", title: "", title_vi: "", section_id: "", source_page_start: "", source_page_end: "", short_description: "", source_order: "" });
+  const [tableForm, setTableForm] = useState({ table_number: "", title: "", title_vi: "", source_page_start: "", source_page_end: "", short_description: "", source_order: "" });
   const [openTableId, setOpenTableId] = useState<string | null>(tables[0]?.id || null);
   const [saving, setSaving] = useState(false);
   const sortedTables = useMemo(() => [...tables].sort((a, b) => (a.source_order ?? a.display_order) - (b.source_order ?? b.display_order) || (a.source_page_start ?? a.source_page ?? 0) - (b.source_page_start ?? b.source_page ?? 0)), [tables]);
-  const sectionOptions = [{ value: "", label: "Chọn Mục nguồn" }, ...sections.filter((section) => section.status !== "archived").map((section) => ({ value: section.id, label: sourceSection(section) }))];
 
   async function addTable() {
     if (!tableForm.title.trim() && !tableForm.title_vi.trim()) { setNotice({ type: "error", text: "Bảng khuyến cáo cần tiêu đề nguồn hoặc tiêu đề tiếng Việt." }); return; }
@@ -61,7 +60,7 @@ export default function GuidelineRecommendationTablesPanel({ guidelineId, user, 
     try {
       const created = await createGuidelineRecommendationTable(user.id, {
         guideline_id: guidelineId,
-        section_id: tableForm.section_id || null,
+        section_id: null,
         table_number: tableForm.table_number.trim(),
         source_table_number: tableForm.table_number.trim(),
         title: tableForm.title.trim() || tableForm.title_vi.trim(),
@@ -77,7 +76,7 @@ export default function GuidelineRecommendationTablesPanel({ guidelineId, user, 
         is_complete: false,
       });
       setTables([...tables, created]); setOpenTableId(created.id);
-      setTableForm({ table_number: "", title: "", title_vi: "", section_id: "", source_page_start: "", source_page_end: "", short_description: "", source_order: "" });
+      setTableForm({ table_number: "", title: "", title_vi: "", source_page_start: "", source_page_end: "", short_description: "", source_order: "" });
       setNotice({ type: "success", text: "Đã tạo Bảng khuyến cáo." });
     } catch (error) { setNotice({ type: "error", text: message(error) }); }
     finally { setSaving(false); }
@@ -89,7 +88,6 @@ export default function GuidelineRecommendationTablesPanel({ guidelineId, user, 
       <div><h2 className="text-base font-extrabold text-teal-950">Tạo bảng khuyến cáo</h2><p className="mt-1 text-xs font-semibold text-slate-500">Mục nguồn chỉ là metadata nguồn, không phải điều kiện tạo, dịch hoặc xuất bản bảng.</p></div>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <input value={tableForm.table_number} onChange={(event) => setTableForm({ ...tableForm, table_number: event.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold" placeholder="Số bảng nguồn" />
-        <SharedSelect value={tableForm.section_id} onValueChange={(section_id) => setTableForm({ ...tableForm, section_id })} ariaLabel="Mục nguồn (tùy chọn)" options={[{ value: "", label: "Không gắn Mục nguồn" }, ...sectionOptions.slice(1)]} searchable />
         <input value={tableForm.title} onChange={(event) => setTableForm({ ...tableForm, title: event.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold md:col-span-2" placeholder="Tiêu đề nguồn" />
         <input value={tableForm.title_vi} onChange={(event) => setTableForm({ ...tableForm, title_vi: event.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold md:col-span-2" placeholder="Tiêu đề tiếng Việt" />
         <input value={tableForm.source_page_start} onChange={(event) => setTableForm({ ...tableForm, source_page_start: event.target.value })} type="number" className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold" placeholder="Trang nguồn bắt đầu" />
@@ -122,6 +120,7 @@ function TableCard({ table, sourceSection: section, groups, recommendations, use
   async function addRow() {
     const group = groups.find((item) => item.id === rowForm.groupId);
     if (!rowForm.text.trim() && !rowForm.title.trim()) { setNotice({ type: "error", text: "Khuyến cáo cần nội dung hoặc tiêu đề." }); return; }
+    if (groups.some((item) => !item.virtual) && (!group || group.virtual)) { setNotice({ type: "error", text: "Hãy chọn Mục khuyến cáo thuộc Bảng khuyến cáo này." }); return; }
     setSaving(true);
     try {
       const order = (group?.group_order ?? 0) * 1_000 + recommendations.filter((item) => item.recommendation_group_id === rowForm.groupId).length;

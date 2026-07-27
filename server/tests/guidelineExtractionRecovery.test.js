@@ -4,6 +4,7 @@ import {
   normalizeGuidelineText,
   sourceSectionIdentity,
   structuralImportDiagnostics,
+  canImportStructuredBatch,
   compareSourceRows,
   compareSourceTables,
   missingRecommendationTableNumbers,
@@ -29,6 +30,25 @@ test("reconstructs a two-column PDF in source reading order and keeps full-width
     "Left recommendation",
     "2. Right section",
     "Right recommendation",
+  ]);
+});
+
+test("keeps a mid-page full-width boundary in its source position", () => {
+  const items = [
+    { str: "Page heading", transform: [1, 0, 0, 1, 80, 740], width: 480 },
+    { str: "Upper left", transform: [1, 0, 0, 1, 40, 680], width: 120 },
+    { str: "Upper right", transform: [1, 0, 0, 1, 340, 680], width: 120 },
+    { str: "Recommendation Table 4", transform: [1, 0, 0, 1, 80, 500], width: 480 },
+    { str: "Lower left", transform: [1, 0, 0, 1, 40, 440], width: 120 },
+    { str: "Lower right", transform: [1, 0, 0, 1, 340, 440], width: 120 },
+  ];
+  assert.deepEqual(reconstructGuidelinePageReadingOrder(items, 600, 800), [
+    "Page heading",
+    "Upper left",
+    "Upper right",
+    "Recommendation Table 4",
+    "Lower left",
+    "Lower right",
   ]);
 });
 
@@ -66,6 +86,29 @@ test("table ownership does not require a matching source Section to remain valid
     recommendations: [{ source_key: "rec-1", import_section_id: "invasive", tableSourceKey: "table-5", recommendation_text_original: "Use imaging", recommendation_text_vi: "Dùng hình ảnh", source_page: 12 }],
   });
   assert.equal(diagnostics.some((item) => item.code === "wrong_section_suspected"), false);
+});
+
+test("optional Source Section provenance diagnostics do not block import", () => {
+  const result = canImportStructuredBatch({
+    items: [{ id: "table-5", resourceType: "recommendation_table", contentType: "recommendation_table", label: "Table 5", pageStart: 12 }],
+    sections: [{ source_key: "1001", title_original: "Temporary", source_page: 12 }],
+    tables: [{
+      itemId: "table-5",
+      sourceKey: "table-5",
+      sourcePage: 12,
+      rows: [{ cellsOriginal: ["Use imaging"], cellsVi: ["Dùng hình ảnh"] }],
+    }],
+    recommendations: [{
+      source_key: "rec-1",
+      tableSourceKey: "table-5",
+      recommendation_text_original: "Use imaging",
+      recommendation_text_vi: "Dùng hình ảnh",
+      source_page: 12,
+    }],
+  });
+  assert.equal(result.valid, true);
+  assert.equal(result.blockers.length, 0);
+  assert.ok(result.diagnostics.some((item) => item.code === "source_section_metadata_unresolved"));
 });
 
 test("keeps recommendation tables and rows in source order, not database or translation order", () => {

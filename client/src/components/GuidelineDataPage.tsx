@@ -11,7 +11,7 @@ import { LanguageToggle, useLanguageMode } from "../utils/language";
 import type { LanguageMode } from "../types/language";
 import ProtectedContentGate from "./ProtectedContentGate";
 import SharedSelect from "./SharedSelect";
-import { deepLinkScrollBehavior, resolveGuidelineDeepLink } from "../utils/recommendationDeepLink";
+import { deepLinkScrollBehavior, recommendationDeepLinkPath, resolveGuidelineDeepLink } from "../utils/recommendationDeepLink";
 import GuidelineTableFirstView from "./GuidelineTableFirstView";
 
 type GuidelineRoute = Extract<DataRoute, { tab: "guidelines"; kind: "guideline-list" | "guideline-detail" }>;
@@ -25,26 +25,27 @@ interface Props {
 
 function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguageChange, relatedCalculators }: { guideline: PublicGuidelineTableFirst; route: Extract<GuidelineRoute, { kind: "guideline-detail" }>; onNavigate: (path: string) => void; languageMode: LanguageMode; onLanguageChange: (mode: LanguageMode) => void; relatedCalculators: DatabaseCalculator[] }) {
   const [highlightedRecommendationId, setHighlightedRecommendationId] = useState("");
-  const deepLinkSections = useMemo(() => {
-    const items = new Map<string, { id: string; slug: string; recommendations: Array<{ id: string }> }>();
+  const deepLinkTables = useMemo(() => {
+    const items = new Map<string, { id: string; legacySectionIds: string[]; recommendations: Array<{ id: string }> }>();
     guideline.recommendationTables.forEach((table) => {
-      // A table is now the public content owner. Source Section metadata may be
-      // absent and must not control deep links.
-      const current = items.get(table.id) ?? { id: table.id, slug: table.id, recommendations: [] };
+      const current = items.get(table.id) ?? { id: table.id, legacySectionIds: table.sourceSection ? [table.sourceSection.id] : [], recommendations: [] };
       table.groups.forEach((group) => group.rows.forEach((row) => current.recommendations.push({ id: row.id })));
       items.set(table.id, current);
     });
     return [...items.values()];
   }, [guideline.recommendationTables]);
   const deepLinkTarget = useMemo(() => resolveGuidelineDeepLink(
-    deepLinkSections,
+    deepLinkTables,
     route.sectionSlug,
     route.recommendationId,
-  ), [deepLinkSections, route.recommendationId, route.sectionSlug]);
+  ), [deepLinkTables, route.recommendationId, route.sectionSlug]);
 
   useEffect(() => {
     if (route.recommendationId) {
       if (!deepLinkTarget?.ok) { setHighlightedRecommendationId(""); return; }
+      if (deepLinkTarget.usedLegacySection) {
+        window.history.replaceState({}, "", recommendationDeepLinkPath(guideline.slug, deepLinkTarget.tableId, deepLinkTarget.recommendationId));
+      }
       const elements = [
         document.getElementById(`recommendation-${deepLinkTarget.recommendationId}`),
         document.getElementById(`recommendation-mobile-${deepLinkTarget.recommendationId}`),
@@ -64,11 +65,11 @@ function GuidelineDetail({ guideline, route, onNavigate, languageMode, onLanguag
     if (!element) return;
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     element.scrollIntoView({ block: "start", behavior: deepLinkScrollBehavior(reducedMotion) });
-  }, [deepLinkTarget, guideline.recommendationTables, route.recommendationId, route.sectionSlug]);
+  }, [deepLinkTarget, guideline.recommendationTables, guideline.slug, route.recommendationId, route.sectionSlug]);
 
   const deepLinkError = route.recommendationId && deepLinkTarget && !deepLinkTarget.ok
-    ? deepLinkTarget.reason === "section-unavailable" ? "Section của khuyến cáo không còn khả dụng."
-      : deepLinkTarget.reason === "recommendation-section-mismatch" ? "Khuyến cáo không thuộc section trong liên kết này."
+    ? deepLinkTarget.reason === "table-unavailable" ? "Bảng khuyến cáo trong liên kết không còn khả dụng."
+      : deepLinkTarget.reason === "recommendation-table-mismatch" ? "Khuyến cáo không thuộc Bảng khuyến cáo trong liên kết này."
         : "Khuyến cáo này không còn công khai hoặc không tồn tại."
     : "";
 

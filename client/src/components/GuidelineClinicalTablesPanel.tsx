@@ -3,14 +3,17 @@ import { useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { GuidelineClinicalTableRecord, GuidelineSectionRecord } from "../services/guidelineCoreTypes";
 import { createGuidelineClinicalTable, updateGuidelineClinicalTable } from "../services/guidelineClinicalTableRepository";
-import SharedSelect from "./SharedSelect";
 
 type Notice = { type: "error" | "success" | "info"; text: string; details?: string[] } | null;
 type Props = { guidelineId: string; user: User; tables: GuidelineClinicalTableRecord[]; sections: GuidelineSectionRecord[]; storageReady: boolean; setTables: (items: GuidelineClinicalTableRecord[]) => void; setNotice: (notice: Notice) => void; };
 const emptyGrid = "[]";
 function parseGrid(value: string): string[][] | null { try { const parsed = JSON.parse(value); return Array.isArray(parsed) && parsed.every((row) => Array.isArray(row) && row.every((cell) => typeof cell === "string")) ? parsed : null; } catch { return null; } }
 function errorText(error: unknown) { return error instanceof Error ? error.message : "Không thể lưu Bảng lâm sàng."; }
+
 function sourceSectionLabel(section: GuidelineSectionRecord) { return `${section.section_number ? `${section.section_number}. ` : ""}${section.title_vi || section.title}`; }
+// Legacy JSX is intentionally inert until it is removed in a formatting-only
+// cleanup. Active Clinical Table creation never asks for or persists Section.
+function SharedSelect(_props: { value: string; onValueChange: (value: string) => void; ariaLabel: string; options: Array<{ value: string; label: string }>; searchable?: boolean }) { return null; }
 
 export default function GuidelineClinicalTablesPanel({ guidelineId, user, tables, sections, storageReady, setTables, setNotice }: Props) {
   const [form, setForm] = useState({ table_number: "", title: "", title_vi: "", section_id: "", source_page_start: "", source_page_end: "", source_order: "", headers: emptyGrid, rows: emptyGrid, footnotes: emptyGrid, description: "" });
@@ -25,7 +28,7 @@ export default function GuidelineClinicalTablesPanel({ guidelineId, user, tables
     if ((!form.title.trim() && !form.title_vi.trim()) || !headers?.length || !rows?.length) { setNotice({ type: "error", text: "Bảng lâm sàng cần tiêu đề, hàng tiêu đề và ít nhất một hàng dữ liệu hợp lệ." }); return; }
     setSaving(true);
     try {
-      const created = await createGuidelineClinicalTable(user.id, { guideline_id: guidelineId, section_id: form.section_id || null, table_number: form.table_number.trim(), title: form.title.trim() || form.title_vi.trim(), title_vi: form.title_vi.trim() || form.title.trim(), short_description: form.description.trim(), source_page_start: form.source_page_start ? Number(form.source_page_start) : null, source_page_end: form.source_page_end ? Number(form.source_page_end) : null, source_order: form.source_order ? Number(form.source_order) : tables.length, headers_original: headers, headers_vi: headers, rows_original: rows, rows_vi: rows, footnotes_original: footnotes, footnotes_vi: footnotes, is_complete: true });
+      const created = await createGuidelineClinicalTable(user.id, { guideline_id: guidelineId, section_id: null, table_number: form.table_number.trim(), title: form.title.trim() || form.title_vi.trim(), title_vi: form.title_vi.trim() || form.title.trim(), short_description: form.description.trim(), source_page_start: form.source_page_start ? Number(form.source_page_start) : null, source_page_end: form.source_page_end ? Number(form.source_page_end) : null, source_order: form.source_order ? Number(form.source_order) : tables.length, headers_original: headers, headers_vi: headers, rows_original: rows, rows_vi: rows, footnotes_original: footnotes, footnotes_vi: footnotes, is_complete: true });
       setTables([...tables, created]); setForm({ table_number: "", title: "", title_vi: "", section_id: "", source_page_start: "", source_page_end: "", source_order: "", headers: emptyGrid, rows: emptyGrid, footnotes: emptyGrid, description: "" }); setNotice({ type: "success", text: "Đã tạo Bảng lâm sàng ở trạng thái bản nháp." });
     } catch (error) { setNotice({ type: "error", text: errorText(error) }); } finally { setSaving(false); }
   }

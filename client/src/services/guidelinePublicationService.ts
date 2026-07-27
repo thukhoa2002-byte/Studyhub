@@ -1,6 +1,7 @@
 import { getGuidelineCoreDocument, updateGuidelineCoreDocument } from "./guidelineRepository";
-import { listGuidelineSections, getGuidelineSection, setGuidelineSectionStatus } from "./guidelineSectionRepository";
+import { getGuidelineSection, setGuidelineSectionStatus } from "./guidelineSectionRepository";
 import { listGuidelineRecommendations, getGuidelineRecommendation, updateGuidelineRecommendation } from "./guidelineRecommendationRepository";
+import { getGuidelineRecommendationTable } from "./guidelineRecommendationTableRepository";
 import { listGuidelineSourceDocuments } from "./guidelineSourceDocumentRepository";
 import { assertValidGuidelinePublication, assertValidRecommendationPublication, GuidelineValidationError, validateGuidelineStatusTransition, validateRecommendationStatusTransition } from "./guidelineValidation";
 import type { GuidelineCoreStatus, GuidelineRecommendationStatus } from "./guidelineCoreTypes";
@@ -10,15 +11,14 @@ function assertTransition(errors: string[]): void {
 }
 
 export async function publishGuideline(guidelineId: string, actorId: string) {
-  const [document, sections, recommendations, sourceDocuments] = await Promise.all([
+  const [document, recommendations, sourceDocuments] = await Promise.all([
     getGuidelineCoreDocument(guidelineId),
-    listGuidelineSections(guidelineId),
     listGuidelineRecommendations(guidelineId),
     listGuidelineSourceDocuments(guidelineId),
   ]);
   if (!document) throw new Error("Guideline không tồn tại.");
   assertTransition(validateGuidelineStatusTransition(document.status, "published"));
-  assertValidGuidelinePublication(document, sections, recommendations, sourceDocuments);
+  assertValidGuidelinePublication(document, recommendations, sourceDocuments);
   return updateGuidelineCoreDocument(guidelineId, {
     status: "published",
     // Keep the legacy visibility flag aligned while older RLS policies are still present.
@@ -34,14 +34,14 @@ export async function publishGuideline(guidelineId: string, actorId: string) {
 export async function publishGuidelineRecommendation(recommendationId: string, _actorId: string) {
   const recommendation = await getGuidelineRecommendation(recommendationId);
   if (!recommendation) throw new Error("Recommendation không tồn tại.");
-  const [document, section, sourceDocuments] = await Promise.all([
+  const [document, table, sourceDocuments] = await Promise.all([
     getGuidelineCoreDocument(recommendation.guideline_id),
-    recommendation.section_id ? getGuidelineSection(recommendation.section_id) : Promise.resolve(null),
+    recommendation.recommendation_table_id ? getGuidelineRecommendationTable(recommendation.recommendation_table_id) : Promise.resolve(null),
     listGuidelineSourceDocuments(recommendation.guideline_id),
   ]);
   if (!document) throw new Error("Guideline không tồn tại.");
   assertTransition(validateRecommendationStatusTransition(recommendation.status, "published"));
-  assertValidRecommendationPublication(recommendation, document, section, sourceDocuments);
+  assertValidRecommendationPublication(recommendation, document, table, sourceDocuments);
   return updateGuidelineRecommendation(recommendationId, {
     status: "published",
   });

@@ -34,3 +34,12 @@ test("relationship migration keeps legacy guideline entries outside active relat
   assert.match(migration, /unique nulls not distinct/);
   assert.match(migration, /on delete restrict/);
 });
+
+test("Drug and Calculator reverse lookup resolves public ownership through Recommendation Table", () => {
+  const service = readFileSync(new URL("./knowledgeRelationService.ts", import.meta.url), "utf8");
+  const link = readFileSync(new URL("../components/RecommendationLink.tsx", import.meta.url), "utf8");
+  assert.match(service, /getGuidelineRecommendationTablesByIds/);
+  assert.match(service, /table\?\.status === "published"/);
+  assert.doesNotMatch(service, /section\?\.status === "published"/);
+  assert.match(link, /location\.tableId/);
+});

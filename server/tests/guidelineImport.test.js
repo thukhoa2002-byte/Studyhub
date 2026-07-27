@@ -1,8 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { buildImportPrompt, createDocumentItems, normalizeImportResult, validateImportForBulkImport } from "../services/guidelineImport.js";
 import { classifyGuidelineItems, defaultSelection, groupedLocalDiagnostics, initializeItemStates, inventoryDiagnostics, mandatoryRecommendationCompletion, selectTranslationItems, translationSummary } from "../services/guidelineTranslationPolicy.js";
 import { figureDisplayModel } from "../services/guidelineFigurePolicy.js";
+
+test("table-first import does not require Section output or emit missing_section blockers", () => {
+  const service = readFileSync(new URL("../services/guidelineImport.js", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../routes/guidelineImport.js", import.meta.url), "utf8");
+  assert.doesNotMatch(service.match(/required: \[[^\n]+/)?.[0] || "", /"sections"/);
+  assert.match(route, /GUIDELINE_LEGACY_SECTION_IMPORT === "enabled"/);
+  assert.doesNotMatch(route, /code: "missing_section"/);
+  assert.match(route, /const sourceSections = \[\]/);
+});
 
 test("detects every document section instead of stopping at the first table", () => {
   const items = createDocumentItems("Table 1: Dosing\nalpha\n\nFigure 2: Algorithm\nbeta\n\nAppendix A: Terms\ngamma");

@@ -230,8 +230,12 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
       for (const [sectionIndex, section] of [...result.sections].sort((a, b) => a.level - b.level || a.displayOrder - b.displayOrder).entries()) {
         const identity = sourceSectionIdentity(section);
         const key = identity.canonicalKey || `${item.id}:${section.sourceKey}`;
+        // Table-first imports retain detected headings inside the structured
+        // payload as provenance. They do not create translatable/reviewable
+        // Section records in the active workflow.
+        resolvedSectionKeys.set(section.sourceKey, key);
         let current = sectionByKey.get(key);
-        if (!current) {
+        if (!current && process.env.GUIDELINE_LEGACY_SECTION_IMPORT === "enabled") {
           const parentKey = section.parentSourceKey ? (resolvedSectionKeys.get(section.parentSourceKey) || `${item.id}:${section.parentSourceKey}`) : null;
           const parent = parentKey ? sectionByKey.get(parentKey) : null;
           current = first(await supabaseTableRequest("guideline_import_sections", token, { method: "POST", body: {
@@ -252,15 +256,14 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
           sectionByKey.set(key, current);
         }
         resolvedSectionKeys.set(section.sourceKey, key);
-        if (identity.temporary) result.issues.push({ severity: "blocking", code: "temporary_section_identity", message: `Section ${section.sourceKey || section.titleOriginal} chưa có số mục nguồn ổn định.`, sourcePage: section.sourcePage });
+        if (identity.temporary) result.issues.push({ severity: "info", code: "source_section_provenance_unresolved", message: `Mục nguồn ${section.sourceKey || section.titleOriginal} chưa có số nguồn ổn định; Bảng khuyến cáo vẫn dùng title, trang và thứ tự nguồn.`, sourcePage: section.sourcePage });
       }
       const insertedRecommendations = [];
       for (const [recommendationIndex, recommendation] of result.recommendations.entries()) {
-        const section = sectionByKey.get(resolvedSectionKeys.get(recommendation.sectionSourceKey) || `${item.id}:${recommendation.sectionSourceKey}`);
         const sourceKey = `${item.id}:${recommendation.sourceKey}`;
         const existingRecommendation = (latestRecommendations || []).find((candidate) => candidate.source_key === sourceKey);
         const recommendationPayload = {
-          import_section_id: section?.id || null,
+          import_section_id: null,
           source_key: sourceKey,
           title_original: recommendation.titleOriginal,
           recommendation_text_original: recommendation.recommendationTextOriginal,
@@ -304,7 +307,6 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
           ? { method: "PATCH", query: { id: `eq.${existingRecommendation.id}` }, body: recommendationPayload }
           : { method: "POST", body: { job_id: jobId, ...recommendationPayload } }));
         insertedRecommendations.push(created);
-        if (!section) result.issues.push({ severity: "blocking", code: "missing_section", message: `Không ghép được Section nguồn cho ${recommendation.sourceKey}; hệ thống không gắn tạm vào mục gần nhất.`, sourcePage: recommendation.sourcePage });
         if (!validSourcePage(recommendation.sourcePage)) result.issues.push({ severity: "blocking", code: "missing_source_page", message: `Khuyến cáo ${recommendation.sourceKey} thiếu trang nguồn.`, sourcePage: null });
         if (recommendation.confidence != null && recommendation.confidence < 0.75) result.issues.push({ severity: "warning", code: "low_confidence", message: `Độ tin cậy thấp ở ${recommendation.sourceKey}.`, sourcePage: recommendation.sourcePage });
         if (recommendation.recommendationTextOriginal && recommendation.recommendationTextVi && /\d/.test(recommendation.recommendationTextOriginal) && !/\d/.test(recommendation.recommendationTextVi)) result.issues.push({ severity: "blocking", code: "number_mismatch", message: `Bản dịch của ${recommendation.sourceKey} không giữ số liệu nguồn.`, sourcePage: recommendation.sourcePage });
@@ -349,7 +351,7 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
     tables: Object.entries(tableTranslations).flatMap(([itemId, tables]) => (Array.isArray(tables) ? tables : []).map((table) => ({ ...table, itemId }))),
     issues: finalData?.issues || [],
   });
-  const structurallyReady = structuralDiagnostics.length === 0;
+  const structurallyReady = !structuralDiagnostics.some((diagnostic) => diagnostic.severity === "blocking");
   const ready = completion.complete && pending.length === 0 && structurallyReady;
   await updateJob(req, jobId, {
     status: ready ? "ready_for_review" : "paused",
@@ -396,7 +398,7 @@ async function importAccepted(req, jobId) {
   if (!guidelineId) throw new Error("Không tạo được Guideline Core draft.");
   // Source sections are persisted only as optional provenance. They are never
   // a translation, review, or publication prerequisite for table-first content.
-  const sourceSections = data.sections;
+  const sourceSections = [];
   const acceptedRecommendations = data.recommendations.filter((recommendation) => recommendation.review_status === "accepted");
   const coreSectionByImportId = new Map();
   const coreSectionBySourceKey = new Map();

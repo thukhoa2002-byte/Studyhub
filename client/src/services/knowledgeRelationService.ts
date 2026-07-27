@@ -1,7 +1,8 @@
 import { getCalculatorRecord } from "./calculatorDatabaseService.ts";
 import { getDrugById } from "./drugDatabaseService.ts";
 import { getGuidelineRecommendation, getGuidelineRecommendationsByIds } from "./guidelineRecommendationRepository.ts";
-import { getGuidelineSection, getGuidelineSectionsByIds } from "./guidelineSectionRepository.ts";
+import { getGuidelineSectionsByIds } from "./guidelineSectionRepository.ts";
+import { getGuidelineRecommendationTable, getGuidelineRecommendationTablesByIds } from "./guidelineRecommendationTableRepository.ts";
 import { getGuidelineCoreDocument, getGuidelineCoreDocumentsByIds } from "./guidelineRepository.ts";
 import { guidelineCoreSlug } from "./guidelineCorePublicMapper.ts";
 import {
@@ -12,7 +13,7 @@ import {
   type RecommendationDrugRelation,
   type RelationMetadata,
 } from "./knowledgeRelationRepository.ts";
-import type { GuidelineCoreDocument, GuidelineRecommendationRecord, GuidelineSectionRecord } from "./guidelineCoreTypes.ts";
+import type { GuidelineCoreDocument, GuidelineRecommendationRecord, GuidelineRecommendationTableRecord, GuidelineSectionRecord } from "./guidelineCoreTypes.ts";
 import { hasActiveDuplicateRelation, validateRelationMetadata } from "./knowledgeRelationValidation.ts";
 
 export const drugRelationTypes: DrugRecommendationRelationType[] = ["recommended", "alternative", "contraindicated", "caution", "dose_adjustment", "monitoring", "interaction", "mentioned", "supporting_therapy"];
@@ -22,6 +23,7 @@ export type RelationContext = Pick<RelationMetadata, "context_text" | "source_lo
 export interface RecommendationLocation {
   recommendation: GuidelineRecommendationRecord;
   guideline: GuidelineCoreDocument;
+  table: GuidelineRecommendationTableRecord | null;
   section: GuidelineSectionRecord | null;
   publicEligible: boolean;
 }
@@ -37,10 +39,9 @@ async function validateRecommendationTarget(recommendationId: string): Promise<v
   if (!recommendation || recommendation.status === "archived") throw new Error("Khuyến cáo không còn khả dụng.");
   const guideline = await getGuidelineCoreDocument(recommendation.guideline_id);
   if (!guideline || guideline.status === "archived") throw new Error("Guideline của khuyến cáo không còn khả dụng.");
-  if (recommendation.section_id) {
-    const section = await getGuidelineSection(recommendation.section_id);
-    if (!section || section.guideline_id !== recommendation.guideline_id || section.status === "archived") throw new Error("Section của khuyến cáo không hợp lệ.");
-  }
+  if (!recommendation.recommendation_table_id) throw new Error("Khuyến cáo chưa thuộc Bảng khuyến cáo.");
+  const table = await getGuidelineRecommendationTable(recommendation.recommendation_table_id);
+  if (!table || table.guideline_id !== recommendation.guideline_id || table.status === "archived") throw new Error("Bảng khuyến cáo của khuyến cáo không hợp lệ.");
 }
 
 export async function listRecommendationRelations(recommendationId: string) {
@@ -82,21 +83,25 @@ export async function listCalculatorRecommendationRelations(calculatorId: string
 export async function resolveRecommendationLocations(recommendationIds: string[]) {
   const uniqueIds = [...new Set(recommendationIds)];
   const recommendations = await getGuidelineRecommendationsByIds(uniqueIds);
-  const [guidelines, sections] = await Promise.all([
+  const [guidelines, tables, sections] = await Promise.all([
     getGuidelineCoreDocumentsByIds(recommendations.map((item) => item.guideline_id)),
+    getGuidelineRecommendationTablesByIds(recommendations.flatMap((item) => item.recommendation_table_id ? [item.recommendation_table_id] : [])),
     getGuidelineSectionsByIds(recommendations.flatMap((item) => item.section_id ? [item.section_id] : [])),
   ]);
   const guidelineById = new Map(guidelines.map((item) => [item.id, item]));
+  const tableById = new Map(tables.map((item) => [item.id, item]));
   const sectionById = new Map(sections.map((item) => [item.id, item]));
   const items = recommendations.map((recommendation) => {
     const guideline = guidelineById.get(recommendation.guideline_id);
     if (!guideline) return null;
+    const table = recommendation.recommendation_table_id ? tableById.get(recommendation.recommendation_table_id) || null : null;
     const section = recommendation.section_id ? sectionById.get(recommendation.section_id) || null : null;
     const publicEligible = guideline.status === "published"
-      && section?.status === "published"
+      && table?.status === "published"
+      && table.is_complete
       && recommendation.status === "published"
       && recommendation.verification_status === "verified";
-    return { recommendation, guideline, section, publicEligible };
+    return { recommendation, guideline, table, section, publicEligible };
   });
   return items.filter((item): item is RecommendationLocation => item !== null);
 }
@@ -107,8 +112,10 @@ export function recommendationLocationPreview(location: RecommendationLocation) 
     guidelineId: location.guideline.id,
     guidelineSlug: guidelineCoreSlug(location.guideline),
     guidelineTitle: location.guideline.title || "Guideline",
+    tableId: location.table?.id || null,
+    tableTitle: location.table?.title_vi || location.table?.title || "Bảng khuyến cáo",
     sectionId: location.section?.id || null,
-    sectionTitle: location.section?.title_vi || location.section?.title || "Không gắn section",
+    sectionTitle: location.section?.title_vi || location.section?.title || "",
     recommendationId: location.recommendation.id,
     recommendationTitle,
     recommendationPreview: location.recommendation.recommendation_text_vi || location.recommendation.recommendation_text_original || "",

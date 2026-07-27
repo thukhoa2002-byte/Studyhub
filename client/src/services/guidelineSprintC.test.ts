@@ -27,15 +27,15 @@ test("structured editor uses services and keeps legacy entries out of its data m
 
 test("publication blockers remain visible until Guideline Core requirements are met", () => {
   const document = { title: "Test", publication_year: null, version_label: "", source_url: null, doi: null, citation: "", file_path: null, provenance: [] };
-  const blockers = validateGuidelineForPublication(document, [], [], []);
+  const blockers = validateGuidelineForPublication(document, [], []);
   assert.ok(blockers.some((item) => /Publication year or version/.test(item)));
   assert.ok(blockers.some((item) => /Source traceability/.test(item)));
   assert.ok(blockers.some((item) => /eligible recommendation table row/.test(item)));
 });
 
 test("single-admin recommendation publication keeps source-backed parent context without a review gate", () => {
-  const recommendation = { title: "Rec", recommendation_text_original: "Do", recommendation_text_vi: "Làm", section_id: "s1", source_page: null, source_quote: "", source_anchor: "", verification_status: "unverified" as const };
-  const errors = validateRecommendationForPublication(recommendation, { id: "g1", status: "published" }, { id: "s1", guideline_id: "g1", status: "published" }, []);
+  const recommendation = { title: "Rec", recommendation_text_original: "Do", recommendation_text_vi: "Làm", recommendation_table_id: "t1", source_page: null, source_quote: "", source_anchor: "", verification_status: "unverified" as const };
+  const errors = validateRecommendationForPublication(recommendation, { id: "g1", status: "published" }, { id: "t1", guideline_id: "g1", status: "published", is_complete: true }, []);
   assert.ok(errors.some((item) => /source traceability/.test(item)));
   assert.doesNotMatch(errors.join(" "), /verified/);
 });

@@ -89,7 +89,7 @@ const importSchema = {
     terminology: { type: "array", items: { type: "object", properties: { sourceTerm: { type: "string" }, preferredTranslation: { type: "string" } }, required: ["sourceTerm", "preferredTranslation"], additionalProperties: false } },
     issues: { type: "array", items: { type: "object", properties: { severity: { type: "string", enum: ["info", "warning", "error", "blocking"] }, code: { type: "string" }, message: { type: "string" }, sourcePage: { type: "integer" } }, required: ["severity", "code", "message", "sourcePage"], additionalProperties: false } },
   },
-  required: ["document", "sections", "recommendations", "tables", "figures", "terminology", "issues"],
+  required: ["document", "recommendations", "tables", "figures", "terminology", "issues"],
   additionalProperties: false,
 };
 
@@ -123,13 +123,28 @@ export function reconstructGuidelinePageReadingOrder(items, pageWidth, pageHeigh
     if (row) row.parts.push(part);
     else rows.push({ y, column: width > pageWidth * .62 ? "full" : x < pageWidth / 2 ? "left" : "right", parts: [part] });
   }
-  const render = (list) => list.sort((a, b) => b.y - a.y).map((row) => row.parts.sort((a, b) => a.x - b.x).map((part) => part.value).join(" "));
-  const full = rows.filter((row) => row.column === "full");
-  const left = rows.filter((row) => row.column === "left");
-  const right = rows.filter((row) => row.column === "right");
-  // Full-width regions are kept as their own blocks. This prevents a table
-  // spanning the page from being interwoven with the adjacent column.
-  return [...render(full), ...render(left), ...render(right)].filter(Boolean);
+  const render = (list) => [...list]
+    .sort((a, b) => b.y - a.y)
+    .map((row) => row.parts.sort((a, b) => a.x - b.x).map((part) => part.value).join(" "));
+  const full = rows.filter((row) => row.column === "full").sort((a, b) => b.y - a.y);
+  const narrow = rows.filter((row) => row.column !== "full");
+  const output = [];
+  let upperBoundary = Number.POSITIVE_INFINITY;
+
+  // A full-width heading or table row is a vertical boundary, not a page-level
+  // prefix. Render the two columns inside each region before moving past the
+  // boundary so a mid-page table cannot jump ahead of the content above it.
+  for (const boundary of full) {
+    const region = narrow.filter((row) => row.y < upperBoundary && row.y > boundary.y);
+    output.push(...render(region.filter((row) => row.column === "left")));
+    output.push(...render(region.filter((row) => row.column === "right")));
+    output.push(...render([boundary]));
+    upperBoundary = boundary.y;
+  }
+  const finalRegion = narrow.filter((row) => row.y < upperBoundary);
+  output.push(...render(finalRegion.filter((row) => row.column === "left")));
+  output.push(...render(finalRegion.filter((row) => row.column === "right")));
+  return output.filter(Boolean);
 }
 
 async function extractGuidelinePdfLayout(file) {

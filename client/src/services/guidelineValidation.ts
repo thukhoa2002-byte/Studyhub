@@ -2,8 +2,8 @@ import type {
   GuidelineCoreDocument,
   GuidelineCoreStatus,
   GuidelineRecommendationRecord,
+  GuidelineRecommendationTableRecord,
   GuidelineRecommendationStatus,
-  GuidelineSectionRecord,
   GuidelineSourceDocumentRecord,
 } from "./guidelineCoreTypes";
 
@@ -38,7 +38,6 @@ export function hasGuidelineSourceTraceability(
 
 export function validateGuidelineForPublication(
   document: Pick<GuidelineCoreDocument, "title" | "publication_year" | "version_label" | "source_url" | "doi" | "citation" | "file_path" | "provenance">,
-  _sections: Array<Pick<GuidelineSectionRecord, "status">>,
   recommendations: Array<Pick<GuidelineRecommendationRecord, "status" | "verification_status" | "title" | "recommendation_text_original" | "recommendation_text_vi">>,
   sourceDocuments: Array<Pick<GuidelineSourceDocumentRecord, "id">> = [],
 ): string[] {
@@ -55,14 +54,19 @@ export function validateGuidelineForPublication(
 }
 
 export function validateRecommendationForPublication(
-  recommendation: Pick<GuidelineRecommendationRecord, "title" | "recommendation_text_original" | "recommendation_text_vi" | "section_id" | "source_page" | "source_quote" | "source_anchor" | "verification_status">,
+  recommendation: Pick<GuidelineRecommendationRecord, "title" | "recommendation_text_original" | "recommendation_text_vi" | "recommendation_table_id" | "source_page" | "source_quote" | "source_anchor" | "verification_status">,
   document: Pick<GuidelineCoreDocument, "id" | "status">,
-  section: Pick<GuidelineSectionRecord, "id" | "guideline_id" | "status"> | null,
+  table: Pick<GuidelineRecommendationTableRecord, "id" | "guideline_id" | "status" | "is_complete"> | null,
   sourceDocuments: Array<Pick<GuidelineSourceDocumentRecord, "id">> = [],
 ): string[] {
   const errors: string[] = [];
   if (!hasText(recommendation.title) && !hasText(recommendation.recommendation_text_original) && !hasText(recommendation.recommendation_text_vi)) errors.push("Recommendation display text is required.");
-  if (recommendation.section_id && (!section || section.id !== recommendation.section_id || section.guideline_id !== document.id)) errors.push("Recommendation source Section must belong to the same Guideline.");
+  if (!recommendation.recommendation_table_id) errors.push("Recommendation Table is required.");
+  else if (!table || table.id !== recommendation.recommendation_table_id || table.guideline_id !== document.id) errors.push("Recommendation Table must belong to the same Guideline.");
+  else {
+    if (!table.is_complete) errors.push("Recommendation Table must be complete.");
+    if (table.status !== "published") errors.push("Recommendation Table must be published first.");
+  }
   if (document.status !== "published") errors.push("Parent Guideline must be published first.");
   if (sourceDocuments.length === 0 && recommendation.source_page == null && !hasText(recommendation.source_quote) && !hasText(recommendation.source_anchor)) errors.push("Recommendation source traceability is required.");
   return errors;

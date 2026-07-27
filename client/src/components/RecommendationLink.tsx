@@ -5,6 +5,8 @@ export interface RecommendationLinkLocation {
   guidelineId: string;
   guidelineSlug: string;
   guidelineTitle: string;
+  tableId: string | null;
+  tableTitle: string;
   sectionId: string | null;
   sectionTitle: string;
   recommendationId: string;
@@ -23,8 +25,8 @@ type Props = {
 export default function RecommendationLink({ location, onNavigate, admin = false, className = "" }: Props) {
   const destination = admin
     ? recommendationAdminPath(location.guidelineId, location.recommendationId)
-    : location.publicEligible && location.sectionId
-      ? recommendationDeepLinkPath(location.guidelineSlug, location.sectionId, location.recommendationId)
+    : location.publicEligible && location.tableId
+      ? recommendationDeepLinkPath(location.guidelineSlug, location.tableId, location.recommendationId)
       : "";
   const unavailable = !destination;
 
@@ -33,7 +35,7 @@ export default function RecommendationLink({ location, onNavigate, admin = false
       <div className="min-w-0">
         <p className="font-bold text-slate-800">{location.recommendationTitle || "Khuyến cáo"}</p>
         {location.recommendationPreview && <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600">{location.recommendationPreview}</p>}
-        <p className="mt-2 text-xs font-semibold text-slate-500">{location.guidelineTitle} · {location.sectionTitle}</p>
+        <p className="mt-2 text-xs font-semibold text-slate-500">{location.guidelineTitle} · {location.tableTitle}{location.sectionTitle ? ` · Nguồn: ${location.sectionTitle}` : ""}</p>
       </div>
       <button
         type="button"

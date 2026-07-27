@@ -48,6 +48,18 @@ export async function getGuidelineRecommendationTable(id: string): Promise<Guide
   return data as GuidelineRecommendationTableRecord | null;
 }
 
+export async function getGuidelineRecommendationTablesByIds(ids: string[]): Promise<GuidelineRecommendationTableRecord[]> {
+  const uniqueIds = [...new Set(ids)].filter(Boolean);
+  if (uniqueIds.length === 0) return [];
+  const { data, error } = await requireGuidelineClient()
+    .from("guideline_recommendation_tables")
+    .select(tableColumns)
+    .in("id", uniqueIds)
+    .limit(uniqueIds.length);
+  if (error) throw error;
+  return (data ?? []) as GuidelineRecommendationTableRecord[];
+}
+
 export async function createGuidelineRecommendationTable(ownerId: string, input: NewGuidelineRecommendationTable): Promise<GuidelineRecommendationTableRecord> {
   const { data, error } = await requireGuidelineClient()
     .from("guideline_recommendation_tables")

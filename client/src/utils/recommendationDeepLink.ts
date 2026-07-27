@@ -1,17 +1,17 @@
 import { guidelinePath } from "./dataRoutes.ts";
 
-export type DeepLinkSection = {
+export type DeepLinkTable = {
   id: string;
-  slug: string;
+  legacySectionIds?: string[];
   recommendations: Array<{ id: string }>;
 };
 
 export type GuidelineDeepLinkTarget =
-  | { ok: true; sectionId: string; recommendationId: string }
-  | { ok: false; reason: "section-unavailable" | "recommendation-unavailable" | "recommendation-section-mismatch" };
+  | { ok: true; tableId: string; recommendationId: string; usedLegacySection: boolean }
+  | { ok: false; reason: "table-unavailable" | "recommendation-unavailable" | "recommendation-table-mismatch" };
 
-export function recommendationDeepLinkPath(guidelineSlug: string, sectionId: string | null | undefined, recommendationId: string): string {
-  return guidelinePath(guidelineSlug, sectionId || undefined, recommendationId);
+export function recommendationDeepLinkPath(guidelineSlug: string, tableId: string, recommendationId: string): string {
+  return guidelinePath(guidelineSlug, tableId, recommendationId);
 }
 
 export function recommendationAdminPath(guidelineId: string, recommendationId: string): string {
@@ -19,18 +19,20 @@ export function recommendationAdminPath(guidelineId: string, recommendationId: s
 }
 
 export function resolveGuidelineDeepLink(
-  sections: DeepLinkSection[],
-  sectionIdentifier: string | undefined,
+  tables: DeepLinkTable[],
+  tableOrLegacySectionIdentifier: string | undefined,
   recommendationId: string | undefined,
 ): GuidelineDeepLinkTarget | null {
   if (!recommendationId) return null;
-  const recommendationSection = sections.find((section) => section.recommendations.some((recommendation) => recommendation.id === recommendationId));
-  if (!recommendationSection) return { ok: false, reason: "recommendation-unavailable" };
-  if (sectionIdentifier && sectionIdentifier !== recommendationSection.id && sectionIdentifier !== recommendationSection.slug) {
-    const requestedSection = sections.find((section) => section.id === sectionIdentifier || section.slug === sectionIdentifier);
-    return requestedSection ? { ok: false, reason: "recommendation-section-mismatch" } : { ok: false, reason: "section-unavailable" };
+  const owner = tables.find((table) => table.recommendations.some((recommendation) => recommendation.id === recommendationId));
+  if (!owner) return { ok: false, reason: "recommendation-unavailable" };
+  if (tableOrLegacySectionIdentifier) {
+    if (tableOrLegacySectionIdentifier === owner.id) return { ok: true, tableId: owner.id, recommendationId, usedLegacySection: false };
+    if (owner.legacySectionIds?.includes(tableOrLegacySectionIdentifier)) return { ok: true, tableId: owner.id, recommendationId, usedLegacySection: true };
+    const requestedTable = tables.find((table) => table.id === tableOrLegacySectionIdentifier);
+    return requestedTable ? { ok: false, reason: "recommendation-table-mismatch" } : { ok: false, reason: "table-unavailable" };
   }
-  return { ok: true, sectionId: recommendationSection.id, recommendationId };
+  return { ok: true, tableId: owner.id, recommendationId, usedLegacySection: false };
 }
 
 export function deepLinkScrollBehavior(reducedMotion: boolean): ScrollBehavior {

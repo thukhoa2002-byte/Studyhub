@@ -128,8 +128,9 @@ export function structuralImportDiagnostics({ items = [], sections = [], recomme
 }
 
 export function canImportStructuredBatch(input) {
-  const blockers = structuralImportDiagnostics(input);
-  return { valid: blockers.length === 0, blockers };
+  const diagnostics = structuralImportDiagnostics(input);
+  const blockers = diagnostics.filter((diagnostic) => diagnostic.severity === "blocking");
+  return { valid: blockers.length === 0, blockers, diagnostics };
 }
 
 export function sourceSectionDisplay(section) {

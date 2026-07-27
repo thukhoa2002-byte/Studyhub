@@ -3,25 +3,25 @@ import test from "node:test";
 import { guidelinePath, parseDataRoute } from "./dataRoutes.ts";
 import { deepLinkScrollBehavior, recommendationAdminPath, recommendationDeepLinkPath, resolveGuidelineDeepLink } from "./recommendationDeepLink.ts";
 
-const sections = [
-  { id: "section-a", slug: "tong-quan", recommendations: [{ id: "recommendation-a" }] },
-  { id: "section-b", slug: "dieu-tri", recommendations: [{ id: "recommendation-b" }] },
+const tables = [
+  { id: "table-a", legacySectionIds: ["section-a", "tong-quan"], recommendations: [{ id: "recommendation-a" }] },
+  { id: "table-b", legacySectionIds: ["section-b", "dieu-tri"], recommendations: [{ id: "recommendation-b" }] },
 ];
 
-test("creates a stable deep link using the recommendation UUID", () => {
-  const path = recommendationDeepLinkPath("esc-hf-2021", "section-a", "recommendation-a");
-  assert.equal(path, "/guidelines/esc-hf-2021/section-a/recommendation-a");
-  assert.deepEqual(parseDataRoute(path), { tab: "guidelines", kind: "guideline-detail", slug: "esc-hf-2021", sectionSlug: "section-a", recommendationId: "recommendation-a" });
+test("creates a stable Table-based deep link using the recommendation UUID", () => {
+  const path = recommendationDeepLinkPath("esc-hf-2021", "table-a", "recommendation-a");
+  assert.equal(path, "/guidelines/esc-hf-2021/table-a/recommendation-a");
+  assert.deepEqual(parseDataRoute(path), { tab: "guidelines", kind: "guideline-detail", slug: "esc-hf-2021", sectionSlug: "table-a", recommendationId: "recommendation-a" });
 });
 
 test("supports legacy section slugs while resolving the canonical recommendation section", () => {
-  assert.deepEqual(resolveGuidelineDeepLink(sections, "tong-quan", "recommendation-a"), { ok: true, sectionId: "section-a", recommendationId: "recommendation-a" });
+  assert.deepEqual(resolveGuidelineDeepLink(tables, "tong-quan", "recommendation-a"), { ok: true, tableId: "table-a", recommendationId: "recommendation-a", usedLegacySection: true });
 });
 
 test("rejects stale and mismatched deep links without guessing", () => {
-  assert.deepEqual(resolveGuidelineDeepLink(sections, "section-b", "recommendation-a"), { ok: false, reason: "recommendation-section-mismatch" });
-  assert.deepEqual(resolveGuidelineDeepLink(sections, "section-a", "missing"), { ok: false, reason: "recommendation-unavailable" });
-  assert.deepEqual(resolveGuidelineDeepLink(sections, "missing-section", "recommendation-a"), { ok: false, reason: "section-unavailable" });
+  assert.deepEqual(resolveGuidelineDeepLink(tables, "table-b", "recommendation-a"), { ok: false, reason: "recommendation-table-mismatch" });
+  assert.deepEqual(resolveGuidelineDeepLink(tables, "table-a", "missing"), { ok: false, reason: "recommendation-unavailable" });
+  assert.deepEqual(resolveGuidelineDeepLink(tables, "missing-table", "recommendation-a"), { ok: false, reason: "table-unavailable" });
 });
 
 test("preserves query strings on admin deep links and honors reduced motion", () => {

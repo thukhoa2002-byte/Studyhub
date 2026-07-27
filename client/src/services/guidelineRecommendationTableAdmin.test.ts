@@ -26,7 +26,8 @@ test("Clinical Tables are independently stored and never become Recommendation r
 });
 
 test("Recommendation Tables keep source ownership as metadata and groups nested below a table", () => {
-  assert.match(panel, /Mục nguồn \(tùy chọn\)/);
+  assert.doesNotMatch(panel, /Mục nguồn \(tùy chọn\)/);
+  assert.match(panel, /section_id: null/);
   assert.match(panel, /Mục khuyến cáo/);
   assert.match(panel, /recommendation_table_id/);
   assert.match(panel, /recommendation_group_id/);
