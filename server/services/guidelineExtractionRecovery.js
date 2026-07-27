@@ -113,7 +113,10 @@ export function structuralImportDiagnostics({ items = [], sections = [], recomme
   const requiredTables = items.filter((item) => item.resourceType === "recommendation_table" || item.contentType === "recommendation_table_incomplete");
   requiredTables.forEach((item) => {
     const table = tables.find((candidate) => candidate.itemId === item.id || candidate.sourceKey === item.id || candidate.source_key === item.id);
-    if (item.contentType === "recommendation_table_incomplete" || !table || !Array.isArray(table.rows) || !table.rows.length) add("incomplete_table", `${item.label || "Bảng khuyến cáo"} chưa được khôi phục đầy đủ.`, item.pageStart || null, { itemId: item.id });
+    // The processing route already persists the canonical
+    // recommendation_table_incomplete issue. Do not add a second blocking
+    // incomplete_table diagnostic for the same item.
+    if (item.contentType !== "recommendation_table_incomplete" && (!table || !Array.isArray(table.rows) || !table.rows.length)) add("incomplete_table", `${item.label || "Bảng khuyến cáo"} chưa được khôi phục đầy đủ.`, item.pageStart || null, { itemId: item.id });
     else if (!table.sectionSourceKey && !table.section_source_key) note("source_section_metadata_unresolved", `${item.label || "Bảng khuyến cáo"} chưa có Mục nguồn; title, trang và thứ tự nguồn vẫn được giữ.`, table.sourcePage || table.source_page || item.pageStart || null, { itemId: item.id });
     if (table?.continuationExpected && !validSourcePage(table.sourcePageEnd || table.source_page_end)) add("table_continuation_missing", `${item.label || "Bảng khuyến cáo"} thiếu trang tiếp nối đã được phát hiện.`, table.sourcePage || table.source_page || item.pageStart || null, { itemId: item.id });
   });
@@ -122,7 +125,11 @@ export function structuralImportDiagnostics({ items = [], sections = [], recomme
     add("inventory_mismatch", `Inventory bảng khuyến cáo không khớp: phát hiện ${requiredTables.length}, khôi phục ${recoveredRequiredTables.length}.`);
   }
   const missingNumbers = missingRecommendationTableNumbers(requiredTables);
-  if (missingNumbers.length) add("missing_recommendation_table", `Thiếu bảng khuyến cáo theo inventory nguồn: ${missingNumbers.map((number) => `Bảng ${number}`).join(", ")}.`);
+  // Numeric gaps are not proof of missing source tables: guideline editions
+  // routinely skip numbers and supplementary tables use a separate sequence.
+  // Keep this as a non-blocking diagnostic unless an explicit source inventory
+  // confirms the missing numbers.
+  if (missingNumbers.length) note("missing_recommendation_table", `Khoảng số bảng không liên tục trong các mục đã nhận diện: ${missingNumbers.map((number) => `Bảng ${number}`).join(", ")}. Cần đối chiếu mục lục nguồn, không tự coi là bảng bị mất.`);
   for (const issue of issues) if (issue?.severity === "blocking" && issue?.code) diagnostics.push({ ...issue, sourcePage: validSourcePage(issue.sourcePage ?? issue.source_page) });
   const unique = new Map();
   for (const diagnostic of diagnostics) {

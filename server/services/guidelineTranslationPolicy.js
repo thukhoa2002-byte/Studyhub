@@ -41,10 +41,17 @@ function hasFormalRecommendationContent(item, hasBody) {
   // A table is mandatory only when the body has actual formal recommendation
   // language. "Classes of recommendations" is a framework table, not a table
   // of clinical recommendations.
-  if (formalRecommendationStatementSignals.test(body)) return true;
+  // A standalone sentence containing "recommended" is not enough: dosing,
+  // definitions, evidence-gap and supplementary tables often contain that
+  // word without being a formal recommendation table. Require an explicit
+  // recommendation-table title or Class/Level structure.
   if (/\brecommendations?\b/i.test(title)) return true;
-  if (hasBody && /recommendation statement/i.test(body)) return true;
-  if (hasBody && /\bclass\b|\bloe\b|level of evidence/i.test(body) && /\b(?:recommended|should|may|not recommended|do not)\b/i.test(body)) return true;
+  // Only inspect the table's opening block. Later prose can contain
+  // cross-references such as "see Recommendation Table 6" and must not turn
+  // a dosing/supplementary table into a mandatory recommendation table.
+  const opening = body.slice(0, 1800);
+  if (hasBody && /recommendation statement/i.test(opening)) return true;
+  if (hasBody && /\bclass\b|\bloe\b|level of evidence/i.test(opening) && /\b(?:recommended|should|may|not recommended|do not)\b/i.test(opening)) return true;
   return false;
 }
 
