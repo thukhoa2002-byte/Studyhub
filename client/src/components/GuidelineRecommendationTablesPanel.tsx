@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, FileText, Plus, Save } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Clipboard, Copy, FileJson, FileText, Plus, Save, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
@@ -84,6 +84,7 @@ export default function GuidelineRecommendationTablesPanel({ guidelineId, user, 
 
   if (!storageReady) return <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-900"><p className="font-extrabold">Bảng khuyến cáo chưa sẵn sàng trong database.</p><p className="mt-1">Cần áp dụng migration Bảng khuyến cáo trước. Mục nguồn chỉ là provenance, không dùng guideline_entries làm dữ liệu thay thế.</p></div>;
   return <div className="mt-4 space-y-4">
+    <JsonRecommendationImport guidelineId={guidelineId} user={user} tables={tables} groups={groups} recommendations={recommendations} setTables={setTables} setGroups={setGroups} setRecommendations={setRecommendations} setNotice={setNotice} />
     <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-4">
       <div><h2 className="text-base font-extrabold text-teal-950">Tạo bảng khuyến cáo</h2><p className="mt-1 text-xs font-semibold text-slate-500">Mục nguồn chỉ là metadata nguồn, không phải điều kiện tạo, dịch hoặc xuất bản bảng.</p></div>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -100,6 +101,96 @@ export default function GuidelineRecommendationTablesPanel({ guidelineId, user, 
     <div className="rounded-2xl border border-slate-200 bg-white/80 p-4"><div className="flex items-center justify-between"><div><h2 className="text-base font-extrabold text-slate-800">Bảng khuyến cáo theo thứ tự nguồn</h2><p className="mt-1 text-xs font-semibold text-slate-500">Thứ tự hiển thị dùng số bảng, trang và thứ tự nguồn; không dùng thời gian tạo.</p></div><span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-extrabold text-violet-700">{tables.length} bảng</span></div>
       {sortedTables.length === 0 ? <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm font-semibold text-slate-500">Chưa có Bảng khuyến cáo. Mục nguồn chưa được hiển thị như một bảng.</div> : <div className="mt-3 space-y-3">{sortedTables.map((table) => <TableCard key={table.id} table={table} sourceSection={sections.find((section) => section.id === table.section_id)} groups={groupsForTable(table, groups, recommendations)} recommendations={recommendations.filter((item) => item.recommendation_table_id === table.id)} user={user} open={openTableId === table.id} onToggle={() => setOpenTableId(openTableId === table.id ? null : table.id)} onAddGroup={(group) => setGroups([...groups, group])} onAddRecommendation={(recommendation) => setRecommendations([...recommendations, recommendation])} onTableUpdate={(updated) => setTables(tables.map((item) => item.id === updated.id ? updated : item))} setNotice={setNotice} onOpenRecommendation={onOpenRecommendation} onBulkPublished={onBulkPublished} />)}</div>}</div>
   </div>;
+}
+
+type JsonImportRecommendation = { title?: string; title_original?: string; recommendation_text_original?: string; original?: string; recommendation_text_vi?: string; vietnamese?: string; translation_vi?: string; recommendation_class?: string; class?: string; evidence_level?: string; level?: string; source_page?: number | null };
+type JsonImportGroup = { source_heading?: string; title_vi?: string; context?: string; source_page?: number | null; recommendations?: JsonImportRecommendation[] };
+type JsonImportTable = { table_number?: string; source_table_number?: string; title?: string; title_original?: string; title_vi?: string; short_description?: string; source_page?: number | null; source_page_start?: number | null; source_page_end?: number | null; source_order?: number; groups?: JsonImportGroup[]; recommendations?: JsonImportRecommendation[] };
+
+const recommendationPrompt = `Bạn là biên tập viên guideline tim mạch. Tôi sẽ gửi một đoạn khuyến cáo nguyên bản tiếng Anh.
+
+Hãy dịch sát nghĩa y văn, không tóm tắt, không diễn giải thêm, không đổi mức độ khuyến cáo. Giữ nguyên thuốc, liều, đơn vị, ngưỡng, thời gian, viết tắt và điều kiện lâm sàng. “Recommended” dịch là “được khuyến cáo”; “should be considered” dịch là “nên được cân nhắc”; “may be considered” dịch là “có thể được cân nhắc”; “is not recommended” dịch là “không được khuyến cáo”.
+
+Chỉ trả về JSON hợp lệ, không markdown, theo đúng cấu trúc:
+{
+  "table": {
+    "table_number": "Table 4",
+    "title_original": "New recommendations",
+    "title_vi": "Các khuyến cáo mới",
+    "source_page_start": 7,
+    "source_page_end": 7,
+    "groups": [{
+      "source_heading": "Recommendations for ...",
+      "title_vi": "Khuyến cáo về ...",
+      "recommendations": [{
+        "recommendation_text_original": "giữ nguyên nguyên văn",
+        "recommendation_text_vi": "bản dịch y khoa đầy đủ",
+        "recommendation_class": "I",
+        "evidence_level": "C",
+        "source_page": 7
+      }]
+    }]
+  }
+}
+
+Mỗi hàng khuyến cáo phải là một phần tử riêng. Không gộp nhiều hàng. Class và Level/LoE phải lấy đúng từ bảng nguồn. Nếu không có dữ liệu thì dùng chuỗi rỗng, không tự đoán.`;
+
+function jsonString(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+function jsonNumber(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? value : null; }
+function readJsonRecommendation(value: JsonImportRecommendation) {
+  return { title: jsonString(value.title || value.title_original), original: jsonString(value.recommendation_text_original || value.original), vi: jsonString(value.recommendation_text_vi || value.vietnamese || value.translation_vi), recommendationClass: jsonString(value.recommendation_class || value.class), evidenceLevel: jsonString(value.evidence_level || value.level), sourcePage: jsonNumber(value.source_page) };
+}
+
+function JsonRecommendationImport({ guidelineId, user, tables, groups, recommendations, setTables, setGroups, setRecommendations, setNotice }: { guidelineId: string; user: User; tables: GuidelineRecommendationTableRecord[]; groups: GuidelineRecommendationGroupRecord[]; recommendations: GuidelineRecommendationRecord[]; setTables: (items: GuidelineRecommendationTableRecord[]) => void; setGroups: (items: GuidelineRecommendationGroupRecord[]) => void; setRecommendations: (items: GuidelineRecommendationRecord[]) => void; setNotice: (notice: Notice) => void }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
+  async function copyPrompt() { await navigator.clipboard.writeText(recommendationPrompt); setPromptCopied(true); window.setTimeout(() => setPromptCopied(false), 1800); }
+  function loadFile(file: File | undefined) { if (!file) return; const reader = new FileReader(); reader.onload = () => setText(String(reader.result || "")); reader.readAsText(file); }
+  function parsePayload() {
+    const parsed = JSON.parse(text) as { table?: JsonImportTable; tables?: JsonImportTable[] };
+    const incoming = parsed.tables || (parsed.table ? [parsed.table] : []);
+    if (!incoming.length) throw new Error("JSON cần có table hoặc tables.");
+    const normalized = incoming.map((table, tableIndex) => {
+      const tableGroups = Array.isArray(table.groups) ? table.groups : [];
+      const fallback = Array.isArray(table.recommendations) ? table.recommendations : [];
+      const groupsWithRows = tableGroups.length ? tableGroups : [{ source_heading: "", title_vi: "Khuyến cáo chưa phân nhóm", recommendations: fallback }];
+      const rows = groupsWithRows.flatMap((group) => (Array.isArray(group.recommendations) ? group.recommendations : []).map(readJsonRecommendation)).filter((row) => row.original || row.vi);
+      if (!jsonString(table.title || table.title_original || table.title_vi)) throw new Error(`Bảng ${tableIndex + 1} thiếu tiêu đề.`);
+      if (!rows.length) throw new Error(`Bảng ${tableIndex + 1} chưa có khuyến cáo.`);
+      return { table, groups: groupsWithRows, rows };
+    });
+    return normalized;
+  }
+  async function importJson() {
+    try {
+      const payload = parsePayload();
+      if (!window.confirm(`Nhập ${payload.reduce((sum, item) => sum + item.rows.length, 0)} khuyến cáo từ JSON? Dữ liệu sẽ được tạo dạng bản nháp.`)) return;
+      setBusy(true);
+      const createdTables: GuidelineRecommendationTableRecord[] = [];
+      const createdGroups: GuidelineRecommendationGroupRecord[] = [];
+      const createdRecommendations: GuidelineRecommendationRecord[] = [];
+      for (const [tableIndex, item] of payload.entries()) {
+        const source = item.table;
+        const title = jsonString(source.title || source.title_original || source.title_vi);
+        const createdTable = await createGuidelineRecommendationTable(user.id, { guideline_id: guidelineId, section_id: null, table_number: jsonString(source.table_number || source.source_table_number), source_table_number: jsonString(source.source_table_number || source.table_number), title, title_vi: jsonString(source.title_vi || title), short_description: jsonString(source.short_description), source_page: jsonNumber(source.source_page_start || source.source_page), source_page_start: jsonNumber(source.source_page_start || source.source_page), source_page_end: jsonNumber(source.source_page_end || source.source_page_start || source.source_page), source_quote: "", source_anchor: "json-manual-import", source_order: typeof source.source_order === "number" ? source.source_order : tables.length + tableIndex, display_order: tables.length + tableIndex, is_complete: true, translation_status: "reviewed" });
+        createdTables.push(createdTable);
+        for (const [groupIndex, group] of item.groups.entries()) {
+          const rows = Array.isArray(group.recommendations) ? group.recommendations.map(readJsonRecommendation).filter((row) => row.original || row.vi) : [];
+          if (!rows.length) continue;
+          const createdGroup = await createGuidelineRecommendationGroup(user.id, { guideline_id: guidelineId, section_id: null, recommendation_table_id: createdTable.id, source_heading: jsonString(group.source_heading || group.title_vi) || `Nhóm ${groupIndex + 1}`, title_vi: jsonString(group.title_vi || group.source_heading) || `Nhóm ${groupIndex + 1}`, context: jsonString(group.context), source_page: jsonNumber(group.source_page), group_order: groupIndex });
+          createdGroups.push(createdGroup);
+          for (const [rowIndex, row] of rows.entries()) {
+            const created = await createGuidelineRecommendation(user.id, { guideline_id: guidelineId, section_id: null, recommendation_table_id: createdTable.id, recommendation_group_id: createdGroup.id, title: row.title, recommendation_text_original: row.original, recommendation_text_vi: row.vi, rationale_vi: "", recommendation_class: row.recommendationClass, evidence_level: row.evidenceLevel, evidence_system: "", population: "", intervention: "", comparator: "", outcome: "", conditions: "", contraindications: "", source_page: row.sourcePage ?? jsonNumber(source.source_page_start || source.source_page), source_quote: row.original, source_anchor: "json-manual-import", verification_status: "needs_review", review_note: "Nhập từ JSON thủ công; cần đối chiếu nguồn trước khi xuất bản.", sort_order: groupIndex * 1_000 + rowIndex });
+            createdRecommendations.push(created);
+          }
+        }
+      }
+      setTables([...tables, ...createdTables]); setGroups([...groups, ...createdGroups]); setRecommendations([...recommendations, ...createdRecommendations]); setText(""); setNotice({ type: "success", text: `Đã nhập ${createdTables.length} bảng và ${createdRecommendations.length} khuyến cáo dạng bản nháp.` });
+    } catch (error) { setNotice({ type: "error", text: error instanceof Error ? error.message : "JSON không hợp lệ." }); }
+    finally { setBusy(false); }
+  }
+  return <section className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="flex items-center gap-2 text-base font-extrabold text-indigo-950"><FileJson size={18} />Nhập bảng khuyến cáo bằng JSON</h2><p className="mt-1 max-w-3xl text-xs font-semibold text-slate-600">Cắt từng bảng hoặc từng đoạn, nhờ ChatGPT dịch theo prompt, sau đó dán hoặc tải JSON. Website sẽ tự tạo tên bảng, nhóm, nội dung, Class và Level/LoE ở dạng bản nháp.</p></div><button type="button" onClick={() => void copyPrompt()} className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-extrabold text-indigo-700">{promptCopied ? <CheckCircle2 size={15} /> : <Copy size={15} />}{promptCopied ? "Đã sao chép prompt" : "Sao chép prompt ChatGPT"}</button></div><textarea value={text} onChange={(event) => setText(event.target.value)} className="mt-3 min-h-48 w-full rounded-xl border border-indigo-200 bg-white p-3 font-mono text-xs text-slate-700" placeholder='Dán JSON tại đây, ví dụ: {"table":{"table_number":"Table 4",...}}' /><div className="mt-3 flex flex-wrap items-center gap-2"><label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-extrabold text-indigo-700"><Upload size={15} />Tải JSON<input type="file" accept="application/json,.json" className="hidden" onChange={(event) => loadFile(event.target.files?.[0])} /></label><button type="button" disabled={busy || !text.trim()} onClick={() => void importJson()} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-extrabold text-white disabled:opacity-50"><Clipboard size={15} />{busy ? "Đang nhập..." : "Kiểm tra và nhập JSON"}</button><span className="text-[11px] font-semibold text-slate-500">Tạo bản nháp, không tự xuất bản.</span></div><details className="mt-3 rounded-xl border border-indigo-100 bg-white/70 p-3"><summary className="cursor-pointer text-xs font-extrabold text-indigo-800">Xem prompt dịch y khoa</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-[11px] leading-5 text-slate-600">{recommendationPrompt}</pre></details></section>;
 }
 
 function TableCard({ table, sourceSection: section, groups, recommendations, user, open, onToggle, onAddGroup, onAddRecommendation, onTableUpdate, setNotice, onOpenRecommendation, onBulkPublished }: {
