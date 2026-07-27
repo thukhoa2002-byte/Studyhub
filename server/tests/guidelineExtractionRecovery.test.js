@@ -9,11 +9,17 @@ import {
   compareSourceTables,
   missingRecommendationTableNumbers,
 } from "../services/guidelineExtractionRecovery.js";
-import { reconstructGuidelinePageReadingOrder } from "../services/guidelineImport.js";
+import { reconstructGuidelinePageReadingOrder, singlePageSourceFallback } from "../services/guidelineImport.js";
 
 test("normalizes Unicode, soft hyphens, ligatures and non-breaking spaces without changing clinical symbols", () => {
   const normalized = normalizeGuidelineText("NSTE-\u00AD\nACS\u00a0  \ufb01ndings ≥ 10 mg");
   assert.equal(normalized, "NSTE-ACS findings ≥ 10 mg");
+});
+
+test("inherits a recommendation page only when the extracted item is single-page", () => {
+  assert.equal(singlePageSourceFallback({ pageStart: 9, pageEnd: 9 }), 9);
+  assert.equal(singlePageSourceFallback({ pageStart: 9, pageEnd: null }), 9);
+  assert.equal(singlePageSourceFallback({ pageStart: 9, pageEnd: 10 }), null);
 });
 
 test("reconstructs a two-column PDF in source reading order and keeps full-width rows separate", () => {
@@ -74,6 +80,14 @@ test("structural diagnostics keep source Sections as non-blocking provenance met
   assert.ok(diagnostics.some((item) => item.code === "duplicate_recommendation"));
   assert.ok(diagnostics.some((item) => item.code === "incomplete_table"));
   assert.ok(diagnostics.some((item) => item.code === "inventory_mismatch"));
+});
+
+test("structural diagnostics deduplicate the same blocking issue from persisted and derived checks", () => {
+  const diagnostics = structuralImportDiagnostics({
+    recommendations: [{ source_key: "rec-1", recommendation_text_original: "Use imaging", recommendation_text_vi: "Dùng hình ảnh", source_page: null }],
+    issues: [{ severity: "blocking", code: "missing_source_page", message: "Khuyến cáo rec-1 thiếu trang nguồn." }],
+  });
+  assert.equal(diagnostics.filter((item) => item.code === "missing_source_page").length, 1);
 });
 
 test("table ownership does not require a matching source Section to remain valid", () => {

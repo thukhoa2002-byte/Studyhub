@@ -9,6 +9,12 @@ import { normalizeGuidelineText, sourceSectionIdentity, validSourcePage, canImpo
 export const GUIDELINE_IMPORT_PROMPT_VERSION = "guideline-import-v2-selective";
 export const GUIDELINE_IMPORT_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
+export function singlePageSourceFallback(item) {
+  const start = validSourcePage(item?.pageStart);
+  const end = validSourcePage(item?.pageEnd);
+  return start && (!end || end === start) ? start : null;
+}
+
 const supportedExtensions = new Set(["pdf", "docx", "md", "markdown", "html", "htm", "txt"]);
 const missingTextPattern = /^(?:not\s+(?:specified|mentioned|provided|available)|n\/a|none|unknown|chưa\s+(?:có|được\s+nêu)|không\s+(?:được\s+)?nêu)(?:\s+(?:in|trong|the|provided|source|text|tài liệu|nguồn).*)?[.!:]?$/i;
 
@@ -196,10 +202,10 @@ YÊU CẦU:
 - Giữ nguyên mọi số liệu, ngưỡng, đơn vị, liều, tên thuốc, viết tắt y khoa, Class/Level/LoE. ${preserveAbbreviations ? "Không dịch viết tắt chuẩn." : "Có thể diễn giải viết tắt khi nguồn có giải thích."}
 - ${preserveEnglishTerminology ? "Giữ thuật ngữ tiếng Anh cạnh bản dịch khi cần." : "Ưu tiên tiếng Việt y khoa."}
 - Với bảng lâm sàng: luôn trả một phần tử đầy đủ trong mảng tables, gồm tableNumber, sectionSourceKey, tiêu đề, headers, rows, footnotes và sourcePage. Giữ nguyên tiêu đề, header, thứ tự hàng, quan hệ ô, đơn vị, liều, ngưỡng, Class/LoE và chú thích cần thiết. Không suy đoán ô/hàng thiếu, không làm phẳng bảng phức tạp thành đoạn văn không liên quan.
-- Bảng khuyến cáo: dịch trọn đơn vị bảng gồm số bảng, sectionSourceKey, tiêu đề, cột, nhãn hàng, mọi hàng/cell, Class/LoE và footnote. Mỗi recommendation từ bảng phải có tableSourceKey đúng bằng sourceKey của bảng. Điền groupOrder và rowOrder theo thứ tự gốc; không xếp theo Class, LoE hoặc bản dịch. Nếu bảng chỉ có tiêu đề hoặc thiếu hàng, trả issue recommendation_table_incomplete và không tạo recommendation từ dữ liệu thiếu.
+- Bảng khuyến cáo: dịch trọn đơn vị bảng gồm số bảng, sectionSourceKey, tiêu đề, cột, nhãn hàng, mọi hàng/cell, Class/LoE và footnote. Mỗi hàng có nội dung khuyến cáo và Class/LoE phải tạo đúng một phần tử trong recommendations; không gộp nhiều hàng, không chỉ lấy hàng đầu tiên và không dừng giữa bảng. Số phần tử recommendations phải khớp số hàng khuyến cáo trong bảng. Mỗi recommendation từ bảng phải có tableSourceKey đúng bằng sourceKey của bảng. Điền groupOrder và rowOrder theo thứ tự gốc; không xếp theo Class, LoE hoặc bản dịch. Nếu bảng chỉ có tiêu đề hoặc thiếu hàng, trả issue recommendation_table_incomplete và không tạo recommendation từ dữ liệu thiếu.
 - Với Figure: không dịch, vẽ lại hoặc ghi chữ trực tiếp lên ảnh. Chỉ trả metadata cho mảng figures: số Figure, tiêu đề/caption gốc và dịch, attribution, sectionSourceKey và liên kết sourceKey của recommendation/bảng nếu có bằng chứng rõ ràng. Không tạo Recommendation mới từ Figure. Giữ asset gốc, tỉ lệ ảnh và bản quyền để hệ thống crop/rà soát riêng.
 - Nếu không có dữ liệu, để chuỗi rỗng, không viết câu “Not specified in the provided text”.
-- Ghi sourcePage, sourceAnchor và coordinates nếu xác định được. confidence từ 0 đến 1.
+- Ghi sourcePage chính xác cho từng Recommendation. Nếu mục trải nhiều trang, không dùng trang đầu làm đại diện; khi không xác định được trang cụ thể, để trống để hệ thống chặn và yêu cầu rà soát thủ công. Ghi sourceAnchor và coordinates nếu xác định được. confidence từ 0 đến 1.
 - Mọi nội dung AI đều là draft, không tự publish.
 
 Trả JSON đúng schema được cung cấp.
@@ -214,7 +220,10 @@ export async function analyzeGuidelineItem({ text, item, sourceMetadata, sourceL
     file: { buffer: Buffer.from(String(text || ""), "utf8"), size: Buffer.byteLength(String(text || "")), mimetype: "text/plain", originalname: `${sourceMetadata.fileName || "guideline"}.txt` },
     prompt: buildImportPrompt({ text, item, sourceMetadata, sourceLanguage, targetLanguage, preserveAbbreviations, preserveEnglishTerminology }),
     schema: importSchema,
-    maxOutputTokens: 20_000,
+    // Recommendation tables can contain dozens of rows (Table 4 in the ESC
+    // source has many more than the first two rows). Keep enough budget for
+    // the complete table plus one structured recommendation per row.
+    maxOutputTokens: 50_000,
     timeoutMs: 240_000,
   });
   return normalizeImportResult(result);
@@ -280,7 +289,13 @@ export function createDocumentItems(text) {
   const sectionHeadings = [];
   let offset = 0;
   for (const line of lines) {
-    const match = line.match(headingPattern);
+    const trimmedLine = line.trim();
+    // PDF table cells can begin with words such as "algorithm" or
+    // "section".  Only a visibly formatted, title-case label may start a
+    // new document item; otherwise a continuation row would silently cut the
+    // preceding table (e.g. Table 5 in the ESC PDF).
+    const looksLikeHeading = /^(?:Supplementary|Table|Figure|Algorithm|Flowchart|Appendix|Chapter|Section)\b/.test(trimmedLine);
+    const match = looksLikeHeading ? line.match(headingPattern) : null;
     if (match && !/table\s+of\s+contents/i.test(line)) {
       matches.push({ start: offset, label: `${match[1]}${match[2] ? ` ${match[2].trim()}` : ""}`.trim(), title: cleanText(match[3] || "") });
     }

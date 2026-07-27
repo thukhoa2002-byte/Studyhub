@@ -162,6 +162,23 @@ test("merges repeated table labels across continuation pages without relying on 
   assert.match(items[0].text, /Continue therapy/);
 });
 
+test("does not cut a table when a cell starts with lowercase algorithm", () => {
+  const items = createDocumentItems([
+    "Table 5 Revised recommendations",
+    "Recommendations in 2017 and 2020 versions | Class LoE",
+    "An early invasive strategy is recommended in patients with any of the following high-risk criteria:",
+    "• Diagnosis of NSTEMI suggested by the diagnostic algorithm recommended in Section 3",
+    "I A",
+    "Recommendations in 2023 version | Class LoE",
+    "The new recommendation should remain part of Table 5.",
+    "Table 6 Dose regimen",
+  ].join("\n"));
+  assert.equal(items[0].label, "Table 5");
+  assert.match(items[0].text, /diagnostic algorithm recommended in Section 3/);
+  assert.match(items[0].text, /The new recommendation should remain part of Table 5/);
+  assert.equal(items[1].label, "Table 6");
+});
+
 test("table normalization preserves table cells and rejects invalid source page zero", () => {
   const normalized = normalizeImportResult({ document: {}, sections: [], recommendations: [], terminology: [], issues: [], tables: [{ sourceKey: "table-1", titleOriginal: "Dose", titleVi: "Liều", headersOriginal: ["Drug", "Dose"], headersVi: ["Thuốc", "Liều"], rows: [{ cellsOriginal: ["Aspirin", "75 mg"], cellsVi: ["Aspirin", "75 mg"] }], footnotesOriginal: ["a"], footnotesVi: ["a"], sourcePage: 0 }] });
   assert.deepEqual(normalized.tables[0].rows[0].cellsOriginal, ["Aspirin", "75 mg"]);

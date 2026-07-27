@@ -239,6 +239,11 @@ export async function reviewGuidelineImportRecommendationTable(jobId: string, it
   return await response.json() as { acceptedRecommendations: number };
 }
 
+export async function reviewAllGuidelineImportRecommendations(jobId: string): Promise<{ acceptedRecommendations: number }> {
+  const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/review-all`, { method: "POST", body: JSON.stringify({}) });
+  return await response.json() as { acceptedRecommendations: number };
+}
+
 export async function cropGuidelineImportFigure(jobId: string, figureId: string, input: { pageNumber: number; cropBox: { x: number; y: number; width: number; height: number } }): Promise<GuidelineImportFigure> {
   const response = await request(`/api/admin/guideline-import/jobs/${encodeURIComponent(jobId)}/figures/${encodeURIComponent(figureId)}/crop`, { method: "POST", body: JSON.stringify(input) });
   return ((await response.json()) as { figure: GuidelineImportFigure }).figure;

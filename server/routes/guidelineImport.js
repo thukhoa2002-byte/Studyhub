@@ -15,6 +15,7 @@ import {
   validateImportForBulkImport,
   GUIDELINE_IMPORT_MODEL,
   GUIDELINE_IMPORT_PROMPT_VERSION,
+  singlePageSourceFallback,
 } from "../services/guidelineImport.js";
 import { deleteImportObject, downloadImportObject, supabaseTableRequest, tokenFromRequest, uploadImportObject } from "../services/guidelineImportStore.js";
 import { TRANSLATION_PROVIDERS, TRANSLATION_SCOPES, defaultSelection, expectedInventoryForDocument, groupedLocalDiagnostics, initializeItemStates, inventoryDiagnostics, mandatoryRecommendationCompletion, selectTranslationItems, translationSummary } from "../services/guidelineTranslationPolicy.js";
@@ -51,6 +52,18 @@ function hasCompleteRecommendationTable(tables) {
       });
   });
 }
+
+function recommendationRowCount(table) {
+  const headers = (table?.headersOriginal || table?.headersVi || []).map((header) => String(header || "").toLowerCase());
+  const classIndex = headers.findIndex((header) => /^(?:class|classe|classe?\b)/i.test(header));
+  const levelIndex = headers.findIndex((header) => /(?:level|loe|evidence)/i.test(header));
+  return (Array.isArray(table?.rows) ? table.rows : []).filter((row) => {
+    const cells = Array.isArray(row?.cellsOriginal) ? row.cellsOriginal : [];
+    const text = String(cells[classIndex >= 0 ? classIndex : 1] || "").trim();
+    const level = String(cells[levelIndex >= 0 ? levelIndex : 2] || "").trim();
+    return text && level && /^(?:I{1,3}|IIa|IIb|IV|A|B|C|D)$/i.test(text) || (text && level && /^(?:I{1,3}|IIa|IIb|IV)$/i.test(level));
+  }).length;
+}
 function figureForJob(data, figureId) {
   const figures = data?.job?.analysis_metadata?.figureResources || {};
   return figures[figureId] ? { figures, figure: figures[figureId] } : { figures, figure: null };
@@ -74,7 +87,29 @@ async function readJobData(req, id) {
     supabaseTableRequest("guideline_import_terminology", token, { query: { job_id: `eq.${id}`, select: "*", order: "source_term.asc" } }),
     supabaseTableRequest("guideline_import_events", token, { query: { job_id: `eq.${id}`, select: "*", order: "created_at.desc", limit: "50" } }),
   ]);
-  return { job, document: documents?.[0] || null, sections: sections || [], recommendations: recommendations || [], issues: issues || [], terminology: terminology || [], events: events || [] };
+  const items = Array.isArray(job.analysis_metadata?.items) ? job.analysis_metadata.items : [];
+  const fallbackBySourceKey = new Map();
+  const repairedRecommendations = (recommendations || []).map((recommendation) => {
+    if (validSourcePage(recommendation.source_page)) return recommendation;
+    const item = items.find((candidate) => String(recommendation.source_key || "").startsWith(`${candidate.id}:`));
+    const fallback = singlePageSourceFallback(item);
+    if (!fallback) return recommendation;
+    fallbackBySourceKey.set(recommendation.source_key, fallback);
+    return { ...recommendation, source_page: fallback, original_payload: { ...(recommendation.original_payload || {}), sourcePage: fallback } };
+  });
+  const repairedIssues = (issues || []).filter((issue) => {
+    if (issue.issue_code !== "missing_source_page") return true;
+    const sourceKey = repairedRecommendations.find((recommendation) => recommendation.id === issue.recommendation_id)?.source_key;
+    return !(sourceKey && fallbackBySourceKey.has(sourceKey));
+  });
+  const repairedStructuralDiagnostics = (job.analysis_metadata?.structuralDiagnostics || []).filter((diagnostic) => {
+    if (diagnostic.code !== "missing_source_page") return true;
+    return ![...fallbackBySourceKey.keys()].some((sourceKey) => String(diagnostic.message || "").includes(sourceKey));
+  });
+  const repairedJob = repairedStructuralDiagnostics.length === (job.analysis_metadata?.structuralDiagnostics || []).length
+    ? job
+    : { ...job, analysis_metadata: { ...(job.analysis_metadata || {}), structuralDiagnostics: repairedStructuralDiagnostics } };
+  return { job: repairedJob, document: documents?.[0] || null, sections: sections || [], recommendations: repairedRecommendations, issues: repairedIssues, terminology: terminology || [], events: events || [] };
 }
 
 async function updateJob(req, id, patch) {
@@ -93,13 +128,14 @@ function slugify(value) {
   return String(value || "guideline").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "guideline";
 }
 
-async function processJob(req, jobId, selectedItemIds, requestedScope = "clinical_essentials", requestedProvider = "gemini") {
+async function processJob(req, jobId, selectedItemIds, requestedScope = "clinical_essentials", requestedProvider = "gemini", resetQualityIssues = false) {
   const token = tokenFromRequest(req);
   const data = await readJobData(req, jobId);
   if (!data?.document) throw new Error("Không tìm thấy tài liệu import.");
   const items = Array.isArray(data.job.analysis_metadata?.items) ? data.job.analysis_metadata.items : [];
   const scope = translationScope(requestedScope);
   const provider = translationProvider(requestedProvider);
+  if (resetQualityIssues) await supabaseTableRequest("guideline_import_issues", token, { method: "DELETE", query: { job_id: `eq.${jobId}` } });
   const states = { ...itemStates(data.job.analysis_metadata) };
   const selected = selectTranslationItems(items, selectedItemIds, scope, states);
   const persistMetadata = (extra = {}) => ({
@@ -164,6 +200,16 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
           blocking: true,
         });
       }
+      if (item.contentType === "recommendation_table") {
+        const tableRowCount = (result.tables || []).reduce((sum, table) => sum + recommendationRowCount(table), 0);
+        const linkedRecommendationCount = (result.recommendations || []).filter((recommendation) => (result.tables || []).some((table) => String(table.sourceKey || "") === String(recommendation.tableSourceKey || ""))).length;
+        if (tableRowCount > 0 && linkedRecommendationCount < tableRowCount) {
+          throw Object.assign(new Error(`${item.label || "Bảng khuyến cáo"} mới trích xuất ${linkedRecommendationCount}/${tableRowCount} hàng khuyến cáo; cần đọc lại toàn bộ bảng, không được duyệt phần thiếu.`), {
+            code: "recommendation_row_count_mismatch",
+            blocking: true,
+          });
+        }
+      }
       // A clinical table is valuable content, but its rows are not automatically
       // clinical recommendations. Figures never create recommendations either.
       if (item.resourceType === "clinical_table" || item.resourceType === "figure") {
@@ -180,13 +226,14 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
       };
       const sourceOrder = Number.isInteger(item.sourceOrder) ? item.sourceOrder : index;
       const sourceTableNumber = item.sourceTableNumber || item.label || "";
+      const itemSourcePage = singlePageSourceFallback(item);
       const orderedTables = (result.tables || []).map((table) => ({
         ...table,
         itemId: item.id,
         tableNumber: table.tableNumber || sourceTableNumber,
         sourceTableNumber: table.tableNumber || sourceTableNumber,
         sourceOrder,
-        sourcePage: validSourcePage(table.sourcePage) || validSourcePage(item.pageStart),
+        sourcePage: validSourcePage(table.sourcePage) || itemSourcePage,
         sourcePageEnd: validSourcePage(table.sourcePageEnd) || validSourcePage(item.pageEnd),
         rows: (table.rows || []).map((row, rowIndex) => ({ ...row, groupOrder: Number.isInteger(row.groupOrder) ? row.groupOrder : 0, rowOrder: Number.isInteger(row.rowOrder) ? row.rowOrder : rowIndex })),
       }));
@@ -261,6 +308,7 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
       const insertedRecommendations = [];
       for (const [recommendationIndex, recommendation] of result.recommendations.entries()) {
         const sourceKey = `${item.id}:${recommendation.sourceKey}`;
+        const recommendationSourcePage = validSourcePage(recommendation.sourcePage) || itemSourcePage;
         const existingRecommendation = (latestRecommendations || []).find((candidate) => candidate.source_key === sourceKey);
         const recommendationPayload = {
           import_section_id: null,
@@ -278,7 +326,7 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
           outcome: recommendation.outcome || "",
           conditions: recommendation.conditions || "",
           contraindications: recommendation.contraindications || "",
-          source_page: validSourcePage(recommendation.sourcePage),
+          source_page: recommendationSourcePage,
           source_quote: recommendation.sourceQuote,
           source_anchor: recommendation.sourceAnchor,
           coordinates: recommendation.coordinates || {},
@@ -297,6 +345,7 @@ async function processJob(req, jobId, selectedItemIds, requestedScope = "clinica
             sourceContext: recommendation.conditions || "",
             translatedContext: recommendation.conditions || "",
             tableSourceKey: recommendation.tableSourceKey || "",
+            sourcePage: recommendationSourcePage,
             sourceTableNumber,
             sourceOrder,
             groupOrder: recommendation.groupOrder,
@@ -678,7 +727,7 @@ router.post("/jobs/:jobId/process", async (req, res) => {
   if (!selectedItemIds.length) return res.status(422).json({ success: false, message: "Hãy chọn ít nhất một mục tài liệu." });
   const scope = translationScope(req.body?.translationScope);
   const provider = translationProvider(req.body?.translationProvider);
-  try { await updateJob(req, req.params.jobId, { status: "processing", current_stage: "queued", resume_token: JSON.stringify({ itemIds: selectedItemIds, translationScope: scope, translationProvider: provider }) }); void processJob(req, req.params.jobId, selectedItemIds, scope, provider).catch(async (error) => { await updateJob(req, req.params.jobId, { status: "failed", current_stage: "error", error_message: errorMessage(error) }).catch(() => null); }); return res.status(202).json({ success: true, status: "processing", message: "Đã bắt đầu xử lý nền. Có thể đóng tab và quay lại phiên import." }); }
+  try { await updateJob(req, req.params.jobId, { status: "processing", current_stage: "queued", resume_token: JSON.stringify({ itemIds: selectedItemIds, translationScope: scope, translationProvider: provider }) }); void processJob(req, req.params.jobId, selectedItemIds, scope, provider, true).catch(async (error) => { await updateJob(req, req.params.jobId, { status: "failed", current_stage: "error", error_message: errorMessage(error) }).catch(() => null); }); return res.status(202).json({ success: true, status: "processing", message: "Đã bắt đầu xử lý nền. Có thể đóng tab và quay lại phiên import." }); }
   catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
 });
 
@@ -775,6 +824,34 @@ router.post("/jobs/:jobId/items/:itemId/review", async (req, res) => {
     });
     await addEvent(req, req.params.jobId, "recommendation_table_reviewed", "review", { itemId: item.id, reviewedBy: req.guidelineAdmin.id, acceptedRecommendations: tableRecommendations.length });
     return res.json({ success: true, status: states[item.id], readyForReview: ready, acceptedRecommendations: tableRecommendations.length });
+  } catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
+});
+
+router.post("/jobs/:jobId/review-all", async (req, res) => {
+  try {
+    const data = await readJobData(req, req.params.jobId);
+    if (!data) return res.status(404).json({ success: false, message: "Không tìm thấy phiên import." });
+    const items = Array.isArray(data.job.analysis_metadata?.items) ? data.job.analysis_metadata.items : [];
+    const tablesByItem = data.job.analysis_metadata?.tableTranslations || {};
+    const recommendationItems = items.filter((item) => item.contentType === "recommendation_table");
+    const tableSourceKeys = new Set(recommendationItems.flatMap((item) => (Array.isArray(tablesByItem[item.id]) ? tablesByItem[item.id] : []).map((table) => String(table?.sourceKey || "")).filter(Boolean)));
+    if (recommendationItems.some((item) => !Array.isArray(tablesByItem[item.id]) || tablesByItem[item.id].length === 0 || tablesByItem[item.id].some((table) => !hasCompleteRecommendationTable([table])))) return res.status(422).json({ success: false, message: "Có bảng khuyến cáo chưa đủ tiêu đề, cột hoặc hàng; chưa thể phê duyệt toàn bộ." });
+    const recommendations = data.recommendations.filter((recommendation) => tableSourceKeys.has(String(recommendation.original_payload?.tableSourceKey || "")));
+    if (!recommendations.length) return res.status(422).json({ success: false, message: "Chưa có khuyến cáo hợp lệ để phê duyệt." });
+    if (recommendations.some((recommendation) => !String(recommendation.recommendation_text_vi || recommendation.recommendation_text_original || "").trim())) return res.status(422).json({ success: false, message: "Có khuyến cáo chưa có nội dung." });
+    const duplicates = recommendations.filter((recommendation) => ["exact", "possible", "update"].includes(recommendation.duplicate_status));
+    if (duplicates.length) return res.status(422).json({ success: false, message: `${duplicates.length} khuyến cáo có khả năng trùng; cần xử lý trước khi phê duyệt toàn bộ.` });
+    for (const recommendation of recommendations) await supabaseTableRequest("guideline_import_recommendations", tokenFromRequest(req), { method: "PATCH", query: { id: `eq.${recommendation.id}` }, body: { review_status: "accepted", verification_status: "verified" } });
+    const states = { ...itemStates(data.job.analysis_metadata) };
+    for (const item of recommendationItems) if (Array.isArray(tablesByItem[item.id]) && tablesByItem[item.id].some((table) => tableSourceKeys.has(String(table?.sourceKey || "")))) states[item.id] = { ...(states[item.id] || {}), status: "reviewed", reviewedAt: new Date().toISOString(), reviewedBy: req.guidelineAdmin.id, reviewRequired: false, errorCode: null, errorMessage: null };
+    const scope = translationScope(data.job.analysis_metadata?.translationScope);
+    const selectedItemIds = data.job.analysis_metadata?.selectedItemIds || [];
+    const completion = mandatoryRecommendationCompletion(items, states);
+    const pending = selectTranslationItems(items, selectedItemIds, scope, states);
+    const ready = completion.complete && pending.length === 0;
+    await updateJob(req, req.params.jobId, { status: ready ? "ready_for_review" : "paused", current_stage: ready ? "review" : "mandatory_tables_pending", progress: ready ? 100 : Math.max(25, data.job.progress || 0), analysis_metadata: { ...(data.job.analysis_metadata || {}), itemStates: states, translationSummary: translationSummary(items, selectedItemIds, scope, states) } });
+    await addEvent(req, req.params.jobId, "all_recommendations_reviewed", "review", { reviewedBy: req.guidelineAdmin.id, acceptedRecommendations: recommendations.length });
+    return res.json({ success: true, readyForReview: ready, acceptedRecommendations: recommendations.length });
   } catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
 });
 

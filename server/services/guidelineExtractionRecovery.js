@@ -124,7 +124,12 @@ export function structuralImportDiagnostics({ items = [], sections = [], recomme
   const missingNumbers = missingRecommendationTableNumbers(requiredTables);
   if (missingNumbers.length) add("missing_recommendation_table", `Thiếu bảng khuyến cáo theo inventory nguồn: ${missingNumbers.map((number) => `Bảng ${number}`).join(", ")}.`);
   for (const issue of issues) if (issue?.severity === "blocking" && issue?.code) diagnostics.push({ ...issue, sourcePage: validSourcePage(issue.sourcePage ?? issue.source_page) });
-  return diagnostics;
+  const unique = new Map();
+  for (const diagnostic of diagnostics) {
+    const key = [diagnostic.code, diagnostic.message, diagnostic.itemId || "", diagnostic.recommendation_id || ""].join("|");
+    if (!unique.has(key)) unique.set(key, diagnostic);
+  }
+  return [...unique.values()];
 }
 
 export function canImportStructuredBatch(input) {
