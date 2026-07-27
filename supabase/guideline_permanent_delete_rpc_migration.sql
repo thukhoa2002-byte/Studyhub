@@ -31,6 +31,22 @@ begin
     raise exception 'Chỉ Guideline bản nháp hoặc đã lưu trữ mới được xóa vĩnh viễn.';
   end if;
 
+  -- Import jobs keep nullable RESTRICT references to both the selected target
+  -- and the Guideline created by a completed import. Preserve the import audit
+  -- trail, but detach those references before deleting the Guideline.
+  update public.guideline_import_jobs
+  set
+    target_guideline_id = case
+      when target_guideline_id = p_guideline_id then null
+      else target_guideline_id
+    end,
+    imported_guideline_id = case
+      when imported_guideline_id = p_guideline_id then null
+      else imported_guideline_id
+    end
+  where target_guideline_id = p_guideline_id
+     or imported_guideline_id = p_guideline_id;
+
   delete from public.recommendation_drug_references
   where recommendation_id in (
     select id from public.guideline_recommendations where guideline_id = p_guideline_id
