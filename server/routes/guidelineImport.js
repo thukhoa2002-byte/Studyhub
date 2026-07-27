@@ -735,7 +735,17 @@ router.post("/jobs/:jobId/items/:itemId/review", async (req, res) => {
     const item = items.find((candidate) => candidate.id === req.params.itemId);
     if (!item || item.contentType !== "recommendation_table") return res.status(422).json({ success: false, message: "Chỉ bảng khuyến cáo đầy đủ mới cần xác nhận rà soát." });
     const tables = data.job.analysis_metadata?.tableTranslations?.[item.id];
-    if (!hasCompleteRecommendationTable(tables)) return res.status(422).json({ success: false, message: "Bảng khuyến cáo chưa đủ tiêu đề, cột và hàng để xác nhận. Hãy khôi phục nội dung hoặc trang tiếp theo trước." });
+    if (!Array.isArray(tables) || tables.length === 0 || tables.some((table) => !hasCompleteRecommendationTable([table]))) return res.status(422).json({ success: false, message: "Bảng khuyến cáo chưa đủ tiêu đề, cột và hàng để xác nhận. Hãy khôi phục nội dung hoặc trang tiếp theo trước." });
+    const tableSourceKeys = new Set(tables.map((table) => String(table?.sourceKey || "")).filter(Boolean));
+    const tableRecommendations = data.recommendations.filter((recommendation) => tableSourceKeys.has(String(recommendation.original_payload?.tableSourceKey || "")));
+    if (tableRecommendations.length === 0) return res.status(422).json({ success: false, message: "Bảng khuyến cáo chưa có Recommendation nào để phê duyệt. Hãy kiểm tra lại kết quả trích xuất." });
+    const invalidRecommendations = tableRecommendations.filter((recommendation) => !String(recommendation.recommendation_text_vi || recommendation.recommendation_text_original || "").trim());
+    if (invalidRecommendations.length) return res.status(422).json({ success: false, message: `${invalidRecommendations.length} khuyến cáo trong bảng chưa có nội dung để phê duyệt.` });
+    const duplicateRecommendations = tableRecommendations.filter((recommendation) => ["exact", "possible", "update"].includes(recommendation.duplicate_status));
+    if (duplicateRecommendations.length) return res.status(422).json({ success: false, message: `${duplicateRecommendations.length} khuyến cáo trong bảng có khả năng trùng. Hãy kiểm tra và xử lý trước khi phê duyệt cả bảng.` });
+    for (const recommendation of tableRecommendations) {
+      await supabaseTableRequest("guideline_import_recommendations", tokenFromRequest(req), { method: "PATCH", query: { id: `eq.${recommendation.id}` }, body: { review_status: "accepted", verification_status: "verified" } });
+    }
     const states = {
       ...itemStates(data.job.analysis_metadata),
       [item.id]: {
@@ -763,8 +773,8 @@ router.post("/jobs/:jobId/items/:itemId/review", async (req, res) => {
         translationSummary: translationSummary(items, selectedItemIds, scope, states),
       },
     });
-    await addEvent(req, req.params.jobId, "recommendation_table_reviewed", "review", { itemId: item.id, reviewedBy: req.guidelineAdmin.id });
-    return res.json({ success: true, status: states[item.id], readyForReview: ready });
+    await addEvent(req, req.params.jobId, "recommendation_table_reviewed", "review", { itemId: item.id, reviewedBy: req.guidelineAdmin.id, acceptedRecommendations: tableRecommendations.length });
+    return res.json({ success: true, status: states[item.id], readyForReview: ready, acceptedRecommendations: tableRecommendations.length });
   } catch (error) { return res.status(statusCode(error)).json({ success: false, message: errorMessage(error) }); }
 });
 

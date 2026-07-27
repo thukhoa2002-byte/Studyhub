@@ -174,13 +174,13 @@ export default function AdminGuidelineImportPage({ onNavigate }: { user: User; o
 
   async function reviewRecommendationTable(item: GuidelineImportItem) {
     if (!jobData) return;
-    if (!window.confirm("Xác nhận đã rà soát đầy đủ tiêu đề, cột, hàng, ghi chú, Class và Level/LoE của bảng khuyến cáo này?")) return;
+    if (!window.confirm("Phê duyệt toàn bộ Recommendation thuộc bảng này sau khi đã kiểm tra tiêu đề, cột, hàng, ghi chú, Class và Level/LoE?")) return;
     setBusy(true);
     try {
       await reviewGuidelineImportRecommendationTable(jobData.job.id, item.id);
       setJobData(await getGuidelineImportJob(jobData.job.id));
       await loadJobs();
-      setNotice({ type: "success", text: "Đã xác nhận rà soát bảng khuyến cáo. Bảng này được tính vào điều kiện hoàn tất." });
+      setNotice({ type: "success", text: "Đã phê duyệt toàn bộ bảng khuyến cáo trong một lần. Bảng này được tính vào điều kiện hoàn tất." });
     } catch (error) { setNotice({ type: "error", text: errorText(error) }); }
     finally { setBusy(false); }
   }
@@ -220,7 +220,7 @@ function JobReview({ data, items, selectedItems, setSelectedItems, visibleRecomm
     <TranslatedTables tables={data.job.analysis_metadata.tableTranslations} items={items} itemStates={data.job.analysis_metadata.itemStates} busy={busy} onReview={onReviewRecommendationTable} />
     <ExtractedFigures jobId={data.job.id} figures={data.job.analysis_metadata.figureResources} onChanged={onRefresh} />
     {isProcessing && <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm font-semibold text-amber-800"><Pause className="mr-2 inline" size={16} />Đang chạy dưới nền. Có thể chuyển tab; trạng thái sẽ được lưu và tiếp tục khi quay lại.</section>}
-    {data.recommendations.length > 0 && <><section className="rounded-2xl border border-violet-200 bg-white/85 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-lg font-extrabold text-slate-800">Khuyến cáo trong Bảng</h3><p className="mt-1 text-xs font-semibold text-slate-500">Duyệt từng bản dịch trước khi nhập Core draft. Mục nguồn chỉ lưu provenance.</p></div><label className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bản gốc, bản dịch, Level..." className="h-9 w-64 rounded-lg border border-slate-200 pl-9 pr-3 text-xs font-semibold" /></label></div><div className="mt-3 space-y-3">{visibleRecommendations.map((recommendation) => <RecommendationReview key={recommendation.id} recommendation={recommendation} onChange={onRecommendationChange} />)}{visibleRecommendations.length === 0 && <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm font-semibold text-slate-500">Không có khuyến cáo phù hợp.</p>}</div></section><Issues issues={data.issues} blockingIssues={blockingIssues} /><section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/85 p-4"><div className="text-xs font-semibold text-slate-500">Đã duyệt: {acceptedRecommendations} khuyến cáo · {data.terminology.length} thuật ngữ</div><div className="flex flex-wrap gap-2"><button type="button" disabled={busy || blockingIssues.length > 0 || acceptedRecommendations === 0} onClick={onImport} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-40"><Check size={16} />Nhập thành Core draft</button></div></section></>}
+    {data.recommendations.length > 0 && <><section className="rounded-2xl border border-violet-200 bg-white/85 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-lg font-extrabold text-slate-800">Khuyến cáo trong Bảng</h3><p className="mt-1 text-xs font-semibold text-slate-500">Phê duyệt theo từng bảng trong một lần; không cần chuyển trạng thái từng khuyến cáo. Mục nguồn chỉ lưu provenance.</p></div><label className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm bản gốc, bản dịch, Level..." className="h-9 w-64 rounded-lg border border-slate-200 pl-9 pr-3 text-xs font-semibold" /></label></div><div className="mt-3 space-y-3">{visibleRecommendations.map((recommendation) => <RecommendationReview key={recommendation.id} recommendation={recommendation} onChange={onRecommendationChange} />)}{visibleRecommendations.length === 0 && <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm font-semibold text-slate-500">Không có khuyến cáo phù hợp.</p>}</div></section><Issues issues={data.issues} blockingIssues={blockingIssues} /><section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/85 p-4"><div className="text-xs font-semibold text-slate-500">Đã duyệt: {acceptedRecommendations} khuyến cáo · {data.terminology.length} thuật ngữ</div><div className="flex flex-wrap gap-2"><button type="button" disabled={busy || blockingIssues.length > 0 || acceptedRecommendations === 0} onClick={onImport} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-40"><Check size={16} />Nhập thành Core draft</button></div></section></>}
   </div>;
 }
 
@@ -266,7 +266,7 @@ function TranslatedTables({ tables, items, itemStates, busy, onReview }: { table
           <tbody>{[...(table.rows || [])].sort((left, right) => (left.groupOrder ?? 0) - (right.groupOrder ?? 0) || (left.rowOrder ?? 0) - (right.rowOrder ?? 0)).map((row, rowIndex) => <tr key={rowIndex}>{(row.cellsVi?.length ? row.cellsVi : row.cellsOriginal || []).map((cell, cellIndex) => <td key={cellIndex} className="border border-slate-200 px-2 py-1.5 font-semibold text-slate-600">{cell}</td>)}</tr>)}</tbody>
         </table>
         {table.footnotesVi?.length ? <p className="mt-2 text-[11px] font-semibold text-slate-500">{table.footnotesVi.join(" ")}</p> : null}
-        {isRecommendationTable && item && !isReviewed && <button type="button" disabled={busy} onClick={() => onReview(item)} className="mt-3 rounded-lg bg-teal-600 px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50">Xác nhận đã rà soát bảng</button>}
+        {isRecommendationTable && item && !isReviewed && <button type="button" disabled={busy} onClick={() => onReview(item)} className="mt-3 rounded-lg bg-teal-600 px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50">Phê duyệt toàn bộ bảng</button>}
       </article>;
       })}
     </div>
