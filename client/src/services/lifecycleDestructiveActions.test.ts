@@ -31,9 +31,12 @@ test("lifecycle migration enforces transitions, restrictive foreign keys, and sa
 test("admin lifecycle UI uses services and requires an explicit permanent-delete confirmation", () => {
   const calculatorAdmin = readFileSync(new URL("../components/AdminCalculatorPage.tsx", import.meta.url), "utf8");
   const guidelineAdmin = readFileSync(new URL("../components/AdminGuidelineStructuredEditor.tsx", import.meta.url), "utf8");
+  const guidelineLifecycle = readFileSync(new URL("./guidelineLifecycleService.ts", import.meta.url), "utf8");
   assert.match(calculatorAdmin, /restoreCalculatorToDraft/);
   assert.match(calculatorAdmin, /deleteCalculatorPermanently/);
   assert.match(guidelineAdmin, /deleteGuidelinePermanently/);
+  assert.match(guidelineLifecycle, /rpc\("delete_guideline_permanently"/);
+  assert.doesNotMatch(guidelineLifecycle.match(/export async function deleteGuidelinePermanently[\s\S]*?\n}/)?.[0] || "", /getGuidelineDeleteBlockers/);
   assert.match(guidelineAdmin, /deleteGuidelineSectionPermanently/);
   assert.match(guidelineAdmin, /deleteGuidelineRecommendationPermanently/);
   assert.match(calculatorAdmin, /Nhập DELETE để xóa vĩnh viễn/);

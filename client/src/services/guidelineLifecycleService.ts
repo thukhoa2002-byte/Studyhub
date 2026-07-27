@@ -33,8 +33,14 @@ export async function deleteGuidelinePermanently(id: string): Promise<void> {
   const document = await getGuidelineCoreDocument(id); if (!document) return;
   if (document.status === "published") throw new Error("Guideline đã xuất bản phải được lưu trữ trước khi xóa.");
   if (document.status !== "draft" && document.status !== "archived") throw new Error("Chỉ Guideline bản nháp hoặc đã lưu trữ mới được xóa vĩnh viễn.");
-  const blockers = await getGuidelineDeleteBlockers(id); if (blockers.length) throw new Error(`${blockers.join(" ")} Hãy gỡ dependency trước khi xóa.`);
-  await remove("guideline_documents", id);
+  const { data, error } = await requireGuidelineClient().rpc("delete_guideline_permanently", { p_guideline_id: id });
+  if (error) {
+    if (/function .*delete_guideline_permanently.*does not exist|could not find the function/i.test(error.message || "")) {
+      throw new Error("Chưa áp dụng migration xóa Guideline vĩnh viễn. Hãy chạy guideline_permanent_delete_rpc_migration.sql trước.");
+    }
+    throw error;
+  }
+  if (data !== true) throw new Error("Guideline không còn tồn tại hoặc không thể xóa.");
 }
 
 export async function restoreGuidelineSectionToDraft(id: string) {
